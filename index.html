@@ -1498,6 +1498,68 @@
       }
     };
 
+    // Hiển thị mưa giờ chung với các biểu đồ Q dự báo:
+    // - Trước/đến thời điểm còn có số liệu thực đo MNH, Q: dùng mưa giờ thực tế.
+    // - Sau thời điểm thực đo cuối cùng: dùng mưa giờ dự báo.
+    // Hai nguồn mưa dùng màu khác nhau để dễ phân biệt.
+    const enableRainAxis = () => {
+      opts.scales.y1 = {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        beginAtZero: true,
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#64748b', font: { size: 10 } },
+        title: { display: true, text: 'Mưa giờ (mm)', color: '#64748b', font: { size: 11, weight: '700' } }
+      };
+    };
+    const getRainObsAt = (timeKey) => {
+      const i = state.hourly7D_Obs.find(x => x.time === timeKey) || state.latest24h.find(x => x.time === timeKey);
+      return i ? getRain(i) : null;
+    };
+    const getRainFcAt = (timeKey) => {
+      const i = state.rainFc.find(x => x.forecast_time === timeKey);
+      return i ? Number(i.rainfall_mm || 0) : null;
+    };
+    const rainMixedBarDatasets = (timeKeys) => {
+      const obsData = timeKeys.map(t => {
+        const tt = new Date(t).getTime();
+        const v = getRainObsAt(t);
+        return (tt <= lastObsTime && v !== null) ? v : null;
+      });
+      const fcData = timeKeys.map(t => {
+        const tt = new Date(t).getTime();
+        const v = getRainFcAt(t);
+        return (tt > lastObsTime && v !== null) ? v : null;
+      });
+      return [
+        {
+          type: 'bar',
+          label: 'Mưa giờ thực tế',
+          data: obsData,
+          yAxisID: 'y1',
+          backgroundColor: 'rgba(34,197,94,0.30)',
+          borderColor: 'rgba(34,197,94,0.70)',
+          borderWidth: 1,
+          order: 10,
+          barPercentage: 0.75,
+          categoryPercentage: 0.75
+        },
+        {
+          type: 'bar',
+          label: 'Mưa giờ dự báo',
+          data: fcData,
+          yAxisID: 'y1',
+          backgroundColor: 'rgba(167,139,250,0.28)',
+          borderColor: 'rgba(167,139,250,0.70)',
+          borderWidth: 1,
+          order: 11,
+          barPercentage: 0.75,
+          categoryPercentage: 0.75
+        }
+      ];
+    };
+
     let labels=[], datasets=[];
     const lastObsTime = state.lastObs ? new Date(state.lastObs.time).getTime() : 0;
 
@@ -1608,8 +1670,10 @@
           borderWidth:2,
           pointRadius:0,
           tension:0.3
-        }
+        },
+        ...rainMixedBarDatasets(all)
       ];
+      enableRainAxis();
     }
     else if(currentTab==='IN_FC_7D'){
       const tl=new Date($("day").value).setHours(0,0,0,0)+7*86400000;
@@ -1638,8 +1702,10 @@
       datasets=[
         {label:'Biên trên',data:dH,borderColor:'transparent',backgroundColor:'rgba(37,99,235,0.12)',pointRadius:0,fill:'+1',tension:0.4},
         {label:'Biên dưới',data:dL,borderColor:'transparent',pointRadius:0,fill:false,tension:0.4},
-        {label:'Dự báo TB',data:dM,borderColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:0.4,fill:false}
+        {label:'Dự báo TB',data:dM,borderColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:0.4,fill:false},
+        ...rainMixedBarDatasets(ts)
       ];
+      enableRainAxis();
     }
     else if(currentTab==='RF_DAILY_FC'){
       const tl=new Date($("day").value).setHours(0,0,0,0)+7*86400000;
