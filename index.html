@@ -631,15 +631,22 @@
       background: #ffffff;
     }
 
+    .weather-pro-grid {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 10px;
+      align-items: stretch;
+    }
     .weather-frame-wrap {
       width: 100%;
-      height: calc(100vh - var(--header-h) - 120px);
+      height: calc(100vh - var(--header-h) - 132px);
       min-height: 680px;
-      border-radius: 16px;
-      border: 1px solid var(--line);
+      border-radius: 18px;
+      border: 1px solid rgba(15,23,42,0.16);
       overflow: hidden;
       background: #0f172a;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 18px 42px rgba(15,23,42,0.12);
+      position: relative;
     }
     .weather-frame-wrap iframe {
       width: 100%;
@@ -647,6 +654,136 @@
       border: 0;
       display: block;
       background: #0f172a;
+    }
+    .weather-side {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(37,99,235,0.04) 100%);
+      box-shadow: var(--shadow-card);
+      padding: 9px;
+      min-height: 680px;
+    }
+    .weather-panel-title {
+      font-size: 11px;
+      font-weight: 1000;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin: 4px 4px 10px;
+    }
+    .weather-chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .weather-chip {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text-main);
+      border-radius: 14px;
+      padding: 7px 6px;
+      font-weight: 1000;
+      font-size: 11px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .weather-chip.active {
+      color: var(--primary);
+      border-color: rgba(37,99,235,0.30);
+      background: rgba(37,99,235,0.10);
+    }
+    .weather-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+    .weather-info-card {
+      border: 1px solid var(--line-soft);
+      background: rgba(255,255,255,0.84);
+      border-radius: 16px;
+      padding: 9px;
+      margin-bottom: 8px;
+    }
+    .weather-info-card b {
+      display: block;
+      color: var(--text-main);
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+    .weather-info-card span {
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 750;
+    }
+    .weather-select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 10px 0 12px;
+    }
+    .weather-select-row.single { grid-template-columns: 1fr; }
+    .weather-select-row select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px 7px;
+      font-weight: 900;
+      color: var(--text-main);
+      background: #fff;
+      outline: none;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    }
+    .weather-actions-stack { display: grid; gap: 8px; }
+    .weather-actions-stack button, .weather-actions-stack a {
+      border: 1px solid rgba(37,99,235,0.22);
+      background: rgba(37,99,235,0.10);
+      color: var(--primary);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 1000;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    }
+    .weather-mini-legend {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0 6px;
+      border: 1px solid rgba(15,23,42,0.08);
+    }
+    .weather-legend-labels {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .weather-badge {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      z-index: 2;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.70);
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 1000;
+      box-shadow: 0 12px 26px rgba(15,23,42,0.18);
+      backdrop-filter: blur(10px);
+    }
+    @media (max-width: 1180px) {
+      .weather-pro-grid { grid-template-columns: 1fr; }
+      .weather-side { min-height: auto; }
     }
     .map-note {
       margin-top: 10px;
@@ -1016,25 +1153,71 @@
           <div class="map-toolbar">
             <b>Bản đồ thời tiết Windy</b>
             <div class="map-actions">
-              <a href="https://www.windy.com/?15.852,108.004,8" target="_blank" rel="noopener">Mở Windy</a>
-              <a href="https://embed.windy.com/embed2.html?lat=15.8525&lon=108.0041&detailLat=15.8525&detailLon=108.0041&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1" target="_blank" rel="noopener">Mở toàn màn hình</a>
+              <a id="windyOpenLink" href="https://www.windy.com/?15.7997829,107.6171715,8" target="_blank" rel="noopener">Mở Windy</a>
+              <a id="windyFullscreenLink" href="#" onclick="openWeatherFullscreen(); return false;">Mở toàn màn hình</a>
             </div>
           </div>
 
-          <div class="weather-frame-wrap">
-            <iframe
-              id="windyWeatherFrame"
-              src="https://embed.windy.com/embed2.html?lat=15.8525&lon=108.0041&detailLat=15.8525&detailLon=108.0041&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
-              title="Bản đồ thời tiết Windy - khu vực A Vương"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              allowfullscreen>
-            </iframe>
+          <div class="weather-pro-grid">
+            <div class="weather-frame-wrap" id="weatherFrameBox">
+              <div class="weather-badge" id="weatherLayerBadge">Radar mưa • A Vương</div>
+              <iframe
+                id="windyWeatherFrame"
+                src="https://embed.windy.com/embed2.html?lat=15.7997829&lon=107.6171715&detailLat=15.7997829&detailLon=107.6171715&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
+                title="Bản đồ thời tiết Windy - khu vực A Vương"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen>
+              </iframe>
+            </div>
+
+            <aside class="weather-side">
+              <div class="weather-panel-title">Lớp thời tiết nhanh</div>
+              <div class="weather-chips" id="weatherLayerChips">
+                <button class="weather-chip active" data-overlay="rain"><span class="weather-dot" style="background:#22c55e"></span>Mưa</button>
+                <button class="weather-chip" data-overlay="radar"><span class="weather-dot" style="background:#0ea5e9"></span>Radar</button>
+                <button class="weather-chip" data-overlay="wind"><span class="weather-dot" style="background:#64748b"></span>Gió</button>
+                <button class="weather-chip" data-overlay="clouds"><span class="weather-dot" style="background:#a78bfa"></span>Mây</button>
+                <button class="weather-chip" data-overlay="satellite"><span class="weather-dot" style="background:#14b8a6"></span>Vệ tinh</button>
+                <button class="weather-chip" data-overlay="temp"><span class="weather-dot" style="background:#f97316"></span>Nhiệt</button>
+                <button class="weather-chip" data-overlay="thunder"><span class="weather-dot" style="background:#eab308"></span>Sét</button>
+              </div>
+
+              <div class="weather-select-row single">
+                <select id="weatherProductSelect" onchange="setWeatherProduct(this.value)">
+                  <option value="ecmwf" selected>ECMWF</option>
+                  <option value="gfs">GFS</option>
+                  <option value="icon">ICON</option>
+                </select>
+              </div>
+
+              <div class="weather-info-card">
+                <b>🌧️ Thang màu mưa tham khảo</b>
+                <div class="weather-mini-legend">
+                  <span style="background:#22c55e"></span>
+                  <span style="background:#eab308"></span>
+                  <span style="background:#f97316"></span>
+                  <span style="background:#ef4444"></span>
+                </div>
+                <div class="weather-legend-labels"><span>Nhẹ</span><span>Vừa</span><span>To</span><span>Rất to</span></div>
+              </div>
+
+              <div class="weather-info-card">
+                <b>⚡ Gợi ý vận hành</b>
+                <span>Dùng lớp Radar/Sét để xem mưa thực đo gần hiện tại; dùng lớp Mưa ECMWF/GFS/ICON để xem xu thế dự báo.</span>
+              </div>
+
+              <div class="weather-actions-stack">
+                <button onclick="focusWeatherAVuong()">🎯 Về A Vương</button>
+                <button onclick="reloadWeatherMap()">↻ Tải lại bản đồ</button>
+                <button onclick="openWeatherFullscreen()">⛶ Toàn màn hình trong trình duyệt</button>
+              </div>
+            </aside>
           </div>
         </section>
 
         <div class="map-note">
-          Tab này nhúng bản đồ thời tiết Windy khu vực A Vương. Trang cũng đã nạp thử thư viện Windy theo link bạn gửi: https://www.windy.com/v/36.0.0.lib.4d82/lib.js. Nếu cần dùng Windy API trực tiếp thay vì iframe, nên đăng ký Windy API key để ổn định hơn.
+          Bản đồ thời tiết dùng Windy embed và có bộ điều khiển nhanh cho lớp mưa, radar, gió, mây, nhiệt, sét; phù hợp để xem nhanh diễn biến mưa khu vực A Vương.
         </div>
       </div>
 
@@ -1189,6 +1372,86 @@
     fcEnsemble:{}, lastObs:null, rainAtHour:0, rain24hSum:0, storage:null
   };
 
+
+  // --- Weather map pro controls ---
+  const WEATHER_CENTER = { lat: 15.7997829, lon: 107.6171715 };
+  const weatherState = { overlay: 'rain', zoom: 8, product: 'ecmwf' };
+  const weatherLayerNames = {
+    rain: 'Mưa dự báo',
+    radar: 'Radar mưa',
+    wind: 'Gió bề mặt',
+    clouds: 'Mây',
+    temp: 'Nhiệt độ',
+    thunder: 'Sét',
+    satellite: 'Vệ tinh'
+  };
+
+  function buildWeatherUrl() {
+    const overlay = weatherState.overlay;
+    const product = (overlay === 'radar' || overlay === 'satellite') ? 'ecmwf' : weatherState.product;
+    const radarRange = overlay === 'radar' ? '-1' : '';
+    const params = new URLSearchParams({
+      lat: WEATHER_CENTER.lat,
+      lon: WEATHER_CENTER.lon,
+      detailLat: WEATHER_CENTER.lat,
+      detailLon: WEATHER_CENTER.lon,
+      zoom: weatherState.zoom,
+      level: 'surface',
+      overlay,
+      product,
+      menu: '',
+      message: 'true',
+      marker: 'true',
+      calendar: 'now',
+      pressure: '',
+      type: 'map',
+      location: 'coordinates',
+      detail: 'true',
+      metricWind: 'km/h',
+      metricTemp: '°C',
+      radarRange
+    });
+    return 'https://embed.windy.com/embed2.html?' + params.toString();
+  }
+
+  function applyWeatherMap() {
+    const frame = $('windyWeatherFrame');
+    const badge = $('weatherLayerBadge');
+    const openLink = $('windyOpenLink');
+    if(frame) frame.src = buildWeatherUrl();
+    if(badge) badge.textContent = `${weatherLayerNames[weatherState.overlay] || weatherState.overlay} • A Vương`;
+    if(openLink) openLink.href = `https://www.windy.com/?${WEATHER_CENTER.lat},${WEATHER_CENTER.lon},${weatherState.zoom},${weatherState.overlay}`;
+    document.querySelectorAll('#weatherLayerChips .weather-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.overlay === weatherState.overlay);
+    });
+  }
+
+  function setWeatherOverlay(overlay) {
+    weatherState.overlay = overlay;
+    applyWeatherMap();
+  }
+  function setWeatherZoom(zoom) {
+    weatherState.zoom = Number(zoom) || 8;
+    applyWeatherMap();
+  }
+  function setWeatherProduct(product) {
+    weatherState.product = product || 'ecmwf';
+    applyWeatherMap();
+  }
+  function focusWeatherAVuong() {
+    weatherState.zoom = 8;
+    applyWeatherMap();
+  }
+  function reloadWeatherMap() {
+    const frame = $('windyWeatherFrame');
+    if(frame) frame.src = frame.src;
+  }
+  function openWeatherFullscreen() {
+    const box = $('weatherFrameBox');
+    if(box && box.requestFullscreen) box.requestFullscreen();
+    else window.open(buildWeatherUrl(), '_blank', 'noopener');
+  }
+
   // --- Website navigation (sidebar left) ---
   function setActiveNav(tabName){
     document.querySelectorAll('.nav-link').forEach(a=>{
@@ -1209,6 +1472,10 @@
       }
     }
     if(name==='forecast') loadForecasts();
+    if(name==='weathermap') {
+      const wf = $('windyWeatherFrame');
+      if(wf && !wf.dataset.loadedOnce) { wf.dataset.loadedOnce = '1'; applyWeatherMap(); }
+    }
     if(name==='notif') loadAIBulletins();
     if(name==='chart' && chart) chart.resize();
 
@@ -1220,6 +1487,9 @@
     // Bind nav
     document.querySelectorAll('.nav-link').forEach(a=>{
       a.addEventListener('click', ()=>goTab(a.getAttribute('data-tab')));
+    });
+    document.querySelectorAll('#weatherLayerChips .weather-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>setWeatherOverlay(btn.dataset.overlay));
     });
 
     // Buttons
