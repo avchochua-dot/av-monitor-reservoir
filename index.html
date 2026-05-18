@@ -1,9 +1,11 @@
+
 <!doctype html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
+  <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương Reservoir • Dashboard • AI</title>
+  <title>A Vương • Dashboard • AI</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -559,6 +561,86 @@
     .accordion-body { display: none; padding: 0 14px 14px 62px; color: var(--text-muted); font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
     .accordion-body.open { display: block; }
 
+
+    /* --- Flood map / Google Drive embed --- */
+    .map-card {
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .map-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 10px;
+    }
+    .map-toolbar b {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 1000;
+    }
+    .map-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .map-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(37,99,235,0.22);
+      background: rgba(37,99,235,0.10);
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 1000;
+      font-size: 12px;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    }
+    .map-frame-wrap {
+      width: 100%;
+      height: calc(100vh - var(--header-h) - 120px);
+      min-height: 640px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: #f8fafc;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.65);
+    }
+    .map-frame-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #ffffff;
+    }
+    .map-note {
+      margin-top: 10px;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+    @media (max-width: 560px) {
+      .map-frame-wrap {
+        min-height: 520px;
+        height: calc(100vh - var(--header-h) - 160px);
+      }
+    }
+
     .toast{
       position: fixed;
       left: 50%;
@@ -580,6 +662,7 @@
 </head>
 <body>
 
+<!-- LOGIN OVERLAY -->
 <div id="login-view">
   <div class="login-wrap">
     <div class="login-card">
@@ -603,6 +686,7 @@
   </div>
 </div>
 
+<!-- WEBSITE LAYOUT -->
 <div class="site" id="main-view" style="display:none;">
   <header class="site-header">
     <div class="header-left">
@@ -610,7 +694,7 @@
         <img src="https://ycthhachfxczwkburnfa.supabase.co/storage/v1/object/public/Image/Logo%20AVC.png" alt="Logo AVC">
       </div>
       <div class="brand-text">
-        <h1>A Vương Reservoir • Dashboard • AI</h1>
+        <h1>A Vương • Dashboard • AI</h1>
         <small id="lastUpdate">--:--</small>
       </div>
     </div>
@@ -629,6 +713,7 @@
   </header>
 
   <div class="site-body">
+    <!-- ✅ Thanh điều hướng dọc ở BÊN TRÁI -->
     <aside class="sidebar">
       <div class="nav-title">Điều hướng</div>
       <div class="nav-list">
@@ -648,6 +733,14 @@
           <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
           Số liệu
         </a>
+        <a class="nav-link" data-tab="map">
+          <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V21l6-2.1 6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zm-5 1.2l3-1.01v11.67l-3 1.01V6.67zm14 10.66l-3 1.01V6.66l3-1.01v11.68z"/></svg>
+          Bản đồ
+        </a>
+        <a class="nav-link" data-tab="floodmarks">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          Mốc lũ hạ du
+        </a>
         <a class="nav-link" data-tab="notif">
           <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
           Thông báo
@@ -656,6 +749,7 @@
     </aside>
 
     <main class="content">
+      <!-- TAB: Overview -->
       <div id="tab-overview" class="tab-pane active">
         <section class="safety-card">
           <div class="card-header">
@@ -692,6 +786,7 @@
           <div class="stat-box rain"><span class="stat-label">Mưa D-1</span><span class="stat-val" style="color:var(--text-muted)" id="txtRainD1">--</span></div>
         </div>
 
+        <!-- ✅ FIX: bỏ inline nền tối -> dùng .soft-box để luôn đúng LIGHT -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
           <div class="soft-box">
             <div class="soft-title">DT Hữu ích còn lại</div>
@@ -730,6 +825,7 @@
         </div>
       </div>
 
+      <!-- TAB: Chart -->
       <div id="tab-chart" class="tab-pane">
         <section class="card control-card">
           <div class="cardHead"><b>Điều khiển</b></div>
@@ -752,6 +848,7 @@
         </section>
       </div>
 
+      <!-- TAB: Forecast -->
       <div id="tab-forecast" class="tab-pane">
         <div class="card">
           <div class="cardHead">
@@ -764,6 +861,7 @@
         </div>
       </div>
 
+      <!-- TAB: Data -->
       <div id="tab-data" class="tab-pane">
         <div class="card">
           <div class="cardHead"><b>24 giờ gần nhất (Mới nhất)</b></div>
@@ -789,6 +887,105 @@
         </div>
       </div>
 
+      <!-- TAB: Map -->
+      <div id="tab-map" class="tab-pane">
+        <section class="map-card">
+          <div class="map-toolbar">
+            <b>1. Kịch bản ngập lụt hạ du khi NMTĐ A Vương xả lũ thiết kế</b>
+            <div class="map-actions">
+              <a href="https://drive.google.com/file/d/1jBnAZF0rU9AEiySrzcCVXkXnRb9mm7Fn/view?usp=sharing" target="_blank" rel="noopener">Mở Google Drive</a>
+              <a href="https://drive.google.com/file/d/1jBnAZF0rU9AEiySrzcCVXkXnRb9mm7Fn/preview" target="_blank" rel="noopener">Mở toàn màn hình</a>
+            </div>
+          </div>
+
+          <div class="map-frame-wrap">
+            <iframe
+              id="floodMapFrame1"
+              src="https://drive.google.com/file/d/1jBnAZF0rU9AEiySrzcCVXkXnRb9mm7Fn/preview"
+              title="1. Kịch bản ngập lụt hạ du khi NMTĐ A Vương xả lũ thiết kế"
+              allow="autoplay"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </section>
+
+        <section class="map-card">
+          <div class="map-toolbar">
+            <b>2. Kịch bản NMTĐ A Vương khi xả kiểm tra</b>
+            <div class="map-actions">
+              <a href="https://drive.google.com/file/d/1Iaj3p7CG1iJaAIRC6fN4G_cIvzhL-QLb/view?usp=sharing" target="_blank" rel="noopener">Mở Google Drive</a>
+              <a href="https://drive.google.com/file/d/1Iaj3p7CG1iJaAIRC6fN4G_cIvzhL-QLb/preview" target="_blank" rel="noopener">Mở toàn màn hình</a>
+            </div>
+          </div>
+
+          <div class="map-frame-wrap">
+            <iframe
+              id="floodMapFrame2"
+              src="https://drive.google.com/file/d/1Iaj3p7CG1iJaAIRC6fN4G_cIvzhL-QLb/preview"
+              title="2. Kịch bản NMTĐ A Vương khi xả kiểm tra"
+              allow="autoplay"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </section>
+
+        <section class="map-card">
+          <div class="map-toolbar">
+            <b>3. Kịch bản khi lũ kiểm tra và vỡ đập A Vương</b>
+            <div class="map-actions">
+              <a href="https://drive.google.com/file/d/1AV0D49QHsCgSNRKBmeFugOXp_8XFXeU1/view?usp=sharing" target="_blank" rel="noopener">Mở Google Drive</a>
+              <a href="https://drive.google.com/file/d/1AV0D49QHsCgSNRKBmeFugOXp_8XFXeU1/preview" target="_blank" rel="noopener">Mở toàn màn hình</a>
+            </div>
+          </div>
+
+          <div class="map-frame-wrap">
+            <iframe
+              id="floodMapFrame3"
+              src="https://drive.google.com/file/d/1AV0D49QHsCgSNRKBmeFugOXp_8XFXeU1/preview"
+              title="3. Kịch bản khi lũ kiểm tra và vỡ đập A Vương"
+              allow="autoplay"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </section>
+
+        <div class="map-note">
+          Dùng nút +/- hoặc con lăn chuột trong từng khung bản đồ để zoom. Nếu Google Drive không hiển thị, hãy kiểm tra quyền chia sẻ file: Anyone with the link → Viewer.
+        </div>
+      </div>
+
+      <!-- TAB: Flood marks downstream -->
+      <div id="tab-floodmarks" class="tab-pane">
+        <section class="map-card">
+          <div class="map-toolbar">
+            <b>Mốc lũ hạ du</b>
+            <div class="map-actions">
+              <a href="https://www.google.com/maps/d/u/0/viewer?mid=1OuvFULZypRbV6ABno2txIHFKzQ6nIhc&ll=15.852535098348215%2C108.00405867314454&z=12" target="_blank" rel="noopener">Mở Google My Maps</a>
+              <a href="https://www.google.com/maps/d/embed?mid=1OuvFULZypRbV6ABno2txIHFKzQ6nIhc&ll=15.852535098348215%2C108.00405867314454&z=12" target="_blank" rel="noopener">Mở toàn màn hình</a>
+            </div>
+          </div>
+
+          <div class="map-frame-wrap">
+            <iframe
+              id="floodMarksFrame"
+              src="https://www.google.com/maps/d/embed?mid=1OuvFULZypRbV6ABno2txIHFKzQ6nIhc&ll=15.852535098348215%2C108.00405867314454&z=12"
+              title="Mốc lũ hạ du"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </section>
+
+        <div class="map-note">
+          Bản đồ mốc lũ hạ du được nhúng từ Google My Maps. Có thể kéo bản đồ, zoom bằng nút +/- hoặc con lăn chuột.
+        </div>
+      </div>
+
+      <!-- TAB: Notif -->
       <div id="tab-notif" class="tab-pane">
         <div class="card" style="border: 1px solid rgba(139,92,246,0.22);">
           <div class="cardHead">
@@ -820,6 +1017,7 @@
             <h3 style="color:var(--text-main); margin:0 0 6px; font-weight:1000;">Công ty CP Thủy điện A Vương</h3>
             <p style="color:var(--text-muted); font-size:13px; margin:0 0 20px; font-weight:700;">Thôn Dung, xã Thạnh Mỹ, TP. Đà Nẵng</p>
 
+            <!-- ✅ FIX: bỏ inline nền tối -> dùng soft-box -->
             <div class="soft-box left" style="max-width:520px; margin:0 auto;">
               <small style="color:var(--text-muted); font-weight:1000;">Hotline Admin</small>
               <div style="font-size:16px; font-weight:1000; color:var(--primary); margin-top: 8px;">0963.43.43.10</div>
@@ -951,6 +1149,12 @@
     setActiveNav(name);
 
     if(name==='data') loadTableData();
+    if(name==='map') {
+      const mf = $("floodMapFrame");
+      if(mf && !mf.dataset.loadedOnce) {
+        mf.dataset.loadedOnce = "1";
+      }
+    }
     if(name==='forecast') loadForecasts();
     if(name==='notif') loadAIBulletins();
     if(name==='chart' && chart) chart.resize();
@@ -1290,8 +1494,7 @@
       },
       scales:{
         x:{ticks:{color:"#64748b",font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{color:"rgba(15,23,42,0.08)"}},
-        y:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"},position:'left',title:{display:true,text:'Lưu lượng / Mực nước',color:'#64748b',font:{size:11,weight:'700'}}},
-        yRain:{display:false,position:'right',grid:{drawOnChartArea:false},ticks:{color:"#8b5cf6",font:{size:10}},title:{display:true,text:'Mưa (mm)',color:'#8b5cf6',font:{size:11,weight:'700'}}}
+        y:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}}
       }
     };
 
@@ -1373,26 +1576,9 @@
       const all=[...new Set([...obs.map(r=>r.time),...fc.map(r=>r.forecast_time)])].sort();
       labels=all.map(t=>formatChartLabel(t));
 
-      // Lồng mưa
-      let rainMax = 0;
-      const rainData = all.map(t => {
-        const r = state.rainFc.find(x => x.forecast_time === t);
-        const val = r ? r.rainfall_mm : 0;
-        if(val > rainMax) rainMax = val;
-        return val;
-      });
-
-      if(rainMax > 0){
-        opts.scales.yRain.display = true;
-        opts.scales.yRain.suggestedMax = rainMax * 3;
-        datasets.push({
-          type: 'bar', label: 'Mưa dự báo (mm)', data: rainData,
-          backgroundColor: 'rgba(167, 139, 250, 0.4)', yAxisID: 'yRain', order: 2
-        });
-      }
-
-      datasets.push({label:'Q Thực đo',data:all.map(t=>obs.find(x=>x.time===t)?.inflow??null),borderColor:rgba(C.IN,1),borderWidth:2,pointRadius:0,tension:0.3,order:1});
-      datasets.push({
+      datasets=[
+        {label:'Q Thực đo',data:all.map(t=>obs.find(x=>x.time===t)?.inflow??null),borderColor:rgba(C.IN,1),borderWidth:2,pointRadius:0,tension:0.3},
+        {
           label: 'MA 24h',
           data: all.map(t => {
             const currentT = new Date(t).getTime();
@@ -1409,10 +1595,9 @@
           borderDash: [6, 6],
           fill: false,
           pointRadius: 0,
-          tension: 0.4,
-          order: 1
-        });
-      datasets.push({
+          tension: 0.4
+        },
+        {
           label:'Q Dự báo',
           data:all.map(t=>{
             const i=fc.find(x=>x.forecast_time===t);
@@ -1422,9 +1607,9 @@
           borderDash:[4,4],
           borderWidth:2,
           pointRadius:0,
-          tension:0.3,
-          order:1
-        });
+          tension:0.3
+        }
+      ];
     }
     else if(currentTab==='IN_FC_7D'){
       const tl=new Date($("day").value).setHours(0,0,0,0)+7*86400000;
@@ -1434,24 +1619,6 @@
       }).sort();
 
       labels=ts.map(t=>formatChartLabel(t));
-
-      // Lồng mưa
-      let rainMax = 0;
-      const rainData = ts.map(t => {
-        const r = state.rainFc.find(x => x.forecast_time === t);
-        const val = r ? r.rainfall_mm : 0;
-        if(val > rainMax) rainMax = val;
-        return val;
-      });
-
-      if(rainMax > 0){
-        opts.scales.yRain.display = true;
-        opts.scales.yRain.suggestedMax = rainMax * 3;
-        datasets.push({
-          type: 'bar', label: 'Mưa dự báo (mm)', data: rainData,
-          backgroundColor: 'rgba(167, 139, 250, 0.4)', yAxisID: 'yRain', order: 2
-        });
-      }
 
       const getV=(t,s)=>{
         const g=state.fcEnsemble[t]||[];
@@ -1468,9 +1635,11 @@
         dM.push(v);
       });
 
-      datasets.push({label:'Biên trên',data:dH,borderColor:'transparent',backgroundColor:'rgba(37,99,235,0.12)',pointRadius:0,fill:'+1',tension:0.4,order:1});
-      datasets.push({label:'Biên dưới',data:dL,borderColor:'transparent',pointRadius:0,fill:false,tension:0.4,order:1});
-      datasets.push({label:'Dự báo TB',data:dM,borderColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:0.4,fill:false,order:1});
+      datasets=[
+        {label:'Biên trên',data:dH,borderColor:'transparent',backgroundColor:'rgba(37,99,235,0.12)',pointRadius:0,fill:'+1',tension:0.4},
+        {label:'Biên dưới',data:dL,borderColor:'transparent',pointRadius:0,fill:false,tension:0.4},
+        {label:'Dự báo TB',data:dM,borderColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:0.4,fill:false}
+      ];
     }
     else if(currentTab==='RF_DAILY_FC'){
       const tl=new Date($("day").value).setHours(0,0,0,0)+7*86400000;
