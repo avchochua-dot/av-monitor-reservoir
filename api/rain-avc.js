@@ -1,99 +1,36 @@
-const DEFAULT_STATIONS = [
-  { id: "adb491", code: "AV01", name: "Đập A Vương" },
-  { id: "2137d8", code: "AV02", name: "Xã A Vương" },
-  { id: "367c08", code: "AV03", name: "A Nông" },
-  { id: "59171c", code: "AV04", name: "Tây Giang" },
-  { id: "14eb20", code: "AV05", name: "Xã Dang" },
-  { id: "7c19bd", code: "AV06", name: "Xã A Tép" },
-  { id: "d7ecb0", code: "AV07", name: "Xã A Rooi" },
-  { id: "da16dd", code: "AV08", name: "UBND Xã Blahee" }
-];
-
-function stripTags(html) {
-  return String(html || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function parseNumber(value) {
-  const s = String(value || "").replace(",", ".").replace(/[^0-9.\-]/g, "");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function parseGridRows(html) {
-  const rows = [];
-  const trRe = /<tr[^>]*(?:DXDataRow|dxgvDataRow)[^>]*>([\s\S]*?)<\/tr>/gi;
-  let m;
-  while ((m = trRe.exec(html))) {
-    const cells = [];
-    const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    let c;
-    while ((c = tdRe.exec(m[1]))) cells.push(stripTags(c[1]));
-    if (cells.length >= 7) {
-      rows.push({
-        code: cells[0],
-        name: cells[1],
-        date: cells[2],
-        hour: cells[3],
-        dayRain: parseNumber(cells[4]),
-        hourRain: parseNumber(cells[5]),
-        rain30: parseNumber(cells[6]),
-        status: "Bình thường"
-      });
-    }
-  }
-  return rows;
-}
-
-function parseStatuses(html) {
-  return DEFAULT_STATIONS.map(s => {
-    const cardRe = new RegExp(`<div[^>]+id=["']card_${s.id}["'][\\s\\S]*?<span[^>]*>([\\s\\S]*?)<\\/span>`, "i");
-    const m = html.match(cardRe);
-    return { ...s, status: m ? stripTags(m[1]) : "Bình thường" };
-  });
-}
-
 export default async function handler(req, res) {
-  const sourceUrl = process.env.AVC_RAIN_SOURCE_URL || "https://avuong.com/TramDoMua.aspx";
   try {
-    const upstream = await fetch(sourceUrl, {
-      method: "GET",
-      headers: {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "user-agent": req.headers["user-agent"] || "Mozilla/5.0",
-        ...(process.env.AVC_RAIN_COOKIE ? { "cookie": process.env.AVC_RAIN_COOKIE } : {})
-      }
-    });
-    const html = await upstream.text();
-    const stations = parseStatuses(html);
-    let data = parseGridRows(html);
+    const body = new URLSearchParams();
 
-    if (data.length) {
-      data = data.map(row => {
-        const st = stations.find(s => row.code && row.code.toUpperCase().includes(s.code)) || stations.find(s => row.name && row.name.includes(s.name));
-        return { ...row, id: st?.id || row.code, status: st?.status || row.status || "Bình thường" };
-      });
-    }
+    body.set("__EVENTTARGET", "RefreshData");
+    body.set("__EVENTARGUMENT", "");
+    body.set("__VIEWSTATE", "DÁN_VIEWSTATE_CỦA_BẠN_VÀO_ĐÂY");
+    body.set("__VIEWSTATEGENERATOR", "0A4B555E");
+    body.set("__EVENTVALIDATION", "DÁN_EVENTVALIDATION_CỦA_BẠN_VÀO_ĐÂY");
+
+    body.set("DXScript", "1_10,1_11,1_22,1_63,1_12,1_13,1_14,1_29,1_18,1_210,1_221,1_222,1_208,1_224,1_233,1_235,1_236,1_227,1_231,1_237,1_180,1_181,1_16,1_41,23_0,23_1,23_8");
+
+    const r = await fetch("http://kttv.avuong.com:84/TramDoMua.aspx", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": "ASP.NET_SessionId=m3tbwbw0vfnyp42oygvfz4iz",
+        "Origin": "http://kttv.avuong.com:84",
+        "Referer": "http://kttv.avuong.com:84/TramDoMua.aspx",
+        "User-Agent": "Mozilla/5.0"
+      },
+      body
+    });
+
+    const html = await r.text();
 
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.status(200).json({
-      source: sourceUrl,
-      upstreamStatus: upstream.status,
-      stations,
-      data,
-      note: data.length
-        ? "Đã lấy được bảng dữ liệu 8 trạm từ TramDoMua.aspx."
-        : "Đã lấy được danh sách/trạng thái 8 trạm, nhưng chưa thấy dòng dữ liệu trong bảng. Nếu trang yêu cầu đăng nhập, hãy cấu hình AVC_RAIN_COOKIE trong Vercel."
+      ok: true,
+      hasData: html.includes("dxgvDataRow"),
+      html
     });
   } catch (err) {
-    res.status(500).json({ error: err.message, stations: DEFAULT_STATIONS, data: [] });
+    res.status(500).json({ ok: false, error: err.message });
   }
 }
