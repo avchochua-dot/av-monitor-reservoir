@@ -907,68 +907,6 @@
       .rain-map-wrap { height: 480px; }
     }
 
-
-
-    /* --- AVC 8 rain stations --- */
-    .avc-rain-stations-grid {
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin: 12px 0 14px;
-    }
-    .avc-rain-card {
-      background:#ffffff;
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      box-shadow:0 8px 18px rgba(15,23,42,0.06);
-      border-top:4px solid #22c55e;
-      min-height:108px;
-    }
-    .avc-rain-card.warn { border-top-color:#f97316; }
-    .avc-rain-card.error { border-top-color:#ef4444; }
-    .avc-rain-card h4 {
-      margin:0 0 8px;
-      font-size:13px;
-      font-weight:1000;
-      color:var(--text-main);
-      line-height:1.35;
-    }
-    .avc-rain-card .status {
-      display:inline-flex;
-      align-items:center;
-      border-radius:999px;
-      padding:4px 9px;
-      font-size:11px;
-      font-weight:1000;
-      background:rgba(34,197,94,0.14);
-      color:#15803d;
-      margin-bottom:8px;
-    }
-    .avc-rain-card.error .status { background:rgba(239,68,68,0.12); color:#dc2626; }
-    .avc-rain-card.warn .status { background:rgba(249,115,22,0.12); color:#c2410c; }
-    .avc-rain-card .mini {
-      color:var(--text-muted);
-      font-size:11px;
-      line-height:1.45;
-      font-weight:800;
-    }
-    .avc-rain-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-    .avc-rain-tabs button {
-      width:auto;
-      padding:8px 12px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:1000;
-    }
-    .avc-rain-tabs button.active {
-      background:rgba(37,99,235,0.10);
-      border-color:rgba(37,99,235,0.28);
-      color:var(--primary);
-    }
-    @media (max-width:1180px){ .avc-rain-stations-grid{ grid-template-columns: repeat(2,minmax(0,1fr)); } }
-    @media (max-width:560px){ .avc-rain-stations-grid{ grid-template-columns:1fr; } }
-
     .toast{
       position: fixed;
       left: 50%;
@@ -1242,7 +1180,7 @@
           </div>
 
           <div class="rain-toolbar">
-            <input id="rainSearch" placeholder="Tìm trạm mưa..." oninput="renderRainTableAndMap(); renderAvcRainData();" />
+            <input id="rainSearch" placeholder="Tìm trạm mưa..." oninput="renderRainTableAndMap()" />
             <button onclick="focusRainMapAVuong()" style="width:auto; padding:10px 12px;">🎯 Về A Vương</button>
           </div>
 
@@ -1270,48 +1208,9 @@
           </div>
 
           <div class="rain-status" id="rainStatus">
-            Dữ liệu mưa Vrain lấy qua proxy /api/rain. Phần 8 trạm AVC lấy qua /api/rain-avc.
+            Dữ liệu lấy từ API Vrain của A Vương. Nếu trình duyệt chặn CORS, cần dùng proxy trên Vercel.
           </div>
         </section>
-
-        <section class="card" style="margin-top:14px;">
-          <div class="cardHead">
-            <b>8 trạm mưa hồ chứa A Vương</b>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <span class="chip" id="avcRainApiTime">Chưa cập nhật</span>
-              <button onclick="loadAvcRainData(true)" style="width:auto; padding:8px 12px; font-size:12px; background:rgba(37,99,235,0.10); border:1px solid rgba(37,99,235,0.22); color:var(--primary);">Cập nhật 8 trạm</button>
-            </div>
-          </div>
-          <div class="avc-rain-tabs">
-            <button id="btnRainAll" class="active" onclick="setRainViewMode('all')">Tất cả nguồn</button>
-            <button id="btnRainVrain" onclick="setRainViewMode('vrain')">Vrain</button>
-            <button id="btnRainAvc" onclick="setRainViewMode('avc')">8 trạm AVC</button>
-          </div>
-          <div class="avc-rain-stations-grid" id="avcRainStationsGrid"></div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Mã trạm</th>
-                  <th>Tên trạm</th>
-                  <th>Ngày</th>
-                  <th>Giờ</th>
-                  <th>Tổng ngày</th>
-                  <th>1 giờ</th>
-                  <th>30 phút</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody id="avcRainTableBody">
-                <tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted)">Đang tải số liệu 8 trạm...</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="rain-status" id="avcRainStatus">
-            8 trạm được lấy từ trang TramDoMua.aspx. Nếu trang yêu cầu đăng nhập, cần thêm cookie vào Vercel Environment Variable AVC_RAIN_COOKIE.
-          </div>
-        </section>
-
       </div>
 
       <!-- TAB: Map -->
@@ -1720,132 +1619,8 @@
 
 
   // --- Rain data from Vrain API ---
-  const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> avuong.vrain.vn/api/private/v1/organizations/summary
+  const VRAIN_RAIN_SUMMARY_URL = "https://avuong.vrain.vn/api/private/v1/organizations/summary";
   const rainState = { data: [], map: null, layer: null, loaded: false };
-
-  const AVC_RAIN_URL = "/api/rain-avc";
-  const AVC_RAIN_STATIONS = [
-    {id:"adb491", code:"AV01", name:"Đập A Vương", icon:"🌊"},
-    {id:"2137d8", code:"AV02", name:"Xã A Vương", icon:"🏠"},
-    {id:"367c08", code:"AV03", name:"A Nông", icon:"🌱"},
-    {id:"59171c", code:"AV04", name:"Tây Giang", icon:"⛰️"},
-    {id:"14eb20", code:"AV05", name:"Xã Dang", icon:"📍"},
-    {id:"7c19bd", code:"AV06", name:"Xã A Tép", icon:"🌲"},
-    {id:"d7ecb0", code:"AV07", name:"Xã A Rooi", icon:"🍃"},
-    {id:"da16dd", code:"AV08", name:"UBND Xã Blahee", icon:"🏢"}
-  ];
-  const avcRainState = { data: [], stations: AVC_RAIN_STATIONS, loaded: false };
-  let rainViewMode = "all";
-
-  function setRainViewMode(mode){
-    rainViewMode = mode || "all";
-    ["all","vrain","avc"].forEach(m => {
-      const btn = $(m === "all" ? "btnRainAll" : (m === "vrain" ? "btnRainVrain" : "btnRainAvc"));
-      if(btn) btn.classList.toggle("active", rainViewMode === m);
-    });
-    if(mode === "vrain") renderRainTableAndMap();
-    else if(mode === "avc") renderAvcRainData();
-    else { renderRainTableAndMap(); renderAvcRainData(); }
-  }
-
-  function normalizeAvcRainItem(row){
-    const codeName = row.code || row.stationCode || row.maTram || "";
-    const byCode = AVC_RAIN_STATIONS.find(s => codeName && codeName.toUpperCase().includes(s.code));
-    const byId = AVC_RAIN_STATIONS.find(s => row.id && row.id === s.id);
-    const station = byId || byCode || AVC_RAIN_STATIONS.find(s => (row.name||"").toLowerCase().includes(s.name.toLowerCase())) || {};
-    return {
-      id: row.id || station.id || codeName,
-      code: row.code || row.stationCode || station.code || "--",
-      name: row.name || row.stationName || station.name || "Trạm mưa",
-      date: row.date || row.ngay || "--",
-      hour: row.hour || row.gio || "--",
-      dayRain: Number(row.dayRain ?? row.totalDay ?? row.tongNgay ?? 0),
-      hourRain: Number(row.hourRain ?? row.rain1h ?? row.motGio ?? 0),
-      rain30: Number(row.rain30 ?? row.rain30m ?? row.baMuoiPhut ?? 0),
-      status: row.status || "Bình thường"
-    };
-  }
-
-  function avcRainCardClass(status){
-    const t = String(status||"").toLowerCase();
-    if(t.includes("lỗi") || t.includes("mất") || t.includes("error")) return "error";
-    if(t.includes("cảnh") || t.includes("kiểm")) return "warn";
-    return "";
-  }
-
-  async function loadAvcRainData(force=false){
-    if(avcRainState.loaded && !force){ renderAvcRainData(); return; }
-    const tb = $("avcRainTableBody");
-    if(tb) tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted)">Đang tải số liệu 8 trạm...</td></tr>`;
-    if($("avcRainStatus")) $("avcRainStatus").textContent = "Đang gọi /api/rain-avc...";
-    try{
-      const res = await fetch(AVC_RAIN_URL, { headers:{ "Accept":"application/json" } });
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const rows = Array.isArray(json) ? json : (json.data || json.items || []);
-      avcRainState.stations = json.stations || AVC_RAIN_STATIONS;
-      avcRainState.data = rows.map(normalizeAvcRainItem);
-      avcRainState.loaded = true;
-      renderAvcRainData();
-      const now = new Date();
-      if($("avcRainApiTime")) $("avcRainApiTime").textContent = `Cập nhật ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-      if($("avcRainStatus")) $("avcRainStatus").textContent = json.note || "Đã tải số liệu 8 trạm AVC.";
-    }catch(err){
-      console.error("AVC rain API error:", err);
-      avcRainState.data = [];
-      renderAvcRainData();
-      if($("avcRainStatus")) $("avcRainStatus").textContent = "Chưa lấy được dữ liệu 8 trạm. Cần kiểm tra /api/rain-avc hoặc cookie đăng nhập trang TramDoMua.aspx.";
-      if(tb) tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444">Lỗi tải 8 trạm: ${err.message}</td></tr>`;
-    }
-  }
-
-  function renderAvcRainData(){
-    const grid = $("avcRainStationsGrid");
-    const tb = $("avcRainTableBody");
-    const q = (($("rainSearch") && $("rainSearch").value) || "").trim().toLowerCase();
-    const rows = avcRainState.data.filter(x => !q || `${x.code} ${x.name} ${x.status}`.toLowerCase().includes(q));
-    const mapByCode = new Map(rows.map(r => [r.code, r]));
-    if(grid){
-      grid.innerHTML = "";
-      avcRainState.stations.forEach(s => {
-        const r = mapByCode.get(s.code) || rows.find(x => x.name.includes(s.name)) || null;
-        const cls = avcRainCardClass(r?.status || "Bình thường");
-        const card = document.createElement("div");
-        card.className = `avc-rain-card ${cls}`;
-        card.innerHTML = `
-          <h4>${s.icon || "🌧️"} ${s.code}_${s.name}</h4>
-          <div class="status">${r?.status || "Bình thường"}</div>
-          <div class="mini">
-            Tổng ngày: <b>${r ? fmt1.format(r.dayRain) : "--"} mm</b><br>
-            1 giờ: <b>${r ? fmt1.format(r.hourRain) : "--"} mm</b> • 30 phút: <b>${r ? fmt1.format(r.rain30) : "--"} mm</b><br>
-            ${r ? `${r.hour} ${r.date}` : "Chưa có dữ liệu bảng"}
-          </div>`;
-        grid.appendChild(card);
-      });
-    }
-    if(tb){
-      if(!rows.length){
-        tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted)">Chưa có số liệu bảng 8 trạm</td></tr>`;
-      }else{
-        tb.innerHTML = "";
-        rows.forEach(r => {
-          const cls = avcRainCardClass(r.status);
-          const color = cls === "error" ? "#ef4444" : (cls === "warn" ? "#f97316" : "#22c55e");
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${r.code}</td>
-            <td>${r.name}</td>
-            <td>${r.date}</td>
-            <td>${r.hour}</td>
-            <td><span class="rain-pill" style="background:${rainColor(r.dayRain)}">${fmt1.format(r.dayRain)} mm</span></td>
-            <td>${fmt1.format(r.hourRain)} mm</td>
-            <td>${fmt1.format(r.rain30)} mm</td>
-            <td style="font-weight:1000; color:${color}">${r.status}</td>`;
-          tb.appendChild(tr);
-        });
-      }
-    }
-  }
 
   function rainColor(v) {
     const x = Number(v || 0);
@@ -1894,19 +1669,8 @@
     if ($("rainStatus")) $("rainStatus").textContent = "Đang gọi API Vrain...";
 
     try {
-      const res = await fetch(VRAIN_RAIN_SUMMARY_URL, {
-        method: "GET",
-        headers: { "Accept": "application/json" },
-        cache: "no-store"
-      });
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`;
-        try {
-          const e = await res.json();
-          msg = e.error || e.message || msg;
-        } catch (_) {}
-        throw new Error(msg);
-      }
+      const res = await fetch(VRAIN_RAIN_SUMMARY_URL, { method: "GET", headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const arr = Array.isArray(json) ? json : (json.data || json.items || []);
       rainState.data = arr.map(normalizeRainItem).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
@@ -1915,10 +1679,10 @@
       renderRainTableAndMap();
       const now = new Date();
       if ($("rainApiTime")) $("rainApiTime").textContent = `Cập nhật ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-      if ($("rainStatus")) $("rainStatus").textContent = "Đã tải số liệu mưa từ Vrain qua proxy /api/rain.";
+      if ($("rainStatus")) $("rainStatus").textContent = "Đã tải số liệu mưa từ Vrain.";
     } catch (err) {
       console.error("Vrain rain API error:", err);
-      if ($("rainStatus")) $("rainStatus").innerHTML = `Không tải được số liệu mưa qua <b>/api/rain</b>. Hãy tạo file proxy <b>api/rain.js</b> trên Vercel. Chi tiết lỗi: ${err.message}`;
+      if ($("rainStatus")) $("rainStatus").textContent = "Không gọi trực tiếp được API Vrain. Có thể bị CORS hoặc cần xác thực. Khi đó cần tạo proxy /api/rain trên Vercel.";
       if (tb) tb.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#ef4444">Lỗi tải dữ liệu mưa: ${err.message}</td></tr>`;
     }
   }
