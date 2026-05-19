@@ -1,72 +1,78 @@
-const LOGIN_URL = "http://kttv.avuong.com:84/Login.aspx";
-const DATA_URL = "http://kttv.avuong.com:84/TramDoMua.aspx";
-
-function pick(html, id) {
-  const re = new RegExp(`id="${id}" value="([^"]*)"`);
-  return html.match(re)?.[1] || "";
-}
-
-function getCookie(setCookie) {
-  if (!setCookie) return "";
-  if (Array.isArray(setCookie)) return setCookie.map(x => x.split(";")[0]).join("; ");
-  return setCookie.split(",").map(x => x.split(";")[0]).join("; ");
-}
-
 export default async function handler(req, res) {
   try {
-    const user = process.env.AVC_KTTV_USER;
-    const pass = process.env.AVC_KTTV_PASS;
+    const USER = process.env.AVC_KTTV_USER;
+    const PASS = process.env.AVC_KTTV_PASS;
 
-    if (!user || !pass) {
-      return res.status(500).json({ ok: false, error: "Missing AVC_KTTV_USER or AVC_KTTV_PASS" });
+    // 1. GET login page để lấy VIEWSTATE
+    const loginPage = await fetch("http://kttv.avuong.com:84/Login.aspx");
+    const html = await loginPage.text();
+
+    const viewState = html.match(/id="__VIEWSTATE" value="(.*?)"/)?.[1];
+    const eventValidation = html.match(/id="__EVENTVALIDATION" value="(.*?)"/)?.[1];
+    const viewStateGen = html.match(/id="__VIEWSTATEGENERATOR" value="(.*?)"/)?.[1];
+
+    if (!viewState) {
+      return res.status(500).json({ error: "Không lấy được VIEWSTATE" });
     }
 
-    const loginPage = await fetch(LOGIN_URL);
-    const loginHtml = await loginPage.text();
-    let cookie = getCookie(loginPage.headers.get("set-cookie"));
+    // Lấy cookie session
+    const cookie = loginPage.headers.get("set-cookie");
 
-    const loginBody = new URLSearchParams();
-    loginBody.set("__VIEWSTATE", pick(loginHtml, "__VIEWSTATE"));
-    loginBody.set("__VIEWSTATEGENERATOR", pick(loginHtml, "__VIEWSTATEGENERATOR"));
-    loginBody.set("__EVENTVALIDATION", pick(loginHtml, "__EVENTVALIDATION"));
-    loginBody.set("txtU", user);
-    loginBody.set("txtP", pass);
-    loginBody.set("ChkMe", "on");
-    loginBody.set("btLogin", "Login");
-
-    const loginRes = await fetch(LOGIN_URL, {
+    // 2. POST login
+    const loginRes = await fetch("http://kttv.avuong.com:84/Login.aspx", {
       method: "POST",
-      redirect: "manual",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": cookie,
-        "Origin": "http://kttv.avuong.com:84",
-        "Referer": LOGIN_URL,
-        "User-Agent": "Mozilla/5.0"
+        "Cookie": cookie
       },
-      body: loginBody
+      body: new URLSearchParams({
+        "__VIEWSTATE": viewState,
+        "__EVENTVALIDATION": eventValidation,
+        "__VIEWSTATEGENERATOR": viewStateGen,
+        "ctl00$ContentPlaceHolder1$txtUserName": USER,
+        "ctl00$ContentPlaceHolder1$txtPassword": PASS,
+        "ctl00$ContentPlaceHolder1$btnLogin": "Đăng nhập"
+      })
     });
 
-    const loginCookie = getCookie(loginRes.headers.get("set-cookie"));
-    if (loginCookie) cookie = cookie ? `${cookie}; ${loginCookie}` : loginCookie;
+    const cookie2 = loginRes.headers.get("set-cookie") || cookie;
 
-    const pageRes = await fetch(DATA_URL, {
+    // 3. CALL dữ liệu mưa
+    const dataRes = await fetch("http://kttv.avuong.com:84/TramDoMua.aspx", {
+      method: "POST",
       headers: {
-        "Cookie": cookie,
-        "Referer": LOGIN_URL,
-        "User-Agent": "Mozilla/5.0"
-      }
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": cookie2
+      },
+      body: new URLSearchParams({
+        "__EVENTTARGET": "RefreshData"
+      })
     });
 
-    const html = await pageRes.text();
+    const dataHtml = await dataRes.text();
+
+    // 4. Parse dữ liệu (tùy chỉnh theo HTML)
+    const stations = [];
+
+    const regex = /AV\d+_[^<]+[\s\S]*?(\d+(\.\d+)?)\s*mm/g;
+    let match;
+
+    while ((match = regex.exec(dataHtml)) !== null) {
+      stations.push({
+        name: match[0].split(" ")[0],
+        rain: parseFloat(match[1])
+      });
+    }
 
     res.status(200).json({
       ok: true,
-      loggedIn: !html.includes("txtU") && !html.includes("Password"),
-      hasData: html.includes("dxgvDataRow"),
-      html
+      stations
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 }
