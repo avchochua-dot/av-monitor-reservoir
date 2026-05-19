@@ -1,32 +1,68 @@
+const LOGIN_URL = "http://kttv.avuong.com:84/Login.aspx";
+const DATA_URL = "http://kttv.avuong.com:84/TramDoMua.aspx";
+
+function pick(html, id) {
+  const re = new RegExp(`id="${id}" value="([^"]*)"`);
+  return html.match(re)?.[1] || "";
+}
+
+function getCookie(setCookie) {
+  if (!setCookie) return "";
+  if (Array.isArray(setCookie)) return setCookie.map(x => x.split(";")[0]).join("; ");
+  return setCookie.split(",").map(x => x.split(";")[0]).join("; ");
+}
+
 export default async function handler(req, res) {
   try {
-    const body = new URLSearchParams();
+    const user = process.env.AVC_KTTV_USER;
+    const pass = process.env.AVC_KTTV_PASS;
 
-    body.set("__EVENTTARGET", "RefreshData");
-    body.set("__EVENTARGUMENT", "");
-    body.set("__VIEWSTATE", "DÁN_VIEWSTATE_CỦA_BẠN_VÀO_ĐÂY");
-    body.set("__VIEWSTATEGENERATOR", "0A4B555E");
-    body.set("__EVENTVALIDATION", "DÁN_EVENTVALIDATION_CỦA_BẠN_VÀO_ĐÂY");
+    if (!user || !pass) {
+      return res.status(500).json({ ok: false, error: "Missing AVC_KTTV_USER or AVC_KTTV_PASS" });
+    }
 
-    body.set("DXScript", "1_10,1_11,1_22,1_63,1_12,1_13,1_14,1_29,1_18,1_210,1_221,1_222,1_208,1_224,1_233,1_235,1_236,1_227,1_231,1_237,1_180,1_181,1_16,1_41,23_0,23_1,23_8");
+    const loginPage = await fetch(LOGIN_URL);
+    const loginHtml = await loginPage.text();
+    let cookie = getCookie(loginPage.headers.get("set-cookie"));
 
-    const r = await fetch("http://kttv.avuong.com:84/TramDoMua.aspx", {
+    const loginBody = new URLSearchParams();
+    loginBody.set("__VIEWSTATE", pick(loginHtml, "__VIEWSTATE"));
+    loginBody.set("__VIEWSTATEGENERATOR", pick(loginHtml, "__VIEWSTATEGENERATOR"));
+    loginBody.set("__EVENTVALIDATION", pick(loginHtml, "__EVENTVALIDATION"));
+    loginBody.set("txtU", user);
+    loginBody.set("txtP", pass);
+    loginBody.set("ChkMe", "on");
+    loginBody.set("btLogin", "Login");
+
+    const loginRes = await fetch(LOGIN_URL, {
       method: "POST",
+      redirect: "manual",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": "ASP.NET_SessionId=m3tbwbw0vfnyp42oygvfz4iz",
+        "Cookie": cookie,
         "Origin": "http://kttv.avuong.com:84",
-        "Referer": "http://kttv.avuong.com:84/TramDoMua.aspx",
+        "Referer": LOGIN_URL,
         "User-Agent": "Mozilla/5.0"
       },
-      body
+      body: loginBody
     });
 
-    const html = await r.text();
+    const loginCookie = getCookie(loginRes.headers.get("set-cookie"));
+    if (loginCookie) cookie = cookie ? `${cookie}; ${loginCookie}` : loginCookie;
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const pageRes = await fetch(DATA_URL, {
+      headers: {
+        "Cookie": cookie,
+        "Referer": LOGIN_URL,
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    const html = await pageRes.text();
+
     res.status(200).json({
       ok: true,
+      loggedIn: !html.includes("txtU") && !html.includes("Password"),
       hasData: html.includes("dxgvDataRow"),
       html
     });
