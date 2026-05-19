@@ -799,6 +799,114 @@
       }
     }
 
+
+    /* --- Rain data tab: Vrain API --- */
+    .rain-dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .rain-map-wrap {
+      width: 100%;
+      height: 560px;
+      min-height: 420px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #e2e8f0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.65);
+    }
+    #rainMap { width: 100%; height: 100%; }
+    .rain-summary-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .rain-summary-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fff;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    }
+    .rain-summary-card span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 1000;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 6px;
+    }
+    .rain-summary-card b {
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      font-size: 20px;
+      font-weight: 1000;
+    }
+    .rain-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .rain-toolbar input {
+      flex: 1;
+      min-width: 220px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--text-main);
+      font-weight: 800;
+      outline: none;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    }
+    .rain-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 74px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 1000;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.10);
+    }
+    .rain-marker {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 1000;
+      border: 3px solid rgba(255,255,255,.92);
+      box-shadow: 0 10px 22px rgba(15,23,42,.24);
+      font-family: var(--font-mono);
+    }
+    .rain-popup-title { font-weight: 1000; color: #0f172a; margin-bottom: 4px; }
+    .rain-popup-meta { color: #64748b; font-size: 12px; line-height: 1.45; }
+    .rain-status {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+    @media (max-width: 1180px) {
+      .rain-dashboard-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .rain-summary-cards { grid-template-columns: 1fr; }
+      .rain-map-wrap { height: 480px; }
+    }
+
     .toast{
       position: fixed;
       left: 50%;
@@ -890,6 +998,10 @@
         <a class="nav-link" data-tab="data">
           <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
           Số liệu
+        </a>
+        <a class="nav-link" data-tab="rain">
+          <svg viewBox="0 0 24 24"><path d="M12 2c-3 3.45-6 7.02-6 11a6 6 0 0 0 12 0c0-3.98-3-7.55-6-11zm0 17a4 4 0 0 1-4-4c0-2.57 1.75-5.06 4-7.9 2.25 2.84 4 5.33 4 7.9a4 4 0 0 1-4 4z"/></svg>
+          Số liệu mưa
         </a>
         <a class="nav-link" data-tab="map">
           <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V21l6-2.1 6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zm-5 1.2l3-1.01v11.67l-3 1.01V6.67zm14 10.66l-3 1.01V6.66l3-1.01v11.68z"/></svg>
@@ -1047,6 +1159,58 @@
             </div>
           </div>
         </div>
+      </div>
+
+
+      <!-- TAB: Rain data from Vrain -->
+      <div id="tab-rain" class="tab-pane">
+        <section class="card">
+          <div class="cardHead">
+            <b>Số liệu mưa Vrain</b>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <span class="chip" id="rainApiTime">Chưa cập nhật</span>
+              <button onclick="loadRainData(true)" style="width:auto; padding:8px 12px; font-size:12px; background:rgba(37,99,235,0.10); border:1px solid rgba(37,99,235,0.22); color:var(--primary);">Cập nhật</button>
+            </div>
+          </div>
+
+          <div class="rain-summary-cards">
+            <div class="rain-summary-card"><span>Tổng trạm</span><b id="rainStationCount">--</b></div>
+            <div class="rain-summary-card"><span>Mưa lớn nhất</span><b id="rainMaxValue">-- mm</b></div>
+            <div class="rain-summary-card"><span>Cấp mưa lớn nhất</span><b id="rainMaxLevel">--</b></div>
+          </div>
+
+          <div class="rain-toolbar">
+            <input id="rainSearch" placeholder="Tìm trạm mưa..." oninput="renderRainTableAndMap()" />
+            <button onclick="focusRainMapAVuong()" style="width:auto; padding:10px 12px;">🎯 Về A Vương</button>
+          </div>
+
+          <div class="rain-dashboard-grid">
+            <div class="rain-map-wrap">
+              <div id="rainMap"></div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tên trạm</th>
+                    <th>Địa điểm</th>
+                    <th>Lượng mưa</th>
+                    <th>Cấp</th>
+                    <th>Đến</th>
+                  </tr>
+                </thead>
+                <tbody id="rainTableBody">
+                  <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted)">Đang tải số liệu mưa...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="rain-status" id="rainStatus">
+            Dữ liệu mưa lấy qua proxy /api/rain để tránh CORS và gọi API private Vrain an toàn hơn.
+          </div>
+        </section>
       </div>
 
       <!-- TAB: Map -->
@@ -1268,6 +1432,7 @@
 
 <div id="toast" class="toast"></div>
 
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -1452,6 +1617,187 @@
     else window.open(buildWeatherUrl(), '_blank', 'noopener');
   }
 
+
+  // --- Rain data from Vrain API ---
+  const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> avuong.vrain.vn/api/private/v1/organizations/summary
+  const rainState = { data: [], map: null, layer: null, loaded: false };
+
+  function rainColor(v) {
+    const x = Number(v || 0);
+    if (x <= 0) return "#64748b";
+    if (x < 10) return "#0ea5e9";
+    if (x < 25) return "#22c55e";
+    if (x < 50) return "#f97316";
+    return "#ef4444";
+  }
+
+  function rainLabel(v) {
+    const x = Number(v || 0);
+    if (x <= 0) return "Không mưa";
+    if (x < 10) return "Mưa nhỏ";
+    if (x < 25) return "Mưa vừa";
+    if (x < 50) return "Mưa to";
+    return "Mưa rất to";
+  }
+
+  function normalizeRainItem(item) {
+    const s = item.station || {};
+    const rain = Number(item.sumDepth ?? item.rain ?? item.rainfall ?? 0);
+    return {
+      id: s.id || s.uuid || item.id || s.name,
+      name: s.name || s.address || "Trạm mưa",
+      address: s.address || "",
+      location: s.location || s.area || "",
+      lat: Number(s.lat),
+      lng: Number(s.lng ?? s.lon ?? s.long),
+      rain,
+      level: item.level || rainLabel(rain),
+      from: item.from || "",
+      to: item.to || "",
+      raw: item
+    };
+  }
+
+  async function loadRainData(force=false) {
+    if (rainState.loaded && !force) {
+      renderRainTableAndMap();
+      return;
+    }
+
+    const tb = $("rainTableBody");
+    if (tb) tb.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted)">Đang tải số liệu mưa...</td></tr>`;
+    if ($("rainStatus")) $("rainStatus").textContent = "Đang gọi API Vrain...";
+
+    try {
+      const res = await fetch(VRAIN_RAIN_SUMMARY_URL, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        cache: "no-store"
+      });
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const e = await res.json();
+          msg = e.error || e.message || msg;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const json = await res.json();
+      const arr = Array.isArray(json) ? json : (json.data || json.items || []);
+      rainState.data = arr.map(normalizeRainItem).filter(x => Number.isFinite(x.lat) && Number.isFinite(x.lng));
+      rainState.loaded = true;
+
+      renderRainTableAndMap();
+      const now = new Date();
+      if ($("rainApiTime")) $("rainApiTime").textContent = `Cập nhật ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+      if ($("rainStatus")) $("rainStatus").textContent = "Đã tải số liệu mưa từ Vrain qua proxy /api/rain.";
+    } catch (err) {
+      console.error("Vrain rain API error:", err);
+      if ($("rainStatus")) $("rainStatus").innerHTML = `Không tải được số liệu mưa qua <b>/api/rain</b>. Hãy tạo file proxy <b>api/rain.js</b> trên Vercel. Chi tiết lỗi: ${err.message}`;
+      if (tb) tb.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#ef4444">Lỗi tải dữ liệu mưa: ${err.message}</td></tr>`;
+    }
+  }
+
+  function initRainMap() {
+    if (rainState.map || !window.L || !$("rainMap")) return;
+    rainState.map = L.map("rainMap", { zoomControl: true }).setView([WEATHER_CENTER.lat, WEATHER_CENTER.lon], 10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap"
+    }).addTo(rainState.map);
+    rainState.layer = L.layerGroup().addTo(rainState.map);
+  }
+
+  function renderRainTableAndMap() {
+    const q = (($("rainSearch") && $("rainSearch").value) || "").trim().toLowerCase();
+    const rows = rainState.data.filter(x => !q || `${x.name} ${x.address} ${x.location}`.toLowerCase().includes(q));
+    const tb = $("rainTableBody");
+
+    const max = rows.length ? rows.reduce((a,b) => b.rain > a.rain ? b : a, rows[0]) : null;
+    if ($("rainStationCount")) $("rainStationCount").textContent = rows.length;
+    if ($("rainMaxValue")) $("rainMaxValue").textContent = max ? `${fmt1.format(max.rain)} mm` : "-- mm";
+    if ($("rainMaxLevel")) $("rainMaxLevel").textContent = max ? (max.level || rainLabel(max.rain)) : "--";
+
+    if (tb) {
+      if (!rows.length) {
+        tb.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted)">Không có trạm phù hợp</td></tr>`;
+      } else {
+        tb.innerHTML = "";
+        rows
+          .slice()
+          .sort((a,b) => b.rain - a.rain)
+          .forEach(r => {
+            const tr = document.createElement("tr");
+            const color = rainColor(r.rain);
+            tr.innerHTML = `
+              <td>${r.name}</td>
+              <td>${r.location || r.address || "-"}</td>
+              <td><span class="rain-pill" style="background:${color}">${fmt1.format(r.rain)} mm</span></td>
+              <td style="font-weight:1000; color:${color}">${r.level || rainLabel(r.rain)}</td>
+              <td>${r.to || "-"}</td>
+            `;
+            tr.onclick = () => focusRainStation(r);
+            tb.appendChild(tr);
+          });
+      }
+    }
+
+    initRainMap();
+    if (rainState.map && rainState.layer) {
+      rainState.layer.clearLayers();
+      rows.forEach(r => {
+        const color = rainColor(r.rain);
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="rain-marker" style="background:${color}">${fmt1.format(r.rain)}</div>`,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+          popupAnchor: [0, -17]
+        });
+        L.marker([r.lat, r.lng], { icon })
+          .bindPopup(`
+            <div class="rain-popup-title">${r.name}</div>
+            <div class="rain-popup-meta">
+              ${r.location || r.address || ""}<br>
+              Lượng mưa: <b style="color:${color}">${fmt1.format(r.rain)} mm</b><br>
+              Cấp: <b>${r.level || rainLabel(r.rain)}</b><br>
+              Đến: ${r.to || "-"}
+            </div>
+          `)
+          .addTo(rainState.layer);
+      });
+
+      setTimeout(() => rainState.map.invalidateSize(), 150);
+      if (rows.length === 1) {
+        rainState.map.setView([rows[0].lat, rows[0].lng], 12);
+      } else if (rows.length > 1) {
+        const bounds = L.latLngBounds(rows.map(r => [r.lat, r.lng]));
+        rainState.map.fitBounds(bounds.pad(0.25));
+      } else {
+        focusRainMapAVuong();
+      }
+    }
+  }
+
+  function focusRainStation(r) {
+    initRainMap();
+    if (!rainState.map) return;
+    rainState.map.setView([r.lat, r.lng], 13);
+    rainState.layer.eachLayer(layer => {
+      const ll = layer.getLatLng && layer.getLatLng();
+      if (ll && Math.abs(ll.lat - r.lat) < 0.00001 && Math.abs(ll.lng - r.lng) < 0.00001) layer.openPopup();
+    });
+  }
+
+  function focusRainMapAVuong() {
+    initRainMap();
+    if (rainState.map) {
+      rainState.map.setView([WEATHER_CENTER.lat, WEATHER_CENTER.lon], 10);
+      setTimeout(() => rainState.map.invalidateSize(), 100);
+    }
+  }
+
+
   // --- Website navigation (sidebar left) ---
   function setActiveNav(tabName){
     document.querySelectorAll('.nav-link').forEach(a=>{
@@ -1465,6 +1811,7 @@
     setActiveNav(name);
 
     if(name==='data') loadTableData();
+    if(name==='rain') loadRainData();
     if(name==='map') {
       const mf = $("floodMapFrame");
       if(mf && !mf.dataset.loadedOnce) {
