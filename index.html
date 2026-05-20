@@ -1023,6 +1023,21 @@
     @media(max-width:1180px){.openmeteo-rain-grid{grid-template-columns:1fr}}
     @media(max-width:680px){.openmeteo-rain-summary{grid-template-columns:1fr 1fr}.openmeteo-rain-map-wrap{height:480px}}
 
+
+    .openweather-rain-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:14px;align-items:start}
+    .openweather-rain-map-wrap{width:100%;height:560px;min-height:420px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#e2e8f0}
+    #openweatherRainMap{width:100%;height:100%}
+    .openweather-rain-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .openweather-rain-card{border:1px solid var(--line);border-radius:16px;padding:12px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.06)}
+    .openweather-rain-card span{display:block;color:var(--text-muted);font-size:10px;font-weight:1000;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+    .openweather-rain-card b{font-family:var(--font-mono);font-size:19px;font-weight:1000}
+    .openweather-rain-marker{width:38px;height:38px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:1000;border:3px solid rgba(255,255,255,.92);box-shadow:0 10px 22px rgba(15,23,42,.24);font-family:var(--font-mono)}
+    .openweather-rain-label{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.96);color:#334155;font-size:11px;font-weight:1000;white-space:nowrap;box-shadow:0 8px 18px rgba(15,23,42,.16);border:1px solid rgba(15,23,42,.10);transform:translate(22px,-18px);pointer-events:none;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+    .openweather-rain-chart-wrap{height:390px;margin-top:14px;border:1px solid var(--line);border-radius:18px;padding:12px;background:#fff;box-shadow:var(--shadow-card)}
+    .openweather-rain-chart-wrap canvas{height:360px!important}
+    @media(max-width:1180px){.openweather-rain-grid{grid-template-columns:1fr}}
+    @media(max-width:680px){.openweather-rain-summary{grid-template-columns:1fr 1fr}.openweather-rain-map-wrap{height:480px}}
+
     .toast{
       position: fixed;
       left: 50%;
@@ -1126,6 +1141,10 @@
         <a class="nav-link" data-tab="openmeteorarain">
           <svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.995 5.995 0 0 0 6 20h13a5 5 0 0 0 .35-9.96zM8 17l2.2-3h3.6L16 17h-2.3l-.45-.7h-2.5l-.45.7H8z"/></svg>
           Mưa dự báo Open-Meteo
+        </a>
+        <a class="nav-link" data-tab="openweatherrain">
+          <svg viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zM1 13h3v-2H1v2zm10-12h2v3h-2V1zm8.04 2.46l1.41 1.41-1.79 1.8-1.42-1.42 1.8-1.79zM17 11a5 5 0 0 0-9.58-2.02A5.5 5.5 0 1 0 8.5 20H17a4.5 4.5 0 0 0 0-9z"/></svg>
+          Mưa dự báo OpenWeather
         </a>
         <a class="nav-link" data-tab="map">
           <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V21l6-2.1 6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zm-5 1.2l3-1.01v11.67l-3 1.01V6.67zm14 10.66l-3 1.01V6.66l3-1.01v11.68z"/></svg>
@@ -1448,6 +1467,41 @@
           </div>
           <div class="openmeteo-rain-chart-wrap"><canvas id="openmeteoRainChart"></canvas></div>
           <div class="rain-status" id="openmeteoRainStatus">Dữ liệu dự báo mưa lấy từ /api/openmeteo-rain.</div>
+        </section>
+      </div>
+
+
+      <div id="tab-openweatherrain" class="tab-pane">
+        <section class="card">
+          <div class="cardHead">
+            <b>Mưa dự báo OpenWeather</b>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <span class="chip" id="openweatherRainApiTime">Chưa cập nhật</span>
+              <button onclick="loadOpenWeatherRainData(true)" style="width:auto;padding:8px 12px;font-size:12px;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.22);color:var(--primary);">Cập nhật</button>
+            </div>
+          </div>
+          <div class="windy-rain-toolbar">
+            <span class="chip">Nguồn: OpenWeather One Call API 3.0</span>
+            <span class="chip">8 vị trí trạm</span>
+            <span class="chip">24h/48h hourly, 72h daily</span>
+          </div>
+          <div class="openweather-rain-summary">
+            <div class="openweather-rain-card"><span>Số vị trí</span><b id="openweatherRainStationCount">--</b></div>
+            <div class="openweather-rain-card"><span>TB 24h</span><b id="openweatherRainAvg24">-- mm</b></div>
+            <div class="openweather-rain-card"><span>Lớn nhất 24h</span><b id="openweatherRainMax24">-- mm</b></div>
+            <div class="openweather-rain-card"><span>Trạm lớn nhất</span><b id="openweatherRainMaxStation">--</b></div>
+          </div>
+          <div class="openweather-rain-grid">
+            <div class="openweather-rain-map-wrap"><div id="openweatherRainMap"></div></div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Trạm</th><th>24h</th><th>48h</th><th>72h</th><th>Cấp 24h</th></tr></thead>
+                <tbody id="openweatherRainTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Đang tải mưa dự báo OpenWeather...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="openweather-rain-chart-wrap"><canvas id="openweatherRainChart"></canvas></div>
+          <div class="rain-status" id="openweatherRainStatus">Dữ liệu dự báo mưa lấy từ /api/openweather-rain.</div>
         </section>
       </div>
 
@@ -2410,6 +2464,18 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function renderOpenMeteoRainChart(rows){const canvas=$("openmeteoRainChart");if(!canvas||!window.Chart)return;if(openmeteoRainState.chart){openmeteoRainState.chart.destroy();openmeteoRainState.chart=null;}const ordered=rows.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));openmeteoRainState.chart=new Chart(canvas.getContext("2d"),{type:"bar",data:{labels:ordered.map(r=>r.code),datasets:[{label:"Mưa 24h",data:ordered.map(r=>Number(r.rain24h||0)),backgroundColor:"rgba(34,197,94,0.45)",borderColor:"rgba(34,197,94,0.8)",borderWidth:1},{label:"Mưa 48h",data:ordered.map(r=>Number(r.rain48h||0)),backgroundColor:"rgba(245,158,11,0.36)",borderColor:"rgba(245,158,11,0.8)",borderWidth:1},{label:"Mưa 72h",data:ordered.map(r=>Number(r.rain72h||0)),backgroundColor:"rgba(37,99,235,0.30)",borderColor:"rgba(37,99,235,0.75)",borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155",font:{size:11,weight:"700"},boxWidth:12}},tooltip:{callbacks:{title:(items)=>{const idx=items?.[0]?.dataIndex??0;return ordered[idx]?`${ordered[idx].code} - ${ordered[idx].name}`:"";},label:(ctx)=>`${ctx.dataset.label}: ${formatRainSmall(ctx.raw)} mm`}}},scales:{x:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}},y:{beginAtZero:true,ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}}}}});}
 
 
+
+  // --- OpenWeather rain forecast dashboard ---
+  const openweatherRainState = { data: [], map: null, layer: null, labelLayer: null, chart: null, loaded: false };
+  function openweatherRainColor(v){const x=Number(v||0); if(x<=0)return "#64748b"; if(x<10)return "#22c55e"; if(x<25)return "#eab308"; if(x<50)return "#f97316"; return "#ef4444";}
+  function initOpenWeatherRainMap(){if(openweatherRainState.map||!window.L||!$("openweatherRainMap"))return;openweatherRainState.map=L.map("openweatherRainMap",{zoomControl:true}).setView([WEATHER_CENTER.lat,WEATHER_CENTER.lon],10);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(openweatherRainState.map);openweatherRainState.layer=L.layerGroup().addTo(openweatherRainState.map);openweatherRainState.labelLayer=L.layerGroup().addTo(openweatherRainState.map);}
+  async function loadOpenWeatherRainData(force=false){if(!force&&openweatherRainState.loaded&&openweatherRainState.data.length){renderOpenWeatherRainDashboard();return;}const tb=$("openweatherRainTableBody");if(tb)tb.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Đang tải mưa dự báo OpenWeather...</td></tr>`;if($("openweatherRainStatus"))$("openweatherRainStatus").textContent="Đang gọi /api/openweather-rain...";try{const res=await fetch("/api/openweather-rain",{headers:{Accept:"application/json"},cache:"no-store"});if(!res.ok){let msg=`HTTP ${res.status}`;try{const e=await res.json();msg=e.error||e.message||msg;}catch(_){}throw new Error(msg);}const json=await res.json();if(!json.ok)throw new Error(json.error||"OpenWeather API trả lỗi");openweatherRainState.data=json.stations||[];openweatherRainState.loaded=true;renderOpenWeatherRainDashboard();const now=new Date();if($("openweatherRainApiTime"))$("openweatherRainApiTime").textContent=`Cập nhật ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;if($("openweatherRainStatus"))$("openweatherRainStatus").textContent=`Đã tải mưa dự báo OpenWeather cho ${openweatherRainState.data.length} vị trí.`;}catch(err){console.error("OpenWeather rain API error:",err);if($("openweatherRainStatus"))$("openweatherRainStatus").innerHTML=`Lỗi tải mưa dự báo OpenWeather: ${err.message}`;if(tb)tb.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:#ef4444">Lỗi tải dữ liệu: ${err.message}</td></tr>`;}}
+  function renderOpenWeatherRainDashboard(){const rows=openweatherRainState.data||[];const tb=$("openweatherRainTableBody");const max=rows.length?rows.reduce((a,b)=>Number(b.rain24h||0)>Number(a.rain24h||0)?b:a,rows[0]):null;const avg24=rows.length?rows.reduce((s,r)=>s+Number(r.rain24h||0),0)/rows.length:0;if($("openweatherRainStationCount"))$("openweatherRainStationCount").textContent=rows.length;if($("openweatherRainAvg24"))$("openweatherRainAvg24").textContent=`${formatRainSmall(avg24)} mm`;if($("openweatherRainMax24"))$("openweatherRainMax24").textContent=max?`${formatRainSmall(max.rain24h)} mm`:"-- mm";if($("openweatherRainMaxStation"))$("openweatherRainMaxStation").textContent=max?max.code:"--";if(tb){if(!rows.length)tb.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Không có dữ liệu</td></tr>`;else{tb.innerHTML="";rows.slice().sort((a,b)=>Number(b.rain24h||0)-Number(a.rain24h||0)).forEach(r=>{const c=openweatherRainColor(r.rain24h);const tr=document.createElement("tr");tr.innerHTML=`<td><span style="color:#64748b">${r.code} - </span>${r.name}</td><td><span class="rain-pill" style="background:${c}">${formatRainSmall(r.rain24h)} mm</span></td><td>${formatRainSmall(r.rain48h)} mm</td><td>${formatRainSmall(r.rain72h)} mm</td><td style="font-weight:1000;color:${c}">${r.level24h||""}</td>`;tr.onclick=()=>focusOpenWeatherRainStation(r);tb.appendChild(tr);});}}renderOpenWeatherRainMap(rows);renderOpenWeatherRainChart(rows);}
+  function renderOpenWeatherRainMap(rows){initOpenWeatherRainMap();if(!openweatherRainState.map||!openweatherRainState.layer)return;openweatherRainState.layer.clearLayers();if(openweatherRainState.labelLayer)openweatherRainState.labelLayer.clearLayers();rows.forEach(r=>{const c=openweatherRainColor(r.rain24h);const icon=L.divIcon({className:"",html:`<div class="openweather-rain-marker" style="background:${c}">${formatRainSmall(r.rain24h)}</div>`,iconSize:[38,38],iconAnchor:[19,19],popupAnchor:[0,-19]});L.marker([r.lat,r.lon],{icon}).bindPopup(`<div class="rain-popup-title">${r.code} - ${r.name}</div><div class="rain-popup-meta">Nguồn: <b>OpenWeather</b><br>Mưa 24h: <b style="color:${c}">${formatRainSmall(r.rain24h)} mm</b><br>Mưa 48h: <b>${formatRainSmall(r.rain48h)} mm</b><br>Mưa 72h: <b>${formatRainSmall(r.rain72h)} mm</b><br>Cấp 24h: <b>${r.level24h||""}</b></div>`).addTo(openweatherRainState.layer);if(openweatherRainState.labelLayer){const label=L.divIcon({className:"",html:`<div class="openweather-rain-label">${r.code} - ${r.name}</div>`,iconSize:[1,1],iconAnchor:[0,0]});L.marker([r.lat,r.lon],{icon:label,interactive:false}).addTo(openweatherRainState.labelLayer);}});setTimeout(()=>openweatherRainState.map.invalidateSize(),150);if(rows.length>1){const bounds=L.latLngBounds(rows.map(r=>[r.lat,r.lon]));openweatherRainState.map.fitBounds(bounds.pad(0.25));}}
+  function focusOpenWeatherRainStation(r){initOpenWeatherRainMap();if(!openweatherRainState.map)return;openweatherRainState.map.setView([r.lat,r.lon],13);openweatherRainState.layer.eachLayer(layer=>{const ll=layer.getLatLng&&layer.getLatLng();if(ll&&Math.abs(ll.lat-r.lat)<0.00001&&Math.abs(ll.lng-r.lon)<0.00001)layer.openPopup();});}
+  function renderOpenWeatherRainChart(rows){const canvas=$("openweatherRainChart");if(!canvas||!window.Chart)return;if(openweatherRainState.chart){openweatherRainState.chart.destroy();openweatherRainState.chart=null;}const ordered=rows.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));openweatherRainState.chart=new Chart(canvas.getContext("2d"),{type:"bar",data:{labels:ordered.map(r=>r.code),datasets:[{label:"Mưa 24h",data:ordered.map(r=>Number(r.rain24h||0)),backgroundColor:"rgba(34,197,94,0.45)",borderColor:"rgba(34,197,94,0.8)",borderWidth:1},{label:"Mưa 48h",data:ordered.map(r=>Number(r.rain48h||0)),backgroundColor:"rgba(245,158,11,0.36)",borderColor:"rgba(245,158,11,0.8)",borderWidth:1},{label:"Mưa 72h",data:ordered.map(r=>Number(r.rain72h||0)),backgroundColor:"rgba(37,99,235,0.30)",borderColor:"rgba(37,99,235,0.75)",borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155",font:{size:11,weight:"700"},boxWidth:12}},tooltip:{callbacks:{title:(items)=>{const idx=items?.[0]?.dataIndex??0;return ordered[idx]?`${ordered[idx].code} - ${ordered[idx].name}`:"";},label:(ctx)=>`${ctx.dataset.label}: ${formatRainSmall(ctx.raw)} mm`}}},scales:{x:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}},y:{beginAtZero:true,ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}}}}});}
+
+
   // --- Website navigation (sidebar left) ---
   function setActiveNav(tabName){
     document.querySelectorAll('.nav-link').forEach(a=>{
@@ -2425,6 +2491,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(name==='data') loadTableData();
     if(name==='windyrain') loadWindyRainData();
     if(name==='openmeteorarain') loadOpenMeteoRainData();
+    if(name==='openweatherrain') loadOpenWeatherRainData();
     if(name==='rain') { mergeRainStations(); renderRainTableAndMap(); loadRainData(); loadRain30mData(); }
     if(name==='map') {
       const mf = $("floodMapFrame");
