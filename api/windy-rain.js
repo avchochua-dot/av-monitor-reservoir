@@ -35,10 +35,7 @@ function findPrecipArray(data) {
 
   for (const key of candidates) {
     if (Array.isArray(data?.[key])) {
-      return {
-        key,
-        values: data[key],
-      };
+      return { key, values: data[key] };
     }
   }
 
@@ -47,16 +44,10 @@ function findPrecipArray(data) {
   );
 
   if (foundKey) {
-    return {
-      key: foundKey,
-      values: data[foundKey],
-    };
+    return { key: foundKey, values: data[foundKey] };
   }
 
-  return {
-    key: null,
-    values: [],
-  };
+  return { key: null, values: [] };
 }
 
 function sumForecast(ts = [], values = [], hours = 24) {
@@ -77,7 +68,13 @@ function sumForecast(ts = [], values = [], hours = 24) {
     }
   }
 
-  return Number(sum.toFixed(2));
+  return sum;
+}
+
+function keepSmallNumber(v) {
+  const n = Number(v || 0);
+  if (!Number.isFinite(n)) return 0;
+  return Number(n.toFixed(3));
 }
 
 async function getPointRain(station, model = "gfs", debug = false) {
@@ -119,9 +116,13 @@ async function getPointRain(station, model = "gfs", debug = false) {
   const ts = Array.isArray(data.ts) ? data.ts : [];
   const precip = findPrecipArray(data);
 
-  const rain24h = sumForecast(ts, precip.values, 24);
-  const rain48h = sumForecast(ts, precip.values, 48);
-  const rain72h = sumForecast(ts, precip.values, 72);
+  const rain24hRaw = sumForecast(ts, precip.values, 24);
+  const rain48hRaw = sumForecast(ts, precip.values, 48);
+  const rain72hRaw = sumForecast(ts, precip.values, 72);
+
+  const rain24h = keepSmallNumber(rain24hRaw);
+  const rain48h = keepSmallNumber(rain48hRaw);
+  const rain72h = keepSmallNumber(rain72hRaw);
 
   const result = {
     code: station.code,
@@ -129,9 +130,9 @@ async function getPointRain(station, model = "gfs", debug = false) {
     lat: station.lat,
     lon: station.lon,
     model,
-    rain24h: Number(rain24h.toFixed(1)),
-    rain48h: Number(rain48h.toFixed(1)),
-    rain72h: Number(rain72h.toFixed(1)),
+    rain24h,
+    rain48h,
+    rain72h,
     level24h: levelRain(rain24h),
     updatedAt: new Date().toISOString(),
   };
@@ -144,6 +145,11 @@ async function getPointRain(station, model = "gfs", debug = false) {
       firstTime: ts[0] ? new Date(Number(ts[0])).toISOString() : null,
       lastTime: ts.length ? new Date(Number(ts[ts.length - 1])).toISOString() : null,
       samplePrecip: precip.values.slice(0, 10),
+      rawSums: {
+        rain24hRaw,
+        rain48hRaw,
+        rain72hRaw,
+      },
     };
   }
 
