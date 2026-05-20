@@ -1,22 +1,78 @@
+const API_BASE = "https://kttv-open.vrain.vn";
+
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
+function formatTime(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+async function callVrain(path) {
+  const apiKey = process.env.VRAIN_API_KEY;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      "Accept": "application/json",
+      "x-api-key": apiKey,
+      "Authorization": `Bearer ${apiKey}`
+    }
+  });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`Vrain API ${res.status}: ${text}`);
+  }
+
+  return JSON.parse(text);
+}
+
 export default async function handler(req, res) {
   try {
-    const response = await fetch(
-      "https://avuong.vrain.vn/api/private/v1/organizations/summary",
-      {
-        headers: {
-          "accept": "application/json, text/plain, */*",
-          "referer": "https://avuong.vrain.vn/station/dashboard",
-          "x-org-uuid": "ea275312-f0dd-44a5-9111-6191b333f506",
-          "x-vrain-user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-          "cookie": "_ga=GA1.1.1963067761.1776247687; loginImage=%7B%22url%22%3A%22https%3A%2F%2Fassets.vrain.vn%2Fkttv%2Fimages%2F1.jpg%22%2C%22caption%22%3A%22%C4%90%E1%BA%A3o%20ch%C3%A8%20Thanh%20Ch%C6%B0%C6%A1ng%20-%20Ngh%E1%BB%87%20An%22%7D; sid=9748500e-4176-49d2-a4ae-f471df16718c; _ga_P14ZMM778Z=GS2.1.s1779185964$o13$g1$t1779186057$j60$l0$h0"
-        }
-      }
+    const end = new Date();
+    const start = new Date(end.getTime() - 60 * 60 * 1000);
+
+    const stations = await callVrain("/v1/stations");
+
+    const stats = await callVrain(
+      `/v1/stations/stats?start_time=${encodeURIComponent(formatTime(start))}&end_time=${encodeURIComponent(formatTime(end))}&format=10m`
     );
 
-    const text = await response.text();
+    const statRows = stats?.Data || stats?.data || [];
+
+    const output = stations.map((s) => {
+      const row = statRows.find(x =>
+        x.station_id === s.code ||
+        x.station_id === s.uuid ||
+        x.station_id === String(s.code)
+      );
+
+      const values = row?.value || [];
+      const rain = values.reduce((sum, v) => sum + Number(v.depth || 0), 0);
+      const last = values[values.length - 1];
+
+      return {
+        level: rain <= 0 ? "Không mưa" : rain < 10 ? "Mưa nhỏ" : rain < 25 ? "Mưa vừa" : rain < 50 ? "Mưa to" : "Mưa rất to",
+        sumDepth: rain,
+        to: last?.time_point || "",
+        station: {
+          id: s.uuid,
+          uuid: s.uuid,
+          code: s.code,
+          name: s.name,
+          address: s.address,
+          area: s.area,
+          cityName: s.city,
+          lat: s.latitude,
+          lng: s.longitude,
+          location: s.area
+        }
+      };
+    });
 
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.status(response.status).send(text);
+    res.status(200).json(output);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
