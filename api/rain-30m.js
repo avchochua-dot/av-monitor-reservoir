@@ -4,8 +4,17 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-function formatTime(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+// Giờ Việt Nam UTC+7, tránh lỗi Vercel dùng giờ UTC
+function formatTimeVN(d) {
+  const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+
+  const y = vn.getUTCFullYear();
+  const m = pad(vn.getUTCMonth() + 1);
+  const day = pad(vn.getUTCDate());
+  const h = pad(vn.getUTCHours());
+  const min = pad(vn.getUTCMinutes());
+
+  return `${y}-${m}-${day} ${h}:${min}:00`;
 }
 
 async function callVrain(path) {
@@ -30,7 +39,7 @@ async function callVrain(path) {
 
 export default async function handler(req, res) {
   try {
-    const requestedHours = Number(req.query.hours || 24);
+    const requestedHours = Number(req.query.hours || 23);
     const safeHours = Math.min(requestedHours, 23.5);
 
     const end = new Date();
@@ -39,7 +48,9 @@ export default async function handler(req, res) {
     const stations = await callVrain("/v1/stations");
 
     const stats = await callVrain(
-      `/v1/stations/stats?start_time=${encodeURIComponent(formatTime(start))}&end_time=${encodeURIComponent(formatTime(end))}&format=10m`
+      `/v1/stations/stats?start_time=${encodeURIComponent(
+        formatTimeVN(start)
+      )}&end_time=${encodeURIComponent(formatTimeVN(end))}&format=10m`
     );
 
     const statRows = stats?.Data || stats?.data || [];
@@ -57,7 +68,10 @@ export default async function handler(req, res) {
       const by30m = [];
       for (let i = 0; i < values.length; i += 3) {
         const group = values.slice(i, i + 3);
-        const rain30m = group.reduce((sum, v) => sum + Number(v.depth || 0), 0);
+        const rain30m = group.reduce(
+          (sum, v) => sum + Number(v.depth || 0),
+          0
+        );
 
         if (group.length) {
           by30m.push({
@@ -82,6 +96,7 @@ export default async function handler(req, res) {
     });
 
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     res.status(200).json(output);
   } catch (err) {
     res.status(500).json({ error: err.message });
