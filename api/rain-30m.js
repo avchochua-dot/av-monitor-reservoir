@@ -30,10 +30,11 @@ async function callVrain(path) {
 
 export default async function handler(req, res) {
   try {
-    const hours = Number(req.query.hours || 24);
+    const requestedHours = Number(req.query.hours || 24);
+    const safeHours = Math.min(requestedHours, 23.5);
 
     const end = new Date();
-    const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+    const start = new Date(end.getTime() - safeHours * 60 * 60 * 1000);
 
     const stations = await callVrain("/v1/stations");
 
