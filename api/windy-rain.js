@@ -11,18 +11,7 @@ const STATIONS = [
   { code: "MR08", name: "Tr.Tiểu học A Rooih", lat: 15.867412, lon: 107.61396 },
 ];
 
-function sumUntil(ts = [], values = [], hours = 24) {
-  if (!ts.length || !values.length) return 0;
-
-  const first = Number(ts[0]);
-  const limit = first + hours * 60 * 60 * 1000;
-
-  return values.reduce((sum, v, i) => {
-    const t = Number(ts[i]);
-    if (t <= limit) return sum + Number(v || 0);
-    return sum;
-  }, 0);
-}
+const ALLOWED_MODELS = new Set(["gfs", "icon", "iconEu", "nam", "wavewatch"]);
 
 function levelRain(v) {
   const x = Number(v || 0);
@@ -33,7 +22,65 @@ function levelRain(v) {
   return "Mưa rất to";
 }
 
-async function getPointRain(station, model = "gfs") {
+function findPrecipArray(data) {
+  const candidates = [
+    "precip-surface",
+    "past3hprecip-surface",
+    "rain-surface",
+    "convPrecip-surface",
+    "snowPrecip-surface",
+    "precip",
+    "rain",
+  ];
+
+  for (const key of candidates) {
+    if (Array.isArray(data?.[key])) {
+      return {
+        key,
+        values: data[key],
+      };
+    }
+  }
+
+  const foundKey = Object.keys(data || {}).find(
+    (k) => k.toLowerCase().includes("precip") && Array.isArray(data[k])
+  );
+
+  if (foundKey) {
+    return {
+      key: foundKey,
+      values: data[foundKey],
+    };
+  }
+
+  return {
+    key: null,
+    values: [],
+  };
+}
+
+function sumForecast(ts = [], values = [], hours = 24) {
+  if (!Array.isArray(ts) || !Array.isArray(values) || !ts.length || !values.length) {
+    return 0;
+  }
+
+  const first = Number(ts[0]);
+  const limit = first + hours * 60 * 60 * 1000;
+
+  let sum = 0;
+
+  for (let i = 0; i < ts.length && i < values.length; i++) {
+    const t = Number(ts[i]);
+    if (!Number.isFinite(t)) continue;
+    if (t <= limit) {
+      sum += Number(values[i] || 0);
+    }
+  }
+
+  return Number(sum.toFixed(2));
+}
+
+async function getPointRain(station, model = "gfs", debug = false) {
   const key = process.env.WINDY_POINT_API_KEY;
 
   if (!key) {
@@ -44,6 +91,7 @@ async function getPointRain(station, model = "gfs") {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Accept: "application/json",
     },
     body: JSON.stringify({
       lat: station.lat,
@@ -61,19 +109,21 @@ async function getPointRain(station, model = "gfs") {
     throw new Error(`Windy API ${response.status}: ${text}`);
   }
 
-  const data = JSON.parse(text);
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Windy API returned non-JSON: ${text.slice(0, 200)}`);
+  }
 
-  const precip =
-    data["precip-surface"] ||
-    data["past3hprecip-surface"] ||
-    data.precip ||
-    [];
+  const ts = Array.isArray(data.ts) ? data.ts : [];
+  const precip = findPrecipArray(data);
 
-  const rain24h = sumUntil(data.ts, precip, 24);
-  const rain48h = sumUntil(data.ts, precip, 48);
-  const rain72h = sumUntil(data.ts, precip, 72);
+  const rain24h = sumForecast(ts, precip.values, 24);
+  const rain48h = sumForecast(ts, precip.values, 48);
+  const rain72h = sumForecast(ts, precip.values, 72);
 
-  return {
+  const result = {
     code: station.code,
     name: station.name,
     lat: station.lat,
@@ -85,15 +135,35 @@ async function getPointRain(station, model = "gfs") {
     level24h: levelRain(rain24h),
     updatedAt: new Date().toISOString(),
   };
+
+  if (debug) {
+    result.debug = {
+      precipKey: precip.key,
+      keys: Object.keys(data || {}),
+      points: ts.length,
+      firstTime: ts[0] ? new Date(Number(ts[0])).toISOString() : null,
+      lastTime: ts.length ? new Date(Number(ts[ts.length - 1])).toISOString() : null,
+      samplePrecip: precip.values.slice(0, 10),
+    };
+  }
+
+  return result;
 }
 
 export default async function handler(req, res) {
   try {
-    const model = String(req.query.model || "gfs").toLowerCase();
+    let model = String(req.query.model || "gfs");
+
+    if (!ALLOWED_MODELS.has(model)) {
+      model = "gfs";
+    }
+
+    const debug = String(req.query.debug || "") === "1";
 
     const rows = [];
+
     for (const station of STATIONS) {
-      rows.push(await getPointRain(station, model));
+      rows.push(await getPointRain(station, model, debug));
       await new Promise((r) => setTimeout(r, 250));
     }
 
