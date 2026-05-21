@@ -1,4 +1,5 @@
 const STATIONS = [
+  { code: "NMAV", name: "NM A Vương", lat: 15.779525, lon: 107.682545 },
   { code: "MR01", name: "Đập tràn", lat: 15.799722, lon: 107.61667 },
   { code: "MR02", name: "Tr.Tiểu học & TH b.trú Dang", lat: 15.828689, lon: 107.559727 },
   { code: "MR03", name: "UBND xã Tây Giang", lat: 15.885485, lon: 107.49253 },
@@ -8,6 +9,7 @@ const STATIONS = [
   { code: "MR07", name: "Tr.Tiểu học b.trú A Vương", lat: 15.943821, lon: 107.566262 },
   { code: "MR08", name: "Tr.Tiểu học A Rooih", lat: 15.867412, lon: 107.61396 },
 ];
+
 
 function levelRain(v) {
   const x = Number(v || 0);
@@ -24,31 +26,35 @@ function keepSmallNumber(v) {
   return Number(n.toFixed(3));
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+
+const OPENWEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall";
+
 function getHourlyRain(row) {
-  return Number(row?.rain?.["1h"] || row?.rain || 0);
+  return Number(row?.rain?.["1h"] || 0);
 }
 
 function sumHours(hourly = [], hours = 24) {
-  return hourly.slice(0, hours).reduce((sum, row) => {
-    return sum + getHourlyRain(row);
-  }, 0);
+  return hourly.slice(0, hours).reduce((sum, row) => sum + getHourlyRain(row), 0);
 }
 
 async function getStationForecast(station) {
   const key = process.env.OPENWEATHER_API_KEY;
+  if (!key) throw new Error("Missing OPENWEATHER_API_KEY");
 
-  if (!key) {
-    throw new Error("Missing OPENWEATHER_API_KEY");
-  }
+  const params = new URLSearchParams({
+    lat: String(station.lat),
+    lon: String(station.lon),
+    appid: key,
+    units: "metric",
+    lang: "vi",
+    exclude: "minutely,current,alerts",
+  });
 
-  const url =
-    `https://api.openweathermap.org/data/3.0/onecall` +
-    `?lat=${station.lat}` +
-    `&lon=${station.lon}` +
-    `&appid=${key}` +
-    `&units=metric` +
-    `&lang=vi` +
-    `&exclude=minutely,current,alerts`;
+  const url = `${OPENWEATHER_URL}?${params.toString()}`;
 
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -62,12 +68,12 @@ async function getStationForecast(station) {
 
   const data = JSON.parse(text);
   const hourly = Array.isArray(data.hourly) ? data.hourly : [];
+  const daily = Array.isArray(data.daily) ? data.daily : [];
 
   const rain24h = keepSmallNumber(sumHours(hourly, 24));
   const rain48h = keepSmallNumber(sumHours(hourly, 48));
 
-  // One Call hourly chỉ có 48h. 72h lấy thêm daily[0..2].rain nếu có.
-  const daily = Array.isArray(data.daily) ? data.daily : [];
+  // One Call hourly thường chỉ có 48h. 72h lấy tổng daily rain 3 ngày đầu nếu có.
   const rain72hDaily = daily.slice(0, 3).reduce((s, d) => s + Number(d?.rain || 0), 0);
   const rain72h = keepSmallNumber(rain72hDaily || rain48h);
 
@@ -92,7 +98,7 @@ export default async function handler(req, res) {
 
     for (const station of STATIONS) {
       rows.push(await getStationForecast(station));
-      await new Promise((r) => setTimeout(r, 160));
+      await sleep(180);
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
