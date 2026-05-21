@@ -1,4 +1,5 @@
 const STATIONS = [
+  { code: "NMAV", name: "NM A Vương", lat: 15.779525, lon: 107.682545 },
   { code: "MR01", name: "Đập tràn", lat: 15.799722, lon: 107.61667 },
   { code: "MR02", name: "Tr.Tiểu học & TH b.trú Dang", lat: 15.828689, lon: 107.559727 },
   { code: "MR03", name: "UBND xã Tây Giang", lat: 15.885485, lon: 107.49253 },
@@ -8,6 +9,7 @@ const STATIONS = [
   { code: "MR07", name: "Tr.Tiểu học b.trú A Vương", lat: 15.943821, lon: 107.566262 },
   { code: "MR08", name: "Tr.Tiểu học A Rooih", lat: 15.867412, lon: 107.61396 },
 ];
+
 
 function levelRain(v) {
   const x = Number(v || 0);
@@ -24,18 +26,27 @@ function keepSmallNumber(v) {
   return Number(n.toFixed(3));
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+
+const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+
 function sumHours(values = [], hours = 24) {
-  return values.slice(0, hours).reduce((s, v) => s + Number(v || 0), 0);
+  return values.slice(0, hours).reduce((sum, v) => sum + Number(v || 0), 0);
 }
 
 async function getStationForecast(station) {
-  const url =
-    `https://api.open-meteo.com/v1/forecast` +
-    `?latitude=${station.lat}` +
-    `&longitude=${station.lon}` +
-    `&hourly=precipitation` +
-    `&forecast_days=7` +
-    `&timezone=Asia%2FHo_Chi_Minh`;
+  const params = new URLSearchParams({
+    latitude: String(station.lat),
+    longitude: String(station.lon),
+    hourly: "precipitation",
+    timezone: "Asia/Ho_Chi_Minh",
+    forecast_days: "4",
+  });
+
+  const url = `${OPEN_METEO_URL}?${params.toString()}`;
 
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -48,12 +59,12 @@ async function getStationForecast(station) {
   }
 
   const data = JSON.parse(text);
-  const values = data?.hourly?.precipitation || [];
-  const times = data?.hourly?.time || [];
+  const hourly = data.hourly || {};
+  const rain = Array.isArray(hourly.precipitation) ? hourly.precipitation : [];
 
-  const rain24h = keepSmallNumber(sumHours(values, 24));
-  const rain48h = keepSmallNumber(sumHours(values, 48));
-  const rain72h = keepSmallNumber(sumHours(values, 72));
+  const rain24h = keepSmallNumber(sumHours(rain, 24));
+  const rain48h = keepSmallNumber(sumHours(rain, 48));
+  const rain72h = keepSmallNumber(sumHours(rain, 72));
 
   return {
     code: station.code,
@@ -65,8 +76,8 @@ async function getStationForecast(station) {
     rain48h,
     rain72h,
     level24h: levelRain(rain24h),
-    startTime: times[0] || "",
-    endTime: times[Math.min(71, times.length - 1)] || "",
+    startTime: hourly.time?.[0] || "",
+    endTime: hourly.time?.[Math.min(71, hourly.time.length - 1)] || "",
     updatedAt: new Date().toISOString(),
   };
 }
@@ -77,7 +88,7 @@ export default async function handler(req, res) {
 
     for (const station of STATIONS) {
       rows.push(await getStationForecast(station));
-      await new Promise((r) => setTimeout(r, 120));
+      await sleep(180);
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
