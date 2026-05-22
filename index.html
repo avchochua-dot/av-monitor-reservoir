@@ -1952,6 +1952,16 @@ aside.sidebar{
   .v8-stat-grid{grid-template-columns:1fr!important}
 }
 
+
+/* ================== OPERATION COORDINATION CHART ================== */
+.operation-chart-card{margin-top:14px!important}
+.operation-chart-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.operation-chart-toolbar select{width:auto;min-width:110px;border:1px solid var(--line);border-radius:14px;padding:8px 10px;background:#fff;color:var(--text-main);font-weight:900;outline:none;box-shadow:0 8px 18px rgba(15,23,42,.06)}
+.operation-chart-wrap{height:560px;min-height:460px;position:relative}
+.operation-chart-wrap canvas{height:560px!important}
+.operation-chart-note{margin-top:10px;color:var(--text-muted);font-size:12px;font-weight:800}
+@media(max-width:640px){.operation-chart-wrap{height:460px}.operation-chart-wrap canvas{height:460px!important}}
+
 </style>
 </head>
 <body>
@@ -2168,6 +2178,30 @@ aside.sidebar{
             </div>
           </div>
         </section>
+
+        <section class="card chart-card operation-chart-card">
+          <div class="cardHead">
+            <b>Biểu đồ điều phối vận hành hồ chứa</b>
+            <div class="operation-chart-toolbar">
+              <span class="chip" id="operationChartStatus">Chưa tải</span>
+              <select id="operationChartYear" onchange="loadOperationChart(true)">
+                <option value="2026" selected>2026</option>
+                <option value="2025">2025</option>
+                <option value="2027">2027</option>
+              </select>
+              <button onclick="loadOperationChart(true)" style="width:auto;padding:8px 12px;font-size:12px;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.22);color:var(--primary);">Cập nhật</button>
+            </div>
+          </div>
+          <div class="cardBody">
+            <div class="operation-chart-wrap">
+              <canvas id="operationChart"></canvas>
+            </div>
+            <div class="operation-chart-note" id="operationChartNote">
+              MNH, Q về, Q chạy máy, Q xả lấy từ bảng vận hành; MNGHD, MNGHT, MNĐL, MNTrL lấy từ bảng nền giới hạn.
+            </div>
+          </div>
+        </section>
+
       </div>
 
       <!-- TAB: Forecast -->
@@ -4580,6 +4614,153 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   });
 
   window.syncVrainRainSummaryFrom30m = syncVrainRainSummaryFrom30m;
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA
+   API: /api/operation-chart?year=YYYY
+   ========================================================= */
+(function(){
+  let operationChartInstance = null;
+  let operationChartLoadedOnce = false;
+
+  function opNum(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function vnDateTimeLabel(t){
+    const d = new Date(t);
+    if(isNaN(d.getTime())) return String(t || "");
+    return d.toLocaleString("vi-VN", {
+      day:"2-digit",
+      month:"2-digit",
+      hour:"2-digit",
+      minute:"2-digit",
+      hour12:false
+    });
+  }
+
+  function utcDateKey(t){
+    const d = new Date(t);
+    if(isNaN(d.getTime())) return String(t || "").slice(0,10);
+    return d.toISOString().slice(0,10);
+  }
+
+  function setOperationStatus(text){
+    const el = document.getElementById("operationChartStatus");
+    if(el) el.textContent = text;
+  }
+
+  function getOperationYear(){
+    const sel = document.getElementById("operationChartYear");
+    return Number(sel?.value || new Date().getFullYear());
+  }
+
+  function buildLimitMap(limits){
+    const map = {};
+    (limits || []).forEach(r => {
+      if(r && r.date) map[String(r.date).slice(0,10)] = r;
+    });
+    return map;
+  }
+
+  async function loadOperationChart(force){
+    try{
+      if(operationChartLoadedOnce && !force) return;
+      operationChartLoadedOnce = true;
+
+      const canvas = document.getElementById("operationChart");
+      if(!canvas || !window.Chart) return;
+
+      const year = getOperationYear();
+      setOperationStatus("Đang tải...");
+
+      const res = await fetch(`/api/operation-chart?year=${year}`, {
+        headers:{Accept:"application/json"},
+        cache:"no-store"
+      });
+      const json = await res.json();
+
+      if(!res.ok || !json.ok){
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+
+      const operations = Array.isArray(json.operations) ? json.operations : [];
+      const limits = Array.isArray(json.limits) ? json.limits : [];
+      const limitMap = buildLimitMap(limits);
+
+      if(!operations.length){
+        setOperationStatus("Không có dữ liệu");
+        const note = document.getElementById("operationChartNote");
+        if(note) note.textContent = `Chưa có dữ liệu vận hành năm ${year}.`;
+        return;
+      }
+
+      const matchedLimits = operations.map(row => limitMap[utcDateKey(row.time)] || {});
+      const labels = operations.map(row => vnDateTimeLabel(row.time));
+
+      const datasets = [
+        {type:"line",label:"MNH",data:operations.map(r=>opNum(r.water_level)),yAxisID:"yLevel",borderColor:"#3b82f6",backgroundColor:"rgba(59,130,246,0.10)",borderWidth:4,pointRadius:0,tension:0.25,fill:false},
+        {type:"line",label:"Q về",data:operations.map(r=>opNum(r.inflow)),yAxisID:"yFlow",borderColor:"#ef4444",backgroundColor:"#ef4444",borderWidth:2,pointRadius:0,tension:0.2},
+        {type:"line",label:"Q chạy máy",data:operations.map(r=>opNum(r.turbine_flow)),yAxisID:"yFlow",borderColor:"#22c55e",backgroundColor:"#22c55e",borderWidth:2,pointRadius:0,tension:0.2},
+        {type:"line",label:"Q xả",data:operations.map(r=>opNum(r.spillway_flow)),yAxisID:"yFlow",borderColor:"#16a34a",backgroundColor:"#16a34a",borderWidth:2,pointRadius:0,tension:0.2},
+        {type:"line",label:"MNGHD",data:matchedLimits.map(r=>opNum(r.mnghd)),yAxisID:"yLevel",borderColor:"#f97316",backgroundColor:"#f97316",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
+        {type:"line",label:"MNGHT",data:matchedLimits.map(r=>opNum(r.mnght)),yAxisID:"yLevel",borderColor:"#ff00ff",backgroundColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
+        {type:"line",label:"MNĐL",data:matchedLimits.map(r=>opNum(r.mndl)),yAxisID:"yLevel",borderColor:"#dc2626",backgroundColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
+        {type:"line",label:"MNTrL",data:matchedLimits.map(r=>opNum(r.mntrl)),yAxisID:"yLevel",borderColor:"#06b6d4",backgroundColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true}
+      ];
+
+      if(operationChartInstance) operationChartInstance.destroy();
+
+      operationChartInstance = new Chart(canvas, {
+        data:{labels, datasets},
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          animation:false,
+          interaction:{mode:"index", intersect:false},
+          plugins:{
+            legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:10,font:{weight:"700"}}},
+            title:{display:true,text:`BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG NĂM ${year}`,color:"#f2b705",font:{size:16,weight:"900"}},
+            tooltip:{callbacks:{
+              title(items){const i=items?.[0]?.dataIndex??0;return labels[i]||"";},
+              label(ctx){const unit=ctx.dataset.yAxisID==="yFlow"?" m³/s":" m";const v=ctx.parsed.y;if(v==null)return `${ctx.dataset.label}: -`;return `${ctx.dataset.label}: ${Number(v).toLocaleString("vi-VN",{maximumFractionDigits:2})}${unit}`;}
+            }}
+          },
+          scales:{
+            x:{ticks:{autoSkip:true,maxTicksLimit:16,maxRotation:45,minRotation:0,color:"#64748b",font:{size:11}},grid:{color:"rgba(15,23,42,0.06)"}},
+            yLevel:{position:"left",min:340,max:383,ticks:{stepSize:5,color:"#3b82f6",font:{weight:"700"}},title:{display:true,text:"Mực nước hồ (m)",color:"#3b82f6",font:{weight:"900",size:13}},grid:{color:"rgba(15,23,42,0.08)"}},
+            yFlow:{position:"right",min:0,max:2500,ticks:{color:"#92400e",font:{weight:"700"}},title:{display:true,text:"Lưu lượng (m³/s)",color:"#92400e",font:{weight:"900",size:13}},grid:{drawOnChartArea:false}}
+          }
+        }
+      });
+
+      setOperationStatus(`Đã tải ${operations.length} dòng`);
+      const note = document.getElementById("operationChartNote");
+      if(note) note.textContent = `Đã tải ${operations.length} bản ghi vận hành và ${limits.length} mốc nền giới hạn từ /api/operation-chart?year=${year}.`;
+    }catch(err){
+      console.error("loadOperationChart error:", err);
+      setOperationStatus("Lỗi tải");
+      const note = document.getElementById("operationChartNote");
+      if(note) note.textContent = "Lỗi tải biểu đồ điều phối: " + err.message;
+    }
+  }
+
+  window.loadOperationChart = loadOperationChart;
+
+  document.addEventListener("DOMContentLoaded", function(){
+    document.addEventListener("click", function(e){
+      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="chart"]');
+      if(nav) setTimeout(()=>loadOperationChart(false), 500);
+    });
+    if(document.getElementById("tab-chart")?.classList.contains("active")){
+      setTimeout(()=>loadOperationChart(false), 800);
+    }
+  });
 })();
 </script>
 
