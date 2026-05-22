@@ -1962,6 +1962,34 @@ aside.sidebar{
 .operation-chart-note{margin-top:10px;color:var(--text-muted);font-size:12px;font-weight:800}
 @media(max-width:640px){.operation-chart-wrap{height:460px}.operation-chart-wrap canvas{height:460px!important}}
 
+
+/* ================== OPERATION CHART TAB PATCH ================== */
+.operation-chart-tab-card{
+  margin-top:0!important;
+}
+#tab-operationchart .operation-chart-card{
+  padding:18px!important;
+}
+#tab-operationchart .operation-chart-wrap{
+  height:650px!important;
+  min-height:560px!important;
+}
+#tab-operationchart .operation-chart-wrap canvas{
+  height:650px!important;
+}
+.operation-chart-toolbar select{
+  max-height:42px!important;
+  overflow-y:auto!important;
+}
+.operation-chart-toolbar button{
+  width:auto!important;
+  min-width:96px!important;
+}
+@media(max-width:640px){
+  #tab-operationchart .operation-chart-wrap{height:500px!important;min-height:460px!important}
+  #tab-operationchart .operation-chart-wrap canvas{height:500px!important}
+}
+
 </style>
 </head>
 <body>
@@ -2068,6 +2096,10 @@ aside.sidebar{
         <a class="nav-link" data-tab="floodmarks">
           <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           Mốc lũ hạ du
+        </a>
+        <a class="nav-link" data-tab="operationchart">
+          <svg viewBox="0 0 24 24"><path d="M3 3h2v16h16v2H3V3zm4 12l3-3 3 2 5-7 2 1.4-6.4 9-3.3-2.2L8.4 17 7 15z"/></svg>
+          Biểu đồ điều phối
         </a>
         <a class="nav-link" data-tab="notif">
           <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
@@ -2178,31 +2210,7 @@ aside.sidebar{
             </div>
           </div>
         </section>
-
-        <section class="card chart-card operation-chart-card">
-          <div class="cardHead">
-            <b>Biểu đồ điều phối vận hành hồ chứa</b>
-            <div class="operation-chart-toolbar">
-              <span class="chip" id="operationChartStatus">Chưa tải</span>
-              <select id="operationChartYear" onchange="loadOperationChart(true)">
-                <option value="2026" selected>2026</option>
-                <option value="2025">2025</option>
-                <option value="2027">2027</option>
-              </select>
-              <button onclick="loadOperationChart(true)" style="width:auto;padding:8px 12px;font-size:12px;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.22);color:var(--primary);">Cập nhật</button>
-            </div>
-          </div>
-          <div class="cardBody">
-            <div class="operation-chart-wrap">
-              <canvas id="operationChart"></canvas>
-            </div>
-            <div class="operation-chart-note" id="operationChartNote">
-              MNH, Q về, Q chạy máy, Q xả lấy từ bảng vận hành; MNGHD, MNGHT, MNĐL, MNTrL lấy từ bảng nền giới hạn.
-            </div>
-          </div>
-        </section>
-
-      </div>
+</div>
 
       <!-- TAB: Forecast -->
       <div id="tab-forecast" class="tab-pane">
@@ -2540,6 +2548,39 @@ aside.sidebar{
         <div class="map-note">
           Bản đồ mốc lũ hạ du được nhúng từ Google My Maps. Có thể kéo bản đồ, zoom bằng nút +/- hoặc con lăn chuột.
         </div>
+      </div>
+
+
+      <!-- TAB: Operation coordination chart -->
+      <div id="tab-operationchart" class="tab-pane">
+
+
+        <section class="card chart-card operation-chart-card operation-chart-tab-card">
+          <div class="cardHead">
+            <b>Biểu đồ điều phối vận hành hồ chứa</b>
+            <div class="operation-chart-toolbar">
+              <span class="chip" id="operationChartStatus">Chưa tải</span>
+              <select id="operationChartYear" onchange="loadOperationChart(true)">
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+                <option value="2030">2030</option>
+              </select>
+              <button onclick="loadOperationChart(true)" style="width:auto;padding:8px 12px;font-size:12px;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.22);color:var(--primary);">Cập nhật</button>
+            </div>
+          </div>
+          <div class="cardBody">
+            <div class="operation-chart-wrap">
+              <canvas id="operationChart"></canvas>
+            </div>
+            <div class="operation-chart-note" id="operationChartNote">
+              MNH, Q về, Q chạy máy, Q xả lấy từ bảng vận hành; MNGHD, MNGHT, MNĐL, MNTrL lấy từ bảng nền giới hạn.
+            </div>
+          </div>
+        </section>
+
+      
       </div>
 
       <!-- TAB: Weather map -->
@@ -4619,16 +4660,18 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
 
 
+
 <script>
 /* =========================================================
-   BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA - YEARLY FULL AXIS
+   BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA - DEDICATED TAB
+   - Auto-load when opening tab Biểu đồ điều phối
    - X axis: full year 01/01 -> 31/12
-   - Background limits: reservoir_level_limits, applied by month/day
-   - Operation data: from year start to latest available data
+   - Year selector: 2026 -> 2030
+   - Distinct colors for Q chạy máy and Q xả
    ========================================================= */
 (function(){
   let operationChartInstance = null;
-  let operationChartLoadedOnce = false;
+  let operationChartLoadedYear = null;
 
   function opNum(v){
     const n = Number(v);
@@ -4665,7 +4708,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   function getOperationYear(){
     const sel = document.getElementById("operationChartYear");
-    return Number(sel?.value || new Date().getFullYear());
+    return Number(sel?.value || 2026);
   }
 
   function setOperationStatus(text){
@@ -4704,7 +4747,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         return;
       }
 
-      // MNH dùng bản ghi mới nhất trong ngày
       const oldTime = new Date(map[key].time).getTime();
       const newTime = new Date(row.time).getTime();
       if(Number.isFinite(newTime) && (!Number.isFinite(oldTime) || newTime >= oldTime)){
@@ -4712,7 +4754,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         map[key].water_level = opNum(row.water_level);
       }
 
-      // Lưu lượng dùng giá trị lớn nhất trong ngày để dễ nhìn đỉnh lũ/phát điện
       const inflow = opNum(row.inflow);
       const turbine = opNum(row.turbine_flow);
       const spillway = opNum(row.spillway_flow);
@@ -4734,11 +4775,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   async function fetchFallbackLimits(year){
-    // In some deployments /api/operation-chart still filters limits by year and returns 0.
-    // Try common fallback endpoints. If they do not exist, silently return [].
     const tries = [
       `/api/level-limits?year=${year}`,
-      `/api/level-limits?year=2025`,
+      `/api/level-limits?year=2026`,
       `/api/level-limits`
     ];
     for(const url of tries){
@@ -4753,13 +4792,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   async function loadOperationChart(force){
     try{
-      if(operationChartLoadedOnce && !force) return;
-      operationChartLoadedOnce = true;
-
       const canvas = document.getElementById("operationChart");
       if(!canvas || !window.Chart) return;
 
       const year = getOperationYear();
+      if(operationChartLoadedYear === year && !force) return;
+
+      operationChartLoadedYear = year;
       setOperationStatus("Đang tải...");
 
       const json = await fetchJson(`/api/operation-chart?year=${year}`);
@@ -4773,7 +4812,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       const dateKeys = fullYearDateKeys(year);
       const labels = dateKeys.map(dayMonthLabel);
-
       const opDaily = summarizeDailyOperations(operations);
       const limitMap = levelLimitMapByMonthDay(limits, year);
 
@@ -4825,8 +4863,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
               label:"Q chạy máy",
               data:qmay,
               yAxisID:"yFlow",
-              borderColor:"#22c55e",
-              backgroundColor:"#22c55e",
+              borderColor:"#f59e0b",
+              backgroundColor:"#f59e0b",
               borderWidth:2,
               pointRadius:0,
               tension:0.18,
@@ -4838,9 +4876,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
               label:"Q xả",
               data:qxa,
               yAxisID:"yFlow",
-              borderColor:"#16a34a",
-              backgroundColor:"#16a34a",
-              borderWidth:2,
+              borderColor:"#7c3aed",
+              backgroundColor:"#7c3aed",
+              borderWidth:2.4,
               pointRadius:0,
               tension:0.18,
               spanGaps:false,
@@ -4992,12 +5030,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const note = document.getElementById("operationChartNote");
       if(note){
         note.textContent =
-          `Biểu đồ đang hiển thị đủ 365 ngày của năm ${year}. ` +
+          `Biểu đồ đang hiển thị đủ ${dateKeys.length} ngày của năm ${year}. ` +
           `Dữ liệu vận hành: ${operations.length} bản ghi / ${actualDays} ngày. ` +
           `Nền giới hạn: ${limitCount} dòng.`;
       }
     }catch(err){
       console.error("loadOperationChart error:", err);
+      operationChartLoadedYear = null;
       setOperationStatus("Lỗi tải");
       const note = document.getElementById("operationChartNote");
       if(note) note.textContent = "Lỗi tải biểu đồ điều phối: " + err.message;
@@ -5006,14 +5045,37 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   window.loadOperationChart = loadOperationChart;
 
+  function loadOperationChartOnTab(){
+    setTimeout(()=>loadOperationChart(false), 350);
+  }
+
   document.addEventListener("DOMContentLoaded", function(){
     document.addEventListener("click", function(e){
-      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="chart"]');
-      if(nav) setTimeout(()=>loadOperationChart(false), 500);
+      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="operationchart"]');
+      if(nav) loadOperationChartOnTab();
     });
 
-    if(document.getElementById("tab-chart")?.classList.contains("active")){
-      setTimeout(()=>loadOperationChart(false), 800);
+    if(document.getElementById("tab-operationchart")?.classList.contains("active")){
+      loadOperationChartOnTab();
+    }
+  });
+})();
+</script>
+
+
+<script>
+/* SAFETY: auto-load operation chart whenever dedicated tab becomes active */
+(function(){
+  function maybeLoadOperationChart(){
+    const pane = document.getElementById("tab-operationchart");
+    if(pane && pane.classList.contains("active") && typeof window.loadOperationChart === "function"){
+      window.loadOperationChart(false);
+    }
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest && e.target.closest('[data-tab="operationchart"]')){
+      setTimeout(maybeLoadOperationChart, 450);
+      setTimeout(maybeLoadOperationChart, 1200);
     }
   });
 })();
