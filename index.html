@@ -1083,7 +1083,876 @@
       box-shadow: 0 12px 30px rgba(15,23,42,0.10);
       font-weight: 900;
     }
-  </style>
+  
+/* ===== UI PRO REDESIGN - EVNGENCO2 / A Vuong Dashboard ===== */
+:root{
+  --bg-app:#f4f7fb;
+  --card-bg:rgba(255,255,255,.94);
+  --card-border:rgba(15,23,42,.08);
+  --line:rgba(15,23,42,.08);
+  --line-soft:rgba(15,23,42,.055);
+  --primary:#2563eb;
+  --primary-2:#1d4ed8;
+  --shadow-card:0 14px 34px rgba(15,23,42,.065);
+  --shadow-strong:0 20px 54px rgba(15,23,42,.105);
+  --header-h:74px;
+  --sidebar-w:246px;
+}
+html,body{
+  background:
+    radial-gradient(1100px 540px at 18% -10%, rgba(37,99,235,.10), transparent 55%),
+    radial-gradient(1000px 560px at 94% 0%, rgba(16,185,129,.08), transparent 52%),
+    linear-gradient(180deg,#f8fafc 0%,#f3f6fb 100%) !important;
+}
+.site{grid-template-rows:var(--header-h) 1fr!important}
+header.site-header{
+  height:var(--header-h)!important;
+  padding:10px 18px!important;
+  background:rgba(255,255,255,.86)!important;
+  backdrop-filter:blur(18px)!important;
+  box-shadow:0 8px 26px rgba(15,23,42,.045)!important;
+}
+.logo-container{
+  width:132px!important;height:52px!important;border-radius:16px!important;
+  box-shadow:0 12px 28px rgba(15,23,42,.07)!important;
+}
+.brand-text h1{font-size:18px!important;letter-spacing:-.35px}
+.brand-text small{font-size:13px!important;font-weight:800!important}
+.header-right{gap:12px!important}
+.status-badge{
+  border-radius:999px!important;padding:8px 14px!important;background:#ecfdf5!important;
+  color:#059669!important;border:1px solid rgba(16,185,129,.2)!important
+}
+.status-badge:before{
+  content:"";display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:999px;
+  background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.15)
+}
+.btn{border-radius:999px!important}
+.btn.red{padding:10px 18px!important;border-radius:16px!important}
+.site-body{grid-template-columns:var(--sidebar-w) 1fr!important;gap:16px!important;padding:14px 16px 18px!important}
+aside.sidebar{
+  top:calc(var(--header-h) + 14px)!important;padding:14px!important;border-radius:24px!important;
+  background:rgba(255,255,255,.88)!important;backdrop-filter:blur(16px)!important;
+  box-shadow:var(--shadow-strong)!important
+}
+.nav-list{gap:9px!important}
+.nav-link{
+  min-height:44px!important;padding:11px 12px!important;border-radius:16px!important;font-size:13px!important;
+  border:1px solid rgba(15,23,42,.065)!important;box-shadow:0 8px 18px rgba(15,23,42,.025)!important
+}
+.nav-link:hover{transform:translateX(2px);background:rgba(37,99,235,.055)!important}
+.nav-link.active{
+  background:linear-gradient(90deg,rgba(37,99,235,.16),rgba(37,99,235,.08))!important;
+  border-color:rgba(37,99,235,.25)!important;box-shadow:0 12px 24px rgba(37,99,235,.10)!important
+}
+.card,.safety-card,.forecast-row,.table-container,.map-card,.rain-30m-card{
+  border-radius:24px!important;border:1px solid rgba(15,23,42,.075)!important;
+  box-shadow:0 14px 34px rgba(15,23,42,.065)!important;background:rgba(255,255,255,.94)!important
+}
+.card,.map-card,.rain-30m-card{padding:16px!important}
+.cardHead{min-height:44px!important;padding-bottom:12px!important;margin-bottom:14px!important}
+.cardHead b,.card-title,.section-title{color:#475569!important;font-size:13px!important;letter-spacing:.9px!important}
+.safety-card{
+  padding:20px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(239,246,255,.94))!important
+}
+.warning-tag{
+  border-radius:999px!important;background:#dff8ec!important;color:#059669!important;border-color:rgba(16,185,129,.20)!important;
+  padding:7px 13px!important
+}
+.warning-tag:before{content:"🛡️ "}
+.big-number-box{
+  max-width:360px;margin:0 auto 18px!important;padding:18px 16px 22px!important;border-radius:22px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(219,234,254,.78))!important;
+  border:1px solid rgba(37,99,235,.10);overflow:hidden
+}
+.big-value{font-size:58px!important;letter-spacing:-2.5px!important}
+.level-list{display:grid!important;grid-template-columns:repeat(5,minmax(140px,1fr))!important;gap:10px!important}
+.level-item{
+  display:block!important;min-height:112px!important;padding:14px!important;border-radius:18px!important;background:#fff!important;
+  border:1px solid var(--line)!important;box-shadow:0 10px 24px rgba(15,23,42,.045)!important
+}
+.lvl-name{display:block!important;white-space:normal!important;min-height:36px!important;line-height:1.35!important;font-size:11px!important}
+.lvl-dots{display:none!important}
+.lvl-diff{display:block!important;margin-top:10px!important;font-size:22px!important}
+.lvl-diff:after{content:" m";font-size:12px;color:#64748b;margin-left:4px}
+.stats-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important}
+.stat-box{
+  min-height:84px!important;border-radius:20px!important;align-items:flex-start!important;text-align:left!important;
+  padding:15px 18px!important;position:relative!important;overflow:hidden!important
+}
+.stat-box:before{
+  content:"";position:absolute;width:46px;height:46px;border-radius:50%;right:14px;top:15px;background:rgba(37,99,235,.09)
+}
+.stat-box.flow:before{background:rgba(59,130,246,.10)}
+.stat-box.vol:before{background:rgba(245,158,11,.12)}
+.stat-box.rain:before{background:rgba(167,139,250,.13)}
+.stat-label,.stat-val{position:relative;z-index:1}
+.stat-val{font-size:20px!important}
+.rain-summary-card,.windy-rain-card,.openmeteo-rain-card,.openweather-rain-card{
+  border-radius:20px!important;padding:16px!important;box-shadow:0 12px 28px rgba(15,23,42,.055)!important
+}
+.rain-summary-card b,.windy-rain-card b,.openmeteo-rain-card b,.openweather-rain-card b{
+  font-size:24px!important;letter-spacing:-.5px
+}
+.rain-map-wrap,.windy-rain-map-wrap,.openmeteo-rain-map-wrap,.openweather-rain-map-wrap,.map-frame-wrap,.weather-frame-wrap{
+  border-radius:22px!important;box-shadow:0 16px 34px rgba(15,23,42,.08)!important
+}
+.table-container{border-radius:20px!important;overflow:auto!important}
+th{background:#f1f5f9!important;padding:10px 8px!important;font-size:10px!important}
+td{padding:10px 8px!important;font-size:12px!important}
+td:first-child{background:#fff!important}
+.chip,.rain-pill,.forecast-rain-pill-24,.forecast-rain-pill-48,.forecast-rain-pill-72,.rain-source-badge{border-radius:999px!important}
+.weather-pro-grid{grid-template-columns:1fr 240px!important}
+.weather-side{border-radius:24px!important;padding:13px!important}
+.weather-chip,.weather-actions-stack button,.weather-actions-stack a,.weather-select-row select{border-radius:16px!important}
+.admin-mini{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;border:1px solid var(--line);border-radius:999px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.045);font-weight:900;font-size:12px;color:#0f172a}
+.admin-mini img{width:32px;height:32px;border-radius:999px;object-fit:cover}
+.content:after{
+  content:"Hệ thống giám sát & điều hành Thủy điện A Vương  •  EVNGENCO2";
+  display:block;color:#64748b;text-align:center;font-size:12px;font-weight:700;padding:18px 0 10px
+}
+@media(max-width:1400px){
+  .level-list{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:980px){
+  .site-body{grid-template-columns:1fr!important}
+  aside.sidebar{position:relative!important;top:auto!important}
+  .nav-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .level-list{grid-template-columns:1fr!important}
+}
+@media(max-width:640px){
+  .logo-container{width:106px!important;height:42px!important}
+  .brand-text h1{font-size:15px!important}
+  .btn.red{display:none!important}
+  .nav-list{grid-template-columns:1fr!important}
+  .stats-grid{grid-template-columns:1fr!important}
+  .big-value{font-size:44px!important}
+  .admin-mini span{display:none}
+}
+
+
+/* =========================================================
+   A VƯƠNG DASHBOARD UI - PROFESSIONAL MOCKUP MATCH
+   ========================================================= */
+:root{
+  --header-h:72px;
+  --sidebar-w:248px;
+  --bg-app:#f5f7fb;
+  --card-bg:#ffffff;
+  --text-main:#172033;
+  --text-muted:#64748b;
+  --primary:#2563eb;
+  --line:rgba(15,23,42,.085);
+  --shadow-card:0 12px 34px rgba(15,23,42,.065);
+  --shadow-strong:0 20px 55px rgba(15,23,42,.11);
+}
+html,body{
+  background:#f5f7fb!important;
+  font-size:14px!important;
+}
+.site{
+  grid-template-rows:var(--header-h) 1fr!important;
+}
+header.site-header{
+  height:var(--header-h)!important;
+  padding:0 14px!important;
+  background:#fff!important;
+  border-bottom:1px solid rgba(15,23,42,.08)!important;
+  box-shadow:0 2px 18px rgba(15,23,42,.045)!important;
+}
+.header-left{
+  gap:14px!important;
+}
+.logo-container{
+  width:190px!important;
+  height:70px!important;
+  border-radius:0 0 14px 14px!important;
+  border-top:none!important;
+  box-shadow:none!important;
+}
+.logo-container img{
+  max-width:165px!important;
+}
+.brand-text h1{
+  font-size:18px!important;
+  font-weight:900!important;
+  letter-spacing:-.25px!important;
+}
+.brand-text small{
+  font-size:14px!important;
+  color:#1d4ed8!important;
+  font-weight:900!important;
+}
+.header-right{
+  gap:10px!important;
+}
+.status-badge{
+  height:36px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  border-radius:12px!important;
+  padding:0 16px!important;
+  background:#ecfdf5!important;
+  color:#059669!important;
+}
+.status-badge::before{
+  content:"";
+  width:8px;
+  height:8px;
+  margin-right:8px;
+  border-radius:50%;
+  background:#22c55e;
+}
+.btn.icon{
+  width:40px!important;
+  height:40px!important;
+  border-radius:999px!important;
+  background:#fff!important;
+}
+#btnLogout{
+  height:40px!important;
+  border-radius:14px!important;
+  min-width:92px!important;
+  font-size:15px!important;
+}
+/* remove avatar/admin image area */
+.admin-mini,.admin-mini img{display:none!important;}
+
+.site-body{
+  grid-template-columns:var(--sidebar-w) minmax(0,1fr)!important;
+  gap:16px!important;
+  padding:14px 16px 18px!important;
+}
+aside.sidebar{
+  top:calc(var(--header-h) + 14px)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  border:1px solid var(--line)!important;
+  box-shadow:var(--shadow-card)!important;
+  padding:14px 12px!important;
+}
+.nav-title{
+  margin:4px 12px 14px!important;
+  font-size:11px!important;
+  color:#64748b!important;
+}
+.nav-list{gap:8px!important;}
+.nav-link{
+  height:46px!important;
+  padding:0 12px!important;
+  border:none!important;
+  box-shadow:none!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#172033!important;
+  font-size:14px!important;
+  font-weight:850!important;
+}
+.nav-link svg{
+  width:18px!important;
+  height:18px!important;
+}
+.nav-link:hover{
+  background:#f4f7fb!important;
+  transform:none!important;
+}
+.nav-link.active{
+  color:#2563eb!important;
+  background:#eaf1ff!important;
+  border:none!important;
+  box-shadow:none!important;
+}
+
+/* Add weather mini card inside sidebar */
+.sidebar-weather-card{
+  margin-top:14px;
+  border-top:1px solid var(--line);
+  padding:14px 10px 0;
+}
+.sidebar-weather-title{
+  display:flex;
+  justify-content:space-between;
+  color:#64748b;
+  font-weight:900;
+  text-transform:uppercase;
+  font-size:11px;
+  letter-spacing:.5px;
+  margin-bottom:12px;
+}
+.sidebar-weather-main{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:8px 0 16px;
+}
+.sidebar-weather-icon{
+  width:58px;
+  height:48px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#dbeafe,#fff7ed);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:32px;
+}
+.sidebar-weather-temp{
+  font-size:30px;
+  font-weight:900;
+  letter-spacing:-1px;
+}
+.sidebar-weather-desc{
+  font-size:12px;
+  color:#64748b;
+  font-weight:700;
+}
+.sidebar-weather-meta{
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:12px 0;
+  font-size:11px;
+}
+.sidebar-weather-meta b{
+  display:block;
+  color:#172033;
+  margin-top:4px;
+}
+.sidebar-weather-footer{
+  border-top:1px solid var(--line);
+  color:#64748b;
+  font-size:11px;
+  padding:10px 0 2px;
+  display:flex;
+  justify-content:space-between;
+}
+
+/* Overview rebuilt layout */
+#tab-overview{
+  display:none;
+}
+#tab-overview.active{
+  display:block!important;
+}
+#tab-overview .safety-card,
+#tab-overview .card,
+#tab-overview .forecast-row,
+#tab-overview .section-title{
+  display:none!important;
+}
+.pro-overview{
+  display:grid;
+  gap:12px;
+}
+.pro-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:var(--shadow-card);
+}
+.pro-safety{
+  padding:18px;
+}
+.pro-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:16px;
+}
+.pro-card-title{
+  font-size:13px;
+  font-weight:950;
+  color:#475569;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+}
+.pro-safe-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:#dff8ec;
+  color:#059669;
+  border:1px solid rgba(16,185,129,.2);
+  padding:7px 13px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+}
+.pro-safe-grid{
+  display:grid;
+  grid-template-columns:1.52fr repeat(5,1fr);
+  gap:14px;
+}
+.pro-water-card{
+  min-height:158px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fbff,#eaf2ff);
+  border:1px solid rgba(37,99,235,.12);
+  padding:22px 18px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+}
+.pro-water-card::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:46px;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 520 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 45 C65 10 110 78 175 42 C235 8 285 74 345 42 C405 10 450 35 520 14 L520 90 L0 90 Z' fill='%232563eb' fill-opacity='.13'/%3E%3Cpath d='M0 45 C65 10 110 78 175 42 C235 8 285 74 345 42 C405 10 450 35 520 14' fill='none' stroke='%232563eb' stroke-opacity='.55' stroke-width='2'/%3E%3C/svg%3E") center/cover no-repeat;
+}
+.pro-water-label{
+  font-size:12px;
+  color:#475569;
+  font-weight:900;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.pro-water-value{
+  position:relative;
+  z-index:1;
+  font-size:44px;
+  line-height:1;
+  color:#2563eb;
+  font-weight:950;
+  letter-spacing:-1.8px;
+}
+.pro-water-value span{
+  font-size:16px;
+  color:#64748b;
+  margin-left:4px;
+}
+.pro-level-card{
+  min-height:158px;
+  border-radius:18px;
+  background:#fff;
+  border:1px solid var(--line);
+  padding:18px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.pro-level-top{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+}
+.pro-level-icon{
+  width:34px;
+  height:34px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+.pro-level-icon.red{background:#fff1f2;color:#ef4444}
+.pro-level-icon.orange{background:#fff7ed;color:#f97316}
+.pro-level-icon.blue{background:#eff6ff;color:#2563eb}
+.pro-level-icon.cyan{background:#ecfeff;color:#0891b2}
+.pro-level-icon.purple{background:#f5f3ff;color:#7c3aed}
+.pro-level-name{
+  font-size:10px;
+  color:#475569;
+  font-weight:900;
+  text-transform:uppercase;
+  line-height:1.35;
+}
+.pro-level-threshold{
+  font-size:11px;
+  color:#334155;
+  font-weight:850;
+  margin-top:4px;
+}
+.pro-level-diff{
+  font-size:24px;
+  font-weight:950;
+  letter-spacing:-1px;
+}
+.pro-level-diff small{
+  font-size:13px;
+  color:#64748b;
+  margin-left:4px;
+}
+.pro-level-caption{
+  font-size:11px;
+  color:#64748b;
+}
+.pro-stats{
+  padding:16px;
+}
+.pro-stat-grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:12px;
+}
+.pro-stat{
+  min-height:76px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+}
+.pro-stat-icon{
+  width:38px;
+  height:38px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+.pro-stat-icon.blue{background:#eaf1ff;color:#2563eb}
+.pro-stat-icon.orange{background:#fff3e1;color:#f59e0b}
+.pro-stat-icon.red{background:#fee2e2;color:#ef4444}
+.pro-stat-icon.gray{background:#f1f5f9;color:#64748b}
+.pro-stat-icon.green{background:#dcfce7;color:#16a34a}
+.pro-stat-icon.purple{background:#f3e8ff;color:#8b5cf6}
+.pro-stat-title{
+  font-size:10px;
+  color:#64748b;
+  font-weight:900;
+  text-transform:uppercase;
+  display:flex;
+  gap:8px;
+}
+.pro-stat-value{
+  font-size:17px;
+  font-weight:950;
+  letter-spacing:-.4px;
+}
+.pro-bottom-grid{
+  display:grid;
+  grid-template-columns:1.12fr 1.05fr .85fr;
+  gap:12px;
+}
+.pro-panel{
+  min-height:390px;
+  padding:16px;
+}
+.pro-mini-map{
+  height:326px;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:#dbeafe;
+}
+#overviewProMap{
+  width:100%;
+  height:100%;
+}
+.pro-chart-wrap{
+  height:326px;
+}
+#overviewProChart{
+  width:100%!important;
+  height:326px!important;
+}
+.pro-alert-list{
+  display:grid;
+  gap:10px;
+}
+.pro-alert{
+  display:flex;
+  gap:12px;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid var(--line);
+}
+.pro-alert.warn{background:#fff7ed;border-color:#fed7aa}
+.pro-alert.rain{background:#eff6ff;border-color:#bfdbfe}
+.pro-alert.safe{background:#ecfdf5;border-color:#bbf7d0}
+.pro-alert.info{background:#faf5ff;border-color:#e9d5ff}
+.pro-alert-icon{
+  font-size:24px;
+}
+.pro-alert b{
+  display:block;
+  margin-bottom:4px;
+}
+.pro-alert p{
+  margin:0;
+  color:#475569;
+  font-size:12px;
+}
+.pro-alert small{
+  display:block;
+  margin-top:6px;
+  color:#2563eb;
+  font-size:11px;
+}
+
+/* Hide old duplicated footer text from prior attempt */
+.content::after{display:none!important}
+
+@media(max-width:1500px){
+  .pro-safe-grid{grid-template-columns:1.4fr repeat(3,1fr)}
+  .pro-stat-grid{grid-template-columns:repeat(3,1fr)}
+  .pro-bottom-grid{grid-template-columns:1fr}
+}
+@media(max-width:980px){
+  .site-body{grid-template-columns:1fr!important}
+  aside.sidebar{position:relative!important;top:auto!important}
+  .pro-safe-grid{grid-template-columns:1fr}
+  .pro-stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .pro-stat-grid{grid-template-columns:1fr}
+  .pro-water-value{font-size:36px}
+}
+
+
+/* ================== V8 FINAL OVERVIEW UI ================== */
+.admin-mini{display:none!important}
+.v8-overview{display:grid;gap:14px}
+.v8-card{background:#fff;border:1px solid rgba(15,23,42,.085);border-radius:20px;box-shadow:0 12px 34px rgba(15,23,42,.065)}
+.v8-safety,.v8-op,.v8-panel,.v8-forecast{padding:18px}
+.v8-head{display:flex;justify-content:space-between;gap:14px;margin-bottom:16px}
+.v8-title{color:#475569;text-transform:uppercase;letter-spacing:.8px;font-size:13px;font-weight:950}
+.v8-head h2{margin:4px 0 0;color:#0f172a;font-size:20px;letter-spacing:-.35px}
+.v8-safe{background:#dcfce7;color:#059669;border:1px solid rgba(16,185,129,.22);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:950;height:max-content}
+.v8-safety-grid{display:grid;grid-template-columns:1.55fr repeat(5,1fr);gap:14px}
+.v8-water{min-height:205px;border-radius:22px;border:1px solid rgba(37,99,235,.18);background:linear-gradient(180deg,#f8fbff,#eaf2ff);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.v8-water-label{z-index:1;color:#475569;font-size:14px;font-weight:950;text-transform:uppercase}
+.v8-water-value{z-index:1;margin-top:10px;color:#1d4ed8;font-size:82px;line-height:.95;letter-spacing:-4px;font-weight:1000;text-shadow:0 18px 38px rgba(37,99,235,.18)}
+.v8-water-value small{font-size:24px;color:#64748b;margin-left:6px;letter-spacing:0}
+.v8-wave{position:absolute;left:0;right:0;bottom:0;height:62px;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 720 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 58 C70 20 135 100 218 56 C305 10 370 92 448 56 C535 16 600 56 720 32 L720 120 L0 120 Z' fill='%232563eb' fill-opacity='.18'/%3E%3Cpath d='M0 58 C70 20 135 100 218 56 C305 10 370 92 448 56 C535 16 600 56 720 32' fill='none' stroke='%232563eb' stroke-opacity='.62' stroke-width='3'/%3E%3C/svg%3E") center/cover no-repeat}
+.v8-level{min-height:205px;padding:16px;border-radius:22px;border:1px solid rgba(15,23,42,.085);background:#fff;display:flex;flex-direction:column;justify-content:space-between}
+.v8-i{width:38px;height:38px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
+.v8-level.danger .v8-i{background:#fee2e2}.v8-level.orange .v8-i{background:#fff7ed}.v8-level.blue .v8-i{background:#eff6ff}.v8-level.cyan .v8-i{background:#ecfeff}.v8-level.purple .v8-i{background:#f5f3ff}
+.v8-level b{color:#475569;font-size:11px;line-height:1.35;font-weight:950;text-transform:uppercase}
+.v8-level em{display:block;color:#334155;font-size:12px;margin-top:3px;font-weight:850;font-style:normal}
+.v8-level strong{color:#1d4ed8;font-size:30px;font-weight:1000;letter-spacing:-1.2px}
+.v8-level.danger strong,.v8-level.orange strong{color:#ef4444}
+.v8-level strong small{color:#64748b;font-size:13px;margin-left:4px}
+.v8-level p{margin:0;color:#64748b;font-size:11px;font-weight:750}
+.v8-stat-grid{margin-top:14px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.v8-stat{min-height:84px;border:1px solid rgba(15,23,42,.085);border-radius:18px;background:#fff;padding:14px;display:flex;align-items:center;gap:12px}
+.v8-stat.wide{grid-column:span 3}
+.v8-stat i{width:42px;height:42px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:18px;font-style:normal;flex:0 0 auto}
+.v8-stat.blue i{background:#eaf1ff}.v8-stat.orange i{background:#fff3e1}.v8-stat.red i{background:#fee2e2}.v8-stat.slate i{background:#f1f5f9}.v8-stat.green i{background:#dcfce7}.v8-stat.violet i{background:#f3e8ff}
+.v8-stat span{display:block;color:#64748b;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.45px}
+.v8-stat b{color:#0f172a;display:inline-block;margin-top:4px;font-size:21px;font-weight:1000;letter-spacing:-.6px}
+.v8-stat.blue b{color:#2563eb}.v8-stat.orange b{color:#f59e0b}.v8-stat.red b{color:#ef4444}.v8-stat.green b{color:#16a34a}.v8-stat.violet b{color:#8b5cf6}
+.v8-stat small{color:#64748b;font-size:11px;margin-left:4px;font-weight:850}
+.v8-main{display:grid;grid-template-columns:1.12fr 1.05fr .86fr;gap:14px}
+.v8-panel{min-height:430px}
+.v8-map{height:356px;margin-top:14px;border-radius:16px;border:1px solid rgba(15,23,42,.085);overflow:hidden;background:#dbeafe}
+.v8-chart{height:330px;margin-top:14px}.v8-chart canvas{height:330px!important;width:100%!important}
+.v8-rain-note{margin-top:10px;border-radius:12px;padding:10px 12px;background:#eff6ff;color:#334155;font-size:12px;font-weight:850}
+.v8-news{margin-top:14px;display:grid;gap:10px;max-height:356px;overflow:auto;padding-right:2px}
+.v8-news-item{display:flex;gap:12px;padding:13px;border-radius:16px;border:1px solid rgba(15,23,42,.08);background:#fff}
+.v8-news-icon{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:22px;background:#ecfdf5}
+.v8-news-item.warn .v8-news-icon{background:#fff7ed}
+.v8-news-item h4{margin:0 0 4px;color:#0f172a;font-size:13px;line-height:1.35;font-weight:950}
+.v8-news-item p{margin:0;color:#64748b;font-size:12px;line-height:1.35;max-height:34px;overflow:hidden}
+.v8-news-item small{color:#2563eb;display:block;margin-top:6px;font-size:11px;font-weight:850}
+.v8-empty{color:#64748b;font-size:13px;font-weight:850;padding:18px;border-radius:16px;background:#f8fafc}
+.v8-forecast-list{margin-top:14px;display:grid;gap:10px}
+.v8-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 18px;border-radius:16px;background:#fff;border:1px solid rgba(15,23,42,.085)}
+.v8-row b{display:block;color:#475569;font-size:13px;text-transform:uppercase;letter-spacing:.45px;margin-bottom:4px}.v8-row span{color:#64748b;font-size:12px;font-weight:750}
+.v8-row strong{color:#2563eb;font-size:21px;letter-spacing:.5px;white-space:nowrap;font-weight:1000}.v8-row strong.orange{color:#b45309}.v8-row strong.green{color:#10b981}
+.content::after{display:none!important}
+@media(max-width:1500px){.v8-safety-grid{grid-template-columns:1.3fr repeat(3,1fr)}.v8-stat-grid{grid-template-columns:repeat(3,1fr)}.v8-stat.wide{grid-column:span 1}.v8-main{grid-template-columns:1fr}}
+@media(max-width:980px){.v8-safety-grid{grid-template-columns:1fr}.v8-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.v8-stat-grid{grid-template-columns:1fr}.v8-water-value{font-size:54px}.v8-row{align-items:flex-start;flex-direction:column}}
+
+
+/* ================== V8 FIX: compact text + restore data render ================== */
+.v8-head h2{font-size:18px!important}
+.v8-title{font-size:12px!important}
+.v8-safety{padding:16px!important}
+.v8-safety-grid{gap:12px!important}
+.v8-water{min-height:175px!important}
+.v8-water-label{font-size:12px!important}
+.v8-water-value{font-size:58px!important;letter-spacing:-2.6px!important}
+.v8-water-value small{font-size:18px!important}
+.v8-wave{height:48px!important}
+.v8-level{min-height:175px!important;padding:14px!important}
+.v8-i{width:34px!important;height:34px!important;border-radius:13px!important;font-size:18px!important}
+.v8-level b{font-size:10px!important}
+.v8-level em{font-size:11px!important}
+.v8-level strong{font-size:22px!important;letter-spacing:-.7px!important}
+.v8-level p{font-size:10.5px!important}
+.v8-op,.v8-panel,.v8-forecast{padding:16px!important}
+.v8-stat-grid{gap:10px!important}
+.v8-stat{min-height:72px!important;padding:12px!important}
+.v8-stat i{width:36px!important;height:36px!important;border-radius:14px!important;font-size:16px!important}
+.v8-stat span{font-size:9.5px!important}
+.v8-stat b{font-size:18px!important}
+.v8-stat small{font-size:10px!important}
+.v8-main{gap:12px!important}
+.v8-panel{min-height:395px!important}
+.v8-map{height:320px!important}
+.v8-chart{height:300px!important}
+.v8-chart canvas{height:300px!important}
+.v8-news{max-height:320px!important}
+.v8-row{padding:13px 16px!important}
+.v8-row b{font-size:12px!important}
+.v8-row span{font-size:11px!important}
+.v8-row strong{font-size:18px!important}
+#btnLogout{font-size:14px!important}
+.header-bell-pro{font-size:15px!important}
+@media(max-width:640px){.v8-water-value{font-size:44px!important}}
+
+
+/* ================== NAV V9: professional sidebar ================== */
+aside.sidebar{
+  padding:16px 14px!important;
+  border-radius:26px!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)!important;
+  border:1px solid rgba(15,23,42,.07)!important;
+  box-shadow:0 24px 70px rgba(15,23,42,.10)!important;
+}
+.nav-title{
+  margin:6px 12px 14px!important;
+  color:#64748b!important;
+  font-size:11px!important;
+  letter-spacing:1px!important;
+  font-weight:1000!important;
+}
+.nav-list{gap:6px!important}
+.nav-link{
+  position:relative!important;
+  min-height:46px!important;
+  height:auto!important;
+  padding:11px 12px 11px 14px!important;
+  border-radius:15px!important;
+  border:1px solid transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#1f2937!important;
+  font-size:13.5px!important;
+  font-weight:900!important;
+  letter-spacing:-.15px!important;
+  line-height:1.15!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  transition:background .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease!important;
+}
+.nav-link svg{
+  width:19px!important;
+  height:19px!important;
+  flex:0 0 19px!important;
+  color:#334155!important;
+  opacity:.95!important;
+}
+.nav-link:hover{
+  transform:translateX(2px)!important;
+  background:#f3f7ff!important;
+  color:#1d4ed8!important;
+}
+.nav-link:hover svg{color:#1d4ed8!important}
+.nav-link.active{
+  color:#1d4ed8!important;
+  background:linear-gradient(90deg,#eaf1ff 0%,#f4f8ff 100%)!important;
+  border-color:rgba(37,99,235,.12)!important;
+  box-shadow:0 12px 26px rgba(37,99,235,.10)!important;
+}
+.nav-link.active svg{color:#2563eb!important}
+.nav-link.active::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:11px;
+  bottom:11px;
+  width:4px;
+  border-radius:999px;
+  background:#2563eb;
+}
+.nav-link[data-tab="windyrain"],
+.nav-link[data-tab="openmeteorarain"],
+.nav-link[data-tab="openweatherrain"]{padding-left:18px!important}
+.nav-link[data-tab="windyrain"]::after,
+.nav-link[data-tab="openmeteorarain"]::after,
+.nav-link[data-tab="openweatherrain"]::after{
+  content:"Dự báo";
+  margin-left:auto;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#f1f5f9;
+  color:#64748b;
+  font-size:9px;
+  font-weight:1000;
+  line-height:1;
+}
+.nav-link[data-tab="windyrain"].active::after,
+.nav-link[data-tab="openmeteorarain"].active::after,
+.nav-link[data-tab="openweatherrain"].active::after{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+.v8-news-item{
+  cursor:pointer;
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.v8-news-item:hover{
+  transform:translateY(-2px);
+  border-color:rgba(37,99,235,.24)!important;
+  box-shadow:0 14px 30px rgba(37,99,235,.12);
+}
+.v8-news-item h4::after{
+  content:"  →";
+  color:#2563eb;
+}
+@media(max-width:980px){
+  .nav-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .nav-link[data-tab="windyrain"]::after,
+  .nav-link[data-tab="openmeteorarain"]::after,
+  .nav-link[data-tab="openweatherrain"]::after{display:none}
+}
+@media(max-width:640px){.nav-list{grid-template-columns:1fr!important}}
+
+
+/* ================== V9 FIX: compact operation stats ================== */
+.v8-stat-grid{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+.v8-stat,
+.v8-stat.wide{
+  grid-column:span 1!important;
+  min-height:74px!important;
+  padding:12px 13px!important;
+}
+.v8-stat i{
+  width:36px!important;
+  height:36px!important;
+  border-radius:14px!important;
+  font-size:16px!important;
+}
+.v8-stat span{
+  font-size:9.5px!important;
+  line-height:1.2!important;
+}
+.v8-stat b{
+  font-size:18px!important;
+}
+.v8-stat small{
+  font-size:10px!important;
+}
+@media(max-width:1500px){
+  .v8-stat-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}
+@media(max-width:980px){
+  .v8-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:640px){
+  .v8-stat-grid{grid-template-columns:1fr!important}
+}
+
+</style>
 </head>
 <body>
 
@@ -1133,6 +2002,10 @@
         </svg>
       </button>
       <div class="status-badge">ONLINE</div>
+      
+      <button class="btn icon header-bell-pro" title="Thông báo" style="position:relative">
+        🔔<span style="position:absolute;right:2px;top:0;background:#ef4444;color:#fff;border-radius:999px;font-size:10px;padding:1px 5px">3</span>
+      </button>
       <button class="btn red" id="btnLogout">Thoát</button>
     </div>
   </header>
@@ -1195,80 +2068,84 @@
 
     <main class="content">
       <!-- TAB: Overview -->
+      
       <div id="tab-overview" class="tab-pane active">
-        <section class="safety-card">
-          <div class="card-header">
-            <span class="card-title">An Toàn Công Trình</span>
-            <span class="warning-tag" id="floodStatus">Bình thường</span>
+        <section class="v8-overview">
+          <div class="v8-card v8-safety">
+            <div class="v8-head">
+              <div>
+                <div class="v8-title">An toàn công trình</div>
+                <h2>Giám sát hồ chứa A Vương</h2>
+              </div>
+              <span class="v8-safe" id="floodStatus">Bình thường</span>
+            </div>
+
+            <div class="v8-safety-grid">
+              <div class="v8-water">
+                <div class="v8-water-label">Mực nước hồ hiện tại</div>
+                <div class="v8-water-value"><span id="txtWL">---</span><small>m</small></div>
+                <div class="v8-wave"></div>
+              </div>
+
+              <div class="v8-level danger"><div class="v8-i">⚠️</div><b>MN kiểm tra</b><em>382.2 m</em><strong><span id="diff_KiemTra">--</span><small>m</small></strong><p>Khoảng cách đến ngưỡng</p></div>
+              <div class="v8-level orange"><div class="v8-i">🌊</div><b>MN dâng bình thường</b><em>380.0 m</em><strong><span id="diff_MNDBT">--</span><small>m</small></strong><p>Khoảng cách đến MNDBT</p></div>
+              <div class="v8-level blue"><div class="v8-i">💧</div><b>MN cao nhất trước lũ</b><em>376.0 m</em><strong><span id="diff_DonLu">--</span><small>m</small></strong><p>Khoảng cách đến ngưỡng</p></div>
+              <div class="v8-level cyan"><div class="v8-i">☁️</div><b>MN đón lũ thấp nhất</b><em>370.0 m</em><strong><span id="diff_DonLuMin">--</span><small>m</small></strong><p>So với hiện tại</p></div>
+              <div class="v8-level purple"><div class="v8-i">🟣</div><b>MN chết</b><em>340.0 m</em><strong><span id="diff_Chet">--</span><small>m</small></strong><p>Cao hơn MN chết</p></div>
+            </div>
           </div>
 
-          <div class="big-number-box">
-            <div class="big-label">Mực nước hồ hiện tại</div>
-            <div class="big-value"><span id="txtWL">---</span><span class="unit-sub">m</span></div>
+          <div class="v8-card v8-op">
+            <div class="v8-title">Số liệu vận hành</div>
+            <div class="v8-stat-grid">
+              <div class="v8-stat blue"><i>💧</i><div><span>Q về</span><b id="txtQin">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat orange"><i>⚙️</i><div><span>Q máy</span><b id="txtQtb">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat red"><i>🛑</i><div><span>Q xả</span><b id="txtQsp">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat slate"><i>🗄️</i><div><span>Dung tích</span><b id="txtVol">--</b><small>tr.m³</small></div></div>
+              <div class="v8-stat blue"><i>◔</i><div><span>% toàn bộ</span><b id="txtPctTotal">--</b></div></div>
+              <div class="v8-stat green"><i>◕</i><div><span>% hữu ích</span><b id="txtPctUseful">--</b></div></div>
+              <div class="v8-stat violet"><i>🌧️</i><div><span>Mưa 1h</span><b id="txtRain1h">--</b><small>mm</small></div></div>
+              <div class="v8-stat violet"><i>☔</i><div><span>Mưa ngày D</span><b id="txtRainDay">--</b><small>mm</small></div></div>
+              <div class="v8-stat slate"><i>☔</i><div><span>Mưa D-1</span><b id="txtRainD1">--</b><small>mm</small></div></div>
+              <div class="v8-stat wide"><i>🛢️</i><div><span>DT hữu ích còn lại</span><b id="txtVolUsefulLeft">--</b><small>tr.m³</small></div></div>
+              <div class="v8-stat wide"><i>📏</i><div><span>DT trống đến MNDBT</span><b id="txtVolRemain">--</b><small>tr.m³</small></div></div>
+            </div>
           </div>
 
-          <div class="level-list">
-            <div class="level-item"><span class="lvl-name lvl-kt">MN Kiểm tra (382.2)</span><span class="lvl-dots"></span><span class="lvl-diff lvl-kt" id="diff_KiemTra">--</span></div>
-            <div class="level-item"><span class="lvl-name lvl-dbt" style="font-weight:1000;">MN Dâng bình thường (380.0)</span><span class="lvl-dots"></span><span class="lvl-diff lvl-dbt" id="diff_MNDBT">--</span></div>
-            <div class="level-item"><span class="lvl-name lvl-dl" id="lbl_DonLu">MN Cao nhất trước lũ (376.0)</span><span class="lvl-dots"></span><span class="lvl-diff lvl-dl" id="diff_DonLu">--</span></div>
-            <div class="level-item"><span class="lvl-name lvl-min">MN đón lũ thấp nhất (370.0)</span><span class="lvl-dots"></span><span class="lvl-diff lvl-min" id="diff_DonLuMin">--</span></div>
-            <div class="level-item"><span class="lvl-name lvl-ch">MN Chết (340.0)</span><span class="lvl-dots"></span><span class="lvl-diff lvl-ch" id="diff_Chet">--</span></div>
+          <div class="v8-main">
+            <div class="v8-card v8-panel">
+              <div class="v8-title">Bản đồ vị trí trạm</div>
+              <div class="v8-map" id="overviewProMap"></div>
+            </div>
+
+            <div class="v8-card v8-panel">
+              <div class="v8-title">Dự báo mưa 24 giờ tới từ 3 nguồn</div>
+              <div class="v8-chart"><canvas id="overviewProChart"></canvas></div>
+              <div class="v8-rain-note" id="overviewForecastRainSummary">Đang tải mưa dự báo từ Windy, Open-Meteo và OpenWeather...</div>
+            </div>
+
+            <div class="v8-card v8-panel">
+              <div class="v8-title">Bản tin mới nhất</div>
+              <div class="v8-news" id="overviewNewsList">
+                <div class="v8-empty">Đang tải bản tin từ tab Dự báo...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="v8-card v8-forecast">
+            <div class="v8-title">Dự báo 7 ngày tới</div>
+            <div class="v8-forecast-list">
+              <div class="v8-row"><div><b>Lưu lượng về (Min-Max)</b><span>Dự báo tổ hợp Ensemble</span></div><strong id="fcFlowRange">-- - --</strong></div>
+              <div class="v8-row"><div><b>Dung tích về 24h (Min-Max)</b><span>Tổng lượng nước vào hồ (Tr.m³)</span></div><strong class="orange" id="fcVol24h">-- - --</strong></div>
+              <div class="v8-row"><div><b>Mực nước hồ 24h (Min-Max)</b><span>Dựa trên Q máy & Q xả hiện tại</span></div><strong id="fcWl24h">-- - --</strong></div>
+              <div class="v8-row"><div><b>Dung tích về 7 ngày (Min-Max)</b><span>Tổng lượng nước vào hồ (Tr.m³)</span></div><strong class="orange" id="fcVol7d">-- - --</strong></div>
+              <div class="v8-row"><div><b>Mực nước hồ 7 ngày (Min-Max)</b><span>Dựa trên Q máy & Q xả hiện tại</span></div><strong id="fcWl7d">-- - --</strong></div>
+              <div class="v8-row"><div><b>Mưa ngày (Min-Max)</b><span>Lượng mưa tích lũy 24h</span></div><strong class="green" id="fcRainRange">-- - --</strong></div>
+            </div>
           </div>
         </section>
-
-        <span class="section-title">Số liệu vận hành</span>
-        <div class="stats-grid">
-          <div class="stat-box flow"><span class="stat-label">Q về (m³/s)</span><span class="stat-val" style="color:rgb(var(--c-in))" id="txtQin">--</span></div>
-          <div class="stat-box flow"><span class="stat-label">Q máy (m³/s)</span><span class="stat-val" style="color:rgb(var(--c-tb))" id="txtQtb">--</span></div>
-          <div class="stat-box flow"><span class="stat-label">Q xả (m³/s)</span><span class="stat-val" style="color:rgb(var(--c-sp))" id="txtQsp">0</span></div>
-
-          <div class="stat-box vol"><span class="stat-label">Dung tích (Tr.m³)</span><span class="stat-val" id="txtVol">--</span></div>
-          <div class="stat-box vol"><span class="stat-label">% Toàn bộ</span><span class="stat-val" style="color:var(--primary)" id="txtPctTotal">--%</span></div>
-          <div class="stat-box vol"><span class="stat-label">% Hữu ích</span><span class="stat-val" style="color:var(--primary)" id="txtPctUseful">--%</span></div>
-
-          <div class="stat-box rain"><span class="stat-label">Mưa 1h (mm)</span><span class="stat-val" style="color:rgb(var(--c-rn))" id="txtRain1h">--</span></div>
-          <div class="stat-box rain"><span class="stat-label">Mưa ngày D</span><span class="stat-val" style="color:rgb(var(--c-rn))" id="txtRainDay">--</span></div>
-          <div class="stat-box rain"><span class="stat-label">Mưa D-1</span><span class="stat-val" style="color:var(--text-muted)" id="txtRainD1">--</span></div>
-        </div>
-
-        <!-- ✅ FIX: bỏ inline nền tối -> dùng .soft-box để luôn đúng LIGHT -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
-          <div class="soft-box">
-            <div class="soft-title">DT Hữu ích còn lại</div>
-            <div class="soft-value" id="txtVolUsefulLeft">--</div>
-          </div>
-          <div class="soft-box">
-            <div class="soft-title">DT Trống (đến MNDBT)</div>
-            <div class="soft-value" id="txtVolRemain">--</div>
-          </div>
-        </div>
-
-        <span class="section-title">Dự báo 7 ngày tới</span>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Lưu lượng về (Min-Max)</span><span class="fc-desc">Dự báo tổ hợp Ensemble</span></div>
-          <div class="fc-range fc-highlight" id="fcFlowRange">-- - --</div>
-        </div>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Dung tích về 24h (Min-Max)</span><span class="fc-desc">Tổng lượng nước vào hồ (Tr.m³)</span></div>
-          <div class="fc-range" style="color:#b45309;" id="fcVol24h">-- - --</div>
-        </div>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Mực nước hồ 24h (Min-Max)</span><span class="fc-desc">Dựa trên Q máy & Q xả hiện tại</span></div>
-          <div class="fc-range fc-highlight" id="fcWl24h">-- - --</div>
-        </div>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Dung tích về 7 ngày (Min-Max)</span><span class="fc-desc">Tổng lượng nước vào hồ (Tr.m³)</span></div>
-          <div class="fc-range" style="color:#b45309;" id="fcVol7d">-- - --</div>
-        </div>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Mực nước hồ 7 ngày (Min-Max)</span><span class="fc-desc">Dựa trên Q máy & Q xả hiện tại</span></div>
-          <div class="fc-range fc-highlight" id="fcWl7d">-- - --</div>
-        </div>
-        <div class="forecast-row">
-          <div class="fc-info"><span class="fc-title">Mưa ngày (Min-Max)</span><span class="fc-desc">Lượng mưa tích lũy 24h</span></div>
-          <div class="fc-range fc-rain" id="fcRainRange">-- - --</div>
-        </div>
       </div>
+
 
       <!-- TAB: Chart -->
       <div id="tab-chart" class="tab-pane">
@@ -1428,7 +2305,7 @@
       <div id="tab-windyrain" class="tab-pane">
         <section class="card">
           <div class="cardHead">
-            <b>Mưa dự báo Windy API Free</b>
+            <b>Mưa dự báo Windy</b>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <span class="chip" id="windyRainApiTime">Chưa cập nhật</span>
               <button onclick="loadWindyRainData(true)" style="width:auto;padding:8px 12px;font-size:12px;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.22);color:var(--primary);">Cập nhật</button>
@@ -1459,7 +2336,7 @@
             </div>
           </div>
           <div class="windy-rain-chart-wrap"><canvas id="windyRainChart"></canvas></div>
-          <div class="rain-status" id="windyRainStatus">Dữ liệu dự báo mưa lấy từ /api/windy-rain. Gói Free Testing dùng để kiểm tra tích hợp, không dùng làm số liệu vận hành chính thức.</div>
+          <div class="rain-status" id="windyRainStatus">Dữ liệu dự báo mưa lấy từ /api/windy-rain.</div>
         </section>
       </div>
 
@@ -2788,7 +3665,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         dlText="377.0 - 380.0";
       }
     }
-    $("lbl_DonLu").innerText = `MN Cao nhất trước lũ (${dlText})`;
+    const lblDonLu = $("lbl_DonLu"); if(lblDonLu) lblDonLu.innerText = `MN Cao nhất trước lũ (${dlText})`;
 
     const setD=(id,v)=>{
       const d=wl-v;
@@ -3188,6 +4065,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       labels=all;
     }
 
+
+    // Cố định thang đo MNH để nhìn rõ tương quan với MN chết, MN đón lũ và MNDBT.
+    if (currentTab === 'WL_24H' || currentTab === 'WL_7D') {
+      opts.scales.y.min = 340;
+      opts.scales.y.max = 383;
+      opts.scales.y.ticks = opts.scales.y.ticks || {};
+      opts.scales.y.ticks.stepSize = 5;
+      opts.scales.y.title = {
+        display: true,
+        text: 'Mực nước hồ (m)',
+        color: '#64748b',
+        font: { size: 11, weight: '700' }
+      };
+    }
+
     const ty=(currentTab.startsWith('RF_')&&currentTab!=='RF_COMPARE')?'bar':'line';
     chart=new Chart(ctx,{
       type:(currentTab==='RF_HOURLY_ACC'||currentTab==='RF_DAILY_FC'?'bar':ty),
@@ -3332,5 +4224,364 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 </script>
+
+
+<script>
+(function(){
+  const ORDER = ["NMAV","MR01","MR02","MR03","MR04","MR05","MR06","MR07","MR08"];
+  function num(x){ const n=Number(x||0); return Number.isFinite(n)?n:0; }
+  async function getRain(url){
+    try{
+      const r=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      return Array.isArray(j.stations)?j.stations:[];
+    }catch(e){ console.warn("overview rain",url,e); return []; }
+  }
+  function toMap(rows){ const m={}; rows.forEach(r=>{ if(r.code)m[r.code]=r; }); return m; }
+
+  async function loadOverviewRain(){
+    const note=document.getElementById("overviewForecastRainSummary");
+    if(note) note.textContent="Đang tải mưa dự báo từ Windy, Open-Meteo và OpenWeather...";
+    const model=document.getElementById("windyRainModel")?.value||"gfs";
+    const [w,o,p]=await Promise.all([
+      getRain(`/api/windy-rain?model=${encodeURIComponent(model)}`),
+      getRain("/api/openmeteo-rain"),
+      getRain("/api/openweather-rain")
+    ]);
+    const wm=toMap(w), om=toMap(o), pm=toMap(p);
+    const labels=ORDER.filter(c=>wm[c]||om[c]||pm[c]);
+    const labs=labels.length?labels:ORDER;
+    const a=labs.map(c=>num(wm[c]?.rain24h));
+    const b=labs.map(c=>num(om[c]?.rain24h));
+    const c=labs.map(c=>num(pm[c]?.rain24h));
+    const all=[...a,...b,...c].filter(Number.isFinite);
+    const avg=all.length?all.reduce((s,v)=>s+v,0)/all.length:0;
+    const max=all.length?Math.max(...all):0;
+    const canvas=document.getElementById("overviewProChart");
+    if(canvas&&window.Chart){
+      if(window.__v8RainChart) window.__v8RainChart.destroy();
+      window.__v8RainChart=new Chart(canvas.getContext("2d"),{
+        type:"bar",
+        data:{labels:labs,datasets:[
+          {label:"Windy",data:a,backgroundColor:"rgba(37,99,235,.86)",borderRadius:5},
+          {label:"Open-Meteo",data:b,backgroundColor:"rgba(16,185,129,.86)",borderRadius:5},
+          {label:"OpenWeather",data:c,backgroundColor:"rgba(245,158,11,.78)",borderRadius:5}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"top",labels:{boxWidth:14,usePointStyle:true,pointStyle:"rectRounded",font:{size:11,weight:"700"}}},tooltip:{callbacks:{label:(x)=>`${x.dataset.label}: ${Number(x.raw||0).toFixed(2)} mm`}}},scales:{x:{grid:{color:"rgba(15,23,42,.055)"},ticks:{font:{size:10,weight:"700"}}},y:{beginAtZero:true,title:{display:true,text:"Mưa 24h (mm)"},grid:{color:"rgba(15,23,42,.08)"}}}}
+      });
+    }
+    if(note) note.innerHTML=`🌧️ Trung bình 24h theo 3 nguồn: <b>${avg.toFixed(2)} mm</b> &nbsp; • &nbsp; Lớn nhất: <b>${max.toFixed(2)} mm</b>`;
+  }
+
+  function initMap(){
+    if(window.__v8Map || !window.L || !document.getElementById("overviewProMap")) return;
+    window.__v8Map=true;
+    const map=L.map("overviewProMap",{zoomControl:true,attributionControl:false}).setView([15.88,107.56],10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(map);
+    const pts=[["NM A Vương",15.779525,107.682545,"🏭"],["Đập tràn",15.799722,107.616670,"📍"],["Tr.Tiểu học & TH b.trú Dang",15.828689,107.559727,"📍"],["UBND xã Tây Giang",15.885485,107.492530,"📍"],["Đồn biên phòng A Nông",15.961613,107.467560,"📍"],["Kiểm lâm A Tép",15.995892,107.510803,"📍"],["UBND xã A Vương",15.928032,107.532143,"📍"],["Tr.Tiểu học b.trú A Vương",15.943821,107.566262,"📍"],["Tr.Tiểu học A Rooih",15.867412,107.613960,"📍"]];
+    const bounds=[];
+    pts.forEach(p=>{
+      bounds.push([p[1],p[2]]);
+      const icon=L.divIcon({className:"",html:`<div style="display:flex;align-items:center;gap:6px"><span style="width:28px;height:28px;border-radius:999px;background:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 8px 18px rgba(15,23,42,.25);font-size:12px">${p[3]}</span><span style="background:white;border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:850;white-space:nowrap;box-shadow:0 8px 18px rgba(15,23,42,.15)">${p[0]}</span></div>`,iconSize:[1,1],iconAnchor:[14,14]});
+      L.marker([p[1],p[2]],{icon}).addTo(map);
+    });
+    setTimeout(()=>{map.invalidateSize();map.fitBounds(L.latLngBounds(bounds).pad(.18));},300);
+  }
+
+
+  function updateNews(){
+    const target=document.getElementById("overviewNewsList");
+    if(!target) return;
+    const source=document.getElementById("forecast-list");
+    const items=source?Array.from(source.querySelectorAll(".list-item,.accordion-header")).slice(0,4):[];
+    if(!items.length){
+      target.innerHTML='<div class="v8-empty">Chưa có bản tin. Bấm tab Dự báo hoặc chờ hệ thống tải bản tin.</div>';
+      return;
+    }
+    target.innerHTML="";
+    items.forEach((item, idx)=>{
+      const h=item.querySelector("h4")?.textContent?.trim()||item.textContent.trim().slice(0,90);
+      const p=item.querySelector("p")?.textContent?.trim()||"";
+      const date=item.querySelector(".item-date")?.textContent?.trim()||"Bản tin dự báo";
+      const d=document.createElement("div");
+      d.className="v8-news-item"+(h.toLowerCase().includes("cảnh báo")?" warn":"");
+      d.setAttribute("role","button");
+      d.setAttribute("tabindex","0");
+      d.dataset.newsIndex=String(idx);
+      d.innerHTML=`<div class="v8-news-icon">${h.toLowerCase().includes("cảnh báo")?"⚠️":"🌤️"}</div><div><h4>${h}</h4><p>${p}</p><small>${date}</small></div>`;
+      const openNews = () => openForecastNewsByIndex(idx);
+      d.addEventListener("click", openNews);
+      d.addEventListener("keydown", ev => {
+        if(ev.key === "Enter" || ev.key === " "){
+          ev.preventDefault();
+          openNews();
+        }
+      });
+      target.appendChild(d);
+    });
+  }
+
+  function openForecastNewsByIndex(idx){
+    const forecastNav = document.querySelector('.nav-link[data-tab="forecast"]');
+    if(forecastNav) forecastNav.click();
+    setTimeout(()=>{
+      const source=document.getElementById("forecast-list");
+      const items=source?Array.from(source.querySelectorAll(".list-item,.accordion-header")):[];
+      const item=items[idx] || items[0];
+      if(item){
+        item.scrollIntoView({behavior:"smooth", block:"center"});
+        item.style.transition="box-shadow .25s ease, border-color .25s ease, background .25s ease";
+        item.style.boxShadow="0 0 0 3px rgba(37,99,235,.22), 0 18px 38px rgba(37,99,235,.14)";
+        item.style.borderColor="rgba(37,99,235,.45)";
+        item.style.background="linear-gradient(90deg, rgba(37,99,235,.06), #fff)";
+        setTimeout(()=>{
+          item.style.boxShadow="";
+          item.style.borderColor="";
+          item.style.background="";
+        },2600);
+        if(item.classList.contains("accordion-header")){
+          try{ item.click(); }catch(e){}
+        }
+      }
+    },450);
+  }
+
+
+  function init(){
+    initMap();
+    loadOverviewRain();
+    if(typeof loadForecasts==="function"){ try{loadForecasts();}catch(e){} }
+    setTimeout(updateNews,1200);
+    setTimeout(updateNews,3000);
+  }
+  document.addEventListener("DOMContentLoaded",init);
+  setTimeout(init,800);
+  document.addEventListener("click",e=>{
+    const tab=e.target.closest?.("[data-tab]");
+    if(tab?.dataset?.tab==="overview"){setTimeout(init,250);setTimeout(updateNews,1200);}
+    if(tab?.dataset?.tab==="forecast"){setTimeout(updateNews,1500);}
+  });
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   FIX VRain actual rain summary from latest /api/rain-30m
+   Applies to uploaded latest dashboard file.
+   ========================================================= */
+(function(){
+  function fmtComma1(v){
+    const n = Number(v || 0);
+    return n.toFixed(1).replace(".", ",");
+  }
+
+  function parseNum(v){
+    if(v == null) return 0;
+    if(typeof v === "number") return Number.isFinite(v) ? v : 0;
+    const s = String(v).replace(",", ".").replace(/[^\d.-]/g, "");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function rainLevel(v){
+    const x = Number(v || 0);
+    if (x <= 0) return "Không mưa";
+    if (x < 10) return "Mưa nhỏ";
+    if (x < 25) return "Mưa vừa";
+    if (x < 50) return "Mưa to";
+    return "Mưa rất to";
+  }
+
+  function rainColor(level){
+    if(level === "Không mưa") return "#64748b";
+    if(level === "Mưa nhỏ") return "#22c55e";
+    if(level === "Mưa vừa") return "#eab308";
+    if(level === "Mưa to") return "#f97316";
+    return "#ef4444";
+  }
+
+  function fmtVnTime(s){
+    if(!s) return "-";
+    const text = String(s).replace("T", " ");
+    const m = text.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+    if(!m) return text;
+    return `${m[4]}:${m[5]} ${m[3]}/${m[2]}`;
+  }
+
+  function normalizeRain30m(json){
+    const root = Array.isArray(json) ? json[0] : json;
+    const station = root?.station || {};
+    const arr = root?.data || root?.rows || root?.items || root?.rain30m || root?.series || [];
+    if(!Array.isArray(arr) || !arr.length) return null;
+
+    const rows = arr.map(r => ({
+      time: r.time_point || r.time || r.datetime || r.date || r.t,
+      rain30m: parseNum(r.rain_30m ?? r.rain30m ?? r.rain ?? r.value ?? 0),
+      cumulativeRaw: r.cumulative ?? r.luy_ke ?? r.luyke ?? r.sum ?? r.total
+    })).filter(r => r.time);
+
+    if(!rows.length) return null;
+
+    rows.sort((a,b) => String(a.time).localeCompare(String(b.time)));
+
+    let cumulative = 0;
+    rows.forEach(r => {
+      if(r.cumulativeRaw != null && r.cumulativeRaw !== ""){
+        cumulative = parseNum(r.cumulativeRaw);
+      } else {
+        cumulative += Number(r.rain30m || 0);
+      }
+      r.cumulative = cumulative;
+    });
+
+    const latest = rows[rows.length - 1];
+    return {
+      station,
+      latest,
+      rain: latest.cumulative,
+      time: latest.time,
+      level: rainLevel(latest.cumulative)
+    };
+  }
+
+  function updateRainSummaryCards(rain, level){
+    const count = document.getElementById("rainStationCount");
+    const max = document.getElementById("rainMaxValue");
+    const maxLevel = document.getElementById("rainMaxLevel");
+    if(count) count.textContent = "9";
+    if(max) max.textContent = `${fmtComma1(rain)} mm`;
+    if(maxLevel) maxLevel.textContent = level;
+  }
+
+  function updateRainTableRow(rain, level, timeText){
+    const tbody = document.getElementById("rainTableBody");
+    if(!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const row = rows.find(tr => /920037|NM A Vương|Nhà máy/i.test(tr.textContent));
+    if(!row) return;
+
+    const cells = row.querySelectorAll("td");
+    const color = rainColor(level);
+
+    // Expected columns: Tên trạm | Địa điểm | Lượng mưa | Cấp | Đến
+    if(cells[2]){
+      cells[2].innerHTML = `<span class="rain-pill" style="background:${color}">${fmtComma1(rain)} mm</span>`;
+    }
+    if(cells[3]){
+      const bg = level === "Không mưa" ? "#dcfce7" : "#e0f2fe";
+      cells[3].innerHTML = `<span class="rain-source-badge live" style="background:${bg};color:${level === "Không mưa" ? "#15803d" : color}">${level}</span>`;
+    }
+    if(cells[4]){
+      cells[4].textContent = timeText;
+    }
+  }
+
+  function updateRainMapPopupAndMarker(rain, level, timeText){
+    const rainText = `${fmtComma1(rain)} mm`;
+    const color = rainColor(level);
+
+    // Update opened popup if NM A Vương popup is visible
+    document.querySelectorAll(".leaflet-popup-content").forEach(p => {
+      if(/A Vương|920037|Nhà máy/i.test(p.textContent)){
+        p.innerHTML = p.innerHTML
+          .replace(/Lượng mưa:\s*<b[^>]*>.*?<\/b>/i, `Lượng mưa: <b>${rainText}</b>`)
+          .replace(/Cấp:\s*<b[^>]*>.*?<\/b>/i, `Cấp: <b>${level}</b>`)
+          .replace(/Đến:\s*[^<]+/i, `Đến: ${timeText}`);
+      }
+    });
+
+    // Update visible NM marker value if it is still showing old 0,0
+    document.querySelectorAll(".rain-marker").forEach(el => {
+      const txt = (el.textContent || "").trim();
+      if(txt === "0,0" || txt === "0.0"){
+        el.textContent = fmtComma1(rain);
+        el.style.background = color;
+      }
+    });
+  }
+
+  function updateStatus(rain, timeText){
+    const st = document.getElementById("rainStatus");
+    if(st){
+      st.textContent = `Đã đồng bộ NM A Vương theo bảng mưa 30 phút: ${fmtComma1(rain)} mm, lúc ${timeText}.`;
+    }
+  }
+
+  async function syncVrainRainSummaryFrom30m(){
+    try{
+      const res = await fetch("/api/rain-30m", {headers:{Accept:"application/json"}, cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      const d = normalizeRain30m(json);
+      if(!d) return;
+
+      const timeText = fmtVnTime(d.time);
+      updateRainSummaryCards(d.rain, d.level);
+      updateRainTableRow(d.rain, d.level, timeText);
+      updateRainMapPopupAndMarker(d.rain, d.level, timeText);
+      updateStatus(d.rain, timeText);
+    }catch(err){
+      console.warn("syncVrainRainSummaryFrom30m failed:", err);
+    }
+  }
+
+  // Hook after existing render functions without breaking old code
+  const oldRenderRain = window.renderRainTableAndMap;
+  if(typeof oldRenderRain === "function" && !window.__renderRainPatched30m){
+    window.__renderRainPatched30m = true;
+    window.renderRainTableAndMap = function(){
+      const ret = oldRenderRain.apply(this, arguments);
+      setTimeout(syncVrainRainSummaryFrom30m, 250);
+      setTimeout(syncVrainRainSummaryFrom30m, 900);
+      return ret;
+    };
+  }
+
+  const oldLoadRain = window.loadRainData;
+  if(typeof oldLoadRain === "function" && !window.__loadRainPatched30m){
+    window.__loadRainPatched30m = true;
+    window.loadRainData = async function(){
+      const ret = await oldLoadRain.apply(this, arguments);
+      setTimeout(syncVrainRainSummaryFrom30m, 400);
+      setTimeout(syncVrainRainSummaryFrom30m, 1200);
+      return ret;
+    };
+  }
+
+  const oldLoad30m = window.loadRain30mData;
+  if(typeof oldLoad30m === "function" && !window.__loadRain30mPatched30m){
+    window.__loadRain30mPatched30m = true;
+    window.loadRain30mData = async function(){
+      const ret = await oldLoad30m.apply(this, arguments);
+      setTimeout(syncVrainRainSummaryFrom30m, 300);
+      setTimeout(syncVrainRainSummaryFrom30m, 900);
+      return ret;
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(syncVrainRainSummaryFrom30m, 1500);
+    setTimeout(syncVrainRainSummaryFrom30m, 3500);
+  });
+
+  document.addEventListener("click", e => {
+    if(e.target.closest?.('[data-tab="rain"]')){
+      setTimeout(syncVrainRainSummaryFrom30m, 900);
+      setTimeout(syncVrainRainSummaryFrom30m, 2200);
+    }
+    const btn = e.target.closest?.("button");
+    if(btn && /cập nhật|30 phút/i.test(btn.textContent || "")){
+      setTimeout(syncVrainRainSummaryFrom30m, 900);
+      setTimeout(syncVrainRainSummaryFrom30m, 2200);
+    }
+  });
+
+  window.syncVrainRainSummaryFrom30m = syncVrainRainSummaryFrom30m;
+})();
+</script>
+
 </body>
 </html>
