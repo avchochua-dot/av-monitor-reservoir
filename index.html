@@ -4618,10 +4618,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 </script>
 
 
+
 <script>
 /* =========================================================
-   BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA
-   API: /api/operation-chart?year=YYYY
+   BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA - YEARLY FULL AXIS
+   - X axis: full year 01/01 -> 31/12
+   - Background limits: reservoir_level_limits, applied by month/day
+   - Operation data: from year start to latest available data
    ========================================================= */
 (function(){
   let operationChartInstance = null;
@@ -4632,27 +4635,32 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return Number.isFinite(n) ? n : null;
   }
 
-  function vnDateTimeLabel(t){
-    const d = new Date(t);
-    if(isNaN(d.getTime())) return String(t || "");
-    return d.toLocaleString("vi-VN", {
-      day:"2-digit",
-      month:"2-digit",
-      hour:"2-digit",
-      minute:"2-digit",
-      hour12:false
-    });
+  function pad2(n){ return String(n).padStart(2, "0"); }
+
+  function dateKeyLocal(date){
+    return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`;
   }
 
-  function utcDateKey(t){
+  function dateKeyFromTime(t){
     const d = new Date(t);
     if(isNaN(d.getTime())) return String(t || "").slice(0,10);
-    return d.toISOString().slice(0,10);
+    return dateKeyLocal(d);
   }
 
-  function setOperationStatus(text){
-    const el = document.getElementById("operationChartStatus");
-    if(el) el.textContent = text;
+  function dayMonthLabel(key){
+    const parts = String(key).split("-");
+    if(parts.length < 3) return key;
+    return `${parts[2]}/${parts[1]}`;
+  }
+
+  function fullYearDateKeys(year){
+    const out = [];
+    const d = new Date(year, 0, 1);
+    while(d.getFullYear() === year){
+      out.push(dateKeyLocal(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
   }
 
   function getOperationYear(){
@@ -4660,12 +4668,87 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return Number(sel?.value || new Date().getFullYear());
   }
 
-  function buildLimitMap(limits){
+  function setOperationStatus(text){
+    const el = document.getElementById("operationChartStatus");
+    if(el) el.textContent = text;
+  }
+
+  function levelLimitMapByMonthDay(limits, year){
     const map = {};
     (limits || []).forEach(r => {
-      if(r && r.date) map[String(r.date).slice(0,10)] = r;
+      if(!r || !r.date) return;
+      const s = String(r.date).slice(0,10);
+      const parts = s.split("-");
+      if(parts.length < 3) return;
+      const key = `${year}-${parts[1]}-${parts[2]}`;
+      map[key] = r;
     });
     return map;
+  }
+
+  function summarizeDailyOperations(operations){
+    const map = {};
+    (operations || []).forEach(row => {
+      const key = dateKeyFromTime(row.time);
+      if(!key) return;
+
+      if(!map[key]){
+        map[key] = {
+          time: row.time,
+          water_level: opNum(row.water_level),
+          inflowMax: opNum(row.inflow),
+          turbineMax: opNum(row.turbine_flow),
+          spillwayMax: opNum(row.spillway_flow),
+          count: 1
+        };
+        return;
+      }
+
+      // MNH dùng bản ghi mới nhất trong ngày
+      const oldTime = new Date(map[key].time).getTime();
+      const newTime = new Date(row.time).getTime();
+      if(Number.isFinite(newTime) && (!Number.isFinite(oldTime) || newTime >= oldTime)){
+        map[key].time = row.time;
+        map[key].water_level = opNum(row.water_level);
+      }
+
+      // Lưu lượng dùng giá trị lớn nhất trong ngày để dễ nhìn đỉnh lũ/phát điện
+      const inflow = opNum(row.inflow);
+      const turbine = opNum(row.turbine_flow);
+      const spillway = opNum(row.spillway_flow);
+
+      if(inflow != null) map[key].inflowMax = Math.max(map[key].inflowMax ?? 0, inflow);
+      if(turbine != null) map[key].turbineMax = Math.max(map[key].turbineMax ?? 0, turbine);
+      if(spillway != null) map[key].spillwayMax = Math.max(map[key].spillwayMax ?? 0, spillway);
+
+      map[key].count += 1;
+    });
+    return map;
+  }
+
+  async function fetchJson(url){
+    const res = await fetch(url, {headers:{Accept:"application/json"}, cache:"no-store"});
+    const json = await res.json();
+    if(!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+    return json;
+  }
+
+  async function fetchFallbackLimits(year){
+    // In some deployments /api/operation-chart still filters limits by year and returns 0.
+    // Try common fallback endpoints. If they do not exist, silently return [].
+    const tries = [
+      `/api/level-limits?year=${year}`,
+      `/api/level-limits?year=2025`,
+      `/api/level-limits`
+    ];
+    for(const url of tries){
+      try{
+        const json = await fetchJson(url);
+        const rows = json.rows || json.limits || [];
+        if(Array.isArray(rows) && rows.length) return rows;
+      }catch(e){}
+    }
+    return [];
   }
 
   async function loadOperationChart(force){
@@ -4679,69 +4762,240 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const year = getOperationYear();
       setOperationStatus("Đang tải...");
 
-      const res = await fetch(`/api/operation-chart?year=${year}`, {
-        headers:{Accept:"application/json"},
-        cache:"no-store"
-      });
-      const json = await res.json();
+      const json = await fetchJson(`/api/operation-chart?year=${year}`);
 
-      if(!res.ok || !json.ok){
-        throw new Error(json.error || `HTTP ${res.status}`);
+      let operations = Array.isArray(json.operations) ? json.operations : [];
+      let limits = Array.isArray(json.limits) ? json.limits : [];
+
+      if(!limits.length){
+        limits = await fetchFallbackLimits(year);
       }
 
-      const operations = Array.isArray(json.operations) ? json.operations : [];
-      const limits = Array.isArray(json.limits) ? json.limits : [];
-      const limitMap = buildLimitMap(limits);
+      const dateKeys = fullYearDateKeys(year);
+      const labels = dateKeys.map(dayMonthLabel);
 
-      if(!operations.length){
-        setOperationStatus("Không có dữ liệu");
-        const note = document.getElementById("operationChartNote");
-        if(note) note.textContent = `Chưa có dữ liệu vận hành năm ${year}.`;
-        return;
-      }
+      const opDaily = summarizeDailyOperations(operations);
+      const limitMap = levelLimitMapByMonthDay(limits, year);
 
-      const matchedLimits = operations.map(row => limitMap[utcDateKey(row.time)] || {});
-      const labels = operations.map(row => vnDateTimeLabel(row.time));
+      const mnh = dateKeys.map(k => opDaily[k]?.water_level ?? null);
+      const qve = dateKeys.map(k => opDaily[k]?.inflowMax ?? null);
+      const qmay = dateKeys.map(k => opDaily[k]?.turbineMax ?? null);
+      const qxa = dateKeys.map(k => opDaily[k]?.spillwayMax ?? null);
 
-      const datasets = [
-        {type:"line",label:"MNH",data:operations.map(r=>opNum(r.water_level)),yAxisID:"yLevel",borderColor:"#3b82f6",backgroundColor:"rgba(59,130,246,0.10)",borderWidth:4,pointRadius:0,tension:0.25,fill:false},
-        {type:"line",label:"Q về",data:operations.map(r=>opNum(r.inflow)),yAxisID:"yFlow",borderColor:"#ef4444",backgroundColor:"#ef4444",borderWidth:2,pointRadius:0,tension:0.2},
-        {type:"line",label:"Q chạy máy",data:operations.map(r=>opNum(r.turbine_flow)),yAxisID:"yFlow",borderColor:"#22c55e",backgroundColor:"#22c55e",borderWidth:2,pointRadius:0,tension:0.2},
-        {type:"line",label:"Q xả",data:operations.map(r=>opNum(r.spillway_flow)),yAxisID:"yFlow",borderColor:"#16a34a",backgroundColor:"#16a34a",borderWidth:2,pointRadius:0,tension:0.2},
-        {type:"line",label:"MNGHD",data:matchedLimits.map(r=>opNum(r.mnghd)),yAxisID:"yLevel",borderColor:"#f97316",backgroundColor:"#f97316",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNGHT",data:matchedLimits.map(r=>opNum(r.mnght)),yAxisID:"yLevel",borderColor:"#ff00ff",backgroundColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNĐL",data:matchedLimits.map(r=>opNum(r.mndl)),yAxisID:"yLevel",borderColor:"#dc2626",backgroundColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNTrL",data:matchedLimits.map(r=>opNum(r.mntrl)),yAxisID:"yLevel",borderColor:"#06b6d4",backgroundColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true}
-      ];
+      const mnghd = dateKeys.map(k => opNum(limitMap[k]?.mnghd));
+      const mnght = dateKeys.map(k => opNum(limitMap[k]?.mnght));
+      const mndl = dateKeys.map(k => opNum(limitMap[k]?.mndl));
+      const mntrl = dateKeys.map(k => opNum(limitMap[k]?.mntrl));
 
       if(operationChartInstance) operationChartInstance.destroy();
 
       operationChartInstance = new Chart(canvas, {
-        data:{labels, datasets},
+        data:{
+          labels,
+          datasets:[
+            {
+              type:"line",
+              label:"MNH",
+              data:mnh,
+              yAxisID:"yLevel",
+              borderColor:"#3b82f6",
+              backgroundColor:"rgba(59,130,246,0.08)",
+              borderWidth:4,
+              pointRadius:1.5,
+              pointHoverRadius:4,
+              tension:0.25,
+              spanGaps:false,
+              order:1
+            },
+            {
+              type:"line",
+              label:"Q về",
+              data:qve,
+              yAxisID:"yFlow",
+              borderColor:"#ef4444",
+              backgroundColor:"#ef4444",
+              borderWidth:2,
+              pointRadius:0,
+              tension:0.18,
+              spanGaps:false,
+              order:2
+            },
+            {
+              type:"line",
+              label:"Q chạy máy",
+              data:qmay,
+              yAxisID:"yFlow",
+              borderColor:"#22c55e",
+              backgroundColor:"#22c55e",
+              borderWidth:2,
+              pointRadius:0,
+              tension:0.18,
+              spanGaps:false,
+              order:2
+            },
+            {
+              type:"line",
+              label:"Q xả",
+              data:qxa,
+              yAxisID:"yFlow",
+              borderColor:"#16a34a",
+              backgroundColor:"#16a34a",
+              borderWidth:2,
+              pointRadius:0,
+              tension:0.18,
+              spanGaps:false,
+              order:2
+            },
+            {
+              type:"line",
+              label:"MNGHD",
+              data:mnghd,
+              yAxisID:"yLevel",
+              borderColor:"#f97316",
+              backgroundColor:"#f97316",
+              borderWidth:2,
+              pointRadius:0,
+              stepped:true,
+              spanGaps:true,
+              order:0
+            },
+            {
+              type:"line",
+              label:"MNGHT",
+              data:mnght,
+              yAxisID:"yLevel",
+              borderColor:"#ff00ff",
+              backgroundColor:"#ff00ff",
+              borderWidth:2,
+              pointRadius:0,
+              stepped:true,
+              spanGaps:true,
+              order:0
+            },
+            {
+              type:"line",
+              label:"MNĐL",
+              data:mndl,
+              yAxisID:"yLevel",
+              borderColor:"#dc2626",
+              backgroundColor:"#dc2626",
+              borderWidth:2,
+              pointRadius:0,
+              stepped:true,
+              spanGaps:true,
+              order:0
+            },
+            {
+              type:"line",
+              label:"MNTrL",
+              data:mntrl,
+              yAxisID:"yLevel",
+              borderColor:"#06b6d4",
+              backgroundColor:"#06b6d4",
+              borderWidth:2,
+              pointRadius:0,
+              stepped:true,
+              spanGaps:true,
+              order:0
+            }
+          ]
+        },
         options:{
           responsive:true,
           maintainAspectRatio:false,
           animation:false,
           interaction:{mode:"index", intersect:false},
           plugins:{
-            legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:10,font:{weight:"700"}}},
-            title:{display:true,text:`BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG NĂM ${year}`,color:"#f2b705",font:{size:16,weight:"900"}},
-            tooltip:{callbacks:{
-              title(items){const i=items?.[0]?.dataIndex??0;return labels[i]||"";},
-              label(ctx){const unit=ctx.dataset.yAxisID==="yFlow"?" m³/s":" m";const v=ctx.parsed.y;if(v==null)return `${ctx.dataset.label}: -`;return `${ctx.dataset.label}: ${Number(v).toLocaleString("vi-VN",{maximumFractionDigits:2})}${unit}`;}
-            }}
+            legend:{
+              position:"bottom",
+              labels:{usePointStyle:true, boxWidth:10, font:{weight:"700"}}
+            },
+            title:{
+              display:true,
+              text:`BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG NĂM ${year}`,
+              color:"#f2b705",
+              font:{size:16, weight:"900"}
+            },
+            tooltip:{
+              callbacks:{
+                title(items){
+                  const i = items?.[0]?.dataIndex ?? 0;
+                  return dateKeys[i] || "";
+                },
+                label(ctx){
+                  const unit = ctx.dataset.yAxisID === "yFlow" ? " m³/s" : " m";
+                  const v = ctx.parsed.y;
+                  if(v == null) return `${ctx.dataset.label}: -`;
+                  return `${ctx.dataset.label}: ${Number(v).toLocaleString("vi-VN", {maximumFractionDigits:2})}${unit}`;
+                }
+              }
+            }
           },
           scales:{
-            x:{ticks:{autoSkip:true,maxTicksLimit:16,maxRotation:45,minRotation:0,color:"#64748b",font:{size:11}},grid:{color:"rgba(15,23,42,0.06)"}},
-            yLevel:{position:"left",min:340,max:383,ticks:{stepSize:5,color:"#3b82f6",font:{weight:"700"}},title:{display:true,text:"Mực nước hồ (m)",color:"#3b82f6",font:{weight:"900",size:13}},grid:{color:"rgba(15,23,42,0.08)"}},
-            yFlow:{position:"right",min:0,max:2500,ticks:{color:"#92400e",font:{weight:"700"}},title:{display:true,text:"Lưu lượng (m³/s)",color:"#92400e",font:{weight:"900",size:13}},grid:{drawOnChartArea:false}}
+            x:{
+              ticks:{
+                autoSkip:true,
+                maxTicksLimit:26,
+                maxRotation:45,
+                minRotation:45,
+                color:"#64748b",
+                font:{size:10}
+              },
+              grid:{color:"rgba(15,23,42,0.055)"},
+              title:{
+                display:true,
+                text:"Thời gian",
+                color:"#06b6d4",
+                font:{weight:"900"}
+              }
+            },
+            yLevel:{
+              position:"left",
+              min:340,
+              max:383,
+              ticks:{
+                stepSize:5,
+                color:"#3b82f6",
+                font:{weight:"700"}
+              },
+              title:{
+                display:true,
+                text:"Mực nước hồ (m)",
+                color:"#3b82f6",
+                font:{weight:"900", size:13}
+              },
+              grid:{color:"rgba(15,23,42,0.08)"}
+            },
+            yFlow:{
+              position:"right",
+              min:0,
+              max:2500,
+              ticks:{
+                color:"#92400e",
+                font:{weight:"700"}
+              },
+              title:{
+                display:true,
+                text:"Lưu lượng (m³/s)",
+                color:"#92400e",
+                font:{weight:"900", size:13}
+              },
+              grid:{drawOnChartArea:false}
+            }
           }
         }
       });
 
-      setOperationStatus(`Đã tải ${operations.length} dòng`);
+      const actualDays = Object.keys(opDaily).length;
+      const limitCount = limits.length;
+      setOperationStatus(`Đã tải ${actualDays} ngày`);
       const note = document.getElementById("operationChartNote");
-      if(note) note.textContent = `Đã tải ${operations.length} bản ghi vận hành và ${limits.length} mốc nền giới hạn từ /api/operation-chart?year=${year}.`;
+      if(note){
+        note.textContent =
+          `Biểu đồ đang hiển thị đủ 365 ngày của năm ${year}. ` +
+          `Dữ liệu vận hành: ${operations.length} bản ghi / ${actualDays} ngày. ` +
+          `Nền giới hạn: ${limitCount} dòng.`;
+      }
     }catch(err){
       console.error("loadOperationChart error:", err);
       setOperationStatus("Lỗi tải");
@@ -4757,6 +5011,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const nav = e.target.closest && e.target.closest('.nav-link[data-tab="chart"]');
       if(nav) setTimeout(()=>loadOperationChart(false), 500);
     });
+
     if(document.getElementById("tab-chart")?.classList.contains("active")){
       setTimeout(()=>loadOperationChart(false), 800);
     }
