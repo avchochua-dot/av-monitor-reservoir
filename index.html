@@ -5651,6 +5651,11 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
               font:{size:16, weight:"900"}
             },
             tooltip:{
+              position:"cursor",
+              xAlign:"center",
+              yAlign:"bottom",
+              caretPadding:8,
+              caretSize:6,
               callbacks:{
                 title(items){
                   const i = items?.[0]?.dataIndex ?? 0;
@@ -5986,6 +5991,29 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   });
 
   window.refreshRainTabAll = refreshRainTabAll;
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   CHART TOOLTIP FIX: keep operation chart tooltip near mouse position
+   ========================================================= */
+(function(){
+  function installCursorTooltipPositioner(){
+    if(!window.Chart || !Chart.Tooltip || !Chart.Tooltip.positioners) return;
+    if(Chart.Tooltip.positioners.cursor) return;
+
+    Chart.Tooltip.positioners.cursor = function(elements, eventPosition){
+      return {
+        x: eventPosition.x,
+        y: Math.max(eventPosition.y - 12, 12)
+      };
+    };
+  }
+
+  installCursorTooltipPositioner();
+  document.addEventListener("DOMContentLoaded", installCursorTooltipPositioner);
 })();
 </script>
 
