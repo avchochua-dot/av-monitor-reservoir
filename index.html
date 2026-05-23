@@ -2817,6 +2817,58 @@ body.slideshow-fullscreen{
   .slideshow-control{position:relative;top:auto}
 }
 
+
+/* =========================================================
+   SLIDESHOW PRELOAD + CHART SUBTYPE OPTIONS
+   ========================================================= */
+.slideshow-preload-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 9px;
+  border-radius:999px;
+  background:rgba(14,165,233,.10);
+  border:1px solid rgba(14,165,233,.20);
+  color:#0369a1;
+  font-size:11px;
+  font-weight:1000;
+  margin-left:8px;
+}
+.slideshow-preload-badge.ready{
+  background:rgba(16,185,129,.10);
+  border-color:rgba(16,185,129,.20);
+  color:#059669;
+}
+.slideshow-preload-badge.loading::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:999px;
+  background:#0ea5e9;
+  box-shadow:0 0 0 4px rgba(14,165,233,.12);
+}
+.slideshow-option-sub{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:800;
+  margin-top:2px;
+}
+.slideshow-check.chart-option{
+  background:linear-gradient(90deg,rgba(37,99,235,.07),rgba(14,165,233,.04));
+  border-color:rgba(37,99,235,.12);
+}
+.slideshow-next-frame{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0.01;
+  pointer-events:none;
+  border:0;
+  left:-9999px;
+  top:-9999px;
+}
+
 </style>
 </head>
 <body>
@@ -3578,7 +3630,7 @@ body.slideshow-fullscreen{
                 <span class="slideshow-live-dot"></span>
                 <b id="slideshowScreenTitle">Sẵn sàng trình chiếu</b>
               </div>
-              <div class="slideshow-countdown" id="slideshowCountdownText">Chọn chu trình để bắt đầu</div>
+              <div class="slideshow-countdown"><span id="slideshowCountdownText">Chọn chu trình để bắt đầu</span><span id="slideshowPreloadStatus" class="slideshow-preload-badge ready">Sẵn sàng</span></div>
             </div>
             <div class="slideshow-progress" id="slideshowProgress"></div>
             <div class="slideshow-viewport" id="slideshowViewport">
@@ -6368,9 +6420,12 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 </script>
 
 
+
 <script>
 /* =========================================================
    TRÌNH CHIẾU DASHBOARD / TV MODE
+   - Preload màn hình kế tiếp khi còn 3 giây
+   - Cho phép chọn nhiều kiểu biểu đồ trong Tab Biểu đồ
    ========================================================= */
 (function(){
   const SLIDESHOW_TABS = {
@@ -6382,7 +6437,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     openweatherrain: {name:"Mưa dự báo OpenWeather", refresh: async()=>{ if(typeof loadOpenWeatherRainData==="function") await loadOpenWeatherRainData(true); }},
     forecast: {name:"Dự báo", refresh: async()=>{ if(typeof loadForecasts==="function") await loadForecasts(); }},
     weathermap: {name:"Bản đồ thời tiết", refresh: async()=>{}},
-    chart: {name:"Biểu đồ", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart: {name:"Biểu đồ tổng hợp", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_mnh24h: {name:"Biểu đồ - MNH 24h", baseTab:"chart", chartKey:"waterLevel24h", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_mnh7d: {name:"Biểu đồ - MNH 7D", baseTab:"chart", chartKey:"waterLevel7d", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_rain_day: {name:"Biểu đồ - Mưa ngày", baseTab:"chart", chartKey:"rainDay", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_rain_hour: {name:"Biểu đồ - Mưa giờ", baseTab:"chart", chartKey:"rainHour", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_q_forecast: {name:"Biểu đồ - Q dự báo", baseTab:"chart", chartKey:"forecastFlow", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    chart_db7: {name:"Biểu đồ - Dự báo DB7", baseTab:"chart", chartKey:"db7", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
     operationchart: {name:"Biểu đồ điều phối", refresh: async()=>{ if(typeof loadOperationChart==="function") await loadOperationChart(false); }}
   };
 
@@ -6390,14 +6451,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     operator: ["overview","data","rain","operationchart"],
     rain: ["overview","rain","windyrain","openmeteorarain","openweatherrain"],
     forecast: ["overview","forecast","weathermap","windyrain","openmeteorarain","openweatherrain"],
-    random: ["overview","data","rain","windyrain","openmeteorarain","openweatherrain","forecast","operationchart"],
-    custom: ["overview","data","rain","operationchart"]
+    random: ["overview","data","rain","windyrain","openmeteorarain","openweatherrain","forecast","chart_mnh7d","chart_rain_day","chart_db7","operationchart"],
+    custom: ["overview","data","rain","chart_mnh7d","chart_rain_day","operationchart"]
   };
 
   let timer = null;
   let tickTimer = null;
   let currentIndex = -1;
   let currentTab = null;
+  let nextPreparedTab = null;
+  let nextPreparedFrame = null;
+  let preloadStarted = false;
   let startedAt = 0;
   let intervalSec = 25;
   let isRandom = false;
@@ -6415,6 +6479,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(node) node.textContent = text;
   }
 
+  function setPreloadStatus(text, ready){
+    const node = el("slideshowPreloadStatus");
+    if(!node) return;
+    node.textContent = text;
+    node.classList.toggle("ready", !!ready);
+    node.classList.toggle("loading", !ready);
+  }
+
   function clearTimers(){
     if(timer) clearTimeout(timer);
     if(tickTimer) clearInterval(tickTimer);
@@ -6422,23 +6494,60 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     tickTimer = null;
   }
 
-  function updateProgress(){
-    const progress = el("slideshowProgress");
-    const elapsed = Math.max(0, (Date.now() - startedAt) / 1000);
-    const remain = Math.max(0, Math.ceil(intervalSec - elapsed));
-    const pct = Math.min(100, (elapsed / intervalSec) * 100);
+  function getIntervalSec(){
+    return Math.max(8, Number(el("slideshowInterval")?.value || 25));
+  }
 
-    if(progress) progress.style.width = pct + "%";
-    setText("slideshowTimeLeft", remain + "s");
-    setText("slideshowCountdownText", "Chuyển màn hình sau " + remain + "s");
+  function getActualTabKey(tabKey){
+    return SLIDESHOW_TABS[tabKey]?.baseTab || tabKey;
+  }
+
+  function getChartKey(tabKey){
+    return SLIDESHOW_TABS[tabKey]?.chartKey || "";
   }
 
   function buildCurrentUrl(tabKey){
+    const cfg = SLIDESHOW_TABS[tabKey] || {};
+    const actualTab = getActualTabKey(tabKey);
     const url = new URL(window.location.href);
     url.hash = "slide-" + tabKey;
     url.searchParams.set("slide", "1");
-    url.searchParams.set("tab", tabKey);
+    url.searchParams.set("tab", actualTab);
+    url.searchParams.set("slideItem", tabKey);
+    if(cfg.chartKey) url.searchParams.set("chartView", cfg.chartKey);
     return url.pathname + url.search + url.hash;
+  }
+
+  function computeNextTab(){
+    const tabs = getSelectedTabs();
+    if(isRandom){
+      if(tabs.length === 1) return tabs[0];
+      let next = currentTab;
+      let guard = 0;
+      while(next === currentTab && guard < 10){
+        next = tabs[Math.floor(Math.random() * tabs.length)];
+        guard++;
+      }
+      return next;
+    }
+    return tabs[(currentIndex + 1) % tabs.length];
+  }
+
+  function pickAndAdvanceTab(){
+    const tabs = getSelectedTabs();
+    if(isRandom){
+      if(tabs.length === 1) return tabs[0];
+      let next = currentTab;
+      let guard = 0;
+      while(next === currentTab && guard < 10){
+        next = tabs[Math.floor(Math.random() * tabs.length)];
+        guard++;
+      }
+      currentIndex = tabs.indexOf(next);
+      return next;
+    }
+    currentIndex = (currentIndex + 1) % tabs.length;
+    return tabs[currentIndex];
   }
 
   async function refreshTabData(tabKey){
@@ -6450,10 +6559,71 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+  function removePreparedFrame(){
+    if(nextPreparedFrame && nextPreparedFrame.parentNode){
+      nextPreparedFrame.parentNode.removeChild(nextPreparedFrame);
+    }
+    nextPreparedFrame = null;
+    nextPreparedTab = null;
+    preloadStarted = false;
+  }
+
+  function prepareNextFrame(tabKey){
+    const screen = el("slideshowScreen");
+    if(!screen || !tabKey) return;
+    if(nextPreparedFrame && nextPreparedTab === tabKey) return;
+
+    removePreparedFrame();
+    setPreloadStatus("Đang tải kế tiếp", false);
+
+    const frame = document.createElement("iframe");
+    frame.className = "slideshow-next-frame";
+    frame.src = buildCurrentUrl(tabKey) + "&preload=1";
+    frame.loading = "eager";
+    frame.setAttribute("title", "Tải trước " + (SLIDESHOW_TABS[tabKey]?.name || tabKey));
+    frame.onload = function(){
+      setPreloadStatus("Đã sẵn sàng", true);
+    };
+
+    screen.appendChild(frame);
+    nextPreparedFrame = frame;
+    nextPreparedTab = tabKey;
+
+    // Also trigger data refresh for next tab in parent page at preload time.
+    refreshTabData(tabKey);
+  }
+
+  function updateProgress(){
+    const progress = el("slideshowProgress");
+    const elapsed = Math.max(0, (Date.now() - startedAt) / 1000);
+    const remain = Math.max(0, Math.ceil(intervalSec - elapsed));
+    const pct = Math.min(100, (elapsed / intervalSec) * 100);
+
+    if(progress) progress.style.width = pct + "%";
+    setText("slideshowTimeLeft", remain + "s");
+    setText("slideshowCountdownText", "Chuyển màn hình sau " + remain + "s");
+
+    // Preload next screen when around 3 seconds remain.
+    if(!preloadStarted && remain <= 3){
+      preloadStarted = true;
+      prepareNextFrame(computeNextTab());
+    }
+  }
+
   function createFrame(tabKey){
     const viewport = el("slideshowViewport");
     if(!viewport) return;
     viewport.innerHTML = "";
+
+    if(nextPreparedFrame && nextPreparedTab === tabKey){
+      nextPreparedFrame.className = "slideshow-frame";
+      nextPreparedFrame.style.cssText = "";
+      viewport.appendChild(nextPreparedFrame);
+      nextPreparedFrame = null;
+      nextPreparedTab = null;
+      setPreloadStatus("Đang chiếu", true);
+      return;
+    }
 
     const frame = document.createElement("iframe");
     frame.className = "slideshow-frame";
@@ -6469,47 +6639,57 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     setText("slideshowCurrentName", name);
     setText("slideshowScreenTitle", name);
     startedAt = Date.now();
+    preloadStarted = false;
+    setPreloadStatus("Đang chiếu", true);
 
     createFrame(tabKey);
+
+    // Current tab has already been preloaded if iframe was swapped in;
+    // still refresh parent data to keep APIs warm.
     await refreshTabData(tabKey);
     updateProgress();
   }
 
-  function pickNextTab(){
-    const tabs = getSelectedTabs();
-    if(isRandom){
-      if(tabs.length === 1) return tabs[0];
-      let next = currentTab;
-      let guard = 0;
-      while(next === currentTab && guard < 10){
-        next = tabs[Math.floor(Math.random() * tabs.length)];
-        guard++;
-      }
-      return next;
-    }
-
-    currentIndex = (currentIndex + 1) % tabs.length;
-    return tabs[currentIndex];
-  }
-
   async function scheduleNext(){
     clearTimers();
-    intervalSec = Math.max(8, Number(el("slideshowInterval")?.value || 25));
-    const tabKey = pickNextTab();
+    intervalSec = getIntervalSec();
+    const tabKey = pickAndAdvanceTab();
     await showSlideshowTab(tabKey);
 
     tickTimer = setInterval(updateProgress, 500);
     timer = setTimeout(scheduleNext, intervalSec * 1000);
   }
 
+  function chartOptionLabel(name, sub){
+    return `<span><span>${name}</span>${sub ? `<span class="slideshow-option-sub">${sub}</span>` : ""}</span>`;
+  }
+
   function renderTabChecks(){
     const wrap = el("slideshowTabChecks");
     if(!wrap || wrap.dataset.ready === "1") return;
 
-    Object.entries(SLIDESHOW_TABS).forEach(([key,cfg])=>{
+    const groups = [
+      ["overview","Tổng quan",""],
+      ["data","Số liệu vận hành hồ",""],
+      ["rain","Số liệu mưa thực tế",""],
+      ["windyrain","Mưa dự báo Windy",""],
+      ["openmeteorarain","Mưa dự báo Open-Meteo",""],
+      ["openweatherrain","Mưa dự báo OpenWeather",""],
+      ["forecast","Dự báo / Bản tin",""],
+      ["weathermap","Bản đồ thời tiết",""],
+      ["chart_mnh24h","MNH 24h","Biểu đồ"],
+      ["chart_mnh7d","MNH 7D","Biểu đồ"],
+      ["chart_rain_day","Mưa ngày","Biểu đồ"],
+      ["chart_rain_hour","Mưa giờ","Biểu đồ"],
+      ["chart_q_forecast","Q dự báo","Biểu đồ"],
+      ["chart_db7","Dự báo DB7","Biểu đồ"],
+      ["operationchart","Biểu đồ điều phối",""]
+    ];
+
+    groups.forEach(([key,name,sub])=>{
       const label = document.createElement("label");
-      label.className = "slideshow-check";
-      label.innerHTML = `<span>${cfg.name}</span><input type="checkbox" value="${key}">`;
+      label.className = "slideshow-check" + (sub ? " chart-option" : "");
+      label.innerHTML = `${chartOptionLabel(name, sub)}<input type="checkbox" value="${key}">`;
       wrap.appendChild(label);
     });
     wrap.dataset.ready = "1";
@@ -6535,29 +6715,35 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       chk.checked = selected.includes(chk.value);
     });
     currentIndex = -1;
+    removePreparedFrame();
   };
 
   window.startSlideshowMode = function(fullscreen){
     renderTabChecks();
     isRandom = (el("slideshowPreset")?.value || "operator") === "random";
     currentIndex = -1;
+    removePreparedFrame();
     if(fullscreen) requestFullscreenIfNeeded();
     scheduleNext();
   };
 
   window.stopSlideshowMode = function(){
     clearTimers();
+    removePreparedFrame();
     setText("slideshowCountdownText", "Đã dừng trình chiếu");
+    setPreloadStatus("Sẵn sàng", true);
     const progress = el("slideshowProgress");
     if(progress) progress.style.width = "0%";
   };
 
   window.nextSlideshowTab = function(){
+    removePreparedFrame();
     scheduleNext();
   };
 
   window.shuffleSlideshowNow = function(){
     isRandom = true;
+    removePreparedFrame();
     scheduleNext();
   };
 
@@ -6565,6 +6751,33 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     document.body.classList.remove("slideshow-fullscreen");
     if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   };
+
+  function activateChartView(chartKey){
+    if(!chartKey) return;
+
+    // Try common tab button text matching in current dashboard.
+    const textMap = {
+      waterLevel24h: ["MNH 24H","MNH 24h"],
+      waterLevel7d: ["MNH 7D","MNH 7d"],
+      rainDay: ["Mưa Ngày","Mưa ngày"],
+      rainHour: ["Mưa Giờ","Mưa giờ"],
+      forecastFlow: ["Q Dự báo","Q dự báo"],
+      db7: ["DB7","Q Về vs DB","Q về vs DB"]
+    };
+
+    setTimeout(()=>{
+      const candidates = Array.from(document.querySelectorAll("#tabs .tab, #tab-chart .tab, [data-chart], [data-key]"));
+      const keys = textMap[chartKey] || [];
+      let target =
+        candidates.find(x => x.dataset.chart === chartKey || x.dataset.key === chartKey || x.dataset.type === chartKey) ||
+        candidates.find(x => keys.some(k => (x.textContent || "").toLowerCase().includes(k.toLowerCase())));
+
+      if(target){
+        target.click();
+        setTimeout(()=>window.scrollTo(0,0), 80);
+      }
+    }, 700);
+  }
 
   document.addEventListener("fullscreenchange", function(){
     if(!document.fullscreenElement){
@@ -6593,11 +6806,15 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     // If this page is opened inside the slideshow iframe, show only the requested tab.
     const params = new URLSearchParams(window.location.search);
     const slideTab = params.get("tab");
-    if(params.get("slide") === "1" && slideTab && SLIDESHOW_TABS[slideTab]){
+    const slideItem = params.get("slideItem") || slideTab;
+    const chartView = params.get("chartView") || getChartKey(slideItem);
+
+    if(params.get("slide") === "1" && slideTab){
       document.body.classList.add("slideshow-frame-mode");
       setTimeout(()=>{
         const nav = document.querySelector(`.nav-link[data-tab="${slideTab}"]`);
         if(nav) nav.click();
+        if(slideTab === "chart") activateChartView(chartView);
         window.scrollTo(0,0);
       }, 120);
     }
