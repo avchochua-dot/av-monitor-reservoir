@@ -3667,10 +3667,19 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           iconAnchor: [17, 17],
           popupAnchor: [0, -17]
         });
+        const markerKey = rainStationKey(r);
         const marker = L.marker([r.lat, r.lng], { icon });
-        marker.bindPopup(rainPopupHtml(r, color));
+
+        // Use a dynamic popup callback so popup content is always read from
+        // the same latest data that is used to render the table.
+        marker.bindPopup(() => {
+          const latest = (rainState.data || []).find(x => rainStationKey(x) === markerKey) || r;
+          const latestColor = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
+          return rainPopupHtml(latest, latestColor);
+        });
+
         marker.addTo(rainState.layer);
-        rainState.markerByKey[rainStationKey(r)] = marker;
+        rainState.markerByKey[markerKey] = marker;
 
         if (rainState.labelLayer) {
           const labelIcon = L.divIcon({
@@ -3683,7 +3692,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         }
       });
 
-      setTimeout(() => rainState.map.invalidateSize(), 150);
+      setTimeout(() => {
+        rainState.map.invalidateSize();
+        refreshOpenRainPopup();
+      }, 150);
       if (rows.length === 1) {
         rainState.map.setView([rows[0].lat, rows[0].lng], 12);
       } else if (rows.length > 1) {
@@ -3692,6 +3704,32 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       } else {
         focusRainMapAVuong();
       }
+    }
+  }
+
+
+  function refreshOpenRainPopup() {
+    try {
+      if (!rainState.map || !rainState.markerByKey) return;
+      const openPopup = rainState.map._popup;
+      if (!openPopup) return;
+
+      Object.values(rainState.markerByKey).forEach(marker => {
+        if (marker && marker.isPopupOpen && marker.isPopupOpen()) {
+          const ll = marker.getLatLng && marker.getLatLng();
+          if (!ll) return;
+          const latest = (rainState.data || []).find(x =>
+            Math.abs(Number(x.lat) - ll.lat) < 0.00001 &&
+            Math.abs(Number(x.lng) - ll.lng) < 0.00001
+          );
+          if (latest && marker.setPopupContent) {
+            const color = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
+            marker.setPopupContent(rainPopupHtml(latest, color));
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("refreshOpenRainPopup failed", err);
     }
   }
 
@@ -3710,6 +3748,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if (marker) {
       marker.setPopupContent(rainPopupHtml(latest, color));
       marker.openPopup();
+      setTimeout(refreshOpenRainPopup, 50);
       return;
     }
 
@@ -5747,6 +5786,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     setRainRefreshLabel("Đang cập nhật...");
 
     try{
+      if (typeof rainState !== "undefined" && rainState.map) {
+        try { rainState.map.closePopup(); } catch(_) {}
+      }
+
       /*
         These function names cover the versions used in this dashboard:
         - loadRainData / refreshRainData / updateRainData: Vrain rain summary, map, main table
