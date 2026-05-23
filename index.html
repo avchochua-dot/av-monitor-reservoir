@@ -3605,6 +3605,55 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     `;
   }
 
+  function getRainTableRowValues(r) {
+    try {
+      const code = String(r?.code || "").trim();
+      const shortName = String(r?.shortName || r?.name || "").trim();
+      const trs = Array.from(document.querySelectorAll("#rainTableBody tr"));
+      const tr = trs.find(row => {
+        const t = (row.cells && row.cells[0] ? row.cells[0].textContent : row.textContent || "").trim();
+        return (code && t.includes(code)) || (shortName && t.includes(shortName));
+      });
+      if (!tr || !tr.cells || tr.cells.length < 5) return null;
+      return {
+        station: tr.cells[0].textContent.trim(),
+        location: tr.cells[1].textContent.trim(),
+        rainText: tr.cells[2].textContent.trim(),
+        levelText: tr.cells[3].textContent.trim(),
+        toText: tr.cells[4].textContent.trim()
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function numberFromRainText(txt) {
+    const n = Number(String(txt || "").replace("mm", "").replace(",", ".").trim());
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function rainPopupHtmlSyncedWithTable(r) {
+    const table = getRainTableRowValues(r);
+    if (r.isStatic) return rainPopupHtml(r, "#94a3b8");
+
+    if (table) {
+      const rainNum = numberFromRainText(table.rainText);
+      const color = rainColor(rainNum ?? r.rain);
+      return `
+        <div class="rain-popup-title">${r.code ? r.code + " - " : ""}${r.name}</div>
+        <div class="rain-popup-meta">
+          ${table.location || r.location || r.address || ""}<br>
+          Lượng mưa: <b style="color:${color}">${table.rainText || fmt1.format(Number(r.rain || 0)) + " mm"}</b><br>
+          Cấp: <b>${table.levelText || r.level || rainLabel(r.rain)}</b><br>
+          Đến: ${table.toText || r.to || "-"}
+        </div>
+      `;
+    }
+
+    const color = rainColor(r.rain);
+    return rainPopupHtml(r, color);
+  }
+
   function renderRainTableAndMap() {
     const q = (($("rainSearch") && $("rainSearch").value) || "").trim().toLowerCase();
     const rows = rainState.data.filter(x => !q || `${x.name} ${x.address} ${x.location}`.toLowerCase().includes(q));
@@ -3674,8 +3723,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         // the same latest data that is used to render the table.
         marker.bindPopup(() => {
           const latest = (rainState.data || []).find(x => rainStationKey(x) === markerKey) || r;
-          const latestColor = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
-          return rainPopupHtml(latest, latestColor);
+          return rainPopupHtmlSyncedWithTable(latest);
+        });
+
+        // Force popup content to be rebuilt from the current table values on every click/open.
+        marker.on("click popupopen", () => {
+          const latest = (rainState.data || []).find(x => rainStationKey(x) === markerKey) || r;
+          marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
         });
 
         marker.addTo(rainState.layer);
@@ -3694,6 +3748,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       setTimeout(() => {
         rainState.map.invalidateSize();
+        refreshAllRainMarkerPopupContentFromTable();
         refreshOpenRainPopup();
       }, 150);
       if (rows.length === 1) {
@@ -3707,6 +3762,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+
+
+  function refreshAllRainMarkerPopupContentFromTable() {
+    try {
+      if (!rainState.markerByKey) return;
+      Object.entries(rainState.markerByKey).forEach(([key, marker]) => {
+        const latest = (rainState.data || []).find(x => rainStationKey(x) === key);
+        if (latest && marker && marker.setPopupContent) {
+          marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
+        }
+      });
+    } catch (err) {
+      console.warn("refreshAllRainMarkerPopupContentFromTable failed", err);
+    }
+  }
 
   function refreshOpenRainPopup() {
     try {
@@ -3724,7 +3794,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           );
           if (latest && marker.setPopupContent) {
             const color = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
-            marker.setPopupContent(rainPopupHtml(latest, color));
+            marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
           }
         }
       });
@@ -3746,7 +3816,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     const marker = rainState.markerByKey && rainState.markerByKey[key];
     if (marker) {
-      marker.setPopupContent(rainPopupHtml(latest, color));
+      marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
       marker.openPopup();
       setTimeout(refreshOpenRainPopup, 50);
       return;
@@ -3756,7 +3826,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     rainState.layer.eachLayer(layer => {
       const ll = layer.getLatLng && layer.getLatLng();
       if (ll && Math.abs(ll.lat - latest.lat) < 0.00001 && Math.abs(ll.lng - latest.lng) < 0.00001) {
-        if (layer.setPopupContent) layer.setPopupContent(rainPopupHtml(latest, color));
+        if (layer.setPopupContent) layer.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
         layer.openPopup();
       }
     });
