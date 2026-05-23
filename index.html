@@ -2536,6 +2536,287 @@ aside.sidebar::after{
   }
 }
 
+
+/* =========================================================
+   TAB TRÌNH CHIẾU TỰ ĐỘNG / RANDOM
+   ========================================================= */
+.nav-link[data-tab="slideshow"]{--nav-accent:#db2777;--nav-soft:rgba(219,39,119,.13)}
+.nav-link[data-tab="slideshow"]::after{
+  content:"TV" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#ec4899,#db2777) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(219,39,119,.18);
+}
+.nav-link[data-tab="slideshow"]{padding-right:66px!important}
+
+.slideshow-shell{
+  display:grid;
+  grid-template-columns: 320px minmax(0,1fr);
+  gap:14px;
+  min-height: calc(100vh - var(--header-h) - 40px);
+}
+.slideshow-control{
+  position:sticky;
+  top:calc(var(--header-h) + 14px);
+  align-self:start;
+  background:
+    radial-gradient(220px 160px at 10% 0%, rgba(37,99,235,.10), transparent 65%),
+    radial-gradient(220px 170px at 100% 100%, rgba(219,39,119,.10), transparent 65%),
+    #fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:16px;
+  box-shadow:var(--shadow-card);
+}
+.slideshow-title{
+  font-size:15px;
+  font-weight:1000;
+  color:#172033;
+  margin-bottom:4px;
+}
+.slideshow-sub{
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.4;
+  margin-bottom:14px;
+}
+.slideshow-status{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:12px;
+}
+.slideshow-stat{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:16px;
+  background:#fff;
+  padding:12px;
+}
+.slideshow-stat span{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-bottom:6px;
+}
+.slideshow-stat b{
+  display:block;
+  color:#1d4ed8;
+  font-size:19px;
+  font-weight:1000;
+  line-height:1.1;
+}
+.slideshow-select,
+.slideshow-input{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px 12px;
+  background:#fff;
+  color:#172033;
+  font-weight:900;
+  outline:none;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.slideshow-field{margin-bottom:10px}
+.slideshow-field label{
+  display:block;
+  margin-bottom:6px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.slideshow-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.slideshow-btn{
+  width:100%!important;
+  border-radius:16px!important;
+  padding:10px 12px!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+  border:1px solid rgba(37,99,235,.22)!important;
+  background:rgba(37,99,235,.10)!important;
+  color:#1d4ed8!important;
+}
+.slideshow-btn.primary{
+  background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;
+  color:#fff!important;
+  box-shadow:0 14px 32px rgba(37,99,235,.22)!important;
+}
+.slideshow-btn.danger{
+  background:rgba(239,68,68,.10)!important;
+  color:#dc2626!important;
+  border-color:rgba(239,68,68,.22)!important;
+}
+.slideshow-btn.full{
+  grid-column:1 / -1;
+  background:linear-gradient(135deg,#ec4899,#db2777)!important;
+  color:#fff!important;
+  border-color:rgba(219,39,119,.22)!important;
+}
+.slideshow-checklist{
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+}
+.slideshow-check{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:14px;
+  padding:9px 10px;
+  background:rgba(248,250,252,.82);
+  color:#172033;
+  font-size:12px;
+  font-weight:900;
+}
+.slideshow-check input{width:auto;box-shadow:none}
+.slideshow-screen{
+  position:relative;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:26px;
+  overflow:hidden;
+  box-shadow:var(--shadow-card);
+  min-height:680px;
+}
+.slideshow-screen-head{
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0 18px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(90deg,rgba(37,99,235,.08),rgba(219,39,119,.05));
+}
+.slideshow-screen-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.slideshow-live-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#22c55e;
+  box-shadow:0 0 0 6px rgba(34,197,94,.12);
+}
+.slideshow-screen-title b{
+  font-size:15px;
+  font-weight:1000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.slideshow-countdown{
+  min-width:150px;
+  text-align:right;
+  color:#1d4ed8;
+  font-weight:1000;
+  font-size:13px;
+}
+.slideshow-progress{
+  position:absolute;
+  left:0;
+  top:58px;
+  height:4px;
+  width:0%;
+  background:linear-gradient(90deg,#2563eb,#06b6d4,#ec4899);
+  z-index:3;
+  transition:width .25s linear;
+}
+.slideshow-viewport{
+  height:calc(100% - 58px);
+  min-height:620px;
+  overflow:hidden;
+  background:#f8fafc;
+}
+.slideshow-frame{
+  width:100%;
+  height:100%;
+  min-height:620px;
+  border:0;
+  display:block;
+  background:#fff;
+}
+.slideshow-empty{
+  min-height:620px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#64748b;
+  font-weight:900;
+  padding:30px;
+}
+body.slideshow-fullscreen .site-header,
+body.slideshow-fullscreen aside.sidebar{
+  display:none!important;
+}
+body.slideshow-fullscreen .site{
+  display:block!important;
+}
+body.slideshow-fullscreen .site-body{
+  display:block!important;
+  padding:0!important;
+}
+body.slideshow-fullscreen main.content{
+  width:100vw!important;
+  min-height:100vh!important;
+}
+body.slideshow-fullscreen .tab-pane:not(#tab-slideshow){
+  display:none!important;
+}
+body.slideshow-fullscreen #tab-slideshow{
+  display:block!important;
+  padding:0!important;
+}
+body.slideshow-fullscreen .slideshow-shell{
+  grid-template-columns:1fr!important;
+  min-height:100vh!important;
+}
+body.slideshow-fullscreen .slideshow-control{
+  display:none!important;
+}
+body.slideshow-fullscreen .slideshow-screen{
+  border-radius:0!important;
+  border:0!important;
+  min-height:100vh!important;
+  height:100vh!important;
+}
+body.slideshow-fullscreen .slideshow-viewport,
+body.slideshow-fullscreen .slideshow-frame,
+body.slideshow-fullscreen .slideshow-empty{
+  min-height:calc(100vh - 58px)!important;
+  height:calc(100vh - 58px)!important;
+}
+body.slideshow-fullscreen{
+  overflow:hidden!important;
+}
+@media(max-width:1100px){
+  .slideshow-shell{grid-template-columns:1fr}
+  .slideshow-control{position:relative;top:auto}
+}
+
 </style>
 </head>
 <body>
@@ -2646,6 +2927,10 @@ aside.sidebar::after{
         <a class="nav-link" data-tab="operationchart">
           <svg viewBox="0 0 24 24"><path d="M3 3h2v16h16v2H3V3zm4 12l3-3 3 2 5-7 2 1.4-6.4 9-3.3-2.2L8.4 17 7 15z"/></svg>
           Biểu đồ điều phối
+        </a>
+        <a class="nav-link" data-tab="slideshow">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm2 2v6h12V8H6zm3 10h6v2H9v-2zm10-12h2v12H3V6h2v10h14V6z"/></svg>
+          Trình chiếu
         </a>
         <a class="nav-link" data-tab="notif">
           <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
@@ -3242,6 +3527,71 @@ aside.sidebar::after{
             </div>
           </div>
         </div>
+      </div>
+
+
+      <!-- TAB: Slideshow / TV mode -->
+      <div id="tab-slideshow" class="tab-pane">
+        <section class="slideshow-shell">
+          <aside class="slideshow-control">
+            <div class="slideshow-title">Trình chiếu Dashboard</div>
+            <div class="slideshow-sub">Chọn chu trình, bấm chạy hoặc toàn màn hình. Hệ thống sẽ tự chuyển tab và tự cập nhật dữ liệu theo từng tab.</div>
+
+            <div class="slideshow-status">
+              <div class="slideshow-stat"><span>Tab hiện tại</span><b id="slideshowCurrentName">--</b></div>
+              <div class="slideshow-stat"><span>Còn lại</span><b id="slideshowTimeLeft">--s</b></div>
+            </div>
+
+            <div class="slideshow-field">
+              <label>Chu trình mẫu</label>
+              <select id="slideshowPreset" class="slideshow-select" onchange="applySlideshowPreset()">
+                <option value="operator">Vận hành hồ: Tổng quan → Số liệu → Mưa → Điều phối</option>
+                <option value="rain">Theo dõi mưa: Tổng quan → Mưa thực tế → 3 nguồn dự báo</option>
+                <option value="forecast">Dự báo: Tổng quan → Dự báo → Bản đồ thời tiết → Mưa dự báo</option>
+                <option value="random">Random: tự chọn ngẫu nhiên các tab đã bật</option>
+                <option value="custom">Tùy chọn thủ công</option>
+              </select>
+            </div>
+
+            <div class="slideshow-field">
+              <label>Thời gian mỗi màn hình (giây)</label>
+              <input id="slideshowInterval" class="slideshow-input" type="number" min="8" max="300" value="25" />
+            </div>
+
+            <div class="slideshow-field">
+              <label>Danh sách tab trình chiếu</label>
+              <div class="slideshow-checklist" id="slideshowTabChecks"></div>
+            </div>
+
+            <div class="slideshow-actions">
+              <button class="slideshow-btn primary" onclick="startSlideshowMode(false)">▶ Chạy</button>
+              <button class="slideshow-btn danger" onclick="stopSlideshowMode()">⏸ Dừng</button>
+              <button class="slideshow-btn" onclick="nextSlideshowTab()">⏭ Tab kế</button>
+              <button class="slideshow-btn" onclick="shuffleSlideshowNow()">🔀 Random</button>
+              <button class="slideshow-btn full" onclick="startSlideshowMode(true)">⛶ Chạy toàn màn hình</button>
+            </div>
+          </aside>
+
+          <section class="slideshow-screen" id="slideshowScreen">
+            <div class="slideshow-screen-head">
+              <div class="slideshow-screen-title">
+                <span class="slideshow-live-dot"></span>
+                <b id="slideshowScreenTitle">Sẵn sàng trình chiếu</b>
+              </div>
+              <div class="slideshow-countdown" id="slideshowCountdownText">Chọn chu trình để bắt đầu</div>
+            </div>
+            <div class="slideshow-progress" id="slideshowProgress"></div>
+            <div class="slideshow-viewport" id="slideshowViewport">
+              <div class="slideshow-empty">
+                <div>
+                  <div style="font-size:38px;margin-bottom:10px">📺</div>
+                  <div>Tab trình chiếu sẽ tự chạy tại đây.</div>
+                  <div style="font-size:12px;margin-top:8px;color:#94a3b8">Có thể dùng F11 hoặc nút “Chạy toàn màn hình”.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
       </div>
 
     </main>
@@ -6016,6 +6366,266 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   document.addEventListener("DOMContentLoaded", installCursorTooltipPositioner);
 })();
 </script>
+
+
+<script>
+/* =========================================================
+   TRÌNH CHIẾU DASHBOARD / TV MODE
+   ========================================================= */
+(function(){
+  const SLIDESHOW_TABS = {
+    overview: {name:"Tổng quan", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    data: {name:"Số liệu vận hành hồ", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    rain: {name:"Số liệu mưa thực tế", refresh: async()=>{ if(typeof refreshRainTabAll==="function") await refreshRainTabAll(true); else if(typeof loadRainData==="function") await loadRainData(true); }},
+    windyrain: {name:"Mưa dự báo Windy", refresh: async()=>{ if(typeof loadWindyRainData==="function") await loadWindyRainData(true); }},
+    openmeteorarain: {name:"Mưa dự báo Open-Meteo", refresh: async()=>{ if(typeof loadOpenMeteoRainData==="function") await loadOpenMeteoRainData(true); }},
+    openweatherrain: {name:"Mưa dự báo OpenWeather", refresh: async()=>{ if(typeof loadOpenWeatherRainData==="function") await loadOpenWeatherRainData(true); }},
+    forecast: {name:"Dự báo", refresh: async()=>{ if(typeof loadForecasts==="function") await loadForecasts(); }},
+    weathermap: {name:"Bản đồ thời tiết", refresh: async()=>{}},
+    chart: {name:"Biểu đồ", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
+    operationchart: {name:"Biểu đồ điều phối", refresh: async()=>{ if(typeof loadOperationChart==="function") await loadOperationChart(false); }}
+  };
+
+  const PRESETS = {
+    operator: ["overview","data","rain","operationchart"],
+    rain: ["overview","rain","windyrain","openmeteorarain","openweatherrain"],
+    forecast: ["overview","forecast","weathermap","windyrain","openmeteorarain","openweatherrain"],
+    random: ["overview","data","rain","windyrain","openmeteorarain","openweatherrain","forecast","operationchart"],
+    custom: ["overview","data","rain","operationchart"]
+  };
+
+  let timer = null;
+  let tickTimer = null;
+  let currentIndex = -1;
+  let currentTab = null;
+  let startedAt = 0;
+  let intervalSec = 25;
+  let isRandom = false;
+
+  function el(id){ return document.getElementById(id); }
+
+  function getSelectedTabs(){
+    const checks = Array.from(document.querySelectorAll("#slideshowTabChecks input[type='checkbox']"));
+    const selected = checks.filter(x=>x.checked).map(x=>x.value).filter(k=>SLIDESHOW_TABS[k]);
+    return selected.length ? selected : PRESETS.operator.slice();
+  }
+
+  function setText(id, text){
+    const node = el(id);
+    if(node) node.textContent = text;
+  }
+
+  function clearTimers(){
+    if(timer) clearTimeout(timer);
+    if(tickTimer) clearInterval(tickTimer);
+    timer = null;
+    tickTimer = null;
+  }
+
+  function updateProgress(){
+    const progress = el("slideshowProgress");
+    const elapsed = Math.max(0, (Date.now() - startedAt) / 1000);
+    const remain = Math.max(0, Math.ceil(intervalSec - elapsed));
+    const pct = Math.min(100, (elapsed / intervalSec) * 100);
+
+    if(progress) progress.style.width = pct + "%";
+    setText("slideshowTimeLeft", remain + "s");
+    setText("slideshowCountdownText", "Chuyển màn hình sau " + remain + "s");
+  }
+
+  function buildCurrentUrl(tabKey){
+    const url = new URL(window.location.href);
+    url.hash = "slide-" + tabKey;
+    url.searchParams.set("slide", "1");
+    url.searchParams.set("tab", tabKey);
+    return url.pathname + url.search + url.hash;
+  }
+
+  async function refreshTabData(tabKey){
+    try{
+      const cfg = SLIDESHOW_TABS[tabKey];
+      if(cfg && typeof cfg.refresh === "function") await cfg.refresh();
+    }catch(err){
+      console.warn("Slideshow refresh failed:", tabKey, err);
+    }
+  }
+
+  function createFrame(tabKey){
+    const viewport = el("slideshowViewport");
+    if(!viewport) return;
+    viewport.innerHTML = "";
+
+    const frame = document.createElement("iframe");
+    frame.className = "slideshow-frame";
+    frame.src = buildCurrentUrl(tabKey);
+    frame.loading = "eager";
+    frame.setAttribute("title", "Trình chiếu " + (SLIDESHOW_TABS[tabKey]?.name || tabKey));
+    viewport.appendChild(frame);
+  }
+
+  async function showSlideshowTab(tabKey){
+    currentTab = tabKey;
+    const name = SLIDESHOW_TABS[tabKey]?.name || tabKey;
+    setText("slideshowCurrentName", name);
+    setText("slideshowScreenTitle", name);
+    startedAt = Date.now();
+
+    createFrame(tabKey);
+    await refreshTabData(tabKey);
+    updateProgress();
+  }
+
+  function pickNextTab(){
+    const tabs = getSelectedTabs();
+    if(isRandom){
+      if(tabs.length === 1) return tabs[0];
+      let next = currentTab;
+      let guard = 0;
+      while(next === currentTab && guard < 10){
+        next = tabs[Math.floor(Math.random() * tabs.length)];
+        guard++;
+      }
+      return next;
+    }
+
+    currentIndex = (currentIndex + 1) % tabs.length;
+    return tabs[currentIndex];
+  }
+
+  async function scheduleNext(){
+    clearTimers();
+    intervalSec = Math.max(8, Number(el("slideshowInterval")?.value || 25));
+    const tabKey = pickNextTab();
+    await showSlideshowTab(tabKey);
+
+    tickTimer = setInterval(updateProgress, 500);
+    timer = setTimeout(scheduleNext, intervalSec * 1000);
+  }
+
+  function renderTabChecks(){
+    const wrap = el("slideshowTabChecks");
+    if(!wrap || wrap.dataset.ready === "1") return;
+
+    Object.entries(SLIDESHOW_TABS).forEach(([key,cfg])=>{
+      const label = document.createElement("label");
+      label.className = "slideshow-check";
+      label.innerHTML = `<span>${cfg.name}</span><input type="checkbox" value="${key}">`;
+      wrap.appendChild(label);
+    });
+    wrap.dataset.ready = "1";
+    applySlideshowPreset();
+  }
+
+  function requestFullscreenIfNeeded(){
+    const screen = el("slideshowScreen");
+    document.body.classList.add("slideshow-fullscreen");
+
+    const target = screen || document.documentElement;
+    if(target && target.requestFullscreen){
+      target.requestFullscreen().catch(()=>{});
+    }
+  }
+
+  window.applySlideshowPreset = function(){
+    renderTabChecks();
+    const preset = el("slideshowPreset")?.value || "operator";
+    isRandom = preset === "random";
+    const selected = PRESETS[preset] || PRESETS.operator;
+    document.querySelectorAll("#slideshowTabChecks input[type='checkbox']").forEach(chk=>{
+      chk.checked = selected.includes(chk.value);
+    });
+    currentIndex = -1;
+  };
+
+  window.startSlideshowMode = function(fullscreen){
+    renderTabChecks();
+    isRandom = (el("slideshowPreset")?.value || "operator") === "random";
+    currentIndex = -1;
+    if(fullscreen) requestFullscreenIfNeeded();
+    scheduleNext();
+  };
+
+  window.stopSlideshowMode = function(){
+    clearTimers();
+    setText("slideshowCountdownText", "Đã dừng trình chiếu");
+    const progress = el("slideshowProgress");
+    if(progress) progress.style.width = "0%";
+  };
+
+  window.nextSlideshowTab = function(){
+    scheduleNext();
+  };
+
+  window.shuffleSlideshowNow = function(){
+    isRandom = true;
+    scheduleNext();
+  };
+
+  window.exitSlideshowFullscreen = function(){
+    document.body.classList.remove("slideshow-fullscreen");
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  };
+
+  document.addEventListener("fullscreenchange", function(){
+    if(!document.fullscreenElement){
+      document.body.classList.remove("slideshow-fullscreen");
+    }
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") window.exitSlideshowFullscreen();
+    if(e.key === " " && document.getElementById("tab-slideshow")?.classList.contains("active")){
+      e.preventDefault();
+      window.nextSlideshowTab();
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function(){
+    renderTabChecks();
+
+    document.addEventListener("click", function(e){
+      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="slideshow"]');
+      if(nav){
+        setTimeout(renderTabChecks, 100);
+      }
+    });
+
+    // If this page is opened inside the slideshow iframe, show only the requested tab.
+    const params = new URLSearchParams(window.location.search);
+    const slideTab = params.get("tab");
+    if(params.get("slide") === "1" && slideTab && SLIDESHOW_TABS[slideTab]){
+      document.body.classList.add("slideshow-frame-mode");
+      setTimeout(()=>{
+        const nav = document.querySelector(`.nav-link[data-tab="${slideTab}"]`);
+        if(nav) nav.click();
+        window.scrollTo(0,0);
+      }, 120);
+    }
+  });
+})();
+</script>
+<style>
+body.slideshow-frame-mode header.site-header,
+body.slideshow-frame-mode aside.sidebar{
+  display:none!important;
+}
+body.slideshow-frame-mode .site{
+  display:block!important;
+}
+body.slideshow-frame-mode .site-body{
+  display:block!important;
+  padding:0!important;
+}
+body.slideshow-frame-mode main.content{
+  padding:0!important;
+}
+body.slideshow-frame-mode .tab-pane{
+  margin:0!important;
+}
+body.slideshow-frame-mode .content::after{
+  display:none!important;
+}
+</style>
 
 </body>
 </html>
