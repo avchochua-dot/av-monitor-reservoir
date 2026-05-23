@@ -2869,6 +2869,64 @@ body.slideshow-fullscreen{
   top:-9999px;
 }
 
+
+/* =========================================================
+   SLIDESHOW TV SAFE AREA / OVERSCAN FIX
+   ========================================================= */
+:root{
+  --slide-safe-pad: 14px;
+  --slide-scale: 1;
+}
+body.slideshow-fullscreen{
+  background:#0f172a!important;
+}
+body.slideshow-fullscreen .slideshow-screen{
+  background:#0f172a!important;
+  padding:var(--slide-safe-pad)!important;
+  box-sizing:border-box!important;
+}
+body.slideshow-fullscreen .slideshow-screen-head{
+  border-radius:18px 18px 0 0!important;
+  margin:0!important;
+}
+body.slideshow-fullscreen .slideshow-viewport{
+  border-radius:0 0 18px 18px!important;
+  background:#f8fafc!important;
+  overflow:hidden!important;
+}
+body.slideshow-fullscreen .slideshow-frame{
+  width:calc(100% / var(--slide-scale))!important;
+  height:calc(100% / var(--slide-scale))!important;
+  transform:scale(var(--slide-scale))!important;
+  transform-origin:top left!important;
+}
+body.slideshow-tv-fit{
+  --slide-safe-pad: 18px;
+  --slide-scale: .96;
+}
+body.slideshow-tv-compact{
+  --slide-safe-pad: 26px;
+  --slide-scale: .92;
+}
+body.slideshow-tv-full{
+  --slide-safe-pad: 0px;
+  --slide-scale: 1;
+}
+body.slideshow-frame-mode{
+  overflow:hidden!important;
+}
+body.slideshow-frame-mode .tab-pane{
+  transform-origin:top left;
+}
+body.slideshow-frame-mode main.content{
+  overflow:hidden!important;
+}
+body.slideshow-frame-mode .card,
+body.slideshow-frame-mode .chart-card,
+body.slideshow-frame-mode section{
+  max-width:100%!important;
+}
+
 </style>
 </head>
 <body>
@@ -3608,6 +3666,15 @@ body.slideshow-fullscreen{
             <div class="slideshow-field">
               <label>Thời gian mỗi màn hình (giây)</label>
               <input id="slideshowInterval" class="slideshow-input" type="number" min="8" max="300" value="25" />
+            </div>
+
+            <div class="slideshow-field">
+              <label>Chế độ hiển thị TV</label>
+              <select id="slideshowFitMode" class="slideshow-select" onchange="applySlideshowFitMode()">
+                <option value="fit" selected>Vừa khung an toàn TV</option>
+                <option value="full">Phủ toàn màn hình</option>
+                <option value="compact">Thu nhỏ thêm cho TV bị overscan</option>
+              </select>
             </div>
 
             <div class="slideshow-field">
@@ -6424,7 +6491,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 <script>
 /* =========================================================
    TRÌNH CHIẾU DASHBOARD / TV MODE
-   - Preload màn hình kế tiếp khi còn 3 giây
+   - Preload màn hình kế tiếp khi còn 7 giây
    - Cho phép chọn nhiều kiểu biểu đồ trong Tab Biểu đồ
    ========================================================= */
 (function(){
@@ -6574,7 +6641,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(nextPreparedFrame && nextPreparedTab === tabKey) return;
 
     removePreparedFrame();
-    setPreloadStatus("Đang tải kế tiếp", false);
+    setPreloadStatus("Đang tải trước", false);
 
     const frame = document.createElement("iframe");
     frame.className = "slideshow-next-frame";
@@ -6604,7 +6671,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     setText("slideshowCountdownText", "Chuyển màn hình sau " + remain + "s");
 
     // Preload next screen when around 3 seconds remain.
-    if(!preloadStarted && remain <= 3){
+    if(!preloadStarted && remain <= 7){
       preloadStarted = true;
       prepareNextFrame(computeNextTab());
     }
@@ -6696,8 +6763,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     applySlideshowPreset();
   }
 
+  function applyFitModeClass(){
+    const mode = el("slideshowFitMode")?.value || "fit";
+    document.body.classList.remove("slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
+    if(mode === "compact") document.body.classList.add("slideshow-tv-compact");
+    else if(mode === "full") document.body.classList.add("slideshow-tv-full");
+    else document.body.classList.add("slideshow-tv-fit");
+  }
+
+  window.applySlideshowFitMode = function(){
+    applyFitModeClass();
+  };
+
   function requestFullscreenIfNeeded(){
     const screen = el("slideshowScreen");
+    applyFitModeClass();
     document.body.classList.add("slideshow-fullscreen");
 
     const target = screen || document.documentElement;
@@ -6723,6 +6803,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     isRandom = (el("slideshowPreset")?.value || "operator") === "random";
     currentIndex = -1;
     removePreparedFrame();
+    applyFitModeClass();
     if(fullscreen) requestFullscreenIfNeeded();
     scheduleNext();
   };
@@ -6748,7 +6829,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   };
 
   window.exitSlideshowFullscreen = function(){
-    document.body.classList.remove("slideshow-fullscreen");
+    document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
     if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   };
 
@@ -6781,7 +6862,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   document.addEventListener("fullscreenchange", function(){
     if(!document.fullscreenElement){
-      document.body.classList.remove("slideshow-fullscreen");
+      document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
     }
   });
 
