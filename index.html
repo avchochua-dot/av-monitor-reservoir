@@ -3701,8 +3701,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     initRainMap();
     if (rainState.map && rainState.layer) {
-      // Important: close old popup before clearing markers, otherwise Leaflet can keep stale popup content.
-      try { rainState.map.closePopup(); } catch (_) {}
+      // Important: remove stale Leaflet popup DOM before clearing markers.
+      removeAllLeafletPopupsHard();
       rainState.markerByKey = {};
       rainState.layer.clearLayers();
       if (rainState.labelLayer) rainState.labelLayer.clearLayers();
@@ -3719,18 +3719,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         const markerKey = rainStationKey(r);
         const marker = L.marker([r.lat, r.lng], { icon });
 
-        // Use a dynamic popup callback so popup content is always read from
-        // the same latest data that is used to render the table.
-        marker.bindPopup(() => {
-          const latest = (rainState.data || []).find(x => rainStationKey(x) === markerKey) || r;
-          return rainPopupHtmlSyncedWithTable(latest);
-        });
-
-        // Force popup content to be rebuilt from the current table values on every click/open.
-        marker.on("click popupopen", () => {
-          const latest = (rainState.data || []).find(x => rainStationKey(x) === markerKey) || r;
-          marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
-        });
+        // Do NOT use Leaflet bindPopup here. Some browsers keep old bound popup HTML
+        // after data refresh. Open a fresh popup from the CURRENT table values on each click.
+        marker.off && marker.off("click");
+        marker.on("click", () => openRainPopupFromCurrentTable(marker, r));
 
         marker.addTo(rainState.layer);
         rainState.markerByKey[markerKey] = marker;
@@ -3764,6 +3756,46 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
 
 
+
+  function removeAllLeafletPopupsHard() {
+    try {
+      if (rainState.map) {
+        rainState.map.closePopup();
+        if (rainState.map._popup) {
+          rainState.map.removeLayer(rainState.map._popup);
+          rainState.map._popup = null;
+        }
+      }
+      document.querySelectorAll("#rainMap .leaflet-popup").forEach(el => el.remove());
+    } catch (err) {
+      console.warn("removeAllLeafletPopupsHard failed", err);
+    }
+  }
+
+  function openRainPopupFromCurrentTable(marker, r) {
+    try {
+      const key = rainStationKey(r);
+      const latest = (rainState.data || []).find(x => rainStationKey(x) === key) || r;
+      const html = rainPopupHtmlSyncedWithTable(latest);
+      const ll = marker.getLatLng ? marker.getLatLng() : L.latLng(latest.lat, latest.lng);
+
+      removeAllLeafletPopupsHard();
+
+      L.popup({
+        closeButton: true,
+        autoClose: true,
+        closeOnClick: true,
+        offset: [0, -16],
+        className: "rain-current-popup"
+      })
+        .setLatLng(ll)
+        .setContent(html)
+        .openOn(rainState.map);
+    } catch (err) {
+      console.warn("openRainPopupFromCurrentTable failed", err);
+    }
+  }
+
   function refreshAllRainMarkerPopupContentFromTable() {
     try {
       if (!rainState.markerByKey) return;
@@ -3779,28 +3811,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   function refreshOpenRainPopup() {
-    try {
-      if (!rainState.map || !rainState.markerByKey) return;
-      const openPopup = rainState.map._popup;
-      if (!openPopup) return;
-
-      Object.values(rainState.markerByKey).forEach(marker => {
-        if (marker && marker.isPopupOpen && marker.isPopupOpen()) {
-          const ll = marker.getLatLng && marker.getLatLng();
-          if (!ll) return;
-          const latest = (rainState.data || []).find(x =>
-            Math.abs(Number(x.lat) - ll.lat) < 0.00001 &&
-            Math.abs(Number(x.lng) - ll.lng) < 0.00001
-          );
-          if (latest && marker.setPopupContent) {
-            const color = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
-            marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
-          }
-        }
-      });
-    } catch (err) {
-      console.warn("refreshOpenRainPopup failed", err);
-    }
+    // Existing open popups can be stale after re-render; remove them.
+    removeAllLeafletPopupsHard();
   }
 
   function focusRainStation(r) {
@@ -3816,9 +3828,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     const marker = rainState.markerByKey && rainState.markerByKey[key];
     if (marker) {
-      marker.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
-      marker.openPopup();
-      setTimeout(refreshOpenRainPopup, 50);
+      openRainPopupFromCurrentTable(marker, latest);
       return;
     }
 
@@ -3826,8 +3836,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     rainState.layer.eachLayer(layer => {
       const ll = layer.getLatLng && layer.getLatLng();
       if (ll && Math.abs(ll.lat - latest.lat) < 0.00001 && Math.abs(ll.lng - latest.lng) < 0.00001) {
-        if (layer.setPopupContent) layer.setPopupContent(rainPopupHtmlSyncedWithTable(latest));
-        layer.openPopup();
+        openRainPopupFromCurrentTable(layer, latest);
       }
     });
   }
@@ -5856,7 +5865,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     setRainRefreshLabel("Đang cập nhật...");
 
     try{
-      if (typeof rainState !== "undefined" && rainState.map) {
+      if (typeof removeAllLeafletPopupsHard === "function") {
+        removeAllLeafletPopupsHard();
+      } else if (typeof rainState !== "undefined" && rainState.map) {
         try { rainState.map.closePopup(); } catch(_) {}
       }
 
@@ -5895,8 +5906,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       if(typeof renderRainTableAndMap === "function"){
         try { renderRainTableAndMap(); } catch(e) { console.warn("renderRainTableAndMap after refresh failed", e); }
       }
-      if(window.rainState?.map){
-        try { window.rainState.map.closePopup(); } catch(_) {}
+      if (typeof removeAllLeafletPopupsHard === "function") {
+        removeAllLeafletPopupsHard();
       }
 
       const now = new Date();
