@@ -1990,6 +1990,552 @@ aside.sidebar{
   #tab-operationchart .operation-chart-wrap canvas{height:500px!important}
 }
 
+
+/* =========================================================
+   NAV V10 - Digital / professional sidebar redesign
+   ========================================================= */
+:root{
+  --sidebar-w: 286px;
+}
+
+aside.sidebar{
+  position: sticky !important;
+  overflow: hidden !important;
+  padding: 18px 16px 20px !important;
+  border-radius: 30px !important;
+  background:
+    radial-gradient(260px 180px at 8% 0%, rgba(37,99,235,.12), transparent 68%),
+    radial-gradient(260px 200px at 100% 78%, rgba(20,184,166,.10), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,251,255,.94)) !important;
+  border: 1px solid rgba(148,163,184,.20) !important;
+  box-shadow:
+    0 24px 70px rgba(15,23,42,.10),
+    inset 0 1px 0 rgba(255,255,255,.90) !important;
+}
+
+aside.sidebar::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(37,99,235,.06) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(37,99,235,.045) 0 1px, transparent 1px 100%);
+  background-size: 28px 28px;
+  opacity:.28;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 62%);
+}
+
+aside.sidebar::after{
+  content:"";
+  position:absolute;
+  left:-20px;
+  right:-20px;
+  bottom:-42px;
+  height:118px;
+  pointer-events:none;
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 720 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 74 C90 20 170 130 265 70 C355 15 445 132 545 68 C620 22 680 58 720 30 L720 150 L0 150 Z' fill='%232563eb' fill-opacity='.13'/%3E%3Cpath d='M0 98 C95 54 165 138 260 92 C350 48 450 126 545 86 C625 52 682 82 720 60 L720 150 L0 150 Z' fill='%230ea5e9' fill-opacity='.10'/%3E%3C/svg%3E") center/cover no-repeat;
+  opacity:.95;
+}
+
+.nav-title{
+  position:relative !important;
+  z-index:1 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  margin:4px 10px 18px !important;
+  color:#475569 !important;
+  font-size:16px !important;
+  letter-spacing:.6px !important;
+  text-transform:uppercase !important;
+  font-weight:1000 !important;
+}
+
+.nav-title::before{
+  content:"";
+  width:6px;
+  height:34px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#2563eb,#06b6d4);
+  box-shadow:0 10px 24px rgba(37,99,235,.32);
+}
+
+.nav-title::after{
+  content:"";
+  width:34px;
+  height:34px;
+  border-radius:14px;
+  background:
+    linear-gradient(135deg, rgba(37,99,235,.18), rgba(6,182,212,.08));
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.12), 0 10px 22px rgba(15,23,42,.07);
+  order:-1;
+}
+
+.nav-list{
+  position:relative !important;
+  z-index:1 !important;
+  gap:8px !important;
+}
+
+.nav-link{
+  --nav-accent:#2563eb;
+  --nav-soft: rgba(37,99,235,.10);
+
+  position:relative !important;
+  min-height:58px !important;
+  padding:9px 44px 9px 12px !important;
+  border-radius:20px !important;
+  border:1px solid transparent !important;
+  background:transparent !important;
+  color:#172033 !important;
+  font-size:15px !important;
+  font-weight:950 !important;
+  line-height:1.15 !important;
+  letter-spacing:-.25px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:14px !important;
+  box-shadow:none !important;
+  transition:
+    transform .18s ease,
+    background .18s ease,
+    color .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease !important;
+}
+
+.nav-link svg{
+  width:42px !important;
+  height:42px !important;
+  flex:0 0 42px !important;
+  padding:10px !important;
+  border-radius:16px !important;
+  color:var(--nav-accent) !important;
+  fill:currentColor !important;
+  opacity:1 !important;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.95), transparent 45%),
+    linear-gradient(135deg, var(--nav-soft), rgba(255,255,255,.76)) !important;
+  border:1px solid rgba(255,255,255,.74) !important;
+  box-shadow:
+    0 12px 24px rgba(15,23,42,.065),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+.nav-link::after{
+  content:"›";
+  position:absolute;
+  right:15px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#94a3b8;
+  font-size:28px;
+  line-height:1;
+  font-weight:700;
+  transition:transform .18s ease, color .18s ease;
+}
+
+.nav-link:hover{
+  transform:translateX(3px) !important;
+  background:rgba(255,255,255,.72) !important;
+  border-color:rgba(148,163,184,.16) !important;
+  color:var(--nav-accent) !important;
+  box-shadow:0 16px 34px rgba(15,23,42,.06) !important;
+}
+
+.nav-link:hover::after{
+  transform:translate(3px,-50%);
+  color:var(--nav-accent);
+}
+
+.nav-link.active{
+  color:#1d4ed8 !important;
+  background:
+    linear-gradient(90deg, rgba(37,99,235,.16), rgba(239,246,255,.88)) !important;
+  border-color:rgba(37,99,235,.18) !important;
+  box-shadow:
+    0 18px 38px rgba(37,99,235,.12),
+    inset 0 1px 0 rgba(255,255,255,.90) !important;
+}
+
+.nav-link.active svg{
+  color:#ffffff !important;
+  background:
+    linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow:
+    0 16px 30px rgba(37,99,235,.28),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+.nav-link.active::before{
+  content:"" !important;
+  position:absolute !important;
+  left:-1px !important;
+  top:13px !important;
+  bottom:13px !important;
+  width:5px !important;
+  border-radius:999px !important;
+  background:linear-gradient(180deg,#2563eb,#06b6d4) !important;
+  box-shadow:0 0 0 4px rgba(37,99,235,.08) !important;
+}
+
+.nav-link.active::after{
+  color:#2563eb;
+}
+
+/* Accent colors by tab */
+.nav-link[data-tab="overview"]{--nav-accent:#2563eb;--nav-soft:rgba(37,99,235,.12)}
+.nav-link[data-tab="chart"]{--nav-accent:#2563eb;--nav-soft:rgba(37,99,235,.11)}
+.nav-link[data-tab="forecast"]{--nav-accent:#16a34a;--nav-soft:rgba(22,163,74,.12)}
+.nav-link[data-tab="data"]{--nav-accent:#8b5cf6;--nav-soft:rgba(139,92,246,.13)}
+.nav-link[data-tab="rain"]{--nav-accent:#0ea5e9;--nav-soft:rgba(14,165,233,.13)}
+.nav-link[data-tab="weathermap"]{--nav-accent:#f97316;--nav-soft:rgba(249,115,22,.13)}
+.nav-link[data-tab="windyrain"]{--nav-accent:#2563eb;--nav-soft:rgba(37,99,235,.13)}
+.nav-link[data-tab="openmeteorarain"]{--nav-accent:#16a34a;--nav-soft:rgba(22,163,74,.13)}
+.nav-link[data-tab="openweatherrain"]{--nav-accent:#7c3aed;--nav-soft:rgba(124,58,237,.13)}
+.nav-link[data-tab="map"]{--nav-accent:#d97706;--nav-soft:rgba(217,119,6,.13)}
+.nav-link[data-tab="floodmarks"]{--nav-accent:#ef4444;--nav-soft:rgba(239,68,68,.12)}
+.nav-link[data-tab="operationchart"]{--nav-accent:#0f9488;--nav-soft:rgba(20,184,166,.14)}
+.nav-link[data-tab="notif"]{--nav-accent:#ef4444;--nav-soft:rgba(239,68,68,.12)}
+
+/* Badge labels */
+.nav-link[data-tab="windyrain"]::after,
+.nav-link[data-tab="openmeteorarain"]::after,
+.nav-link[data-tab="openweatherrain"]::after{
+  content:"Dự báo" !important;
+  right:13px !important;
+  padding:6px 9px !important;
+  border-radius:999px !important;
+  background:#eef4ff !important;
+  color:#2563eb !important;
+  font-size:11px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+}
+
+.nav-link[data-tab="operationchart"]::after{
+  content:"Mới" !important;
+  right:13px !important;
+  padding:6px 10px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#14b8a6,#0f9488) !important;
+  color:#fff !important;
+  font-size:11px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(20,184,166,.18);
+}
+
+.nav-link[data-tab="notif"]::after{
+  content:"3" !important;
+  right:16px !important;
+  width:24px !important;
+  height:24px !important;
+  padding:0 !important;
+  border-radius:999px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#ef4444 !important;
+  color:#fff !important;
+  font-size:12px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(239,68,68,.22);
+}
+
+/* Small divider before notification */
+.nav-link[data-tab="notif"]{
+  margin-top:10px !important;
+}
+.nav-link[data-tab="notif"]::before{
+  content:"" !important;
+  position:absolute !important;
+  top:-9px !important;
+  left:10px !important;
+  right:10px !important;
+  height:1px !important;
+  background:rgba(15,23,42,.08) !important;
+  width:auto !important;
+  bottom:auto !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+
+.nav-link[data-tab="notif"].active{
+  box-shadow:0 18px 38px rgba(239,68,68,.10), inset 5px 0 0 rgba(239,68,68,.85) !important;
+}
+
+/* Keep forecast text readable with badge */
+.nav-link[data-tab="windyrain"],
+.nav-link[data-tab="openmeteorarain"],
+.nav-link[data-tab="openweatherrain"],
+.nav-link[data-tab="operationchart"],
+.nav-link[data-tab="notif"]{
+  padding-right:82px !important;
+}
+
+@media(max-width:980px){
+  :root{--sidebar-w:286px}
+  aside.sidebar{position:relative!important;top:auto!important}
+  .nav-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .nav-link[data-tab="windyrain"],
+  .nav-link[data-tab="openmeteorarain"],
+  .nav-link[data-tab="openweatherrain"],
+  .nav-link[data-tab="operationchart"],
+  .nav-link[data-tab="notif"]{padding-right:44px!important}
+  .nav-link[data-tab="windyrain"]::after,
+  .nav-link[data-tab="openmeteorarain"]::after,
+  .nav-link[data-tab="openweatherrain"]::after,
+  .nav-link[data-tab="operationchart"]::after{
+    content:"›" !important;
+    background:transparent!important;
+    color:#94a3b8!important;
+    font-size:28px!important;
+    padding:0!important;
+    box-shadow:none!important;
+  }
+}
+
+@media(max-width:640px){
+  .nav-list{grid-template-columns:1fr!important}
+  .nav-link{min-height:54px!important}
+}
+
+
+/* =========================================================
+   NAV V10 COMPACT PATCH
+   - Keep sidebar fully visible on normal laptop screens
+   - Use internal scroll only when screen height is small
+   ========================================================= */
+:root{
+  --sidebar-w: 256px !important;
+}
+
+aside.sidebar{
+  max-height: calc(100vh - var(--header-h) - 28px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 14px 12px 16px !important;
+  border-radius: 24px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37,99,235,.35) transparent;
+}
+
+aside.sidebar::-webkit-scrollbar{
+  width: 6px;
+}
+aside.sidebar::-webkit-scrollbar-track{
+  background: transparent;
+}
+aside.sidebar::-webkit-scrollbar-thumb{
+  background: rgba(37,99,235,.25);
+  border-radius: 999px;
+}
+
+aside.sidebar::after{
+  height: 76px !important;
+  bottom: -32px !important;
+  opacity: .65 !important;
+}
+
+.nav-title{
+  margin: 2px 9px 12px !important;
+  font-size: 12px !important;
+  gap: 9px !important;
+}
+
+.nav-title::before{
+  width: 5px !important;
+  height: 28px !important;
+}
+
+.nav-title::after{
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 11px !important;
+}
+
+.nav-list{
+  gap: 5px !important;
+}
+
+.nav-link{
+  min-height: 44px !important;
+  padding: 7px 36px 7px 10px !important;
+  border-radius: 15px !important;
+  gap: 10px !important;
+  font-size: 13px !important;
+  line-height: 1.08 !important;
+}
+
+.nav-link svg{
+  width: 31px !important;
+  height: 31px !important;
+  flex-basis: 31px !important;
+  padding: 7px !important;
+  border-radius: 12px !important;
+}
+
+.nav-link::after{
+  right: 11px !important;
+  font-size: 22px !important;
+}
+
+.nav-link.active::before{
+  top: 10px !important;
+  bottom: 10px !important;
+  width: 4px !important;
+}
+
+.nav-link[data-tab="windyrain"]::after,
+.nav-link[data-tab="openmeteorarain"]::after,
+.nav-link[data-tab="openweatherrain"]::after{
+  right: 10px !important;
+  padding: 4px 7px !important;
+  font-size: 9px !important;
+}
+
+.nav-link[data-tab="operationchart"]::after{
+  right: 10px !important;
+  padding: 4px 8px !important;
+  font-size: 9px !important;
+}
+
+.nav-link[data-tab="notif"]::after{
+  right: 12px !important;
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 10px !important;
+}
+
+.nav-link[data-tab="windyrain"],
+.nav-link[data-tab="openmeteorarain"],
+.nav-link[data-tab="openweatherrain"],
+.nav-link[data-tab="operationchart"],
+.nav-link[data-tab="notif"]{
+  padding-right: 66px !important;
+}
+
+.nav-link[data-tab="notif"]{
+  margin-top: 7px !important;
+}
+.nav-link[data-tab="notif"]::before{
+  top: -7px !important;
+}
+
+/* More compact for laptop-height screens */
+@media(max-height: 820px) and (min-width: 981px){
+  aside.sidebar{
+    padding: 12px 10px 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .nav-title{
+    margin-bottom: 9px !important;
+    font-size: 11px !important;
+  }
+
+  .nav-title::before{
+    height: 24px !important;
+  }
+
+  .nav-title::after{
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .nav-list{
+    gap: 3px !important;
+  }
+
+  .nav-link{
+    min-height: 39px !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    font-size: 12.3px !important;
+    border-radius: 13px !important;
+  }
+
+  .nav-link svg{
+    width: 27px !important;
+    height: 27px !important;
+    flex-basis: 27px !important;
+    padding: 6px !important;
+    border-radius: 10px !important;
+  }
+
+  .nav-link[data-tab="windyrain"]::after,
+  .nav-link[data-tab="openmeteorarain"]::after,
+  .nav-link[data-tab="openweatherrain"]::after,
+  .nav-link[data-tab="operationchart"]::after{
+    font-size: 8px !important;
+    padding: 3px 6px !important;
+  }
+}
+
+/* On very short screens, keep design usable with sidebar-only scroll */
+@media(max-height: 720px) and (min-width: 981px){
+  .nav-link{
+    min-height: 36px !important;
+    font-size: 11.8px !important;
+  }
+
+  .nav-link svg{
+    width: 25px !important;
+    height: 25px !important;
+    flex-basis: 25px !important;
+    padding: 5px !important;
+  }
+}
+
+
+/* =========================================================
+   RAIN TAB AUTO REFRESH UI
+   ========================================================= */
+.rain-refresh-all-wrap{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.rain-refresh-all-btn{
+  width:auto!important;
+  min-width:138px!important;
+  padding:9px 14px!important;
+  border-radius:16px!important;
+  border:1px solid rgba(37,99,235,.24)!important;
+  background:linear-gradient(135deg, rgba(37,99,235,.12), rgba(239,246,255,.96))!important;
+  color:#1d4ed8!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+  box-shadow:0 12px 28px rgba(37,99,235,.10)!important;
+}
+.rain-refresh-all-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 34px rgba(37,99,235,.16)!important;
+}
+.rain-auto-chip{
+  background:rgba(16,185,129,.10)!important;
+  border-color:rgba(16,185,129,.20)!important;
+  color:#059669!important;
+}
+.rain-duplicate-update-hidden{
+  display:none!important;
+}
+@media(max-width:720px){
+  .rain-refresh-all-wrap{
+    width:100%;
+    justify-content:flex-start;
+    margin-left:0;
+    margin-top:8px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -5078,6 +5624,204 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       setTimeout(maybeLoadOperationChart, 1200);
     }
   });
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   UX FIX: Reset page scroll to top whenever switching tabs
+   ========================================================= */
+(function(){
+  function resetDashboardScrollTop(){
+    try{
+      const scrollingElement = document.scrollingElement || document.documentElement || document.body;
+
+      // Browser/page scrollbar
+      if(scrollingElement) {
+        scrollingElement.scrollTop = 0;
+        scrollingElement.scrollLeft = 0;
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+      // Extra safety for layouts that may become internally scrollable
+      const scrollContainers = [
+        document.body,
+        document.documentElement,
+        document.querySelector(".site"),
+        document.querySelector(".site-body"),
+        document.querySelector("main.content")
+      ];
+
+      scrollContainers.forEach(el => {
+        if(!el) return;
+        el.scrollTop = 0;
+        el.scrollLeft = 0;
+      });
+    }catch(err){
+      console.warn("Không thể đưa thanh cuộn lên đầu tab:", err);
+    }
+  }
+
+  document.addEventListener("click", function(e){
+    const tabLink = e.target.closest && e.target.closest(".nav-link[data-tab]");
+    if(!tabLink) return;
+
+    // Run after the existing tab-switch handler has changed the active pane.
+    setTimeout(resetDashboardScrollTop, 0);
+    requestAnimationFrame(resetDashboardScrollTop);
+    setTimeout(resetDashboardScrollTop, 120);
+  }, true);
+
+  window.resetDashboardScrollTop = resetDashboardScrollTop;
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   RAIN TAB AUTO REFRESH + SINGLE UPDATE BUTTON
+   - Auto refresh all rain data when opening "Số liệu mưa thực tế"
+   - One top button updates both summary/map/table and 30-minute chart/table
+   ========================================================= */
+(function(){
+  let rainTabAutoLoaded = false;
+  let rainTabRefreshBusy = false;
+
+  function isFn(name){
+    return typeof window[name] === "function";
+  }
+
+  function setRainRefreshLabel(text){
+    const btn = document.getElementById("rainTabRefreshAllBtn");
+    if(btn) btn.textContent = text;
+  }
+
+  async function callMaybeAsync(fnName){
+    if(!isFn(fnName)) return false;
+    try{
+      const result = window[fnName]();
+      if(result && typeof result.then === "function") await result;
+      return true;
+    }catch(err){
+      console.warn("Rain refresh function failed:", fnName, err);
+      return false;
+    }
+  }
+
+  async function refreshRainTabAll(force){
+    if(rainTabRefreshBusy) return;
+    rainTabRefreshBusy = true;
+    setRainRefreshLabel("Đang cập nhật...");
+
+    try{
+      /*
+        These function names cover the versions used in this dashboard:
+        - loadRainData / refreshRainData / updateRainData: Vrain rain summary, map, main table
+        - loadRain30m / refreshRain30m / updateRain30m: 30-minute chart and table
+      */
+      let mainOk = false;
+      let rain30Ok = false;
+
+      for(const fn of ["loadRainData", "refreshRainData", "updateRainData", "loadRain", "fetchRainData"]){
+        if(await callMaybeAsync(fn)){ mainOk = true; break; }
+      }
+
+      for(const fn of ["loadRain30m", "refreshRain30m", "updateRain30m", "loadRain30mData", "fetchRain30mData"]){
+        if(await callMaybeAsync(fn)){ rain30Ok = true; break; }
+      }
+
+      /*
+        Fallback: trigger old buttons once if functions are not globally exposed.
+        This keeps compatibility with current inline onclick code without duplicating logic.
+      */
+      if(!mainOk){
+        const oldMainBtn = document.querySelector('#tab-rain button[onclick*="Rain"]:not(#rainTabRefreshAllBtn), #tab-rain button[onclick*="rain"]:not(#rainTabRefreshAllBtn)');
+        if(oldMainBtn) oldMainBtn.click();
+      }
+
+      if(!rain30Ok){
+        const old30Btn = Array.from(document.querySelectorAll('#tab-rain button:not(#rainTabRefreshAllBtn)'))
+          .find(b => /30/.test((b.textContent || "") + " " + (b.getAttribute("onclick") || "")));
+        if(old30Btn) old30Btn.click();
+      }
+
+      const now = new Date();
+      setRainRefreshLabel("Cập nhật " + now.toLocaleTimeString("vi-VN", {hour:"2-digit", minute:"2-digit"}));
+    }catch(err){
+      console.error("refreshRainTabAll error:", err);
+      setRainRefreshLabel("Lỗi cập nhật");
+    }finally{
+      rainTabRefreshBusy = false;
+    }
+  }
+
+  function installSingleRainUpdateButton(){
+    const rainPane = document.getElementById("tab-rain");
+    if(!rainPane || document.getElementById("rainTabRefreshAllBtn")) return;
+
+    const firstHead = rainPane.querySelector(".cardHead, .sectionHead, .panelHead, .tabHead");
+    const targetHead = firstHead || rainPane.querySelector(".card") || rainPane;
+
+    const btn = document.createElement("button");
+    btn.id = "rainTabRefreshAllBtn";
+    btn.type = "button";
+    btn.textContent = "Cập nhật toàn bộ";
+    btn.className = "rain-refresh-all-btn";
+    btn.onclick = function(){ refreshRainTabAll(true); };
+
+    const chip = document.createElement("span");
+    chip.id = "rainTabAutoUpdateChip";
+    chip.className = "chip rain-auto-chip";
+    chip.textContent = "Tự cập nhật khi mở tab";
+
+    const wrap = document.createElement("div");
+    wrap.className = "rain-refresh-all-wrap";
+    wrap.appendChild(chip);
+    wrap.appendChild(btn);
+
+    if(targetHead.classList && (targetHead.classList.contains("cardHead") || targetHead.classList.contains("sectionHead") || targetHead.classList.contains("panelHead") || targetHead.classList.contains("tabHead"))){
+      targetHead.appendChild(wrap);
+    }else{
+      rainPane.insertBefore(wrap, rainPane.firstChild);
+    }
+
+    /*
+      Hide duplicate update buttons inside the rain tab.
+      Keep only the new "Cập nhật toàn bộ" button.
+    */
+    const buttons = Array.from(rainPane.querySelectorAll("button")).filter(b => b.id !== "rainTabRefreshAllBtn");
+    buttons.forEach(b => {
+      const txt = (b.textContent || "").trim().toLowerCase();
+      const onclick = (b.getAttribute("onclick") || "").toLowerCase();
+      if(txt.includes("cập nhật") || onclick.includes("rain30") || onclick.includes("rain")){
+        b.classList.add("rain-duplicate-update-hidden");
+      }
+    });
+  }
+
+  function onRainTabOpened(){
+    installSingleRainUpdateButton();
+
+    // Always refresh when clicking/opening the tab, as requested.
+    setTimeout(() => refreshRainTabAll(true), rainTabAutoLoaded ? 120 : 450);
+    rainTabAutoLoaded = true;
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    installSingleRainUpdateButton();
+
+    document.addEventListener("click", function(e){
+      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="rain"]');
+      if(nav) onRainTabOpened();
+    });
+
+    if(document.getElementById("tab-rain")?.classList.contains("active")){
+      onRainTabOpened();
+    }
+  });
+
+  window.refreshRainTabAll = refreshRainTabAll;
 })();
 </script>
 
