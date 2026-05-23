@@ -3451,7 +3451,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     { id:"MR08", code:"MR08", name:"Trạm Trường tiểu học A Rooih", shortName:"Tr.Tiểu học A Rooih", location:"Đông Giang", address:"Xã Đông Giang", lat:15.867412, lng:107.613960, source:"Chưa có API" }
   ];
 
-  const rainState = { data: [], vrainData: [], staticData: getStaticRainStations(), map: null, layer: null, labelLayer: null, loaded: false };
+  const rainState = { data: [], vrainData: [], staticData: getStaticRainStations(), map: null, layer: null, labelLayer: null, markerByKey: {}, loaded: false };
 
 
   function getStaticRainStations() {
@@ -3586,6 +3586,25 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     rainState.labelLayer = L.layerGroup().addTo(rainState.map);
   }
 
+
+  function rainStationKey(r) {
+    return String(r?.id || r?.uuid || r?.code || `${r?.lat},${r?.lng}`);
+  }
+
+  function rainPopupHtml(r, color) {
+    const level = r.level || rainLabel(r.rain);
+    return `
+      <div class="rain-popup-title">${r.code ? r.code + " - " : ""}${r.name}</div>
+      <div class="rain-popup-meta">
+        ${r.location || r.address || ""}<br>
+        ${r.isStatic
+          ? `Trạng thái: <b>Chưa có API</b><br>Sẽ cập nhật số liệu khi có API.`
+          : `Lượng mưa: <b style="color:${color}">${fmt1.format(Number(r.rain || 0))} mm</b><br>Cấp: <b>${level}</b><br>Đến: ${r.to || "-"}`
+        }
+      </div>
+    `;
+  }
+
   function renderRainTableAndMap() {
     const q = (($("rainSearch") && $("rainSearch").value) || "").trim().toLowerCase();
     const rows = rainState.data.filter(x => !q || `${x.name} ${x.address} ${x.location}`.toLowerCase().includes(q));
@@ -3633,6 +3652,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     initRainMap();
     if (rainState.map && rainState.layer) {
+      // Important: close old popup before clearing markers, otherwise Leaflet can keep stale popup content.
+      try { rainState.map.closePopup(); } catch (_) {}
+      rainState.markerByKey = {};
       rainState.layer.clearLayers();
       if (rainState.labelLayer) rainState.labelLayer.clearLayers();
       rows.forEach(r => {
@@ -3645,18 +3667,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           iconAnchor: [17, 17],
           popupAnchor: [0, -17]
         });
-        L.marker([r.lat, r.lng], { icon })
-          .bindPopup(`
-            <div class="rain-popup-title">${r.code ? r.code + " - " : ""}${r.name}</div>
-            <div class="rain-popup-meta">
-              ${r.location || r.address || ""}<br>
-              ${r.isStatic
-                ? `Trạng thái: <b>Chưa có API</b><br>Sẽ cập nhật số liệu khi có API.`
-                : `Lượng mưa: <b style="color:${color}">${fmt1.format(r.rain)} mm</b><br>Cấp: <b>${r.level || rainLabel(r.rain)}</b><br>Đến: ${r.to || "-"}`
-              }
-            </div>
-          `)
-          .addTo(rainState.layer);
+        const marker = L.marker([r.lat, r.lng], { icon });
+        marker.bindPopup(rainPopupHtml(r, color));
+        marker.addTo(rainState.layer);
+        rainState.markerByKey[rainStationKey(r)] = marker;
 
         if (rainState.labelLayer) {
           const labelIcon = L.divIcon({
@@ -3684,10 +3698,28 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function focusRainStation(r) {
     initRainMap();
     if (!rainState.map) return;
-    rainState.map.setView([r.lat, r.lng], 13);
+
+    // Find the freshest station object after auto-refresh.
+    const key = rainStationKey(r);
+    const latest = (rainState.data || []).find(x => rainStationKey(x) === key) || r;
+    const color = latest.isStatic ? "#94a3b8" : rainColor(latest.rain);
+
+    rainState.map.setView([latest.lat, latest.lng], 13);
+
+    const marker = rainState.markerByKey && rainState.markerByKey[key];
+    if (marker) {
+      marker.setPopupContent(rainPopupHtml(latest, color));
+      marker.openPopup();
+      return;
+    }
+
+    // Fallback by coordinate for older maps.
     rainState.layer.eachLayer(layer => {
       const ll = layer.getLatLng && layer.getLatLng();
-      if (ll && Math.abs(ll.lat - r.lat) < 0.00001 && Math.abs(ll.lng - r.lng) < 0.00001) layer.openPopup();
+      if (ll && Math.abs(ll.lat - latest.lat) < 0.00001 && Math.abs(ll.lng - latest.lng) < 0.00001) {
+        if (layer.setPopupContent) layer.setPopupContent(rainPopupHtml(latest, color));
+        layer.openPopup();
+      }
     });
   }
 
@@ -5744,6 +5776,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         const old30Btn = Array.from(document.querySelectorAll('#tab-rain button:not(#rainTabRefreshAllBtn)'))
           .find(b => /30/.test((b.textContent || "") + " " + (b.getAttribute("onclick") || "")));
         if(old30Btn) old30Btn.click();
+      }
+
+      // Force re-render map/table with latest rainState data and close any stale popup.
+      if(typeof renderRainTableAndMap === "function"){
+        try { renderRainTableAndMap(); } catch(e) { console.warn("renderRainTableAndMap after refresh failed", e); }
+      }
+      if(window.rainState?.map){
+        try { window.rainState.map.closePopup(); } catch(_) {}
       }
 
       const now = new Date();
