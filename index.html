@@ -2954,6 +2954,64 @@ body.slideshow-fullscreen.slideshow-tv-fit .slideshow-screen{
   padding:22px 28px 34px 28px!important;
 }
 
+
+/* =========================================================
+   SLIDESHOW FRAME FIT MODE
+   - Each slide is fitted like an image inside the TV frame
+   - Prevents bottom content/chart/footer from being cut
+   ========================================================= */
+body.slideshow-frame-mode{
+  width:100vw!important;
+  height:100vh!important;
+  overflow:hidden!important;
+  background:#f8fafc!important;
+}
+body.slideshow-frame-mode main.content{
+  width:100vw!important;
+  height:100vh!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+body.slideshow-frame-mode .tab-pane{
+  transform-origin:top left!important;
+  will-change:transform!important;
+  box-sizing:border-box!important;
+}
+body.slideshow-frame-mode .tab-pane:not(.active){
+  display:none!important;
+}
+body.slideshow-frame-mode .tab-pane.active{
+  margin:0!important;
+  padding:10px!important;
+}
+body.slideshow-frame-mode .card,
+body.slideshow-frame-mode .chart-card,
+body.slideshow-frame-mode section{
+  box-sizing:border-box!important;
+}
+body.slideshow-frame-mode #tab-operationchart .operation-chart-wrap{
+  height:calc(100vh - 140px)!important;
+  min-height:420px!important;
+}
+body.slideshow-frame-mode #tab-operationchart .operation-chart-wrap canvas{
+  height:calc(100vh - 140px)!important;
+}
+body.slideshow-frame-mode .leaflet-container{
+  max-height:calc(100vh - 170px)!important;
+}
+
+/* In outer slideshow screen, keep iframe centered like a picture */
+body.slideshow-fullscreen .slideshow-viewport{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body.slideshow-fullscreen .slideshow-frame{
+  background:#fff!important;
+  border-radius:16px!important;
+  box-shadow:0 18px 45px rgba(15,23,42,.16)!important;
+}
+
 </style>
 </head>
 <body>
@@ -6607,6 +6665,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const url = new URL(window.location.href);
     url.hash = "slide-" + tabKey;
     url.searchParams.set("slide", "1");
+    url.searchParams.set("fitFrame", "1");
     url.searchParams.set("tab", actualTab);
     url.searchParams.set("slideItem", tabKey);
     if(cfg.chartKey) url.searchParams.set("chartView", cfg.chartKey);
@@ -6953,6 +7012,81 @@ body.slideshow-frame-mode .content::after{
   display:none!important;
 }
 </style>
+
+
+<script>
+/* =========================================================
+   FIT EACH SLIDESHOW IFRAME PAGE INTO ONE SCREEN
+   ========================================================= */
+(function(){
+  function isSlideFrame(){
+    try{
+      return new URLSearchParams(window.location.search).get("slide") === "1";
+    }catch(_){
+      return false;
+    }
+  }
+
+  function getActiveSlidePane(){
+    return document.querySelector(".tab-pane.active") ||
+           document.querySelector(".tab-pane[style*='display: block']") ||
+           document.querySelector(".tab-pane");
+  }
+
+  function fitActiveSlideToViewport(){
+    if(!isSlideFrame()) return;
+
+    const pane = getActiveSlidePane();
+    if(!pane) return;
+
+    const pad = 8;
+    const vw = Math.max(320, window.innerWidth - pad * 2);
+    const vh = Math.max(240, window.innerHeight - pad * 2);
+
+    pane.style.transform = "none";
+    pane.style.width = "auto";
+    pane.style.height = "auto";
+    pane.style.minHeight = "auto";
+    pane.style.maxWidth = "none";
+    pane.style.margin = `${pad}px`;
+
+    const naturalW = Math.max(pane.scrollWidth, pane.offsetWidth, vw);
+    const naturalH = Math.max(pane.scrollHeight, pane.offsetHeight, vh);
+
+    let scale = Math.min(vw / naturalW, vh / naturalH, 1);
+    if(scale < 0.52) scale = 0.52;
+
+    pane.style.width = `${vw / scale}px`;
+    pane.style.minHeight = `${vh / scale}px`;
+    pane.style.transform = `scale(${scale})`;
+    pane.dataset.slideScale = String(scale.toFixed(3));
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+  }
+
+  function scheduleFit(){
+    if(!isSlideFrame()) return;
+    [80, 250, 600, 1200, 2200, 4000].forEach(t => setTimeout(fitActiveSlideToViewport, t));
+  }
+
+  window.fitActiveSlideToViewport = fitActiveSlideToViewport;
+
+  document.addEventListener("DOMContentLoaded", scheduleFit);
+  window.addEventListener("load", scheduleFit);
+  window.addEventListener("resize", fitActiveSlideToViewport);
+
+  document.addEventListener("click", function(){
+    if(!isSlideFrame()) return;
+    setTimeout(fitActiveSlideToViewport, 120);
+    setTimeout(fitActiveSlideToViewport, 700);
+  });
+
+  if(isSlideFrame()){
+    setInterval(fitActiveSlideToViewport, 2500);
+  }
+})();
+</script>
 
 </body>
 </html>
