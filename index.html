@@ -7092,9 +7092,9 @@ body.slideshow-frame-mode .content::after{
 
 <script>
 /* =========================================================
-   SLIDESHOW OVERVIEW CLEANUP
-   - In TV slideshow, Overview keeps only main overview content
-   - Hide "Dự báo 7 ngày tới" block to keep the slide clean
+   SLIDESHOW OVERVIEW CLEANUP - SAFE
+   Only hides the "Dự báo 7 ngày tới" card in Overview slideshow.
+   Does not scan/hide large parent containers.
    ========================================================= */
 (function(){
   function isOverviewSlide(){
@@ -7102,23 +7102,25 @@ body.slideshow-frame-mode .content::after{
     return p.get("slide") === "1" && (p.get("slideItem") === "overview" || p.get("tab") === "overview");
   }
 
-  function hideOverviewSevenDayForecast(){
+  function hideOverviewSevenDayForecastSafe(){
     if(!isOverviewSlide()) return;
 
-    const candidates = Array.from(document.querySelectorAll("section, .card, .panel, .forecast-card, .overview-card, div"));
-    candidates.forEach(el => {
+    const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,b,strong,.cardHead,.section-title,.sectionTitle"));
+    const heading = headings.find(el => {
       const txt = (el.textContent || "").trim().toUpperCase();
-      if(txt.startsWith("DỰ BÁO 7 NGÀY TỚI") || txt.includes("DỰ BÁO 7 NGÀY TỚI")) {
-        const block =
-          el.closest("section.card") ||
-          el.closest(".card") ||
-          el.closest("section") ||
-          el;
-        if(block && !block.matches("#tab-overview, .tab-pane, main, body, html")){
-          block.style.display = "none";
-        }
-      }
+      return txt === "DỰ BÁO 7 NGÀY TỚI" || txt.includes("DỰ BÁO 7 NGÀY TỚI");
     });
+
+    if(!heading) return;
+
+    const block =
+      heading.closest("section.card") ||
+      heading.closest(".card") ||
+      heading.closest("section");
+
+    if(block && !block.matches("#tab-overview, .tab-pane, main, body, html")){
+      block.style.display = "none";
+    }
 
     if(typeof window.fitActiveSlideToViewport === "function"){
       setTimeout(window.fitActiveSlideToViewport, 120);
@@ -7127,9 +7129,9 @@ body.slideshow-frame-mode .content::after{
   }
 
   document.addEventListener("DOMContentLoaded", function(){
-    setTimeout(hideOverviewSevenDayForecast, 500);
-    setTimeout(hideOverviewSevenDayForecast, 1500);
-    setTimeout(hideOverviewSevenDayForecast, 3000);
+    setTimeout(hideOverviewSevenDayForecastSafe, 700);
+    setTimeout(hideOverviewSevenDayForecastSafe, 1800);
+    setTimeout(hideOverviewSevenDayForecastSafe, 3500);
   });
 })();
 </script>
