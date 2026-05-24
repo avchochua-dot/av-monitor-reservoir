@@ -2927,6 +2927,33 @@ body.slideshow-frame-mode section{
   max-width:100%!important;
 }
 
+
+/* =========================================================
+   TV FOOTER SAFE PATCH
+   - Prevent bottom/footer from being cut on TV overscan
+   ========================================================= */
+body.slideshow-tv-fit{
+  --slide-safe-pad: 22px !important;
+  --slide-scale: .94 !important;
+}
+body.slideshow-tv-compact{
+  --slide-safe-pad: 34px !important;
+  --slide-scale: .88 !important;
+}
+body.slideshow-tv-footer{
+  --slide-safe-pad: 42px !important;
+  --slide-scale: .84 !important;
+}
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-screen{
+  padding:34px 42px 54px 42px!important;
+}
+body.slideshow-fullscreen.slideshow-tv-compact .slideshow-screen{
+  padding:28px 34px 44px 34px!important;
+}
+body.slideshow-fullscreen.slideshow-tv-fit .slideshow-screen{
+  padding:22px 28px 34px 28px!important;
+}
+
 </style>
 </head>
 <body>
@@ -3674,6 +3701,7 @@ body.slideshow-frame-mode section{
                 <option value="fit" selected>Vừa khung an toàn TV</option>
                 <option value="full">Phủ toàn màn hình</option>
                 <option value="compact">Thu nhỏ thêm cho TV bị overscan</option>
+                <option value="footer">An toàn mép dưới / không mất chân</option>
               </select>
             </div>
 
@@ -6765,8 +6793,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   function applyFitModeClass(){
     const mode = el("slideshowFitMode")?.value || "fit";
-    document.body.classList.remove("slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
+    document.body.classList.remove("slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full","slideshow-tv-footer");
     if(mode === "compact") document.body.classList.add("slideshow-tv-compact");
+    else if(mode === "footer") document.body.classList.add("slideshow-tv-footer");
     else if(mode === "full") document.body.classList.add("slideshow-tv-full");
     else document.body.classList.add("slideshow-tv-fit");
   }
@@ -6829,7 +6858,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   };
 
   window.exitSlideshowFullscreen = function(){
-    document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
+    document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full","slideshow-tv-footer");
     if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   };
 
@@ -6862,7 +6891,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   document.addEventListener("fullscreenchange", function(){
     if(!document.fullscreenElement){
-      document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full");
+      document.body.classList.remove("slideshow-fullscreen","slideshow-tv-fit","slideshow-tv-compact","slideshow-tv-full","slideshow-tv-footer");
     }
   });
 
