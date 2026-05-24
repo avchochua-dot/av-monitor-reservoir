@@ -6980,6 +6980,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     if(params.get("slide") === "1" && slideTab){
       document.body.classList.add("slideshow-frame-mode");
+      if(slideItem) document.body.classList.add("slide-item-" + String(slideItem).replace(/[^a-zA-Z0-9_-]/g, ""));
       setTimeout(()=>{
         const nav = document.querySelector(`.nav-link[data-tab="${slideTab}"]`);
         if(nav) nav.click();
@@ -7085,6 +7086,51 @@ body.slideshow-frame-mode .content::after{
   if(isSlideFrame()){
     setInterval(fitActiveSlideToViewport, 2500);
   }
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   SLIDESHOW OVERVIEW CLEANUP
+   - In TV slideshow, Overview keeps only main overview content
+   - Hide "Dự báo 7 ngày tới" block to keep the slide clean
+   ========================================================= */
+(function(){
+  function isOverviewSlide(){
+    const p = new URLSearchParams(window.location.search);
+    return p.get("slide") === "1" && (p.get("slideItem") === "overview" || p.get("tab") === "overview");
+  }
+
+  function hideOverviewSevenDayForecast(){
+    if(!isOverviewSlide()) return;
+
+    const candidates = Array.from(document.querySelectorAll("section, .card, .panel, .forecast-card, .overview-card, div"));
+    candidates.forEach(el => {
+      const txt = (el.textContent || "").trim().toUpperCase();
+      if(txt.startsWith("DỰ BÁO 7 NGÀY TỚI") || txt.includes("DỰ BÁO 7 NGÀY TỚI")) {
+        const block =
+          el.closest("section.card") ||
+          el.closest(".card") ||
+          el.closest("section") ||
+          el;
+        if(block && !block.matches("#tab-overview, .tab-pane, main, body, html")){
+          block.style.display = "none";
+        }
+      }
+    });
+
+    if(typeof window.fitActiveSlideToViewport === "function"){
+      setTimeout(window.fitActiveSlideToViewport, 120);
+      setTimeout(window.fitActiveSlideToViewport, 600);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(hideOverviewSevenDayForecast, 500);
+    setTimeout(hideOverviewSevenDayForecast, 1500);
+    setTimeout(hideOverviewSevenDayForecast, 3000);
+  });
 })();
 </script>
 
