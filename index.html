@@ -3012,6 +3012,239 @@ body.slideshow-fullscreen .slideshow-frame{
   box-shadow:0 18px 45px rgba(15,23,42,.16)!important;
 }
 
+
+/* =========================================================
+   SLIDESHOW V2 - POWER BI / IOC STYLE
+   - Smooth time bar, richer control panel, clearer TV stage
+   ========================================================= */
+.slideshow-shell{
+  grid-template-columns: 340px minmax(0,1fr)!important;
+  gap:18px!important;
+}
+.slideshow-control{
+  border-radius:28px!important;
+  padding:18px!important;
+  background:
+    radial-gradient(260px 190px at 0% 0%, rgba(37,99,235,.16), transparent 64%),
+    radial-gradient(240px 190px at 100% 12%, rgba(14,165,233,.12), transparent 68%),
+    radial-gradient(260px 200px at 100% 100%, rgba(219,39,119,.10), transparent 70%),
+    linear-gradient(180deg,#ffffff,#f8fbff)!important;
+}
+.slideshow-control::before{
+  content:"";
+  display:block;
+  height:4px;
+  border-radius:999px;
+  margin:-4px 4px 14px;
+  background:linear-gradient(90deg,#2563eb,#06b6d4,#22c55e,#f59e0b,#ec4899);
+  box-shadow:0 10px 26px rgba(37,99,235,.18);
+}
+.slideshow-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:17px!important;
+  letter-spacing:-.3px;
+}
+.slideshow-title::before{
+  content:"📺";
+  width:38px;
+  height:38px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,rgba(37,99,235,.15),rgba(14,165,233,.08));
+  box-shadow:inset 0 0 0 1px rgba(37,99,235,.12), 0 12px 25px rgba(15,23,42,.07);
+}
+.slideshow-sub{
+  border-left:4px solid rgba(37,99,235,.28);
+  padding-left:10px;
+  margin-top:10px!important;
+  margin-bottom:16px!important;
+}
+.slideshow-status{
+  grid-template-columns:1.25fr .75fr!important;
+}
+.slideshow-stat{
+  border-radius:18px!important;
+  background:rgba(255,255,255,.86)!important;
+  box-shadow:0 14px 34px rgba(15,23,42,.055)!important;
+}
+.slideshow-stat b{
+  font-size:20px!important;
+}
+.slideshow-field label{
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+}
+.slideshow-select,
+.slideshow-input{
+  border-radius:16px!important;
+  min-height:42px!important;
+}
+.slideshow-actions{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+.slideshow-btn{
+  min-height:42px!important;
+  border-radius:16px!important;
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease!important;
+}
+.slideshow-btn:hover{
+  transform:translateY(-1px);
+  filter:saturate(1.08);
+}
+.slideshow-btn.primary{
+  background:linear-gradient(135deg,#2563eb,#06b6d4)!important;
+}
+.slideshow-btn.full{
+  background:linear-gradient(135deg,#7c3aed,#ec4899)!important;
+}
+.slideshow-checklist{
+  max-height:315px;
+  overflow:auto;
+  padding-right:4px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(37,99,235,.35) transparent;
+}
+.slideshow-checklist::-webkit-scrollbar{width:6px}
+.slideshow-checklist::-webkit-scrollbar-thumb{background:rgba(37,99,235,.25);border-radius:999px}
+.slideshow-check{
+  border-radius:16px!important;
+  background:rgba(255,255,255,.78)!important;
+  transition:transform .15s ease, border-color .15s ease, background .15s ease!important;
+}
+.slideshow-check:hover{
+  transform:translateX(2px);
+  border-color:rgba(37,99,235,.22)!important;
+  background:#fff!important;
+}
+.slideshow-check input{
+  accent-color:#2563eb;
+}
+
+.slideshow-screen{
+  border-radius:30px!important;
+  background:
+    radial-gradient(700px 420px at 12% -10%, rgba(37,99,235,.10), transparent 62%),
+    radial-gradient(520px 360px at 105% 0%, rgba(14,165,233,.08), transparent 62%),
+    #ffffff!important;
+}
+.slideshow-screen-head{
+  height:70px!important;
+  padding:0 22px!important;
+  background:
+    linear-gradient(90deg,rgba(15,23,42,.96),rgba(30,64,175,.92) 52%,rgba(6,182,212,.80))!important;
+  color:#fff!important;
+  border-bottom:0!important;
+}
+.slideshow-screen-title{
+  gap:14px!important;
+}
+.slideshow-live-dot{
+  width:12px!important;
+  height:12px!important;
+  background:#22c55e!important;
+  box-shadow:0 0 0 7px rgba(34,197,94,.16), 0 0 22px rgba(34,197,94,.55)!important;
+}
+.slideshow-screen-title b{
+  color:#fff!important;
+  font-size:18px!important;
+  letter-spacing:-.25px;
+}
+.slideshow-countdown{
+  min-width:260px!important;
+  color:#e0f2fe!important;
+  font-size:13px!important;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+#slideshowCountdownText{
+  white-space:nowrap;
+}
+.slideshow-preload-badge{
+  background:rgba(255,255,255,.14)!important;
+  border-color:rgba(255,255,255,.22)!important;
+  color:#fff!important;
+}
+.slideshow-preload-badge.ready{
+  background:rgba(34,197,94,.18)!important;
+  border-color:rgba(34,197,94,.32)!important;
+  color:#dcfce7!important;
+}
+.slideshow-progress{
+  top:70px!important;
+  height:5px!important;
+  border-radius:0 999px 999px 0;
+  background:linear-gradient(90deg,#22c55e,#06b6d4,#3b82f6,#a855f7,#ec4899)!important;
+  box-shadow:0 0 18px rgba(59,130,246,.35);
+  transition:none!important;
+  will-change:width;
+}
+.slideshow-viewport{
+  min-height:650px!important;
+  height:calc(100% - 70px)!important;
+  background:
+    radial-gradient(900px 520px at 10% 5%, rgba(37,99,235,.045), transparent 60%),
+    linear-gradient(180deg,#f8fafc,#eef4fb)!important;
+}
+.slideshow-empty{
+  min-height:650px!important;
+}
+.slideshow-empty > div{
+  padding:28px 36px;
+  border-radius:26px;
+  background:rgba(255,255,255,.82);
+  border:1px solid rgba(148,163,184,.18);
+  box-shadow:0 22px 60px rgba(15,23,42,.10);
+}
+
+/* Fullscreen TV stage */
+body.slideshow-fullscreen .slideshow-screen-head{
+  height:64px!important;
+  border-radius:16px 16px 0 0!important;
+}
+body.slideshow-fullscreen .slideshow-progress{
+  top:64px!important;
+}
+body.slideshow-fullscreen .slideshow-viewport,
+body.slideshow-fullscreen .slideshow-frame,
+body.slideshow-fullscreen .slideshow-empty{
+  height:calc(100vh - 64px - (var(--slide-safe-pad) * 2))!important;
+  min-height:calc(100vh - 64px - (var(--slide-safe-pad) * 2))!important;
+}
+body.slideshow-fullscreen .slideshow-frame{
+  border-radius:14px!important;
+}
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-screen-head{
+  height:60px!important;
+}
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-progress{
+  top:60px!important;
+}
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-viewport,
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-frame,
+body.slideshow-fullscreen.slideshow-tv-footer .slideshow-empty{
+  height:calc(100vh - 60px - 88px)!important;
+  min-height:calc(100vh - 60px - 88px)!important;
+}
+
+/* Slide frame readability */
+body.slideshow-frame-mode .card,
+body.slideshow-frame-mode .panel,
+body.slideshow-frame-mode section{
+  box-shadow:0 10px 28px rgba(15,23,42,.06)!important;
+}
+@media(max-width:1100px){
+  .slideshow-shell{grid-template-columns:1fr!important}
+  .slideshow-countdown{min-width:180px!important}
+}
+
 </style>
 </head>
 <body>
@@ -3730,7 +3963,7 @@ body.slideshow-fullscreen .slideshow-frame{
         <section class="slideshow-shell">
           <aside class="slideshow-control">
             <div class="slideshow-title">Trình chiếu Dashboard</div>
-            <div class="slideshow-sub">Chọn chu trình, bấm chạy hoặc toàn màn hình. Hệ thống sẽ tự chuyển tab và tự cập nhật dữ liệu theo từng tab.</div>
+            <div class="slideshow-sub">Chọn chu trình, bấm chạy hoặc toàn màn hình. Hệ thống tự tải trước màn hình kế tiếp 7 giây để chuyển cảnh mượt hơn.</div>
 
             <div class="slideshow-status">
               <div class="slideshow-stat"><span>Tab hiện tại</span><b id="slideshowCurrentName">--</b></div>
@@ -3790,8 +4023,8 @@ body.slideshow-fullscreen .slideshow-frame{
               <div class="slideshow-empty">
                 <div>
                   <div style="font-size:38px;margin-bottom:10px">📺</div>
-                  <div>Tab trình chiếu sẽ tự chạy tại đây.</div>
-                  <div style="font-size:12px;margin-top:8px;color:#94a3b8">Có thể dùng F11 hoặc nút “Chạy toàn màn hình”.</div>
+                  <div style="font-size:18px;font-weight:1000;color:#172033">Trung tâm điều hành A Vương</div>
+                  <div style="font-size:13px;margin-top:8px;color:#64748b">Chọn chu trình, bấm chạy toàn màn hình để trình chiếu dữ liệu vận hành, mưa và điều phối hồ theo thời gian thực.</div>
                 </div>
               </div>
             </div>
@@ -6610,6 +6843,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   let timer = null;
   let tickTimer = null;
+  let progressRaf = null;
   let currentIndex = -1;
   let currentTab = null;
   let nextPreparedTab = null;
@@ -6643,8 +6877,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function clearTimers(){
     if(timer) clearTimeout(timer);
     if(tickTimer) clearInterval(tickTimer);
+    if(progressRaf) cancelAnimationFrame(progressRaf);
     timer = null;
     tickTimer = null;
+    progressRaf = null;
   }
 
   function getIntervalSec(){
@@ -6750,18 +6986,28 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function updateProgress(){
     const progress = el("slideshowProgress");
     const elapsed = Math.max(0, (Date.now() - startedAt) / 1000);
-    const remain = Math.max(0, Math.ceil(intervalSec - elapsed));
+    const remainFloat = Math.max(0, intervalSec - elapsed);
+    const remain = Math.ceil(remainFloat);
     const pct = Math.min(100, (elapsed / intervalSec) * 100);
 
-    if(progress) progress.style.width = pct + "%";
+    if(progress) progress.style.width = pct.toFixed(3) + "%";
     setText("slideshowTimeLeft", remain + "s");
     setText("slideshowCountdownText", "Chuyển màn hình sau " + remain + "s");
 
-    // Preload next screen when around 3 seconds remain.
-    if(!preloadStarted && remain <= 7){
+    // Preload next screen when around 7 seconds remain.
+    if(!preloadStarted && remainFloat <= 7){
       preloadStarted = true;
       prepareNextFrame(computeNextTab());
     }
+  }
+
+  function startSmoothProgressLoop(){
+    if(progressRaf) cancelAnimationFrame(progressRaf);
+    const loop = function(){
+      updateProgress();
+      progressRaf = requestAnimationFrame(loop);
+    };
+    progressRaf = requestAnimationFrame(loop);
   }
 
   function createFrame(tabKey){
@@ -6810,7 +7056,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const tabKey = pickAndAdvanceTab();
     await showSlideshowTab(tabKey);
 
-    tickTimer = setInterval(updateProgress, 500);
+    startSmoothProgressLoop();
     timer = setTimeout(scheduleNext, intervalSec * 1000);
   }
 
