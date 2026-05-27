@@ -3245,6 +3245,240 @@ body.slideshow-frame-mode section{
   .slideshow-countdown{min-width:180px!important}
 }
 
+
+/* =========================================================
+   MONTHLY AI REPORT TAB
+   ========================================================= */
+.nav-link[data-tab="monthlyreport"]{--nav-accent:#0ea5e9;--nav-soft:rgba(14,165,233,.13)}
+.nav-link[data-tab="monthlyreport"]::after{
+  content:"AI" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#0ea5e9,#2563eb) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(14,165,233,.18);
+}
+.nav-link[data-tab="monthlyreport"]{padding-right:66px!important}
+
+.monthly-ai-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  padding:18px;
+  margin-bottom:14px;
+}
+.monthly-ai-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  border-bottom:1px solid var(--line-soft);
+  padding-bottom:14px;
+  margin-bottom:16px;
+}
+.monthly-ai-title{
+  font-size:15px;
+  font-weight:1000;
+  color:#334155;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+}
+.monthly-ai-sub{
+  margin-top:5px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.45;
+}
+.monthly-ai-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.monthly-ai-toolbar select,
+.monthly-ai-toolbar button{
+  width:auto!important;
+  min-width:96px!important;
+  height:40px!important;
+  border-radius:14px!important;
+  padding:8px 12px!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+}
+.monthly-ai-toolbar select{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#172033;
+  outline:none;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.monthly-ai-toolbar button{
+  border:1px solid rgba(37,99,235,.24)!important;
+  background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(239,246,255,.96))!important;
+  color:#1d4ed8!important;
+}
+.monthly-ai-toolbar button.primary{
+  background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;
+  color:#fff!important;
+  box-shadow:0 14px 30px rgba(37,99,235,.18)!important;
+}
+.monthly-ai-status{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#1d4ed8;
+  border:1px solid rgba(37,99,235,.16);
+  font-size:11px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.monthly-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+}
+.monthly-kpi{
+  min-height:96px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:18px;
+  background:
+    radial-gradient(90px 70px at 100% 0%, rgba(37,99,235,.08), transparent 70%),
+    #fff;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.monthly-kpi span{
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+  line-height:1.25;
+}
+.monthly-kpi b{
+  color:#0f172a;
+  font-size:24px;
+  font-weight:1000;
+  letter-spacing:-.8px;
+  line-height:1.05;
+}
+.monthly-kpi small{
+  color:#64748b;
+  font-size:11px;
+  font-weight:850;
+}
+.monthly-kpi.blue b{color:#2563eb}
+.monthly-kpi.green b{color:#16a34a}
+.monthly-kpi.orange b{color:#f59e0b}
+.monthly-kpi.red b{color:#ef4444}
+.monthly-kpi.cyan b{color:#0ea5e9}
+.monthly-kpi.purple b{color:#7c3aed}
+
+.monthly-report-grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:14px;
+}
+.monthly-chart-box{
+  min-height:390px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 10px 26px rgba(15,23,42,.045);
+  padding:14px;
+}
+.monthly-chart-box canvas{
+  height:330px!important;
+}
+.monthly-box-title{
+  color:#475569;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  font-size:12px;
+  font-weight:1000;
+  margin-bottom:10px;
+}
+.monthly-events{
+  display:grid;
+  gap:10px;
+}
+.monthly-event{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:16px;
+  padding:12px;
+  background:#fff;
+}
+.monthly-event.warning{
+  background:#fff7ed;
+  border-color:#fed7aa;
+}
+.monthly-event b{
+  display:block;
+  color:#0f172a;
+  font-size:13px;
+  font-weight:1000;
+  margin-bottom:4px;
+}
+.monthly-event p{
+  margin:0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:750;
+}
+.monthly-event small{
+  display:block;
+  margin-top:6px;
+  color:#2563eb;
+  font-size:11px;
+  font-weight:900;
+}
+.monthly-ai-prompt{
+  width:100%;
+  min-height:220px;
+  resize:vertical;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px;
+  background:#f8fafc;
+  color:#172033;
+  font-family:var(--font-sans);
+  font-size:13px;
+  line-height:1.55;
+  font-weight:750;
+  outline:none;
+}
+.monthly-daily-table{
+  max-height:360px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+}
+.monthly-daily-table td:first-child{
+  width:auto;
+}
+@media(max-width:1500px){
+  .monthly-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .monthly-report-grid{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+  .monthly-kpi-grid{grid-template-columns:1fr}
+  .monthly-ai-head{flex-direction:column}
+  .monthly-ai-toolbar{justify-content:flex-start}
+}
+
 </style>
 </head>
 <body>
@@ -3355,6 +3589,11 @@ body.slideshow-frame-mode section{
         <a class="nav-link" data-tab="operationchart">
           <svg viewBox="0 0 24 24"><path d="M3 3h2v16h16v2H3V3zm4 12l3-3 3 2 5-7 2 1.4-6.4 9-3.3-2.2L8.4 17 7 15z"/></svg>
           Biểu đồ điều phối
+        </a>
+        
+        <a class="nav-link" data-tab="monthlyreport">
+          <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 11h10v2H7v-2zm0-4h3v3H7v-3zm5 0h5v2h-5v-2zM7 7h10v3H7V7z"/></svg>
+          Báo cáo tháng AI
         </a>
         <a class="nav-link" data-tab="slideshow">
           <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm2 2v6h12V8H6zm3 10h6v2H9v-2zm10-12h2v12H3V6h2v10h14V6z"/></svg>
@@ -3955,6 +4194,109 @@ body.slideshow-frame-mode section{
             </div>
           </div>
         </div>
+      </div>
+
+
+
+      <!-- TAB: Monthly AI Report -->
+      <div id="tab-monthlyreport" class="tab-pane">
+        <section class="monthly-ai-card">
+          <div class="monthly-ai-head">
+            <div>
+              <div class="monthly-ai-title">Báo cáo tháng AI</div>
+              <div class="monthly-ai-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, phát hiện sự kiện nổi bật và chuẩn bị prompt để AI sinh nhận xét báo cáo tháng.</div>
+            </div>
+            <div class="monthly-ai-toolbar">
+              <span class="monthly-ai-status" id="monthlyReportStatus">Chưa tải</span>
+              <select id="monthlyReportMonth">
+                <option value="1">Tháng 01</option>
+                <option value="2">Tháng 02</option>
+                <option value="3">Tháng 03</option>
+                <option value="4">Tháng 04</option>
+                <option value="5">Tháng 05</option>
+                <option value="6">Tháng 06</option>
+                <option value="7">Tháng 07</option>
+                <option value="8">Tháng 08</option>
+                <option value="9">Tháng 09</option>
+                <option value="10">Tháng 10</option>
+                <option value="11">Tháng 11</option>
+                <option value="12">Tháng 12</option>
+              </select>
+              <select id="monthlyReportYear">
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+                <option value="2030">2030</option>
+              </select>
+              <button class="primary" onclick="loadMonthlyReport(true)">Tổng hợp</button>
+              <button onclick="copyMonthlyAiPrompt()">Copy AI Prompt</button>
+            </div>
+          </div>
+
+          <div class="monthly-kpi-grid">
+            <div class="monthly-kpi blue"><span>MNH lớn nhất</span><b id="mrWlMax">--</b><small id="mrWlMaxTime">--</small></div>
+            <div class="monthly-kpi cyan"><span>MNH nhỏ nhất</span><b id="mrWlMin">--</b><small id="mrWlMinTime">--</small></div>
+            <div class="monthly-kpi purple"><span>Biến đổi MNH</span><b id="mrWlChange">--</b><small>m trong kỳ</small></div>
+            <div class="monthly-kpi orange"><span>Q về trung bình</span><b id="mrInflowAvg">--</b><small>m³/s</small></div>
+            <div class="monthly-kpi red"><span>Q về lớn nhất</span><b id="mrInflowMax">--</b><small id="mrInflowMaxTime">--</small></div>
+            <div class="monthly-kpi green"><span>Tổng mưa tháng</span><b id="mrRainTotal">--</b><small id="mrRainDays">--</small></div>
+          </div>
+        </section>
+
+        <section class="monthly-report-grid">
+          <div class="monthly-ai-card">
+            <div class="monthly-box-title">Biểu đồ vận hành tháng</div>
+            <div class="monthly-chart-box">
+              <canvas id="monthlyOperationChart"></canvas>
+            </div>
+          </div>
+
+          <div class="monthly-ai-card">
+            <div class="monthly-box-title">Mưa ngày trong tháng</div>
+            <div class="monthly-chart-box">
+              <canvas id="monthlyRainChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="monthly-report-grid">
+          <div class="monthly-ai-card">
+            <div class="monthly-box-title">Sự kiện nổi bật</div>
+            <div id="monthlyEvents" class="monthly-events">
+              <div class="monthly-event"><b>Chưa có dữ liệu</b><p>Bấm Tổng hợp để tải sự kiện tháng.</p></div>
+            </div>
+          </div>
+
+          <div class="monthly-ai-card">
+            <div class="monthly-box-title">AI Prompt nhận xét báo cáo</div>
+            <textarea id="monthlyAiPrompt" class="monthly-ai-prompt" readonly placeholder="AI Prompt sẽ hiển thị sau khi tổng hợp dữ liệu..."></textarea>
+          </div>
+        </section>
+
+        <section class="monthly-ai-card">
+          <div class="monthly-box-title">Bảng tổng hợp theo ngày</div>
+          <div class="monthly-daily-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ngày</th>
+                  <th>MNH TB</th>
+                  <th>MNH Max</th>
+                  <th>MNH Min</th>
+                  <th>Q về TB</th>
+                  <th>Q về Max</th>
+                  <th>Q máy TB</th>
+                  <th>Q xả TB</th>
+                  <th>Mưa ngày</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyDailyTable">
+                <tr><td colspan="9" style="text-align:center">Chưa tải dữ liệu</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
 
@@ -4974,6 +5316,288 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function renderOpenWeatherRainChart(rows){const canvas=$("openweatherRainChart");if(!canvas||!window.Chart)return;if(openweatherRainState.chart){openweatherRainState.chart.destroy();openweatherRainState.chart=null;}const ordered=rows.slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));openweatherRainState.chart=new Chart(canvas.getContext("2d"),{type:"bar",data:{labels:ordered.map(r=>r.code),datasets:[{label:"Mưa 24h",data:ordered.map(r=>Number(r.rain24h||0)),backgroundColor:"rgba(34,197,94,0.45)",borderColor:"rgba(34,197,94,0.8)",borderWidth:1},{label:"Mưa 48h",data:ordered.map(r=>Number(r.rain48h||0)),backgroundColor:"rgba(245,158,11,0.36)",borderColor:"rgba(245,158,11,0.8)",borderWidth:1},{label:"Mưa 72h",data:ordered.map(r=>Number(r.rain72h||0)),backgroundColor:"rgba(37,99,235,0.30)",borderColor:"rgba(37,99,235,0.75)",borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{labels:{color:"#334155",font:{size:11,weight:"700"},boxWidth:12}},tooltip:{callbacks:{title:(items)=>{const idx=items?.[0]?.dataIndex??0;return ordered[idx]?`${ordered[idx].code} - ${ordered[idx].name}`:"";},label:(ctx)=>`${ctx.dataset.label}: ${formatRainSmall(ctx.raw)} mm`}}},scales:{x:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}},y:{beginAtZero:true,ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.08)"}}}}});}
 
 
+
+  // --- Monthly AI Report ---
+  let monthlyOperationChart = null;
+  let monthlyRainChart = null;
+  let monthlyReportLoadedKey = "";
+
+  function fmtMonthlyNumber(v, digits=2){
+    if(v===null || v===undefined || Number.isNaN(Number(v))) return "--";
+    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(Number(v));
+  }
+
+  function fmtMonthlyDateTime(iso){
+    if(!iso) return "--";
+    try{
+      const d = new Date(iso);
+      if(Number.isNaN(d.getTime())) return String(iso);
+      return d.toLocaleString("vi-VN", { timeZone:"Asia/Ho_Chi_Minh", hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit" });
+    }catch(_){
+      return String(iso);
+    }
+  }
+
+  function getMonthlySelection(){
+    const now = new Date();
+    const monthEl = $("monthlyReportMonth");
+    const yearEl = $("monthlyReportYear");
+
+    if(monthEl && !monthEl.dataset.initialized){
+      monthEl.value = String(now.getMonth()+1);
+      monthEl.dataset.initialized = "1";
+    }
+    if(yearEl && !yearEl.dataset.initialized){
+      yearEl.value = String(now.getFullYear() < 2026 ? 2026 : now.getFullYear());
+      yearEl.dataset.initialized = "1";
+    }
+
+    return {
+      year: Number(yearEl?.value || now.getFullYear()),
+      month: Number(monthEl?.value || (now.getMonth()+1))
+    };
+  }
+
+  async function loadMonthlyReport(force=false){
+    const {year, month} = getMonthlySelection();
+    const key = `${year}-${month}`;
+    if(!force && monthlyReportLoadedKey === key) return;
+
+    const status = $("monthlyReportStatus");
+    if(status) status.textContent = "Đang tải...";
+
+    try{
+      const res = await fetch(`/api/monthly-report?year=${year}&month=${month}`, { cache:"no-store" });
+      const data = await res.json();
+
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || "Không tải được API monthly-report");
+      }
+
+      monthlyReportLoadedKey = key;
+      renderMonthlyReport(data);
+      if(status) status.textContent = `Đã tải ${data.summary?.dayCount || 0} ngày`;
+    }catch(err){
+      console.error(err);
+      if(status) status.textContent = "Lỗi tải dữ liệu";
+      toast("Lỗi tải báo cáo tháng: " + err.message);
+    }
+  }
+
+  function renderMonthlyReport(data){
+    const s = data.summary || {};
+
+    $("mrWlMax").textContent = fmtMonthlyNumber(s.waterLevelMax?.value, 2) + " m";
+    $("mrWlMaxTime").textContent = fmtMonthlyDateTime(s.waterLevelMax?.time);
+
+    $("mrWlMin").textContent = fmtMonthlyNumber(s.waterLevelMin?.value, 2) + " m";
+    $("mrWlMinTime").textContent = fmtMonthlyDateTime(s.waterLevelMin?.time);
+
+    $("mrWlChange").textContent = fmtMonthlyNumber(s.waterLevelChange, 2) + " m";
+
+    $("mrInflowAvg").textContent = fmtMonthlyNumber(s.inflowAvg, 2);
+    $("mrInflowMax").textContent = fmtMonthlyNumber(s.inflowMax?.value, 2);
+    $("mrInflowMaxTime").textContent = fmtMonthlyDateTime(s.inflowMax?.time);
+
+    $("mrRainTotal").textContent = fmtMonthlyNumber(s.rainfallTotal, 1) + " mm";
+    $("mrRainDays").textContent = `${s.rainyDays || 0} ngày có mưa`;
+
+    $("monthlyAiPrompt").value = data.aiPrompt || "";
+
+    renderMonthlyEvents(data.events || []);
+    renderMonthlyDailyTable(data.daily || []);
+    renderMonthlyCharts(data.chartData || [], data);
+  }
+
+  function renderMonthlyEvents(events){
+    const box = $("monthlyEvents");
+    if(!box) return;
+
+    if(!events.length){
+      box.innerHTML = `<div class="monthly-event"><b>Không phát hiện sự kiện nổi bật</b><p>Dữ liệu tháng không có điểm bất thường rõ rệt.</p></div>`;
+      return;
+    }
+
+    box.innerHTML = events.map(e => `
+      <div class="monthly-event ${e.level === "warning" ? "warning" : ""}">
+        <b>${e.title || "Sự kiện"}</b>
+        <p>${e.description || ""}</p>
+        <small>${fmtMonthlyDateTime(e.time)}</small>
+      </div>
+    `).join("");
+  }
+
+  function renderMonthlyDailyTable(daily){
+    const tb = $("monthlyDailyTable");
+    if(!tb) return;
+
+    if(!daily.length){
+      tb.innerHTML = `<tr><td colspan="9" style="text-align:center">Không có dữ liệu</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = daily.map(d => `
+      <tr>
+        <td>${d.date || "-"}</td>
+        <td>${fmtMonthlyNumber(d.waterLevelAvg,2)}</td>
+        <td>${fmtMonthlyNumber(d.waterLevelMax,2)}</td>
+        <td>${fmtMonthlyNumber(d.waterLevelMin,2)}</td>
+        <td>${fmtMonthlyNumber(d.inflowAvg,2)}</td>
+        <td>${fmtMonthlyNumber(d.inflowMax,2)}</td>
+        <td>${fmtMonthlyNumber(d.turbineFlowAvg,2)}</td>
+        <td>${fmtMonthlyNumber(d.spillwayFlowAvg,2)}</td>
+        <td>${fmtMonthlyNumber(d.rainfallTotal,1)}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderMonthlyCharts(chartData, reportData){
+    const labels = chartData.map(d => {
+      const parts = String(d.date || "").split("-");
+      return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d.date;
+    });
+
+    const wl = chartData.map(d => d.waterLevelAvg);
+    const inflow = chartData.map(d => d.inflowAvg);
+    const turbine = chartData.map(d => d.turbineFlowAvg);
+    const spill = chartData.map(d => d.spillwayFlowAvg);
+    const rain = chartData.map(d => d.rainfallTotal);
+
+    const opCanvas = $("monthlyOperationChart");
+    if(opCanvas){
+      if(monthlyOperationChart) monthlyOperationChart.destroy();
+
+      monthlyOperationChart = new Chart(opCanvas, {
+        type:"line",
+        data:{
+          labels,
+          datasets:[
+            {
+              label:"MNH TB (m)",
+              data:wl,
+              yAxisID:"yWL",
+              borderColor:"#2563eb",
+              backgroundColor:"rgba(37,99,235,.10)",
+              borderWidth:3,
+              tension:.28,
+              pointRadius:2,
+              fill:true
+            },
+            {
+              label:"Q về TB (m3/s)",
+              data:inflow,
+              yAxisID:"yFlow",
+              borderColor:"#ef4444",
+              backgroundColor:"rgba(239,68,68,.08)",
+              borderWidth:2,
+              tension:.25,
+              pointRadius:1
+            },
+            {
+              label:"Q chạy máy TB (m3/s)",
+              data:turbine,
+              yAxisID:"yFlow",
+              borderColor:"#f59e0b",
+              backgroundColor:"rgba(245,158,11,.08)",
+              borderWidth:2,
+              tension:.25,
+              pointRadius:1
+            },
+            {
+              label:"Q xả TB (m3/s)",
+              data:spill,
+              yAxisID:"yFlow",
+              borderColor:"#7c3aed",
+              backgroundColor:"rgba(124,58,237,.08)",
+              borderWidth:2,
+              tension:.25,
+              pointRadius:1
+            }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction:{mode:"index",intersect:false},
+          plugins:{
+            legend:{position:"bottom", labels:{usePointStyle:true, boxWidth:8, font:{weight:"bold"}}},
+            tooltip:{callbacks:{label:(ctx)=> `${ctx.dataset.label}: ${fmtMonthlyNumber(ctx.parsed.y,2)}`}}
+          },
+          scales:{
+            x:{grid:{color:"rgba(15,23,42,.06)"}, ticks:{color:"#64748b", maxRotation:45, minRotation:0}},
+            yWL:{
+              type:"linear",
+              position:"left",
+              min:340,
+              max:383,
+              title:{display:true,text:"Mực nước hồ (m)",color:"#2563eb",font:{weight:"bold"}},
+              ticks:{color:"#2563eb"},
+              grid:{color:"rgba(15,23,42,.06)"}
+            },
+            yFlow:{
+              type:"linear",
+              position:"right",
+              beginAtZero:true,
+              title:{display:true,text:"Lưu lượng (m3/s)",color:"#92400e",font:{weight:"bold"}},
+              ticks:{color:"#92400e"},
+              grid:{drawOnChartArea:false}
+            }
+          }
+        }
+      });
+    }
+
+    const rainCanvas = $("monthlyRainChart");
+    if(rainCanvas){
+      if(monthlyRainChart) monthlyRainChart.destroy();
+
+      monthlyRainChart = new Chart(rainCanvas, {
+        type:"bar",
+        data:{
+          labels,
+          datasets:[
+            {
+              label:"Mưa ngày (mm)",
+              data:rain,
+              backgroundColor:"rgba(14,165,233,.58)",
+              borderColor:"#0ea5e9",
+              borderWidth:1,
+              borderRadius:8
+            }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{position:"bottom", labels:{usePointStyle:true, boxWidth:8, font:{weight:"bold"}}},
+            tooltip:{callbacks:{label:(ctx)=> `Mưa: ${fmtMonthlyNumber(ctx.parsed.y,1)} mm`}}
+          },
+          scales:{
+            x:{grid:{display:false}, ticks:{color:"#64748b", maxRotation:45, minRotation:0}},
+            y:{beginAtZero:true, title:{display:true,text:"mm",font:{weight:"bold"}}, grid:{color:"rgba(15,23,42,.07)"}}
+          }
+        }
+      });
+    }
+  }
+
+  function copyMonthlyAiPrompt(){
+    const txt = $("monthlyAiPrompt")?.value || "";
+    if(!txt){
+      toast("Chưa có AI Prompt để copy");
+      return;
+    }
+    navigator.clipboard.writeText(txt).then(
+      () => toast("Đã copy AI Prompt"),
+      () => toast("Không copy được, vui lòng copy thủ công")
+    );
+  }
+
+  window.loadMonthlyReport = loadMonthlyReport;
+  window.copyMonthlyAiPrompt = copyMonthlyAiPrompt;
+
+
   // --- Website navigation (sidebar left) ---
   function setActiveNav(tabName){
     document.querySelectorAll('.nav-link').forEach(a=>{
@@ -4998,6 +5622,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       }
     }
     if(name==='forecast') loadForecasts();
+    if(name==='monthlyreport') loadMonthlyReport(false);
     if(name==='weathermap') {
       const wf = $('windyWeatherFrame');
       if(wf && !wf.dataset.loadedOnce) { wf.dataset.loadedOnce = '1'; applyWeatherMap(); }
