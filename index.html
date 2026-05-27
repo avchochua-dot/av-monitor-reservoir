@@ -3583,6 +3583,16 @@ body.slideshow-frame-mode section{
   }
 }
 
+
+/* =========================================================
+   MONTHLY AI REPORT - PRINT WINDOW EXPORT FIX V12
+   ========================================================= */
+.monthly-ai-toolbar button.printpdf{
+  background:linear-gradient(135deg,#f97316,#ef4444)!important;
+  color:#fff!important;
+  border-color:rgba(249,115,22,.22)!important;
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4345,7 +4355,7 @@ body.slideshow-frame-mode section{
               <button class="primary" onclick="loadMonthlyReport(true)">Tổng hợp</button>
               <button onclick="copyMonthlyAiPrompt()">Copy AI Prompt</button>
               <button class="ai" onclick="runMonthlyAiAnalysis()">AI Phân tích</button>
-              <button class="pdf" onclick="exportMonthlyPdf()">Xuất PDF</button>
+              <button class="pdf" onclick="exportMonthlyReportPdf()">Xuất PDF</button>
             </div>
           </div>
 
@@ -5438,6 +5448,262 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
 
 
+
+  // --- Monthly AI Report PDF export: print-window method, inspired by VDV report print layout ---
+  function escapeMonthlyHtml(value){
+    return String(value ?? "")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
+
+  function formatMonthlyReportText(value){
+    const safe = escapeMonthlyHtml(value || "");
+    if(!safe.trim()) return "<p>Chưa có nhận xét AI. Vui lòng bấm AI Phân tích trước khi xuất báo cáo chính thức.</p>";
+    return safe
+      .split(/\n{2,}/)
+      .map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`)
+      .join("");
+  }
+
+  function getMonthlyCanvasImage(canvasId){
+    try{
+      const c = $(canvasId);
+      if(!c) return "";
+      return c.toDataURL("image/png", 1.0);
+    }catch(err){
+      console.warn("Cannot convert canvas", canvasId, err);
+      return "";
+    }
+  }
+
+  function monthlyChartImgTag(canvasId, alt){
+    const src = getMonthlyCanvasImage(canvasId);
+    if(!src) return `<div class="empty-chart">Không lấy được ảnh biểu đồ ${escapeMonthlyHtml(alt)}.</div>`;
+    return `<img class="chart-img" src="${src}" alt="${escapeMonthlyHtml(alt)}">`;
+  }
+
+  function buildMonthlyKpiHtml(summary){
+    const s = summary || {};
+    const items = [
+      ["MNH lớn nhất", `${fmtMonthlyNumber(s.waterLevelMax?.value,2)} m`, fmtMonthlyDateTime(s.waterLevelMax?.time)],
+      ["MNH nhỏ nhất", `${fmtMonthlyNumber(s.waterLevelMin?.value,2)} m`, fmtMonthlyDateTime(s.waterLevelMin?.time)],
+      ["Biến đổi MNH", `${fmtMonthlyNumber(s.waterLevelChange,2)} m`, "Trong kỳ báo cáo"],
+      ["Q về trung bình", `${fmtMonthlyNumber(s.inflowAvg,2)} m³/s`, "Trung bình tháng"],
+      ["Q về lớn nhất", `${fmtMonthlyNumber(s.inflowMax?.value,2)} m³/s`, fmtMonthlyDateTime(s.inflowMax?.time)],
+      ["Tổng mưa tháng", `${fmtMonthlyNumber(s.rainfallTotal,1)} mm`, `${s.rainyDays || 0} ngày có mưa`]
+    ];
+    return items.map(x => `
+      <div class="kpi">
+        <div class="kpi-label">${escapeMonthlyHtml(x[0])}</div>
+        <div class="kpi-value">${escapeMonthlyHtml(x[1])}</div>
+        <div class="kpi-sub">${escapeMonthlyHtml(x[2])}</div>
+      </div>
+    `).join("");
+  }
+
+  function buildMonthlyEventsHtml(events){
+    if(!events || !events.length){
+      return `<div class="event"><b>Không phát hiện sự kiện nổi bật</b><p>Dữ liệu tháng không có điểm bất thường rõ rệt.</p></div>`;
+    }
+    return events.map(e => `
+      <div class="event ${e.level === "warning" ? "warning" : ""}">
+        <b>${escapeMonthlyHtml(e.title || "Sự kiện")}</b>
+        <p>${escapeMonthlyHtml(e.description || "")}</p>
+        <small>${escapeMonthlyHtml(fmtMonthlyDateTime(e.time))}</small>
+      </div>
+    `).join("");
+  }
+
+  function buildMonthlyDailyRows(daily){
+    const rows = (daily || []).slice(0, 31);
+    if(!rows.length) return `<tr><td colspan="9">Không có dữ liệu</td></tr>`;
+    return rows.map(d => `
+      <tr>
+        <td>${escapeMonthlyHtml(d.date || "-")}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelAvg,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelMax,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelMin,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.inflowAvg,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.inflowMax,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.turbineFlowAvg,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.spillwayFlowAvg,2))}</td>
+        <td>${escapeMonthlyHtml(fmtMonthlyNumber(d.rainfallTotal,1))}</td>
+      </tr>
+    `).join("");
+  }
+
+  function createMonthlyReportHtml(){
+    const data = monthlyReportCurrentData;
+    if(!data) throw new Error("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");
+
+    const {year, month} = getMonthlySelection();
+    const reportTitle = `BÁO CÁO VẬN HÀNH HỒ CHỨA THÁNG ${String(month).padStart(2,"0")}/${year}`;
+    const createdAt = new Date().toLocaleString("vi-VN", { timeZone:"Asia/Ho_Chi_Minh" });
+    const aiText = monthlyAiAnalysisText || $("monthlyAiResult")?.textContent || "";
+    const operationChart = monthlyChartImgTag("monthlyOperationChart", "Biểu đồ vận hành tháng");
+    const rainChart = monthlyChartImgTag("monthlyRainChart", "Biểu đồ mưa ngày");
+
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>${escapeMonthlyHtml(reportTitle)}</title>
+<style>
+  @page{size:A4 portrait;margin:12mm 11mm 14mm 11mm}
+  *{box-sizing:border-box}
+  body{font-family:"Times New Roman",serif;color:#111;margin:0;background:#fff;font-size:12pt;line-height:1.35}
+  .page{width:100%;min-height:260mm;position:relative}
+  .header{display:grid;grid-template-columns:130px 1fr 130px;gap:10px;align-items:start;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:10px}
+  .logo{width:120px;height:48px;object-fit:contain}
+  .center{text-align:center}
+  .company{font-weight:bold;text-transform:uppercase;font-size:13pt;line-height:1.3}
+  .sys{font-weight:bold;text-transform:uppercase;font-size:12pt;line-height:1.3;margin-top:2px}
+  h1{font-size:20pt;text-align:center;margin:12px 0 4px;text-transform:uppercase;line-height:1.2}
+  .subtitle{text-align:center;font-size:11pt;margin-bottom:10px}
+  .meta{text-align:center;font-size:10.5pt;color:#333;margin-bottom:10px}
+  h2{font-size:15pt;margin:12px 0 7px;text-transform:uppercase}
+  h3{font-size:13pt;margin:8px 0 6px}
+  .box{border:1px solid #222;padding:8px;margin-bottom:8px;break-inside:avoid;page-break-inside:avoid}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:8px 0}
+  .kpi{border:1px solid #222;padding:8px;min-height:58px}
+  .kpi-label{font-size:9.5pt;text-transform:uppercase;font-weight:bold;color:#334155}
+  .kpi-value{font-size:18pt;font-weight:bold;color:#1d4ed8;line-height:1.15;margin-top:2px}
+  .kpi-sub{font-size:9.5pt;color:#475569;margin-top:2px}
+  .ai{border:1px solid #222;padding:9px;margin-top:8px;min-height:70px}
+  .ai p{margin:0 0 7px}
+  .event{border:1px solid #999;padding:7px;margin-bottom:6px;break-inside:avoid}
+  .event.warning{background:#fff7ed}
+  .event b{display:block;margin-bottom:3px}
+  .event p{margin:0;font-size:11pt}
+  .event small{display:block;color:#1d4ed8;margin-top:3px;font-size:10pt}
+  .chart-img{width:100%;height:auto;max-height:160mm;object-fit:contain;border:1px solid #222}
+  .empty-chart{border:1px dashed #666;padding:20px;text-align:center;color:#555}
+  table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:6px}
+  th,td{border:1px solid #222;padding:4px;text-align:center;vertical-align:middle}
+  th{font-weight:bold;text-transform:uppercase;background:#f1f5f9}
+  td:first-child{text-align:left}
+  .page-break{break-before:page;page-break-before:always}
+  .footer{position:fixed;left:0;right:0;bottom:0;border-top:1px solid #222;padding-top:4px;font-size:9.5pt;display:flex;justify-content:space-between;background:#fff}
+  .signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px;break-inside:avoid}
+  .sign{text-align:center;min-height:72px}
+  .sign b{text-transform:uppercase}
+  @media screen{
+    body{background:#e5e7eb;padding:18px}
+    .page{background:white;width:210mm;margin:auto;padding:0;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+    .footer{position:static;margin-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div><img class="logo" src="https://ubsqkaqqwdegvqrkyddx.supabase.co/storage/v1/object/sign/Picture/Logo%20AVC.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mZmFkZjVmMC1lMWQxLTRlNjEtYWNlMy02ZWUyZjY2ZTUxMDgiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJQaWN0dXJlL0xvZ28gQVZDLnBuZyIsImlhdCI6MTc3MzYzNjU0NCwiZXhwIjoyMDg4OTk2NTQ0fQ.x0qY8Ftc0kG5NJiMwbfCUAMxxdVlt00dsc5bQ6q78XU"></div>
+    <div class="center">
+      <div class="company">Công ty Cổ phần Thủy điện A Vương</div>
+      <div class="sys">Hệ thống giám sát & điều hành hồ chứa</div>
+    </div>
+    <div><img class="logo" src="https://ubsqkaqqwdegvqrkyddx.supabase.co/storage/v1/object/sign/Picture/Logo%20AVC.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mZmFkZjVmMC1lMWQxLTRlNjEtYWNlMy02ZWUyZjY2ZTUxMDgiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJQaWN0dXJlL0xvZ28gQVZDLnBuZyIsImlhdCI6MTc3MzYzNjU0NCwiZXhwIjoyMDg4OTk2NTQ0fQ.x0qY8Ftc0kG5NJiMwbfCUAMxxdVlt00dsc5bQ6q78XU"></div>
+  </div>
+
+  <h1>${escapeMonthlyHtml(reportTitle)}</h1>
+  <div class="subtitle">Nhóm báo cáo: Báo cáo vận hành hồ chứa tổng hợp bằng AI</div>
+  <div class="meta">Nguồn dữ liệu: Supabase / Dashboard AI • Thời gian tạo: ${escapeMonthlyHtml(createdAt)}</div>
+
+  <h2>1. Tóm tắt điều hành tháng</h2>
+  <div class="box">
+    <div class="kpi-grid">${buildMonthlyKpiHtml(data.summary)}</div>
+  </div>
+
+  <div class="grid2">
+    <div class="box">
+      <h3>Sự kiện nổi bật</h3>
+      ${buildMonthlyEventsHtml(data.events || [])}
+    </div>
+    <div class="box">
+      <h3>Nhận xét AI</h3>
+      <div class="ai">${formatMonthlyReportText(aiText)}</div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+  <h2>2. Biểu đồ vận hành tháng</h2>
+  <div class="box">${operationChart}</div>
+
+  <h2>3. Biểu đồ mưa ngày</h2>
+  <div class="box">${rainChart}</div>
+
+  <div class="page-break"></div>
+  <h2>4. Bảng tổng hợp theo ngày</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Ngày</th>
+        <th>MNH TB</th>
+        <th>MNH Max</th>
+        <th>MNH Min</th>
+        <th>Q về TB</th>
+        <th>Q về Max</th>
+        <th>Q máy TB</th>
+        <th>Q xả TB</th>
+        <th>Mưa</th>
+      </tr>
+    </thead>
+    <tbody>${buildMonthlyDailyRows(data.daily || [])}</tbody>
+  </table>
+
+  <div class="signatures">
+    <div class="sign"><b>Người lập</b><br><br><br><br>.....................</div>
+    <div class="sign"><b>Kiểm tra</b><br><br><br><br>.....................</div>
+    <div class="sign"><b>Phê duyệt</b><br><br><br><br>.....................</div>
+  </div>
+
+  <div class="footer">
+    <span>Nguồn dữ liệu: Supabase / Dashboard AI</span>
+    <span>Báo cáo tháng</span>
+  </div>
+</div>
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => window.print(), 650);
+  });
+<\/script>
+</body>
+</html>`;
+  }
+
+  function exportMonthlyReportPdf(){
+    try{
+      if(!monthlyReportCurrentData){
+        toast("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");
+        return;
+      }
+
+      const win = window.open("", "_blank");
+      if(!win){
+        toast("Trình duyệt đang chặn popup. Hãy cho phép popup để xuất PDF.");
+        return;
+      }
+
+      win.document.open();
+      win.document.write(createMonthlyReportHtml());
+      win.document.close();
+
+      const status = $("monthlyReportStatus");
+      if(status) status.textContent = "Đã mở cửa sổ xuất PDF";
+    }catch(err){
+      console.error(err);
+      const status = $("monthlyReportStatus");
+      if(status) status.textContent = "Lỗi xuất PDF";
+      toast("Lỗi xuất PDF: " + err.message);
+    }
+  }
+
+  window.exportMonthlyReportPdf = exportMonthlyReportPdf;
+
   // --- Monthly AI Report ---
   let monthlyOperationChart = null;
   let monthlyRainChart = null;
@@ -5842,7 +6108,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   window.runMonthlyAiAnalysis = runMonthlyAiAnalysis;
-  window.exportMonthlyPdf = exportMonthlyPdf;
+  window.exportMonthlyPdf = exportMonthlyReportPdf;
 
   window.loadMonthlyReport = loadMonthlyReport;
   window.copyMonthlyAiPrompt = copyMonthlyAiPrompt;
