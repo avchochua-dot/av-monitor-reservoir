@@ -3593,6 +3593,14 @@ body.slideshow-frame-mode section{
   border-color:rgba(249,115,22,.22)!important;
 }
 
+
+.monthly-ai-save-note{
+  margin-top:10px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4403,6 +4411,7 @@ body.slideshow-frame-mode section{
         <section class="monthly-ai-card">
           <div class="monthly-box-title">Nhận xét AI cho báo cáo lãnh đạo</div>
           <div id="monthlyAiResult" class="monthly-ai-analysis-box empty">Chưa có phân tích AI. Bấm “AI Phân tích” để GPT sinh nhận xét báo cáo tháng.</div>
+          <div class="monthly-ai-save-note">Nhận xét AI được lưu vào Supabase. Khi mở lại tháng này, dashboard sẽ tự lấy nhận xét AI mới nhất đã lưu.</div>
         </section>
 
         <section class="monthly-ai-card">
@@ -5763,7 +5772,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       monthlyReportLoadedKey = key;
       renderMonthlyReport(data);
-      if(status) status.textContent = `Đã tải ${data.summary?.dayCount || 0} ngày`;
+      await loadLatestMonthlyAiReport();
+      if(status && (!monthlyAiAnalysisText)) status.textContent = `Đã tải ${data.summary?.dayCount || 0} ngày`;
     }catch(err){
       console.error(err);
       if(status) status.textContent = "Lỗi tải dữ liệu";
@@ -5991,6 +6001,49 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   let monthlyReportCurrentData = null;
   let monthlyAiAnalysisText = "";
 
+
+  async function loadLatestMonthlyAiReport(){
+    try{
+      const {year, month} = getMonthlySelection();
+      const box = $("monthlyAiResult");
+      const status = $("monthlyReportStatus");
+
+      const response = await fetch(`/api/monthly-ai-latest?year=${year}&month=${month}&reportType=reservoir_operation`, {
+        cache:"no-store"
+      });
+
+      const data = await response.json();
+
+      if(!response.ok || !data.ok){
+        throw new Error(data.error || "Không tải được nhận xét AI đã lưu");
+      }
+
+      const latest = data.latest;
+
+      if(latest && latest.ai_result){
+        monthlyAiAnalysisText = latest.ai_result;
+        if(box){
+          box.classList.remove("empty","loading");
+          box.textContent = latest.ai_result;
+        }
+        if(status){
+          const t = latest.created_at ? fmtMonthlyDateTime(latest.created_at) : "";
+          status.textContent = t ? `AI đã lưu ${t}` : "Đã tải nhận xét AI";
+        }
+      }else{
+        monthlyAiAnalysisText = "";
+        if(box){
+          box.classList.add("empty");
+          box.textContent = "Chưa có nhận xét AI đã lưu cho tháng này. Bấm “AI Phân tích” để tạo nhận xét mới.";
+        }
+      }
+    }catch(err){
+      console.warn("loadLatestMonthlyAiReport:", err);
+    }
+  }
+
+  window.loadLatestMonthlyAiReport = loadLatestMonthlyAiReport;
+
   async function runMonthlyAiAnalysis(){
     try{
       const prompt = $("monthlyAiPrompt")?.value || "";
@@ -6009,10 +6062,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       }
       if(status) status.textContent = "AI đang phân tích...";
 
+      const {year, month} = getMonthlySelection();
       const response = await fetch("/api/monthly-ai-analysis", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ prompt })
+        body:JSON.stringify({
+          year,
+          month,
+          reportType:"reservoir_operation",
+          prompt,
+          summary: monthlyReportCurrentData || null
+        })
       });
 
       const data = await response.json();
@@ -6021,7 +6081,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         throw new Error(data.error || "Lỗi API monthly-ai-analysis");
       }
 
-      monthlyAiAnalysisText = data.result || data.analysis || data.content || "";
+      monthlyAiAnalysisText = data.result || data.ai_result || data.saved?.ai_result || data.analysis || data.content || "";
       if(box){
         box.classList.remove("loading","empty");
         box.textContent = monthlyAiAnalysisText || "AI không trả về nội dung.";
