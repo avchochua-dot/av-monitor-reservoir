@@ -3601,6 +3601,10 @@ body.slideshow-frame-mode section{
   font-weight:800;
 }
 
+
+/* EXECUTIVE PDF REPORT V15 */
+.monthly-ai-toolbar button.executivepdf{background:linear-gradient(135deg,#0f172a,#2563eb)!important;color:#fff!important}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4363,7 +4367,7 @@ body.slideshow-frame-mode section{
               <button class="primary" onclick="loadMonthlyReport(true)">Tổng hợp</button>
               <button onclick="copyMonthlyAiPrompt()">Copy AI Prompt</button>
               <button class="ai" onclick="runMonthlyAiAnalysis()">AI Phân tích</button>
-              <button class="pdf" onclick="exportMonthlyReportPdf()">Xuất PDF</button>
+              <button class="pdf" onclick="exportMonthlyExecutivePdf()">Xuất PDF Executive</button>
             </div>
           </div>
 
@@ -5712,6 +5716,128 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   window.exportMonthlyReportPdf = exportMonthlyReportPdf;
+
+
+  // =========================================================
+  // EXECUTIVE PDF REPORT V15
+  // =========================================================
+  function mdToExecutiveHtml(text){
+    const raw = String(text || "").trim();
+    if(!raw) return "<p>Chưa có nhận xét AI. Vui lòng bấm <b>AI Phân tích</b> trước khi xuất báo cáo chính thức.</p>";
+    let safe = escapeMonthlyHtml(raw)
+      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+      .replace(/^###\s*(.*)$/gm, "<h4>$1</h4>")
+      .replace(/^##\s*(.*)$/gm, "<h3>$1</h3>")
+      .replace(/^#\s*(.*)$/gm, "<h3>$1</h3>");
+    return safe.split(/\n{2,}/).map(p=>{
+      p = p.trim();
+      if(!p) return "";
+      if(p.startsWith("<h3") || p.startsWith("<h4")) return p;
+      if(/^[-•]\s+/m.test(p)){
+        const items = p.split(/\n/).filter(Boolean).map(x=>x.replace(/^[-•]\s+/,"").trim());
+        return "<ul>"+items.map(x=>`<li>${x}</li>`).join("")+"</ul>";
+      }
+      return `<p>${p.replace(/\n/g,"<br>")}</p>`;
+    }).join("");
+  }
+
+  function executiveStatus(summary){
+    const s = summary || {};
+    const inflow = Number(s.inflowMax?.value || 0);
+    const rain = Number(s.rainfallTotal || 0);
+    const spill = Number(s.spillwayFlowMax?.value || 0);
+    if(inflow >= 1000 || rain >= 500) return {txt:"Cảnh báo", cls:"red"};
+    if(inflow >= 500 || rain >= 300 || spill > 0) return {txt:"Theo dõi", cls:"orange"};
+    return {txt:"Bình thường", cls:"green"};
+  }
+
+  function executiveKpis(summary){
+    const s = summary || {};
+    const arr = [
+      ["MNH lớn nhất", `${fmtMonthlyNumber(s.waterLevelMax?.value,2)} m`, fmtMonthlyDateTime(s.waterLevelMax?.time), "blue"],
+      ["MNH nhỏ nhất", `${fmtMonthlyNumber(s.waterLevelMin?.value,2)} m`, fmtMonthlyDateTime(s.waterLevelMin?.time), "cyan"],
+      ["Biến đổi MNH", `${fmtMonthlyNumber(s.waterLevelChange,2)} m`, "Trong kỳ báo cáo", "purple"],
+      ["Q về TB", `${fmtMonthlyNumber(s.inflowAvg,2)} m³/s`, "Trung bình tháng", "orange"],
+      ["Q về lớn nhất", `${fmtMonthlyNumber(s.inflowMax?.value,2)} m³/s`, fmtMonthlyDateTime(s.inflowMax?.time), "red"],
+      ["Tổng mưa", `${fmtMonthlyNumber(s.rainfallTotal,1)} mm`, `${s.rainyDays || 0} ngày có mưa`, "green"],
+      ["Q máy TB", `${fmtMonthlyNumber(s.turbineFlowAvg,2)} m³/s`, "Trung bình tháng", "amber"],
+      ["Q xả TB", `${fmtMonthlyNumber(s.spillwayFlowAvg,2)} m³/s`, "Trung bình tháng", "violet"]
+    ];
+    return arr.map(x=>`<div class="kpi ${x[3]}"><div>${escapeMonthlyHtml(x[0])}</div><b>${escapeMonthlyHtml(x[1])}</b><span>${escapeMonthlyHtml(x[2])}</span></div>`).join("");
+  }
+
+  function executiveRisk(summary){
+    const s = summary || {};
+    const st = executiveStatus(s);
+    const wlChange = Number(s.waterLevelChange || 0);
+    const spill = Number(s.spillwayFlowMax?.value || 0);
+    const risk = [
+      ["An toàn hồ", st.txt, st.cls, "Đánh giá theo MNH, Q về, Q xả và mưa"],
+      ["Xu thế MNH", wlChange < -0.2 ? "Giảm" : (wlChange > 0.2 ? "Tăng" : "Ổn định"), "blue", `${fmtMonthlyNumber(s.waterLevelChange,2)} m trong kỳ`],
+      ["Xả điều tiết", spill > 0 ? "Có xả" : "Không xả", spill > 0 ? "orange" : "green", `Q xả max ${fmtMonthlyNumber(s.spillwayFlowMax?.value || 0,2)} m³/s`],
+      ["Mưa tháng", Number(s.rainfallTotal||0) >= 200 ? "Mưa nhiều" : "Có mưa", "blue", `${fmtMonthlyNumber(s.rainfallTotal,1)} mm`],
+      ["Q về lớn nhất", `${fmtMonthlyNumber(s.inflowMax?.value,2)} m³/s`, "orange", fmtMonthlyDateTime(s.inflowMax?.time)],
+      ["Kiến nghị", "Tiếp tục theo dõi", "purple", "Mưa, Q về và xu thế MNH"]
+    ];
+    return risk.map(x=>`<div class="risk ${x[2]}"><small>${escapeMonthlyHtml(x[0])}</small><b>${escapeMonthlyHtml(x[1])}</b><span>${escapeMonthlyHtml(x[3])}</span></div>`).join("");
+  }
+
+  function executiveEvents(events){
+    if(!events || !events.length) return `<div class="event"><b>Không phát hiện sự kiện nổi bật</b><span>Dữ liệu tháng không có điểm bất thường rõ rệt.</span></div>`;
+    return events.map(e=>`<div class="event ${e.level==="warning"?"warning":""}"><b>${escapeMonthlyHtml(e.title||"Sự kiện")}</b><span>${escapeMonthlyHtml(e.description||"")}</span><small>${escapeMonthlyHtml(fmtMonthlyDateTime(e.time))}</small></div>`).join("");
+  }
+
+  function executiveDailyRows(daily){
+    const rows = (daily || []).slice(0,31);
+    if(!rows.length) return `<tr><td colspan="9">Không có dữ liệu</td></tr>`;
+    return rows.map(d=>`<tr><td>${escapeMonthlyHtml(d.date||"-")}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelAvg,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelMax,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.waterLevelMin,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.inflowAvg,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.inflowMax,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.turbineFlowAvg,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.spillwayFlowAvg,2))}</td><td>${escapeMonthlyHtml(fmtMonthlyNumber(d.rainfallTotal,1))}</td></tr>`).join("");
+  }
+
+  function executiveLimits(data){
+    const limits = data?.levelLimits || [];
+    if(!limits.length) return `<div class="note">Chưa có dữ liệu nền giới hạn trong API báo cáo tháng. Khi bổ sung levelLimits, báo cáo sẽ thể hiện MNGHD, MNGHT, MNĐL, MNTrL.</div>`;
+    const f = limits[0] || {}, l = limits[limits.length-1] || {};
+    return `<div class="limits"><div><b>MNGHD đầu kỳ</b><span>${fmtMonthlyNumber(f.mnghd,2)} m</span></div><div><b>MNGHT đầu kỳ</b><span>${fmtMonthlyNumber(f.mnght,2)} m</span></div><div><b>MNĐL cuối kỳ</b><span>${fmtMonthlyNumber(l.mndl,2)} m</span></div><div><b>MNTrL cuối kỳ</b><span>${fmtMonthlyNumber(l.mntrl,2)} m</span></div></div>`;
+  }
+
+  function createMonthlyExecutiveReportHtml(){
+    const data = monthlyReportCurrentData;
+    if(!data) throw new Error("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");
+    const {year, month} = getMonthlySelection();
+    const title = `BÁO CÁO VẬN HÀNH HỒ CHỨA THÁNG ${String(month).padStart(2,"0")}/${year}`;
+    const createdAt = new Date().toLocaleString("vi-VN",{timeZone:"Asia/Ho_Chi_Minh"});
+    const aiText = monthlyAiAnalysisText || $("monthlyAiResult")?.textContent || "";
+    const st = executiveStatus(data.summary);
+    const opChart = monthlyChartImgTag("monthlyOperationChart","Biểu đồ vận hành tháng");
+    const rainChart = monthlyChartImgTag("monthlyRainChart","Biểu đồ mưa ngày");
+    const logo = "https://ubsqkaqqwdegvqrkyddx.supabase.co/storage/v1/object/sign/Picture/Logo%20AVC.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mZmFkZjVmMC1lMWQxLTRlNjEtYWNlMy02ZWUyZjY2ZTUxMDgiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJQaWN0dXJlL0xvZ28gQVZDLnBuZyIsImlhdCI6MTc3MzYzNjU0NCwiZXhwIjoyMDg4OTk2NTQ0fQ.x0qY8Ftc0kG5NJiMwbfCUAMxxdVlt00dsc5bQ6q78XU";
+    return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeMonthlyHtml(title)}</title><style>
+      @page{size:A4 portrait;margin:10mm 10mm 12mm}*{box-sizing:border-box}body{margin:0;background:#fff;color:#0f172a;font-family:Arial,sans-serif;font-size:10.5pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;min-height:277mm;background:#fff;overflow:hidden}.page+.page{page-break-before:always}.watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:52pt;font-weight:900;color:rgba(37,99,235,.045);transform:rotate(-28deg);z-index:0;text-align:center}.content{position:relative;z-index:2}.topbar{display:grid;grid-template-columns:125px 1fr 125px;gap:10px;align-items:center;padding:8px 0 9px;border-bottom:3px solid #1d4ed8}.logo{width:115px;height:44px;object-fit:contain}.company{text-align:center}.company b{display:block;font-size:14pt;text-transform:uppercase}.company span{display:block;font-size:10pt;color:#2563eb;font-weight:800;text-transform:uppercase;margin-top:2px}.report-title{text-align:center;font-size:22pt;line-height:1.15;margin:16px 0 5px;text-transform:uppercase}.report-sub{text-align:center;color:#475569;font-size:10.5pt;font-weight:700}.meta{text-align:center;color:#64748b;font-size:9.5pt;margin:7px 0 12px}.section{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:14pt;font-weight:900;text-transform:uppercase;color:#1e293b}.section:before{content:"";width:8px;height:24px;border-radius:99px;background:linear-gradient(180deg,#2563eb,#06b6d4)}.band{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:13px;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1px solid #bfdbfe;margin-bottom:10px}.badge{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;min-height:72px;color:#fff;font-size:17pt;font-weight:900;text-transform:uppercase}.badge.green{background:linear-gradient(135deg,#16a34a,#0f766e)}.badge.orange{background:linear-gradient(135deg,#f97316,#f59e0b)}.badge.red{background:linear-gradient(135deg,#dc2626,#ef4444)}.headline{font-size:13pt;font-weight:800;color:#1e293b;align-self:center;line-height:1.45}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.kpi{min-height:72px;padding:10px;border-radius:13px;border:1px solid #dbeafe;background:#fff;box-shadow:0 6px 15px rgba(15,23,42,.04)}.kpi div{color:#64748b;font-size:8.5pt;font-weight:900;text-transform:uppercase}.kpi b{display:block;font-size:17pt;line-height:1.12;margin-top:4px;color:#2563eb}.kpi span{display:block;color:#64748b;font-size:8.7pt;font-weight:700;margin-top:3px}.green b{color:#16a34a}.red b{color:#ef4444}.orange b{color:#f59e0b}.purple b{color:#7c3aed}.cyan b{color:#0ea5e9}.amber b{color:#d97706}.violet b{color:#8b5cf6}.riskgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.risk{border-radius:12px;padding:9px;min-height:72px;border:1px solid #e2e8f0;background:#f8fafc}.risk small{font-size:8.7pt;color:#64748b;font-weight:900;text-transform:uppercase}.risk b{display:block;font-size:13pt;font-weight:900;margin-top:4px}.risk span{font-size:8.8pt;color:#64748b;font-weight:700}.risk.green{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.risk.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.risk.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}.risk.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.risk.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.card{border:1px solid #e2e8f0;border-radius:14px;padding:11px;background:#fff}.card h3{margin:0 0 8px;font-size:12.5pt;color:#1e293b;text-transform:uppercase}.event{border:1px solid #e2e8f0;border-left:5px solid #2563eb;border-radius:10px;padding:8px 9px;margin-bottom:7px;background:#fff}.event.warning{border-left-color:#f97316;background:#fff7ed}.event b{display:block;margin-bottom:3px}.event span{display:block;color:#334155}.event small{display:block;color:#2563eb;font-weight:800;margin-top:3px}.limits{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.limits div{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#f8fafc}.limits b{display:block;color:#475569;font-size:8.5pt;text-transform:uppercase}.limits span{display:block;font-weight:900;font-size:13pt;color:#2563eb;margin-top:3px}.note{border:1px dashed #94a3b8;border-radius:12px;padding:10px;color:#475569;background:#f8fafc}.ai{border-radius:14px;border:1px solid #dbeafe;background:#f8fbff;padding:12px 14px;font-size:10.4pt}.ai h3,.ai h4{margin:8px 0 4px;color:#1e40af}.ai p{margin:0 0 7px}.ai ul{margin:0 0 7px 18px;padding:0}.chart{border:1px solid #cbd5e1;border-radius:14px;padding:8px;background:#fff;margin-bottom:10px}.chart-img{width:100%;height:auto;max-height:120mm;object-fit:contain;display:block}.chart-note{color:#64748b;font-size:9.2pt;margin-top:5px;font-style:italic}table{width:100%;border-collapse:collapse;font-size:8.6pt}th,td{border:1px solid #cbd5e1;padding:4px 5px;text-align:center}th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}td:first-child{text-align:left;font-weight:700}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center}.sign b{text-transform:uppercase}.sign div{margin-top:52px;border-top:1px dotted #111;padding-top:4px}.footer{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #cbd5e1;padding-top:5px;display:flex;justify-content:space-between;font-size:8.8pt;color:#64748b}@media screen{body{background:#e5e7eb;padding:18px}.page{width:210mm;margin:0 auto 18px;box-shadow:0 18px 50px rgba(15,23,42,.22)}} </style></head><body>
+      <div class="page"><div class="watermark">AI RESERVOIR REPORT</div><div class="content"><div class="topbar"><img class="logo" src="${logo}"><div class="company"><b>Công ty Cổ phần Thủy điện A Vương</b><span>Trung tâm giám sát & điều hành hồ chứa AI</span></div><img class="logo" src="${logo}"></div><h1 class="report-title">${escapeMonthlyHtml(title)}</h1><div class="report-sub">Báo cáo lãnh đạo tổng hợp vận hành hồ chứa bằng AI</div><div class="meta">Nguồn dữ liệu: Supabase / Dashboard AI • Thời gian tạo: ${escapeMonthlyHtml(createdAt)}</div><div class="section">1. Tóm tắt điều hành</div><div class="band"><div class="badge ${st.cls}">${escapeMonthlyHtml(st.txt)}</div><div class="headline">Hồ vận hành ${st.txt.toLowerCase()}; xu thế mực nước ${Number(data.summary?.waterLevelChange||0)<0?"giảm":"ổn định"}, tổng mưa tháng ${fmtMonthlyNumber(data.summary?.rainfallTotal,1)} mm, Q về lớn nhất ${fmtMonthlyNumber(data.summary?.inflowMax?.value,2)} m³/s.</div></div><div class="kpis">${executiveKpis(data.summary)}</div><div class="section">2. Đánh giá nhanh rủi ro & trạng thái</div><div class="riskgrid">${executiveRisk(data.summary)}</div><div class="twocol"><div class="card"><h3>Sự kiện nổi bật</h3>${executiveEvents(data.events||[])}</div><div class="card"><h3>Đường giới hạn/điều tiết</h3>${executiveLimits(data)}</div></div></div><div class="footer"><span>AI Reservoir Dashboard • EVNGENCO2</span><span>Trang 1</span></div></div>
+      <div class="page"><div class="watermark">AI ANALYSIS</div><div class="content"><div class="section">3. Nhận xét AI cho báo cáo lãnh đạo</div><div class="ai">${mdToExecutiveHtml(aiText)}</div></div><div class="footer"><span>Nguồn dữ liệu: Supabase / Dashboard AI</span><span>Trang 2</span></div></div>
+      <div class="page"><div class="watermark">OPERATION CHART</div><div class="content"><div class="section">4. Biểu đồ vận hành tháng</div><div class="chart">${opChart}<div class="chart-note">Biểu đồ thể hiện diễn biến mực nước hồ, Q về, Q chạy máy và Q xả trung bình ngày.</div></div><div class="section">5. Biểu đồ mưa ngày</div><div class="chart">${rainChart}<div class="chart-note">Biểu đồ thể hiện phân bố lượng mưa ngày trong kỳ báo cáo.</div></div></div><div class="footer"><span>Nguồn dữ liệu: Supabase / Dashboard AI</span><span>Trang 3</span></div></div>
+      <div class="page"><div class="watermark">DATA APPENDIX</div><div class="content"><div class="section">6. Phụ lục số liệu tổng hợp theo ngày</div><table><thead><tr><th>Ngày</th><th>MNH TB</th><th>MNH Max</th><th>MNH Min</th><th>Q về TB</th><th>Q về Max</th><th>Q máy TB</th><th>Q xả TB</th><th>Mưa</th></tr></thead><tbody>${executiveDailyRows(data.daily||[])}</tbody></table><div class="signatures"><div class="sign"><b>Người lập</b><div></div></div><div class="sign"><b>Kiểm tra</b><div></div></div><div class="sign"><b>Phê duyệt</b><div></div></div></div></div><div class="footer"><span>Nguồn dữ liệu: Supabase / Dashboard AI</span><span>Trang 4</span></div></div>
+      <script>window.addEventListener("load",()=>setTimeout(()=>window.print(),750));<\/script></body></html>`;
+  }
+
+  function exportMonthlyExecutivePdf(){
+    try{
+      if(!monthlyReportCurrentData){toast("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");return;}
+      const win = window.open("", "_blank");
+      if(!win){toast("Trình duyệt đang chặn popup. Hãy cho phép popup để xuất PDF.");return;}
+      const status = $("monthlyReportStatus"); if(status) status.textContent = "Đang mở PDF Executive...";
+      win.document.open(); win.document.write(createMonthlyExecutiveReportHtml()); win.document.close();
+      if(status) status.textContent = "Đã mở báo cáo Executive";
+    }catch(err){
+      console.error(err);
+      const status = $("monthlyReportStatus"); if(status) status.textContent = "Lỗi xuất PDF";
+      toast("Lỗi xuất PDF Executive: " + err.message);
+    }
+  }
+
+  window.exportMonthlyExecutivePdf = exportMonthlyExecutivePdf;
+  window.exportMonthlyReportPdf = exportMonthlyExecutivePdf;
+  window.exportMonthlyPdf = exportMonthlyExecutivePdf;
 
   // --- Monthly AI Report ---
   let monthlyOperationChart = null;
