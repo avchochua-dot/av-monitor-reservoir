@@ -5875,13 +5875,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const {year, month} = getMonthlySelection();
     const mm = String(month).padStart(2,"0");
     const title = `BÁO CÁO VẬN HÀNH HỒ CHỨA THÁNG ${mm}/${year}`;
-    const createdAt = new Date().toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
+    const createdAt = new Date().toLocaleString("vi-VN", { timeZone:"Asia/Ho_Chi_Minh" });
     const aiText = monthlyAiAnalysisText || $("monthlyAiResult")?.textContent || "";
     const st = executiveStatus(data.summary || {});
 
-    const dispatchChart = monthlyChartImgTag("monthlyDispatchChart","Biểu đồ điều phối vận hành hồ chứa");
-    const opChart = monthlyChartImgTag("monthlyOperationChart","Biểu đồ vận hành tháng");
-    const rainChart = monthlyChartImgTag("monthlyRainChart","Biểu đồ mưa ngày");
+    const dispatchChart = monthlyChartImgTag("monthlyDispatchChart", "Biểu đồ điều phối vận hành hồ chứa");
+    const opChart = monthlyChartImgTag("monthlyOperationChart", "Biểu đồ vận hành tháng");
+    const rainChart = monthlyChartImgTag("monthlyRainChart", "Biểu đồ mưa ngày");
 
     const logo = "https://ubsqkaqqwdegvqrkyddx.supabase.co/storage/v1/object/sign/Picture/Logo%20AVC.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mZmFkZjVmMC1lMWQxLTRlNjEtYWNlMy02ZWUyZjY2ZTUxMDgiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJQaWN0dXJlL0xvZ28gQVZDLnBuZyIsImlhdCI6MTc3MzYzNjU0NCwiZXhwIjoyMDg4OTk2NTQ0fQ.x0qY8Ftc0kG5NJiMwbfCUAMxxdVlt00dsc5bQ6q78XU";
 
@@ -5891,58 +5891,194 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 <meta charset="utf-8">
 <title>${escapeMonthlyHtml(title)}</title>
 <style>
-@page{size:A4 portrait;margin:0.79in 0.79in 0.79in 1.18in}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:"Times New Roman",Times,serif;font-size:14pt;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.report-doc{width:100%;background:#fff}
-.report-header{display:grid;grid-template-columns:105px 1fr 105px;gap:10px;align-items:center;border-bottom:3px solid #1d4ed8;padding:0 0 7px;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid}
-.logo{width:98px;height:38px;object-fit:contain}
-.company{text-align:center}
-.company-title{display:block;white-space:nowrap;font-size:13.5pt;line-height:1.05;font-weight:900;text-transform:uppercase;letter-spacing:-.2px}
-.company-subtitle{display:block;margin-top:2px;font-size:11pt;line-height:1.1;color:#2563eb;font-weight:900;text-transform:uppercase}
-.report-title{margin:12px 0 4px;text-align:center;font-size:20pt;line-height:1.15;font-weight:900;text-transform:uppercase}
-.report-subtitle{text-align:center;font-size:12pt;font-weight:700;color:#475569}
-.report-meta{text-align:center;margin:5px 0 10px;color:#64748b;font-size:10.5pt}
-.section{break-inside:avoid;page-break-inside:avoid;margin:10px 0 8px}
-.section-title{display:flex;align-items:center;gap:7px;margin:0 0 7px;color:#1e293b;font-size:15pt;font-weight:900;text-transform:uppercase}
-.section-title:before{content:"";width:7px;height:22px;border-radius:99px;background:linear-gradient(180deg,#2563eb,#06b6d4);flex:none}
-.executive-band{display:grid;grid-template-columns:145px 1fr;gap:9px;padding:9px;border:1px solid #bfdbfe;border-radius:13px;background:linear-gradient(135deg,#eff6ff,#f8fafc);break-inside:avoid;page-break-inside:avoid}
-.status-badge{min-height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14.5pt;text-transform:uppercase;text-align:center}
-.status-badge.green{background:linear-gradient(135deg,#16a34a,#0f766e)}
-.status-badge.orange{background:linear-gradient(135deg,#f97316,#f59e0b)}
-.status-badge.red{background:linear-gradient(135deg,#dc2626,#ef4444)}
-.headline{align-self:center;font-size:13pt;font-weight:800;text-align:justify}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px;break-inside:avoid;page-break-inside:avoid}
-.kpi{min-height:58px;border:1px solid #dbeafe;border-radius:10px;background:#fff;padding:7px 8px}
-.kpi-label{color:#64748b;font-size:8.8pt;font-weight:900;text-transform:uppercase}
-.kpi-value{margin-top:2px;display:block;color:#2563eb;font-size:14.5pt;font-weight:900;line-height:1.08}
-.kpi-sub{margin-top:2px;display:block;color:#64748b;font-size:8.8pt;font-weight:700}
-.kpi.green .kpi-value{color:#16a34a}.kpi.red .kpi-value{color:#ef4444}.kpi.orange .kpi-value{color:#f59e0b}.kpi.purple .kpi-value{color:#7c3aed}.kpi.cyan .kpi-value{color:#0ea5e9}.kpi.amber .kpi-value{color:#d97706}.kpi.violet .kpi-value{color:#8b5cf6}
-.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;break-inside:avoid;page-break-inside:avoid}
-.risk{min-height:56px;border-radius:10px;border:1px solid #e2e8f0;padding:7px;background:#f8fafc}
-.risk small{display:block;font-size:8.6pt;color:#64748b;font-weight:900;text-transform:uppercase}
-.risk b{display:block;margin-top:2px;font-size:11.5pt;font-weight:900}
-.risk span{font-size:8.8pt;color:#64748b;font-weight:700}
-.risk.green{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.risk.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.risk.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}.risk.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.risk.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}
-.event-box{border:1px solid #e2e8f0;border-radius:12px;padding:8px;background:#fff;break-inside:avoid;page-break-inside:avoid}
-.event{border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:9px;padding:6px 7px;margin-bottom:5px;background:#fff}
-.event.warning{border-left-color:#f97316;background:#fff7ed}.event b{display:block;margin-bottom:2px;font-size:11.5pt}.event span{display:block;color:#334155;font-size:11pt;text-align:justify}.event small{display:block;margin-top:2px;color:#2563eb;font-size:10pt;font-weight:800}
-.ai-box{border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;padding:11px 13px;font-size:14pt;text-align:justify}
-.ai-box h3,.ai-box h4{margin:7px 0 3px;color:#1e40af;text-align:left}.ai-box p,.ai-box .justify{margin:0 0 7px;text-align:justify}.ai-box ul{margin:0 0 7px 18px;padding:0;text-align:justify}
-.chart-section{break-before:page;page-break-before:always;margin-top:0}
-.chart-frame{width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:7px;background:#fff;break-inside:avoid;page-break-inside:avoid}
-.chart-img{width:100%;height:auto;max-height:7.65in;object-fit:contain;display:block}
-.chart-note{margin-top:4px;color:#64748b;font-size:11pt;font-style:italic;text-align:justify}
-.appendix-section{break-before:page;page-break-before:always}
-table{width:100%;border-collapse:collapse;font-size:9.5pt}
-th,td{border:1px solid #cbd5e1;padding:2.5px 3px;text-align:center}
-th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}
-td:first-child{text-align:left;font-weight:700}
-.signature-block{margin-top:22mm;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;break-inside:avoid;page-break-inside:avoid}
-.signature-block b{font-size:14pt;text-transform:uppercase}
-.signature-line{margin-top:25mm;border-top:1px dotted #111;padding-top:4px;min-height:8mm}
-.report-end-footer{margin-top:14mm;border-top:1px solid #cbd5e1;padding-top:5px;display:flex;justify-content:space-between;color:#64748b;font-size:10pt}
-@media screen{body{background:#e5e7eb;padding:18px}.report-doc{width:210mm;margin:0 auto;padding:0;background:#fff;box-shadow:0 18px 50px rgba(15,23,42,.22)}}
+  @page{size:A4 portrait;margin:0.79in 0.79in 0.79in 1.18in}
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;
+    padding:0;
+    background:#fff;
+    color:#111827;
+    font-family:"Times New Roman", Times, serif;
+    font-size:14pt;
+    line-height:1.28;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  .report-doc{width:100%;background:#fff}
+  .report-header{
+    display:grid;
+    grid-template-columns:105px 1fr 105px;
+    gap:10px;
+    align-items:center;
+    border-bottom:3px solid #1d4ed8;
+    padding:0 0 7px;
+    margin-bottom:10px;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .logo{width:98px;height:38px;object-fit:contain}
+  .company{text-align:center;min-width:0}
+  .company-title{
+    display:block;
+    white-space:nowrap;
+    font-size:13.2pt;
+    line-height:1.05;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:-0.25px;
+  }
+  .company-subtitle{
+    display:block;
+    margin-top:2px;
+    color:#2563eb;
+    font-size:11pt;
+    line-height:1.1;
+    font-weight:900;
+    text-transform:uppercase;
+  }
+  .report-title{
+    margin:12px 0 4px;
+    text-align:center;
+    font-size:20pt;
+    line-height:1.15;
+    font-weight:900;
+    text-transform:uppercase;
+  }
+  .report-subtitle{text-align:center;font-size:12pt;font-weight:700;color:#475569}
+  .report-meta{text-align:center;margin:5px 0 10px;color:#64748b;font-size:10.5pt}
+
+  .section{margin:10px 0 8px;page-break-inside:avoid;break-inside:avoid}
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin:0 0 7px;
+    color:#1e293b;
+    font-size:15pt;
+    font-weight:900;
+    text-transform:uppercase;
+  }
+  .section-title:before{
+    content:"";
+    width:7px;
+    height:22px;
+    border-radius:999px;
+    background:linear-gradient(180deg,#2563eb,#06b6d4);
+    flex:none;
+  }
+  .executive-band{
+    display:grid;
+    grid-template-columns:145px 1fr;
+    gap:9px;
+    padding:9px;
+    border:1px solid #bfdbfe;
+    border-radius:13px;
+    background:linear-gradient(135deg,#eff6ff,#f8fafc);
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .status-badge{
+    min-height:56px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:900;
+    font-size:14.5pt;
+    text-transform:uppercase;
+    text-align:center;
+  }
+  .status-badge.green{background:linear-gradient(135deg,#16a34a,#0f766e)}
+  .status-badge.orange{background:linear-gradient(135deg,#f97316,#f59e0b)}
+  .status-badge.red{background:linear-gradient(135deg,#dc2626,#ef4444)}
+  .headline{align-self:center;font-size:13pt;font-weight:800;text-align:justify}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px;page-break-inside:avoid;break-inside:avoid}
+  .kpi{min-height:58px;border:1px solid #dbeafe;border-radius:10px;background:#fff;padding:7px 8px}
+  .kpi-label{color:#64748b;font-size:8.8pt;font-weight:900;text-transform:uppercase}
+  .kpi-value{display:block;margin-top:2px;color:#2563eb;font-size:14.5pt;font-weight:900;line-height:1.08}
+  .kpi-sub{display:block;margin-top:2px;color:#64748b;font-size:8.8pt;font-weight:700}
+  .kpi.green .kpi-value{color:#16a34a}
+  .kpi.red .kpi-value{color:#ef4444}
+  .kpi.orange .kpi-value{color:#f59e0b}
+  .kpi.purple .kpi-value{color:#7c3aed}
+  .kpi.cyan .kpi-value{color:#0ea5e9}
+  .kpi.amber .kpi-value{color:#d97706}
+  .kpi.violet .kpi-value{color:#8b5cf6}
+
+  .risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;page-break-inside:avoid;break-inside:avoid}
+  .risk{min-height:56px;border-radius:10px;border:1px solid #e2e8f0;padding:7px;background:#f8fafc}
+  .risk small{display:block;font-size:8.6pt;color:#64748b;font-weight:900;text-transform:uppercase}
+  .risk b{display:block;margin-top:2px;font-size:11.5pt;font-weight:900}
+  .risk span{font-size:8.8pt;color:#64748b;font-weight:700}
+  .risk.green{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+  .risk.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+  .risk.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+  .risk.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+  .risk.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}
+
+  .event-box{border:1px solid #e2e8f0;border-radius:12px;padding:8px;background:#fff;page-break-inside:avoid;break-inside:avoid}
+  .event{border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:9px;padding:6px 7px;margin-bottom:5px;background:#fff}
+  .event.warning{border-left-color:#f97316;background:#fff7ed}
+  .event b{display:block;margin-bottom:2px;font-size:11.5pt}
+  .event span{display:block;color:#334155;font-size:11pt;text-align:justify}
+  .event small{display:block;margin-top:2px;color:#2563eb;font-size:10pt;font-weight:800}
+
+  .ai-box{
+    border:1px solid #dbeafe;
+    border-radius:12px;
+    background:#f8fbff;
+    padding:11px 13px;
+    font-size:14pt;
+    text-align:justify;
+  }
+  .ai-box h3,.ai-box h4{margin:7px 0 3px;color:#1e40af;text-align:left}
+  .ai-box p,.ai-box .justify{margin:0 0 7px;text-align:justify}
+  .ai-box ul{margin:0 0 7px 18px;padding:0;text-align:justify}
+
+  .page-break{break-before:page;page-break-before:always;margin-top:0}
+  .chart-frame{
+    width:100%;
+    border:1px solid #cbd5e1;
+    border-radius:12px;
+    padding:7px;
+    background:#fff;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .chart-img{width:100%;height:auto;max-height:7.55in;object-fit:contain;display:block}
+  .chart-note{margin-top:4px;color:#64748b;font-size:11pt;font-style:italic;text-align:justify}
+
+  table{width:100%;border-collapse:collapse;font-size:9.5pt}
+  th,td{border:1px solid #cbd5e1;padding:2.5px 3px;text-align:center}
+  th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}
+  td:first-child{text-align:left;font-weight:700}
+
+  .signature-block{
+    margin-top:22mm;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    text-align:center;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .signature-block b{font-size:14pt;text-transform:uppercase}
+  .signature-line{margin-top:25mm;border-top:1px dotted #111;padding-top:4px;min-height:8mm}
+  .report-end-footer{
+    margin-top:14mm;
+    border-top:1px solid #cbd5e1;
+    padding-top:5px;
+    display:flex;
+    justify-content:space-between;
+    color:#64748b;
+    font-size:10pt;
+  }
+  @media screen{
+    body{background:#e5e7eb;padding:18px}
+    .report-doc{width:210mm;margin:0 auto;background:#fff;box-shadow:0 18px 50px rgba(15,23,42,.22);padding:0}
+  }
 </style>
 </head>
 <body>
@@ -5979,12 +6115,12 @@ td:first-child{text-align:left;font-weight:700}
     <div class="event-box">${executiveEvents(data.events||[])}</div>
   </section>
 
-  <section class="section chart-section">
+  <section class="section page-break">
     <h2 class="section-title">4. Nhận xét AI cho báo cáo lãnh đạo</h2>
     <div class="ai-box">${mdToExecutiveHtml(aiText)}</div>
   </section>
 
-  <section class="section chart-section">
+  <section class="section page-break">
     <h2 class="section-title">5. Biểu đồ điều phối vận hành hồ chứa</h2>
     <div class="chart-frame">
       ${dispatchChart}
@@ -5992,7 +6128,7 @@ td:first-child{text-align:left;font-weight:700}
     </div>
   </section>
 
-  <section class="section chart-section">
+  <section class="section page-break">
     <h2 class="section-title">6. Biểu đồ vận hành tháng</h2>
     <div class="chart-frame">
       ${opChart}
@@ -6000,7 +6136,7 @@ td:first-child{text-align:left;font-weight:700}
     </div>
   </section>
 
-  <section class="section chart-section">
+  <section class="section page-break">
     <h2 class="section-title">7. Biểu đồ mưa ngày</h2>
     <div class="chart-frame">
       ${rainChart}
@@ -6008,7 +6144,7 @@ td:first-child{text-align:left;font-weight:700}
     </div>
   </section>
 
-  <section class="section appendix-section">
+  <section class="section page-break">
     <h2 class="section-title">8. Phụ lục số liệu tổng hợp theo ngày</h2>
     <table>
       <thead>
@@ -6031,7 +6167,6 @@ td:first-child{text-align:left;font-weight:700}
     </div>
   </section>
 </div>
-
 <script>
   window.addEventListener("load", () => {
     setTimeout(() => window.print(), 750);
