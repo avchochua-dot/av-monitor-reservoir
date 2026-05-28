@@ -3605,6 +3605,14 @@ body.slideshow-frame-mode section{
 /* EXECUTIVE PDF REPORT V15 */
 .monthly-ai-toolbar button.executivepdf{background:linear-gradient(135deg,#0f172a,#2563eb)!important;color:#fff!important}
 
+
+.monthly-dispatch-chart-box{
+  min-height:520px!important;
+}
+.monthly-dispatch-chart-box canvas{
+  height:460px!important;
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4378,6 +4386,17 @@ body.slideshow-frame-mode section{
             <div class="monthly-kpi orange"><span>Q về trung bình</span><b id="mrInflowAvg">--</b><small>m³/s</small></div>
             <div class="monthly-kpi red"><span>Q về lớn nhất</span><b id="mrInflowMax">--</b><small id="mrInflowMaxTime">--</small></div>
             <div class="monthly-kpi green"><span>Tổng mưa tháng</span><b id="mrRainTotal">--</b><small id="mrRainDays">--</small></div>
+          </div>
+        </section>
+
+
+        <section class="monthly-ai-card">
+          <div class="monthly-box-title">Biểu đồ điều phối vận hành hồ chứa</div>
+          <div class="monthly-chart-box monthly-dispatch-chart-box">
+            <canvas id="monthlyDispatchChart"></canvas>
+          </div>
+          <div class="monthly-ai-save-note">
+            Biểu đồ này lấy dữ liệu nền MNGHD, MNGHT, MNĐL, MNTrL từ bảng reservoir_level_limits và số liệu vận hành từ reservoir_hourly_data.
           </div>
         </section>
 
@@ -5796,8 +5815,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function executiveLimits(data){
     const limits = data?.levelLimits || [];
     if(!limits.length) return `<div class="note">Chưa có dữ liệu nền giới hạn trong API báo cáo tháng. Khi bổ sung levelLimits, báo cáo sẽ thể hiện MNGHD, MNGHT, MNĐL, MNTrL.</div>`;
-    const f = limits[0] || {}, l = limits[limits.length-1] || {};
-    return `<div class="limits"><div><b>MNGHD đầu kỳ</b><span>${fmtMonthlyNumber(f.mnghd,2)} m</span></div><div><b>MNGHT đầu kỳ</b><span>${fmtMonthlyNumber(f.mnght,2)} m</span></div><div><b>MNĐL cuối kỳ</b><span>${fmtMonthlyNumber(l.mndl,2)} m</span></div><div><b>MNTrL cuối kỳ</b><span>${fmtMonthlyNumber(l.mntrl,2)} m</span></div></div>`;
+    const firstVal = (key) => limits.find(r => r && r[key] !== null && r[key] !== undefined && r[key] !== "")?.[key];
+    const lastVal = (key) => [...limits].reverse().find(r => r && r[key] !== null && r[key] !== undefined && r[key] !== "")?.[key];
+    return `<div class="limits"><div><b>MNGHD đầu kỳ</b><span>${fmtMonthlyNumber(firstVal("mnghd"),2)} m</span></div><div><b>MNGHT đầu kỳ</b><span>${fmtMonthlyNumber(firstVal("mnght"),2)} m</span></div><div><b>MNĐL cuối kỳ</b><span>${fmtMonthlyNumber(lastVal("mndl"),2)} m</span></div><div><b>MNTrL cuối kỳ</b><span>${fmtMonthlyNumber(lastVal("mntrl"),2)} m</span></div></div>`;
   }
 
   function createMonthlyExecutiveReportHtml(){
@@ -5810,10 +5830,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const st = executiveStatus(data.summary);
     const opChart = monthlyChartImgTag("monthlyOperationChart","Biểu đồ vận hành tháng");
     const rainChart = monthlyChartImgTag("monthlyRainChart","Biểu đồ mưa ngày");
-    const dispatchChart = monthlyChartImgTag("operationChart","Biểu đồ điều phối vận hành hồ chứa");
+    const dispatchChart = monthlyChartImgTag("monthlyDispatchChart","Biểu đồ điều phối vận hành hồ chứa");
     const logo = "https://ubsqkaqqwdegvqrkyddx.supabase.co/storage/v1/object/sign/Picture/Logo%20AVC.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mZmFkZjVmMC1lMWQxLTRlNjEtYWNlMy02ZWUyZjY2ZTUxMDgiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJQaWN0dXJlL0xvZ28gQVZDLnBuZyIsImlhdCI6MTc3MzYzNjU0NCwiZXhwIjoyMDg4OTk2NTQ0fQ.x0qY8Ftc0kG5NJiMwbfCUAMxxdVlt00dsc5bQ6q78XU";
     return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeMonthlyHtml(title)}</title><style>
-      @page{size:A4 portrait;margin:0.79in 0.79in 0.79in 1.18in}*{box-sizing:border-box}body{margin:0;background:#fff;color:#0f172a;font-family:"Times New Roman",Times,serif;font-size:14pt;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;background:#fff;overflow:visible;break-after:page;page-break-after:always}.page:last-child{break-after:auto;page-break-after:auto}.watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46pt;font-weight:900;color:rgba(37,99,235,.045);transform:rotate(-28deg);z-index:0;text-align:center}.content{position:relative;z-index:2}.topbar{display:grid;grid-template-columns:125px 1fr 125px;gap:10px;align-items:center;padding:8px 0 9px;border-bottom:3px solid #1d4ed8}.logo{width:115px;height:44px;object-fit:contain}.company{text-align:center}.company b{display:block;font-size:14pt;text-transform:uppercase}.company span{display:block;font-size:11pt;color:#2563eb;font-weight:800;text-transform:uppercase;margin-top:2px}.report-title{text-align:center;font-size:20pt;line-height:1.15;margin:16px 0 5px;text-transform:uppercase}.report-sub{text-align:center;color:#475569;font-size:13pt;font-weight:700}.meta{text-align:center;color:#64748b;font-size:12pt;margin:7px 0 12px}.section{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:15pt;font-weight:900;text-transform:uppercase;color:#1e293b}.section:before{content:"";width:8px;height:24px;border-radius:99px;background:linear-gradient(180deg,#2563eb,#06b6d4)}.band{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:13px;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1px solid #bfdbfe;margin-bottom:10px}.badge{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;min-height:72px;color:#fff;font-size:17pt;font-weight:900;text-transform:uppercase}.badge.green{background:linear-gradient(135deg,#16a34a,#0f766e)}.badge.orange{background:linear-gradient(135deg,#f97316,#f59e0b)}.badge.red{background:linear-gradient(135deg,#dc2626,#ef4444)}.headline{font-size:14pt;font-weight:800;color:#1e293b;align-self:center;line-height:1.45}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.kpi{min-height:72px;padding:10px;border-radius:13px;border:1px solid #dbeafe;background:#fff;box-shadow:0 6px 15px rgba(15,23,42,.04)}.kpi div{color:#64748b;font-size:10.5pt;font-weight:900;text-transform:uppercase}.kpi b{display:block;font-size:16pt;line-height:1.12;margin-top:4px;color:#2563eb}.kpi span{display:block;color:#64748b;font-size:10pt;font-weight:700;margin-top:3px}.green b{color:#16a34a}.red b{color:#ef4444}.orange b{color:#f59e0b}.purple b{color:#7c3aed}.cyan b{color:#0ea5e9}.amber b{color:#d97706}.violet b{color:#8b5cf6}.riskgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.risk{border-radius:12px;padding:9px;min-height:72px;border:1px solid #e2e8f0;background:#f8fafc}.risk small{font-size:8.7pt;color:#64748b;font-weight:900;text-transform:uppercase}.risk b{display:block;font-size:13pt;font-weight:900;margin-top:4px}.risk span{font-size:10pt;color:#64748b;font-weight:700}.risk.green{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.risk.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.risk.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}.risk.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.risk.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.card{border:1px solid #e2e8f0;border-radius:14px;padding:11px;background:#fff}.card h3{margin:0 0 8px;font-size:13pt;color:#1e293b;text-transform:uppercase}.event{border:1px solid #e2e8f0;border-left:5px solid #2563eb;border-radius:10px;padding:8px 9px;margin-bottom:7px;background:#fff}.event.warning{border-left-color:#f97316;background:#fff7ed}.event b{display:block;margin-bottom:3px}.event span{display:block;color:#334155}.event small{display:block;color:#2563eb;font-weight:800;margin-top:3px}.limits{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.limits div{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#f8fafc}.limits b{display:block;color:#475569;font-size:8.5pt;text-transform:uppercase}.limits span{display:block;font-weight:900;font-size:13pt;color:#2563eb;margin-top:3px}.note{border:1px dashed #94a3b8;border-radius:12px;padding:10px;color:#475569;background:#f8fafc}.ai{border-radius:14px;border:1px solid #dbeafe;background:#f8fbff;padding:12px 14px;font-size:14pt}.ai h3,.ai h4{margin:8px 0 4px;color:#1e40af}.ai p{margin:0 0 7px}.ai ul{margin:0 0 7px 18px;padding:0}.chart{border:1px solid #cbd5e1;border-radius:14px;padding:8px;background:#fff;margin-bottom:10px}.chart-img{width:100%;height:auto;max-height:175mm;object-fit:contain;display:block}.chart-note{color:#64748b;font-size:11pt;margin-top:5px;font-style:italic}table{width:100%;border-collapse:collapse;font-size:11pt}th,td{border:1px solid #cbd5e1;padding:4px 5px;text-align:center}th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}td:first-child{text-align:left;font-weight:700}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center}.sign b{text-transform:uppercase}.sign div{margin-top:52px;border-top:1px dotted #111;padding-top:4px}.footer{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #cbd5e1;padding-top:5px;display:flex;justify-content:space-between;font-size:10pt;color:#64748b}@media screen{body{background:#e5e7eb;padding:18px}.page{width:210mm;margin:0 auto 18px;box-shadow:0 18px 50px rgba(15,23,42,.22)}} </style></head><body>
+      @page{size:A4 portrait;margin:0.79in 0.79in 0.79in 1.18in}*{box-sizing:border-box}body{margin:0;background:#fff;color:#0f172a;font-family:"Times New Roman",Times,serif;font-size:14pt;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;min-height:9.55in;background:#fff;overflow:hidden;break-after:page;page-break-after:always;padding-bottom:0.32in}.page:last-child{break-after:auto;page-break-after:auto}.watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46pt;font-weight:900;color:rgba(37,99,235,.045);transform:rotate(-28deg);z-index:0;text-align:center}.content{position:relative;z-index:2}.topbar{display:grid;grid-template-columns:125px 1fr 125px;gap:10px;align-items:center;padding:8px 0 9px;border-bottom:3px solid #1d4ed8}.logo{width:115px;height:44px;object-fit:contain}.company{text-align:center}.company b{display:block;font-size:14pt;text-transform:uppercase}.company span{display:block;font-size:11pt;color:#2563eb;font-weight:800;text-transform:uppercase;margin-top:2px}.report-title{text-align:center;font-size:20pt;line-height:1.15;margin:16px 0 5px;text-transform:uppercase}.report-sub{text-align:center;color:#475569;font-size:13pt;font-weight:700}.meta{text-align:center;color:#64748b;font-size:12pt;margin:7px 0 12px}.section{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:15pt;font-weight:900;text-transform:uppercase;color:#1e293b}.section:before{content:"";width:8px;height:24px;border-radius:99px;background:linear-gradient(180deg,#2563eb,#06b6d4)}.band{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:13px;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1px solid #bfdbfe;margin-bottom:10px}.badge{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;min-height:72px;color:#fff;font-size:17pt;font-weight:900;text-transform:uppercase}.badge.green{background:linear-gradient(135deg,#16a34a,#0f766e)}.badge.orange{background:linear-gradient(135deg,#f97316,#f59e0b)}.badge.red{background:linear-gradient(135deg,#dc2626,#ef4444)}.headline{font-size:14pt;font-weight:800;color:#1e293b;align-self:center;line-height:1.45}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.kpi{min-height:72px;padding:10px;border-radius:13px;border:1px solid #dbeafe;background:#fff;box-shadow:0 6px 15px rgba(15,23,42,.04)}.kpi div{color:#64748b;font-size:10.5pt;font-weight:900;text-transform:uppercase}.kpi b{display:block;font-size:16pt;line-height:1.12;margin-top:4px;color:#2563eb}.kpi span{display:block;color:#64748b;font-size:10pt;font-weight:700;margin-top:3px}.green b{color:#16a34a}.red b{color:#ef4444}.orange b{color:#f59e0b}.purple b{color:#7c3aed}.cyan b{color:#0ea5e9}.amber b{color:#d97706}.violet b{color:#8b5cf6}.riskgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.risk{border-radius:12px;padding:9px;min-height:72px;border:1px solid #e2e8f0;background:#f8fafc}.risk small{font-size:8.7pt;color:#64748b;font-weight:900;text-transform:uppercase}.risk b{display:block;font-size:13pt;font-weight:900;margin-top:4px}.risk span{font-size:10pt;color:#64748b;font-weight:700}.risk.green{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.risk.orange{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.risk.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}.risk.blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.risk.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.card{border:1px solid #e2e8f0;border-radius:14px;padding:11px;background:#fff}.card h3{margin:0 0 8px;font-size:13pt;color:#1e293b;text-transform:uppercase}.event{border:1px solid #e2e8f0;border-left:5px solid #2563eb;border-radius:10px;padding:8px 9px;margin-bottom:7px;background:#fff}.event.warning{border-left-color:#f97316;background:#fff7ed}.event b{display:block;margin-bottom:3px}.event span{display:block;color:#334155}.event small{display:block;color:#2563eb;font-weight:800;margin-top:3px}.limits{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.limits div{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#f8fafc}.limits b{display:block;color:#475569;font-size:8.5pt;text-transform:uppercase}.limits span{display:block;font-weight:900;font-size:13pt;color:#2563eb;margin-top:3px}.note{border:1px dashed #94a3b8;border-radius:12px;padding:10px;color:#475569;background:#f8fafc}.ai{border-radius:14px;border:1px solid #dbeafe;background:#f8fbff;padding:12px 14px;font-size:14pt}.ai h3,.ai h4{margin:8px 0 4px;color:#1e40af}.ai p{margin:0 0 7px}.ai ul{margin:0 0 7px 18px;padding:0}.chart{border:1px solid #cbd5e1;border-radius:14px;padding:8px;background:#fff;margin-bottom:10px}.chart-img{width:100%;height:auto;max-height:175mm;object-fit:contain;display:block}.chart-note{color:#64748b;font-size:11pt;margin-top:5px;font-style:italic}table{width:100%;border-collapse:collapse;font-size:11pt}th,td{border:1px solid #cbd5e1;padding:4px 5px;text-align:center}th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}td:first-child{text-align:left;font-weight:700}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center}.sign b{text-transform:uppercase}.sign div{margin-top:52px;border-top:1px dotted #111;padding-top:4px}.footer{position:absolute;left:0;right:0;bottom:0.05in;border-top:1px solid #cbd5e1;padding-top:5px;display:flex;justify-content:space-between;font-size:10pt;color:#64748b}@media screen{body{background:#e5e7eb;padding:18px}.page{width:210mm;margin:0 auto 18px;box-shadow:0 18px 50px rgba(15,23,42,.22)}} </style></head><body>
       <div class="page"><div class="watermark">AI RESERVOIR REPORT</div><div class="content"><div class="topbar"><img class="logo" src="${logo}"><div class="company"><b>Công ty Cổ phần Thủy điện A Vương</b><span>Trung tâm giám sát & điều hành hồ chứa AI</span></div><img class="logo" src="${logo}"></div><h1 class="report-title">${escapeMonthlyHtml(title)}</h1><div class="report-sub">Báo cáo lãnh đạo tổng hợp vận hành hồ chứa bằng AI</div><div class="meta">Nguồn dữ liệu: Supabase / Dashboard AI • Thời gian tạo: ${escapeMonthlyHtml(createdAt)}</div><div class="section">1. Tóm tắt điều hành</div><div class="band"><div class="badge ${st.cls}">${escapeMonthlyHtml(st.txt)}</div><div class="headline">Hồ vận hành ${st.txt.toLowerCase()}; xu thế mực nước ${Number(data.summary?.waterLevelChange||0)<0?"giảm":"ổn định"}, tổng mưa tháng ${fmtMonthlyNumber(data.summary?.rainfallTotal,1)} mm, Q về lớn nhất ${fmtMonthlyNumber(data.summary?.inflowMax?.value,2)} m³/s.</div></div><div class="kpis">${executiveKpis(data.summary)}</div><div class="section">2. Đánh giá nhanh rủi ro & trạng thái</div><div class="riskgrid">${executiveRisk(data.summary)}</div><div class="twocol"><div class="card"><h3>Sự kiện nổi bật</h3>${executiveEvents(data.events||[])}</div><div class="card"><h3>Đường giới hạn/điều tiết</h3>${executiveLimits(data)}</div></div></div><div class="footer"><span>AI Reservoir Dashboard • EVNGENCO2</span><span>Trang 1</span></div></div>
       <div class="page"><div class="watermark">AI ANALYSIS</div><div class="content"><div class="section">3. Nhận xét AI cho báo cáo lãnh đạo</div><div class="ai">${mdToExecutiveHtml(aiText)}</div></div><div class="footer"><span>Nguồn dữ liệu: Supabase / Dashboard AI</span><span>Trang 2</span></div></div>
       <div class="page"><div class="watermark">DISPATCH CHART</div><div class="content"><div class="section">4. Biểu đồ điều phối vận hành hồ chứa</div><div class="chart">${dispatchChart}<div class="chart-note">Biểu đồ thể hiện MNH thực tế so với các đường giới hạn/điều tiết MNGHD, MNGHT, MNĐL, MNTrL và các lưu lượng vận hành.</div></div></div><div class="footer"><span>Nguồn dữ liệu: Supabase / Dashboard AI</span><span>Trang 3</span></div></div>
@@ -5909,6 +5929,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       monthlyReportLoadedKey = key;
       renderMonthlyReport(data);
+      try{ if(typeof loadOperationChart === "function") await loadOperationChart(false); }catch(e){ console.warn("monthly dispatch chart", e); }
       await loadLatestMonthlyAiReport();
       if(status && (!monthlyAiAnalysisText)) status.textContent = `Đã tải ${data.summary?.dayCount || 0} ngày`;
     }catch(err){
@@ -7493,6 +7514,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
    ========================================================= */
 (function(){
   let operationChartInstance = null;
+  let monthlyDispatchChartInstance = null;
   let operationChartLoadedYear = null;
 
   function opNum(v){
@@ -7850,6 +7872,42 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           }
         }
       });
+
+      const reportCanvas = document.getElementById("monthlyDispatchChart");
+      if(reportCanvas && window.Chart){
+        if(monthlyDispatchChartInstance) monthlyDispatchChartInstance.destroy();
+        monthlyDispatchChartInstance = new Chart(reportCanvas, {
+          data:{
+            labels,
+            datasets:[
+              {type:"line",label:"MNH",data:mnh,yAxisID:"yLevel",borderColor:"#3b82f6",backgroundColor:"rgba(59,130,246,0.08)",borderWidth:3.5,pointRadius:1.2,tension:0.25,spanGaps:false,order:1},
+              {type:"line",label:"Q về",data:qve,yAxisID:"yFlow",borderColor:"#ef4444",backgroundColor:"#ef4444",borderWidth:1.8,pointRadius:0,tension:0.18,spanGaps:false,order:2},
+              {type:"line",label:"Q chạy máy",data:qmay,yAxisID:"yFlow",borderColor:"#f59e0b",backgroundColor:"#f59e0b",borderWidth:1.8,pointRadius:0,tension:0.18,spanGaps:false,order:2},
+              {type:"line",label:"Q xả",data:qxa,yAxisID:"yFlow",borderColor:"#7c3aed",backgroundColor:"#7c3aed",borderWidth:2,pointRadius:0,tension:0.18,spanGaps:false,order:2},
+              {type:"line",label:"MNGHD",data:mnghd,yAxisID:"yLevel",borderColor:"#f97316",backgroundColor:"#f97316",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
+              {type:"line",label:"MNGHT",data:mnght,yAxisID:"yLevel",borderColor:"#ff00ff",backgroundColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
+              {type:"line",label:"MNĐL",data:mndl,yAxisID:"yLevel",borderColor:"#dc2626",backgroundColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
+              {type:"line",label:"MNTrL",data:mntrl,yAxisID:"yLevel",borderColor:"#06b6d4",backgroundColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0}
+            ]
+          },
+          options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            animation:false,
+            interaction:{mode:"index",intersect:false},
+            plugins:{
+              legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:10,font:{weight:"700"}}},
+              title:{display:true,text:`BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG NĂM ${year}`,color:"#f2b705",font:{size:16,weight:"900"}}
+            },
+            scales:{
+              x:{ticks:{autoSkip:true,maxTicksLimit:24,maxRotation:45,minRotation:45,color:"#64748b",font:{size:10}},grid:{color:"rgba(15,23,42,0.055)"},title:{display:true,text:"Thời gian",color:"#06b6d4",font:{weight:"900"}}},
+              yLevel:{position:"left",min:340,max:383,ticks:{stepSize:5,color:"#3b82f6",font:{weight:"700"}},title:{display:true,text:"Mực nước hồ (m)",color:"#3b82f6",font:{weight:"900",size:13}},grid:{color:"rgba(15,23,42,0.08)"}},
+              yFlow:{position:"right",min:0,max:2500,ticks:{color:"#92400e",font:{weight:"700"}},title:{display:true,text:"Lưu lượng (m³/s)",color:"#92400e",font:{weight:"900",size:13}},grid:{drawOnChartArea:false}}
+            }
+          }
+        });
+      }
+
 
       const actualDays = Object.keys(opDaily).length;
       const limitCount = limits.length;
