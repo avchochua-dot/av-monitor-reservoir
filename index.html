@@ -3613,6 +3613,73 @@ body.slideshow-frame-mode section{
   height:460px!important;
 }
 
+
+.monthly-kpi-grid.freq-enabled{
+  grid-template-columns:repeat(7,minmax(0,1fr));
+}
+.monthly-kpi.teal b{color:#0f9488}
+.monthly-frequency-card{
+  border:1px solid rgba(20,184,166,.18);
+  background:
+    radial-gradient(240px 120px at 0% 0%, rgba(20,184,166,.12), transparent 70%),
+    #fff;
+}
+.monthly-frequency-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.monthly-frequency-item{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:16px;
+  background:#fff;
+  padding:12px;
+  min-height:82px;
+}
+.monthly-frequency-item span{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+  margin-bottom:6px;
+}
+.monthly-frequency-item b{
+  display:block;
+  color:#0f9488;
+  font-size:22px;
+  font-weight:1000;
+  letter-spacing:-.7px;
+  line-height:1.05;
+}
+.monthly-frequency-item small{
+  display:block;
+  color:#64748b;
+  font-size:11px;
+  font-weight:850;
+  margin-top:4px;
+}
+.monthly-frequency-comment{
+  margin-top:10px;
+  border-radius:14px;
+  background:#ecfdf5;
+  border:1px solid rgba(16,185,129,.18);
+  color:#065f46;
+  padding:10px 12px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:850;
+}
+@media(max-width:1500px){
+  .monthly-kpi-grid.freq-enabled{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .monthly-frequency-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:680px){
+  .monthly-kpi-grid.freq-enabled{grid-template-columns:1fr}
+  .monthly-frequency-grid{grid-template-columns:1fr}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4379,14 +4446,43 @@ body.slideshow-frame-mode section{
             </div>
           </div>
 
-          <div class="monthly-kpi-grid">
+          <div class="monthly-kpi-grid freq-enabled">
             <div class="monthly-kpi blue"><span>MNH lớn nhất</span><b id="mrWlMax">--</b><small id="mrWlMaxTime">--</small></div>
             <div class="monthly-kpi cyan"><span>MNH nhỏ nhất</span><b id="mrWlMin">--</b><small id="mrWlMinTime">--</small></div>
             <div class="monthly-kpi purple"><span>Biến đổi MNH</span><b id="mrWlChange">--</b><small>m trong kỳ</small></div>
             <div class="monthly-kpi orange"><span>Q về trung bình</span><b id="mrInflowAvg">--</b><small>m³/s</small></div>
+            <div class="monthly-kpi teal"><span>Tần suất nước về</span><b id="mrInflowFreq">--</b><small id="mrInflowFreqClass">--</small></div>
             <div class="monthly-kpi red"><span>Q về lớn nhất</span><b id="mrInflowMax">--</b><small id="mrInflowMaxTime">--</small></div>
             <div class="monthly-kpi green"><span>Tổng mưa tháng</span><b id="mrRainTotal">--</b><small id="mrRainDays">--</small></div>
           </div>
+        </section>
+
+
+        <section class="monthly-ai-card monthly-frequency-card">
+          <div class="monthly-box-title">Tần suất nước về hồ</div>
+          <div class="monthly-frequency-grid">
+            <div class="monthly-frequency-item">
+              <span>Q về TB tháng</span>
+              <b id="mrFreqInflowAvg">--</b>
+              <small>m³/s</small>
+            </div>
+            <div class="monthly-frequency-item">
+              <span>Tần suất gần nhất</span>
+              <b id="mrFreqLabel">--</b>
+              <small>Tra bảng tần suất nước về</small>
+            </div>
+            <div class="monthly-frequency-item">
+              <span>Giá trị tra bảng</span>
+              <b id="mrFreqValue">--</b>
+              <small>m³/s</small>
+            </div>
+            <div class="monthly-frequency-item">
+              <span>Phân loại thủy văn</span>
+              <b id="mrFreqClass">--</b>
+              <small>Theo tần suất P%</small>
+            </div>
+          </div>
+          <div id="mrFreqComment" class="monthly-frequency-comment">Chưa có dữ liệu tần suất. Bấm Tổng hợp để tải báo cáo tháng.</div>
         </section>
 
 
@@ -5713,9 +5809,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   </table>
 
   <div class="signatures">
-    <div class="sign"><b>Người lập</b><br><br><br><br>.....................</div>
-    <div class="sign"><b>Kiểm tra</b><br><br><br><br>.....................</div>
-    <div class="sign"><b>Phê duyệt</b><br><br><br><br>.....................</div>
+    <div class="sign"><b>Người lập</b><br><br><br><br><br>.....................</div>
+    <div class="sign"><b>Kiểm tra</b><br><br><br><br><br>.....................</div>
+    <div class="sign"><b>Phê duyệt</b><br><br><br><br><br>.....................</div>
   </div>
 
   <div class="footer">
@@ -6075,6 +6171,47 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   .chart-img{width:100%;height:auto;max-height:7.55in;object-fit:contain;display:block}
   .chart-note{margin-top:4px;color:#64748b;font-size:11pt;font-style:italic;text-align:justify}
 
+
+  .freq-report-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:7px;
+    margin-top:6px;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .freq-report-grid div{
+    border:1px solid #ccfbf1;
+    border-radius:10px;
+    background:#f0fdfa;
+    padding:8px;
+  }
+  .freq-report-grid small{
+    display:block;
+    color:#64748b;
+    font-size:8.8pt;
+    font-weight:900;
+    text-transform:uppercase;
+  }
+  .freq-report-grid b{
+    display:block;
+    margin-top:3px;
+    color:#0f766e;
+    font-size:13pt;
+    font-weight:900;
+  }
+  .freq-report-comment,.freq-report-note{
+    margin:7px 0 0;
+    border:1px solid #bbf7d0;
+    border-radius:10px;
+    background:#ecfdf5;
+    color:#065f46;
+    padding:8px;
+    font-size:11.5pt;
+    text-align:justify;
+    font-weight:700;
+  }
+
   table{width:100%;border-collapse:collapse;font-size:9.5pt}
   th,td{border:1px solid #cbd5e1;padding:2.5px 3px;text-align:center}
   th{background:#eaf2ff;color:#1e3a8a;text-transform:uppercase;font-weight:900}
@@ -6136,17 +6273,22 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   </section>
 
   <section class="section">
-    <h2 class="section-title">3. Sự kiện nổi bật</h2>
+    <h2 class="section-title">3. Tần suất nước về hồ</h2>
+    ${monthlyFrequencyHtml(data.inflowFrequency)}
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">4. Sự kiện nổi bật</h2>
     <div class="event-box">${executiveEvents(data.events||[])}</div>
   </section>
 
   <section class="section page-break">
-    <h2 class="section-title">4. Nhận xét AI cho báo cáo lãnh đạo</h2>
+    <h2 class="section-title">5. Nhận xét AI cho báo cáo lãnh đạo</h2>
     <div class="ai-box">${mdToExecutiveHtml(aiText)}</div>
   </section>
 
   <section class="section page-break">
-    <h2 class="section-title">5. Biểu đồ điều phối vận hành hồ chứa</h2>
+    <h2 class="section-title">6. Biểu đồ điều phối vận hành hồ chứa</h2>
     <div class="chart-frame">
       ${dispatchChart}
       <div class="chart-note">Biểu đồ thể hiện MNH thực tế so với các đường giới hạn/điều tiết MNGHD, MNGHT, MNĐL, MNTrL và các lưu lượng vận hành.</div>
@@ -6154,7 +6296,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   </section>
 
   <section class="section page-break">
-    <h2 class="section-title">6. Biểu đồ vận hành tháng</h2>
+    <h2 class="section-title">7. Biểu đồ vận hành tháng</h2>
     <div class="chart-frame">
       ${opChart}
       <div class="chart-note">Biểu đồ thể hiện diễn biến mực nước hồ, Q về, Q chạy máy và Q xả trung bình ngày.</div>
@@ -6162,7 +6304,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   </section>
 
   <section class="section page-break">
-    <h2 class="section-title">7. Biểu đồ mưa ngày</h2>
+    <h2 class="section-title">8. Biểu đồ mưa ngày</h2>
     <div class="chart-frame">
       ${rainChart}
       <div class="chart-note">Biểu đồ thể hiện phân bố lượng mưa ngày trong kỳ báo cáo.</div>
@@ -6170,7 +6312,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   </section>
 
   <section class="section page-break">
-    <h2 class="section-title">8. Phụ lục số liệu tổng hợp theo ngày</h2>
+    <h2 class="section-title">9. Phụ lục số liệu tổng hợp theo ngày</h2>
     <table>
       <thead>
         <tr>
@@ -6296,6 +6438,48 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+
+  function renderMonthlyInflowFrequency(freq){
+    const setText = (id, value) => {
+      const el = $(id);
+      if(el) el.textContent = value;
+    };
+
+    if(!freq){
+      setText("mrInflowFreq", "--");
+      setText("mrInflowFreqClass", "Chưa có dữ liệu");
+      setText("mrFreqInflowAvg", "--");
+      setText("mrFreqLabel", "--");
+      setText("mrFreqValue", "--");
+      setText("mrFreqClass", "--");
+      setText("mrFreqComment", "Chưa có dữ liệu tần suất nước về hồ. Kiểm tra API monthly-report hoặc bảng monthly_inflow_frequency.");
+      return;
+    }
+
+    setText("mrInflowFreq", freq.frequencyLabel || "--");
+    setText("mrInflowFreqClass", freq.classification || "--");
+    setText("mrFreqInflowAvg", fmtMonthlyNumber(freq.inflowAvg, 2));
+    setText("mrFreqLabel", freq.frequencyLabel || "--");
+    setText("mrFreqValue", fmtMonthlyNumber(freq.inflowFrequencyValue, 2));
+    setText("mrFreqClass", freq.classification || "--");
+    setText("mrFreqComment", freq.comment || `Q về trung bình tháng gần với tần suất ${freq.frequencyLabel || "--"}.`);
+  }
+
+  function monthlyFrequencyHtml(freq){
+    if(!freq){
+      return `<div class="freq-report-note">Chưa có dữ liệu tần suất nước về hồ.</div>`;
+    }
+    return `
+      <div class="freq-report-grid">
+        <div><small>Q về TB tháng</small><b>${escapeMonthlyHtml(fmtMonthlyNumber(freq.inflowAvg,2))} m³/s</b></div>
+        <div><small>Tần suất gần nhất</small><b>${escapeMonthlyHtml(freq.frequencyLabel || "--")}</b></div>
+        <div><small>Giá trị tra bảng</small><b>${escapeMonthlyHtml(fmtMonthlyNumber(freq.inflowFrequencyValue,2))} m³/s</b></div>
+        <div><small>Phân loại thủy văn</small><b>${escapeMonthlyHtml(freq.classification || "--")}</b></div>
+      </div>
+      <p class="freq-report-comment">${escapeMonthlyHtml(freq.comment || "")}</p>
+    `;
+  }
+
   function renderMonthlyReport(data){
     monthlyReportCurrentData = data;
     monthlyAiAnalysisText = "";
@@ -6321,6 +6505,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     $("mrRainDays").textContent = `${s.rainyDays || 0} ngày có mưa`;
 
     $("monthlyAiPrompt").value = data.aiPrompt || "";
+
+    renderMonthlyInflowFrequency(data.inflowFrequency || null);
 
     renderMonthlyEvents(data.events || []);
     renderMonthlyDailyTable(data.daily || []);
