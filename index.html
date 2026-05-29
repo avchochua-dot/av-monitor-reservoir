@@ -6172,6 +6172,58 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   .chart-note{margin-top:4px;color:#64748b;font-size:11pt;font-style:italic;text-align:justify}
 
 
+
+  /* Restore compact Executive KPI style */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    margin:7px 0;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .kpi{
+    min-height:58px;
+    padding:7px 8px;
+    border-radius:10px;
+    border:1px solid #dbeafe;
+    background:#fff;
+    box-shadow:0 3px 9px rgba(15,23,42,.035);
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .kpi div{
+    color:#64748b;
+    font-size:8.8pt;
+    font-weight:900;
+    text-transform:uppercase;
+    line-height:1.15;
+  }
+  .kpi b{
+    display:block;
+    font-size:14.5pt;
+    line-height:1.08;
+    margin-top:2px;
+    color:#2563eb;
+    white-space:normal;
+  }
+  .kpi span{
+    display:block;
+    color:#64748b;
+    font-size:8.8pt;
+    font-weight:700;
+    margin-top:2px;
+    line-height:1.15;
+  }
+  .green b{color:#16a34a}.red b{color:#ef4444}.orange b{color:#f59e0b}.purple b{color:#7c3aed}.cyan b{color:#0ea5e9}.amber b{color:#d97706}.violet b{color:#8b5cf6}.teal b{color:#0f766e}
+  .riskgrid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+
   .freq-report-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -6264,12 +6316,12 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       <div class="status-badge ${st.cls}">${escapeMonthlyHtml(st.txt)}</div>
       <div class="headline">Hồ vận hành ${escapeMonthlyHtml(st.txt.toLowerCase())}; xu thế mực nước ${Number(data.summary?.waterLevelChange||0)<0?"giảm":"ổn định"}, tổng mưa tháng ${fmtMonthlyNumber(data.summary?.rainfallTotal,1)} mm, Q về lớn nhất ${fmtMonthlyNumber(data.summary?.inflowMax?.value,2)} m³/s.</div>
     </div>
-    <div class="kpi-grid">${executiveKpis(data.summary)}</div>
+    <div class="kpis">${executiveKpis(data.summary)}</div>
   </section>
 
   <section class="section">
     <h2 class="section-title">2. Đánh giá nhanh rủi ro & trạng thái</h2>
-    <div class="risk-grid">${executiveRisk(data.summary)}</div>
+    <div class="riskgrid">${executiveRisk(data.summary)}</div>
   </section>
 
   <section class="section">
