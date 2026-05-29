@@ -12,6 +12,16 @@
  * Optional table:
  * - public.reservoir_level_limits
  *   date, mnghd, mnght, mndl, mntrl
+ *
+ * Frequency table:
+ * - public.monthly_inflow_frequency
+ *   frequency_percent, month, inflow_value
+ *
+ * Lưu ý:
+ * - frequency_percent đang lưu dạng:
+ *   0.5 = 50%
+ *   0.8 = 80%
+ *   0.02 = 2%
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -62,8 +72,10 @@ function findExtreme(rows, key, type = "max") {
 function monthRangeUtc(year, month) {
   const y = Number(year);
   const m = Number(month);
+
   const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
   const end = new Date(Date.UTC(y, m, 1, 0, 0, 0));
+
   return {
     startIso: start.toISOString(),
     endIso: end.toISOString(),
@@ -72,6 +84,28 @@ function monthRangeUtc(year, month) {
 
 function dateKey(iso) {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+function formatPercentLabel(value) {
+  const n = num(value);
+  if (n === null) return "-";
+
+  const percent = n <= 1 ? n * 100 : n;
+  const rounded = Number(percent.toFixed(2));
+
+  if (Number.isInteger(rounded)) return `${rounded}%`;
+
+  return `${String(rounded).replace(".", ",")}%`;
+}
+
+function classifyInflowFrequency(frequencyPercent) {
+  const p = num(frequencyPercent);
+  if (p === null) return "Chưa xác định";
+
+  if (p <= 0.25) return "Nhóm nhiều nước";
+  if (p <= 0.5) return "Nhóm trung bình đến khá";
+  if (p <= 0.75) return "Nhóm ít nước";
+  return "Nhóm rất ít nước / khô";
 }
 
 function groupDaily(rows) {
@@ -113,7 +147,7 @@ function groupDaily(rows) {
   }));
 }
 
-function detectEvents(rows, daily) {
+function detectEvents(rows, daily, inflowFrequency = null) {
   const events = [];
 
   const inflowMax = findExtreme(rows, "inflow", "max");
@@ -142,6 +176,7 @@ function detectEvents(rows, daily) {
 
   const rainMaxDay = daily.reduce((best, cur) => {
     if (!best) return cur;
+
     return (num(cur.rainfallTotal) || 0) > (num(best.rainfallTotal) || 0)
       ? cur
       : best;
@@ -169,10 +204,22 @@ function detectEvents(rows, daily) {
     });
   }
 
+  if (inflowFrequency) {
+    events.push({
+      type: "inflow_frequency",
+      level: inflowFrequency.frequencyPercent >= 0.75 ? "warning" : "info",
+      time: null,
+      title: "Tần suất nước về tháng",
+      description: `Q về trung bình tháng ${inflowFrequency.month} đạt ${inflowFrequency.inflowAvg} m3/s, gần tần suất P=${inflowFrequency.frequencyLabel}, thuộc ${inflowFrequency.classification.toLowerCase()}.`,
+    });
+  }
+
   return events;
 }
 
 function makeAiPrompt(data) {
+  const f = data.inflowFrequency;
+
   return `
 Bạn là trợ lý AI phân tích vận hành hồ chứa thủy điện A Vương.
 Hãy viết nhận xét báo cáo tháng bằng văn phong kỹ thuật, ngắn gọn, rõ ràng.
@@ -190,12 +237,23 @@ Dữ liệu tháng ${data.month}/${data.year}:
 - Số ngày có mưa: ${data.summary.rainyDays ?? "-"} ngày
 - Ngày mưa lớn nhất: ${data.summary.rainMaxDay?.date ?? "-"} với ${data.summary.rainMaxDay?.value ?? "-"} mm
 
+${f ? `Đánh giá tần suất nước về:
+- Q về trung bình tháng: ${f.inflowAvg} m3/s
+- Gần với tần suất P=${f.frequencyLabel}
+- Giá trị tra bảng tại tần suất gần nhất: ${f.inflowFrequencyValue} m3/s
+- Phân loại thủy văn: ${f.classification}
+- Nhận xét tần suất: ${f.comment}
+` : `Đánh giá tần suất nước về:
+- Chưa có dữ liệu tần suất nước về hoặc chưa tra được bảng tần suất.
+`}
+
 Yêu cầu trả về:
 1. Nhận xét chung
 2. Thủy văn và dòng chảy
-3. Mưa trong tháng
-4. Vận hành hồ chứa
-5. Kết luận và kiến nghị
+3. Đánh giá tần suất nước về hồ
+4. Mưa trong tháng
+5. Vận hành hồ chứa
+6. Kết luận và kiến nghị
 `.trim();
 }
 
@@ -256,10 +314,7 @@ async function fetchLevelLimits(year) {
   try {
     const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_level_limits`);
 
-    url.searchParams.set(
-      "select",
-      "date,mnghd,mnght,mndl,mntrl"
-    );
+    url.searchParams.set("select", "date,mnghd,mnght,mndl,mntrl");
 
     url.searchParams.append("date", `gte.${year}-01-01`);
     url.searchParams.append("date", `lte.${year}-12-31`);
@@ -282,6 +337,66 @@ async function fetchLevelLimits(year) {
     return text ? JSON.parse(text) : [];
   } catch (_) {
     return [];
+  }
+}
+
+async function fetchInflowFrequency(month, inflowAvg) {
+  const q = num(inflowAvg);
+
+  if (!SUPABASE_URL || !SUPABASE_KEY || !month || q === null) {
+    return null;
+  }
+
+  try {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/monthly_inflow_frequency`);
+
+    url.searchParams.set("select", "frequency_percent,month,inflow_value");
+    url.searchParams.set("month", `eq.${month}`);
+    url.searchParams.set("order", "frequency_percent.asc");
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) return null;
+
+    const rows = text ? JSON.parse(text) : [];
+
+    if (!rows.length) return null;
+
+    let nearest = rows[0];
+
+    for (const row of rows) {
+      const d1 = Math.abs(Number(row.inflow_value) - q);
+      const d2 = Math.abs(Number(nearest.inflow_value) - q);
+
+      if (d1 < d2) nearest = row;
+    }
+
+    const frequencyPercent = Number(nearest.frequency_percent);
+    const frequencyLabel = formatPercentLabel(frequencyPercent);
+    const inflowFrequencyValue = round(nearest.inflow_value, 2);
+    const classification = classifyInflowFrequency(frequencyPercent);
+
+    return {
+      month,
+      inflowAvg: round(q, 2),
+      frequencyPercent,
+      frequencyLabel,
+      inflowFrequencyValue,
+      classification,
+      nearest,
+      rows,
+      comment: `Q về trung bình tháng ${month} là ${round(q, 2)} m3/s, gần với tần suất P=${frequencyLabel}, tương ứng Q=${inflowFrequencyValue} m3/s.`,
+    };
+  } catch (_) {
+    return null;
   }
 }
 
@@ -324,8 +439,7 @@ export default async function handler(req, res) {
     const rainMaxDay = daily.reduce((best, cur) => {
       if (!best) return cur;
 
-      return (num(cur.rainfallTotal) || 0) >
-        (num(best.rainfallTotal) || 0)
+      return (num(cur.rainfallTotal) || 0) > (num(best.rainfallTotal) || 0)
         ? cur
         : best;
     }, null);
@@ -379,9 +493,7 @@ export default async function handler(req, res) {
 
       rainfallTotal: round(sum(rows.map(r => r.rainfallreal)), 2),
 
-      rainyDays: daily.filter(
-        d => (num(d.rainfallTotal) || 0) > 0
-      ).length,
+      rainyDays: daily.filter(d => (num(d.rainfallTotal) || 0) > 0).length,
 
       rainMaxDay: rainMaxDay
         ? {
@@ -393,6 +505,13 @@ export default async function handler(req, res) {
             value: null,
           },
     };
+
+    const inflowFrequency = await fetchInflowFrequency(
+      month,
+      summary.inflowAvg
+    );
+
+    const events = detectEvents(rows, daily, inflowFrequency);
 
     const result = {
       ok: true,
@@ -408,6 +527,8 @@ export default async function handler(req, res) {
 
       summary,
 
+      inflowFrequency,
+
       daily,
 
       chartData: daily.map(d => ({
@@ -421,17 +542,17 @@ export default async function handler(req, res) {
 
       levelLimits: limits,
 
-      events: detectEvents(rows, daily),
+      events,
 
       aiPrompt: makeAiPrompt({
         year,
         month,
         summary,
+        inflowFrequency,
       }),
     };
 
     return json(res, 200, result);
-
   } catch (err) {
     return json(res, 500, {
       ok: false,
