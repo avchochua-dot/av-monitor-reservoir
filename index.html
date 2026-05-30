@@ -4853,18 +4853,27 @@ body.slideshow-frame-mode section{
     const y = $id("qt1865Year");
     const now = new Date();
     const qs = new URLSearchParams(location.search || "");
-    const defaultMonth = Number(qs.get("month") || 5 || (now.getMonth()+1));
+    const queryMonth = qs.get("month");
+    const defaultMonth = queryMonth === null ? "5" : String(queryMonth || "");
     const defaultYear = Number(qs.get("year") || 2026 || now.getFullYear());
 
     if(m && m.options.length === 0){
       m.innerHTML = "";
+
+      const allOp = document.createElement("option");
+      allOp.value = "";
+      allOp.textContent = "Cả năm";
+      m.appendChild(allOp);
+
       for(let i=1;i<=12;i++){
         const op = document.createElement("option");
         op.value = String(i);
         op.textContent = "Tháng " + String(i).padStart(2,"0");
         m.appendChild(op);
       }
-      m.value = String(defaultMonth >= 1 && defaultMonth <= 12 ? defaultMonth : (now.getMonth()+1));
+
+      const dm = Number(defaultMonth);
+      m.value = defaultMonth === "" ? "" : String(dm >= 1 && dm <= 12 ? dm : 5);
     }
 
     if(y && y.options.length === 0){
@@ -4883,9 +4892,10 @@ body.slideshow-frame-mode section{
 
   function selected(){
     initQT1865Selectors();
+    const monthValue = $id("qt1865Month")?.value || "";
     return {
       year: Number($id("qt1865Year")?.value || 2026),
-      month: Number($id("qt1865Month")?.value || 5)
+      month: monthValue === "" ? "" : Number(monthValue)
     };
   }
 
@@ -4893,7 +4903,7 @@ body.slideshow-frame-mode section{
     const s = selected();
     const q = new URLSearchParams();
     q.set("year", String(s.year));
-    q.set("month", String(s.month));
+    if(s.month !== "") q.set("month", String(s.month));
     if(extra && extra.export) q.set("export", extra.export);
     return API_BASE + "/api/qt1865-compliance?" + q.toString();
   }
@@ -4960,7 +4970,7 @@ body.slideshow-frame-mode section{
         labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao"],
         datasets: [{
           data: [
-            Number(summary.compliantDays || 0),
+            Math.max(Number(summary.compliantDays || 0) - Number(summary.warningDays || 0), 0),
             Number(summary.nonCompliantDays || 0),
             Number(summary.warningDays || 0)
           ],
@@ -5002,7 +5012,8 @@ body.slideshow-frame-mode section{
       window.qt1865CurrentData = data;
       render(data);
       loaded = true;
-      setStatus("Đã tải " + (data.summary?.totalDays || 0) + " ngày", "ok");
+      const s = selected();
+      setStatus(s.month === "" ? "Đã tải dữ liệu năm" : ("Đã tải " + (data.summary?.totalDays || 0) + " ngày"), "ok");
     }catch(err){
       console.error(err);
       setStatus("Lỗi tải", "error");
