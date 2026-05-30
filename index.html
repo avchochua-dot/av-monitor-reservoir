@@ -9787,5 +9787,239 @@ body.slideshow-frame-mode .content::after{
 })();
 </script>
 
+
+<script>
+/* =========================================================
+   QT1865 DASHBOARD - API + EXCEL EXPORT
+   Added after all existing scripts. Uses the deployed API when opened as file://
+   ========================================================= */
+(function(){
+  const QT1865_API_BASE = (location.protocol === "file:") ? "https://av-monitor-reservoir.vercel.app" : "";
+  let qt1865ChartInstance = null;
+  let qt1865LoadedOnce = false;
+
+  function el(id){ return document.getElementById(id); }
+  function setText(id, value){ const x=el(id); if(x) x.textContent=value; }
+  function htmlEscape(v){
+    return String(v ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+  }
+  function fmtQT(v, digits=2){
+    const n=Number(v);
+    if(!Number.isFinite(n)) return "--";
+    return n.toLocaleString("vi-VN", {minimumFractionDigits:digits, maximumFractionDigits:digits});
+  }
+  function fmtQT0(v){
+    const n=Number(v);
+    if(!Number.isFinite(n)) return "--";
+    return n.toLocaleString("vi-VN", {maximumFractionDigits:0});
+  }
+  function qtDate(s){
+    if(!s) return "--";
+    const [y,m,d] = String(s).slice(0,10).split("-");
+    if(!y || !m || !d) return String(s);
+    return `${d}/${m}/${y}`;
+  }
+  function getSelectedYearMonth(){
+    const now = new Date();
+    const y = Number(el("qt1865Year")?.value || now.getFullYear());
+    const m = Number(el("qt1865Month")?.value || (now.getMonth()+1));
+    return {year:y, month:m};
+  }
+  function qtApiUrl(params){
+    const {year, month} = params;
+    const q = new URLSearchParams();
+    q.set("year", String(year));
+    if(month) q.set("month", String(month));
+    if(params.export) q.set("export", params.export);
+    return `${QT1865_API_BASE}/api/qt1865-compliance?${q.toString()}`;
+  }
+  function setStatus(text, type="ready"){
+    const s = el("qt1865Status");
+    if(!s) return;
+    s.textContent = text;
+    s.classList.remove("loading","ok","error","ready");
+    s.classList.add(type);
+  }
+
+  function initQT1865Selectors(){
+    const monthSel = el("qt1865Month");
+    const yearSel = el("qt1865Year");
+    const now = new Date();
+    const url = new URLSearchParams(location.search || "");
+    const defaultYear = Number(url.get("year") || now.getFullYear());
+    const defaultMonth = Number(url.get("month") || (now.getMonth()+1));
+
+    if(monthSel && monthSel.options.length === 0){
+      monthSel.innerHTML = "";
+      for(let i=1;i<=12;i++){
+        const op = document.createElement("option");
+        op.value = String(i);
+        op.textContent = `Tháng ${String(i).padStart(2,"0")}`;
+        monthSel.appendChild(op);
+      }
+      monthSel.value = String(defaultMonth >= 1 && defaultMonth <= 12 ? defaultMonth : 5);
+    }
+
+    if(yearSel && yearSel.options.length === 0){
+      yearSel.innerHTML = "";
+      const startYear = Math.min(2026, defaultYear - 2);
+      const endYear = Math.max(2026, defaultYear + 1);
+      for(let y=startYear;y<=endYear;y++){
+        const op = document.createElement("option");
+        op.value = String(y);
+        op.textContent = String(y);
+        yearSel.appendChild(op);
+      }
+      yearSel.value = String(defaultYear || 2026);
+    }
+  }
+
+  function getQTResult(row){
+    const reason = String(row?.reason || "");
+    if(row?.is_compliant) return "Đảm bảo";
+    if(reason.includes("MNH")) return "Không đảm bảo MNH";
+    if(reason.includes("lưu lượng") || reason.includes("Q thấp")) return "Không đảm bảo lưu lượng";
+    return "Không đảm bảo";
+  }
+  function getQTBadgeClass(row){
+    const reason = String(row?.reason || "");
+    if(!row?.is_compliant) return "bad";
+    if(reason.includes("Cảnh báo")) return "warn";
+    return "ok";
+  }
+
+  function renderQT1865Reasons(items){
+    const box = el("qtReasonList");
+    if(!box) return;
+    if(!items || !items.length){
+      box.innerHTML = `<div class="qt-reason-item ok"><span>Không có nguyên nhân/cảnh báo</span><b>0 ngày</b></div>`;
+      return;
+    }
+    box.innerHTML = items.map(item => {
+      const reason = item.reason || "Không xác định";
+      const cls = reason.includes("Cảnh báo") ? "warn" : "bad";
+      return `<div class="qt-reason-item ${cls}"><span>${htmlEscape(reason)}</span><b>${fmtQT0(item.count)} ngày</b></div>`;
+    }).join("");
+  }
+
+  function renderQT1865Table(rows){
+    const tb = el("qt1865Table");
+    if(!tb) return;
+    if(!rows || !rows.length){
+      tb.innerHTML = `<tr><td colspan="11">Chưa có dữ liệu trong kỳ.</td></tr>`;
+      return;
+    }
+    tb.innerHTML = rows.map(r => {
+      const cls = getQTBadgeClass(r);
+      return `<tr>
+        <td>${qtDate(r.date)}</td>
+        <td>${fmtQT(r.water_level_avg,2)}</td>
+        <td>${fmtQT(r.mnh_min,2)} - ${fmtQT(r.mnh_max,2)}</td>
+        <td>${fmtQT(r.diff_mnh_min,2)}</td>
+        <td>${fmtQT(r.diff_mnh_max,2)}</td>
+        <td>${fmtQT(r.total_outflow_avg,2)}</td>
+        <td>${fmtQT(r.q_min,2)} - ${fmtQT(r.q_max,2)}</td>
+        <td>${fmtQT(r.diff_q_min,2)}</td>
+        <td>${fmtQT(r.diff_q_max,2)}</td>
+        <td><span class="qt-badge ${cls}">${htmlEscape(getQTResult(r))}</span></td>
+        <td>${htmlEscape(r.reason || "")}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function renderQT1865Chart(summary){
+    const canvas = el("qt1865Chart");
+    if(!canvas || typeof Chart === "undefined") return;
+    if(qt1865ChartInstance){ qt1865ChartInstance.destroy(); qt1865ChartInstance = null; }
+    const ok = Number(summary?.compliantDays || 0);
+    const bad = Number(summary?.nonCompliantDays || 0);
+    const warn = Number(summary?.warningDays || 0);
+    qt1865ChartInstance = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao"],
+        datasets: [{
+          data: [ok, bad, warn],
+          backgroundColor: ["#16a34a", "#dc2626", "#f59e0b"],
+          borderColor: "#ffffff",
+          borderWidth: 4,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "62%",
+        plugins: {
+          legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 9, font: { weight: "bold" } } },
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmtQT0(ctx.parsed)} ngày` } }
+        }
+      }
+    });
+  }
+
+  function renderQT1865(data){
+    const s = data?.summary || {};
+    setText("qtTotalDays", fmtQT0(s.totalDays));
+    setText("qtOkDays", fmtQT0(s.compliantDays));
+    setText("qtBadDays", fmtQT0(s.nonCompliantDays));
+    setText("qtWarnDays", fmtQT0(s.warningDays));
+    setText("qtRate", Number.isFinite(Number(s.complianceRate)) ? `${fmtQT(s.complianceRate,1)}%` : "--");
+    renderQT1865Reasons(data?.summaryByReason || []);
+    renderQT1865Table(data?.rows || []);
+    renderQT1865Chart(s);
+  }
+
+  window.loadQT1865 = async function(){
+    try{
+      initQT1865Selectors();
+      const {year, month} = getSelectedYearMonth();
+      setStatus("Đang tải...", "loading");
+      const res = await fetch(qtApiUrl({year, month}), { cache:"no-store", headers:{Accept:"application/json"} });
+      const data = await res.json().catch(() => null);
+      if(!res.ok || !data || !data.ok){
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      window.qt1865CurrentData = data;
+      renderQT1865(data);
+      setStatus(`Đã tải ${data.summary?.totalDays || 0} ngày`, "ok");
+      qt1865LoadedOnce = true;
+    }catch(err){
+      console.error("QT1865 load error", err);
+      setStatus("Lỗi tải", "error");
+      const tb = el("qt1865Table");
+      if(tb) tb.innerHTML = `<tr><td colspan="11">Lỗi tải dữ liệu QT1865: ${htmlEscape(err.message)}</td></tr>`;
+      if(typeof toast === "function") toast("Lỗi tải QT1865: " + err.message);
+      else alert("Lỗi tải QT1865: " + err.message);
+    }
+  };
+
+  window.exportQT1865Excel = function(){
+    initQT1865Selectors();
+    const {year, month} = getSelectedYearMonth();
+    const url = qtApiUrl({year, month, export:"xlsx"});
+    window.open(url, "_blank");
+  };
+
+  document.addEventListener("DOMContentLoaded", function(){
+    initQT1865Selectors();
+    const monthSel = el("qt1865Month");
+    const yearSel = el("qt1865Year");
+    if(monthSel) monthSel.addEventListener("change", () => { if(qt1865LoadedOnce) window.loadQT1865(); });
+    if(yearSel) yearSel.addEventListener("change", () => { if(qt1865LoadedOnce) window.loadQT1865(); });
+
+    document.querySelectorAll('[data-tab="qt1865"]').forEach(a => {
+      a.addEventListener("click", () => setTimeout(() => {
+        if(!qt1865LoadedOnce) window.loadQT1865();
+      }, 250));
+    });
+
+    if(document.getElementById("tab-qt1865")?.classList.contains("active")){
+      setTimeout(() => window.loadQT1865(), 300);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
