@@ -33,33 +33,85 @@ function monthRange(year, month) {
   if (month) {
     const start = `${year}-${String(month).padStart(2, "0")}-01`;
     const endDate = new Date(Number(year), Number(month), 0);
-    const end = `${year}-${String(month).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
+    const end = `${year}-${String(month).padStart(2, "0")}-${String(
+      endDate.getDate()
+    ).padStart(2, "0")}`;
     return { start, end };
   }
-  return { start: `${year}-01-01`, end: `${year}-12-31` };
+
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+}
+
+function getDisplayResult(row) {
+  const reason = String(row.reason || "");
+
+  if (row.is_compliant) return "Đảm bảo";
+
+  if (reason.includes("MNH")) return "Không đảm bảo MNH";
+
+  if (reason.includes("lưu lượng") || reason.includes("Q thấp")) {
+    return "Không đảm bảo lưu lượng";
+  }
+
+  return "Không đảm bảo";
+}
+
+function isWarningOnly(row) {
+  const reason = String(row.reason || "");
+  return row.is_compliant && reason.includes("Cảnh báo");
 }
 
 function buildReasonSummary(rows) {
   const map = new Map();
+
   for (const r of rows) {
-    if (r.is_compliant) continue;
+    if (r.is_compliant && !String(r.reason || "").includes("Cảnh báo")) {
+      continue;
+    }
+
     const reason = r.reason || "Không xác định";
-    map.set(reason, (map.get(reason) || 0) + 1);
+
+    if (!map.has(reason)) {
+      map.set(reason, {
+        reason,
+        count: 0,
+      });
+    }
+
+    map.get(reason).count += 1;
   }
-  return Array.from(map.entries()).map(([reason, count]) => ({ reason, count }));
+
+  return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
 
 function buildMonthSummary(rows) {
   const map = new Map();
+
   for (const r of rows) {
     const month = String(r.date || "").slice(0, 7);
+
     if (!map.has(month)) {
-      map.set(month, { month, totalDays: 0, compliantDays: 0, nonCompliantDays: 0 });
+      map.set(month, {
+        month,
+        totalDays: 0,
+        compliantDays: 0,
+        nonCompliantDays: 0,
+        warningDays: 0,
+      });
     }
+
     const item = map.get(month);
     item.totalDays += 1;
+
     if (r.is_compliant) item.compliantDays += 1;
     else item.nonCompliantDays += 1;
+
+    if (String(r.reason || "").includes("Cảnh báo")) {
+      item.warningDays += 1;
+    }
   }
 
   return Array.from(map.values()).map(m => ({
@@ -130,8 +182,17 @@ async function fetchComplianceRows(start, end) {
 }
 
 function styleCell(cell) {
-  cell.font = { name: "Times New Roman", size: 12 };
-  cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  cell.font = {
+    name: "Times New Roman",
+    size: 12,
+  };
+
+  cell.alignment = {
+    vertical: "middle",
+    horizontal: "center",
+    wrapText: true,
+  };
+
   cell.border = {
     top: { style: "thin" },
     left: { style: "thin" },
@@ -142,17 +203,98 @@ function styleCell(cell) {
 
 function styleHeader(cell) {
   styleCell(cell);
-  cell.font = { name: "Times New Roman", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
-  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1D4ED8" } };
+
+  cell.font = {
+    name: "Times New Roman",
+    size: 12,
+    bold: true,
+    color: { argb: "FFFFFFFF" },
+  };
+
+  cell.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF1D4ED8" },
+  };
 }
 
 function styleTitle(cell) {
-  cell.font = { name: "Times New Roman", size: 16, bold: true };
-  cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  cell.font = {
+    name: "Times New Roman",
+    size: 16,
+    bold: true,
+  };
+
+  cell.alignment = {
+    vertical: "middle",
+    horizontal: "center",
+    wrapText: true,
+  };
 }
 
-async function exportExcel(res, rows, year, month, start, end, summary, summaryByReason) {
+function styleResultCell(cell, row) {
+  const reason = String(row.reason || "");
+
+  if (!row.is_compliant) {
+    cell.font = {
+      name: "Times New Roman",
+      size: 12,
+      bold: true,
+      color: { argb: "FFB91C1C" },
+    };
+
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFFEE2E2" },
+    };
+
+    return;
+  }
+
+  if (reason.includes("Cảnh báo")) {
+    cell.font = {
+      name: "Times New Roman",
+      size: 12,
+      bold: true,
+      color: { argb: "FF92400E" },
+    };
+
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFFEF3C7" },
+    };
+
+    return;
+  }
+
+  cell.font = {
+    name: "Times New Roman",
+    size: 12,
+    bold: true,
+    color: { argb: "FF15803D" },
+  };
+
+  cell.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFDCFCE7" },
+  };
+}
+
+async function exportExcel(
+  res,
+  rows,
+  year,
+  month,
+  start,
+  end,
+  summary,
+  summaryByReason
+) {
   const workbook = new ExcelJS.Workbook();
+
   workbook.creator = "A Vuong Dashboard AI";
   workbook.created = new Date();
 
@@ -163,29 +305,70 @@ async function exportExcel(res, rows, year, month, start, end, summary, summaryB
       fitToPage: true,
       fitToWidth: 1,
       fitToHeight: 0,
-      margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+      margins: {
+        left: 0.3,
+        right: 0.3,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0.2,
+        footer: 0.2,
+      },
     },
   });
 
   ws.mergeCells("A1:T1");
+
   ws.getCell("A1").value =
-    `THỐNG KÊ ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865 ${month ? `THÁNG ${String(month).padStart(2, "0")}/${year}` : `NĂM ${year}`}`;
+    `THỐNG KÊ ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865 ${
+      month
+        ? `THÁNG ${String(month).padStart(2, "0")}/${year}`
+        : `NĂM ${year}`
+    }`;
+
   styleTitle(ws.getCell("A1"));
   ws.getRow(1).height = 32;
 
   ws.mergeCells("A2:T2");
+
   ws.getCell("A2").value =
-    `Thời gian: ${vnDate(start)} - ${vnDate(end)} | Tổng ngày: ${summary.totalDays} | Đảm bảo: ${summary.compliantDays} | Không đảm bảo: ${summary.nonCompliantDays} | Tỷ lệ đảm bảo: ${summary.complianceRate}%`;
-  ws.getCell("A2").font = { name: "Times New Roman", size: 12, bold: true, color: { argb: "FF1E40AF" } };
-  ws.getCell("A2").alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    `Thời gian: ${vnDate(start)} - ${vnDate(end)} | Tổng ngày: ${summary.totalDays} | Đảm bảo: ${summary.compliantDays} | Không đảm bảo: ${summary.nonCompliantDays} | Cảnh báo: ${summary.warningDays} | Tỷ lệ đảm bảo: ${summary.complianceRate}%`;
+
+  ws.getCell("A2").font = {
+    name: "Times New Roman",
+    size: 12,
+    bold: true,
+    color: { argb: "FF1E40AF" },
+  };
+
+  ws.getCell("A2").alignment = {
+    vertical: "middle",
+    horizontal: "center",
+    wrapText: true,
+  };
+
   ws.getRow(2).height = 26;
 
   const headers = [
-    "STT", "Ngày", "MNH TB", "MNH Max", "MNH Min",
-    "GH dưới MNH", "GH trên MNH", "CL GH dưới", "CL GH trên",
-    "Q máy TB", "Q xả TB", "Tổng Q ra TB", "Q ra Min", "Q ra Max",
-    "Q quy định dưới", "Q quy định trên", "CL Q dưới", "CL Q trên",
-    "Kết quả", "Nguyên nhân"
+    "STT",
+    "Ngày",
+    "MNH TB",
+    "MNH Max",
+    "MNH Min",
+    "GH dưới MNH",
+    "GH trên MNH",
+    "CL GH dưới",
+    "CL GH trên",
+    "Q máy TB",
+    "Q xả TB",
+    "Tổng Q ra TB",
+    "Q ra Min",
+    "Q ra Max",
+    "Q quy định dưới",
+    "Q quy định trên",
+    "CL Q dưới",
+    "CL Q trên",
+    "Kết quả",
+    "Nguyên nhân / Cảnh báo",
   ];
 
   ws.addRow(headers);
@@ -212,47 +395,89 @@ async function exportExcel(res, rows, year, month, start, end, summary, summaryB
       round(r.q_max),
       round(r.diff_q_min),
       round(r.diff_q_max),
-      r.is_compliant ? "Đảm bảo" : "Không đảm bảo",
+      getDisplayResult(r),
       r.reason || "",
     ]);
 
     row.eachCell(styleCell);
     row.height = 28;
 
-    const resultCell = row.getCell(19);
-    if (r.is_compliant) {
-      resultCell.font = { name: "Times New Roman", size: 12, bold: true, color: { argb: "FF15803D" } };
-      resultCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCFCE7" } };
-    } else {
-      resultCell.font = { name: "Times New Roman", size: 12, bold: true, color: { argb: "FFB91C1C" } };
-      resultCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEE2E2" } };
+    styleResultCell(row.getCell(19), r);
+
+    if (String(r.reason || "").includes("Cảnh báo")) {
+      row.getCell(20).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFF7ED" },
+      };
+
+      row.getCell(20).font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+        color: { argb: "FF92400E" },
+      };
     }
   });
 
   const summaryRow = rows.length + 5;
+
   ws.mergeCells(`A${summaryRow}:T${summaryRow}`);
-  ws.getCell(`A${summaryRow}`).value = "TỔNG HỢP THEO NGUYÊN NHÂN KHÔNG ĐẢM BẢO";
+
+  ws.getCell(`A${summaryRow}`).value =
+    "TỔNG HỢP NGUYÊN NHÂN / CẢNH BÁO";
+
   styleHeader(ws.getCell(`A${summaryRow}`));
 
-  const headerReason = ws.addRow(["STT", "Nguyên nhân", "Số ngày"]);
-  for (let c = 1; c <= 3; c++) styleHeader(headerReason.getCell(c));
+  const headerReason = ws.addRow(["STT", "Nguyên nhân / Cảnh báo", "Số ngày"]);
+
+  for (let c = 1; c <= 3; c++) {
+    styleHeader(headerReason.getCell(c));
+  }
 
   summaryByReason.forEach((item, idx) => {
     const row = ws.addRow([idx + 1, item.reason, item.count]);
-    for (let c = 1; c <= 3; c++) styleCell(row.getCell(c));
-    row.getCell(2).alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+
+    for (let c = 1; c <= 3; c++) {
+      styleCell(row.getCell(c));
+    }
+
+    row.getCell(2).alignment = {
+      vertical: "middle",
+      horizontal: "left",
+      wrapText: true,
+    };
   });
 
   ws.columns = [
-    { width: 6 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 },
-    { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 },
-    { width: 14 }, { width: 14 }, { width: 16 }, { width: 14 }, { width: 14 },
-    { width: 14 }, { width: 14 }, { width: 12 }, { width: 12 },
-    { width: 16 }, { width: 30 }
+    { width: 6 },
+    { width: 12 },
+    { width: 12 },
+    { width: 12 },
+    { width: 12 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 16 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 14 },
+    { width: 12 },
+    { width: 12 },
+    { width: 22 },
+    { width: 35 },
   ];
 
   ws.views = [{ state: "frozen", ySplit: 3 }];
-  ws.autoFilter = { from: "A3", to: `T${rows.length + 3}` };
+
+  ws.autoFilter = {
+    from: "A3",
+    to: `T${rows.length + 3}`,
+  };
 
   const fileName = month
     ? `Thong_ke_QT1865_${year}_thang_${String(month).padStart(2, "0")}.xlsx`
@@ -260,47 +485,103 @@ async function exportExcel(res, rows, year, month, start, end, summary, summaryB
 
   const buffer = await workbook.xlsx.writeBuffer();
 
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${encodeURIComponent(fileName)}"`
+  );
+
   res.setHeader("Cache-Control", "no-store");
+
   return res.status(200).send(Buffer.from(buffer));
 }
 
 export default async function handler(req, res) {
-  if (req.method === "OPTIONS") return json(res, 200, { ok: true });
+  if (req.method === "OPTIONS") {
+    return json(res, 200, {
+      ok: true,
+    });
+  }
 
   if (req.method !== "GET") {
-    return json(res, 405, { ok: false, error: "Method not allowed" });
+    return json(res, 405, {
+      ok: false,
+      error: "Method not allowed",
+    });
   }
 
   try {
     const year = Number(req.query.year || new Date().getFullYear());
     const month = req.query.month ? Number(req.query.month) : null;
-    const exportType = String(req.query.export || req.query.format || "").toLowerCase();
+    const exportType = String(
+      req.query.export || req.query.format || ""
+    ).toLowerCase();
 
     if (!year || year < 2000 || year > 2100) {
-      return json(res, 400, { ok: false, error: "Invalid year" });
+      return json(res, 400, {
+        ok: false,
+        error: "Invalid year",
+      });
     }
 
     if (month !== null && (month < 1 || month > 12)) {
-      return json(res, 400, { ok: false, error: "Invalid month" });
+      return json(res, 400, {
+        ok: false,
+        error: "Invalid month",
+      });
     }
 
     const { start, end } = monthRange(year, month);
+
     const rows = await fetchComplianceRows(start, end);
 
     const totalDays = rows.length;
-    const compliantDays = rows.filter(r => r.is_compliant).length;
-    const nonCompliantDays = totalDays - compliantDays;
-    const complianceRate = totalDays ? Number(((compliantDays / totalDays) * 100).toFixed(1)) : 0;
 
-    const summary = { totalDays, compliantDays, nonCompliantDays, complianceRate };
+    const warningDays = rows.filter(r =>
+      String(r.reason || "").includes("Cảnh báo")
+    ).length;
+
+    const compliantDays = rows.filter(r => r.is_compliant).length;
+
+    const nonCompliantDays = totalDays - compliantDays;
+
+    const complianceRate = totalDays
+      ? Number(((compliantDays / totalDays) * 100).toFixed(1))
+      : 0;
+
+    const summary = {
+      totalDays,
+      compliantDays,
+      nonCompliantDays,
+      warningDays,
+      complianceRate,
+    };
+
     const summaryByReason = buildReasonSummary(rows);
+
     const monthlySummary = buildMonthSummary(rows);
+
     const nonCompliantRows = rows.filter(r => !r.is_compliant);
 
+    const warningRows = rows.filter(r =>
+      String(r.reason || "").includes("Cảnh báo")
+    );
+
     if (exportType === "xlsx" || exportType === "excel") {
-      return await exportExcel(res, rows, year, month, start, end, summary, summaryByReason);
+      return await exportExcel(
+        res,
+        rows,
+        year,
+        month,
+        start,
+        end,
+        summary,
+        summaryByReason
+      );
     }
 
     return json(res, 200, {
@@ -308,18 +589,25 @@ export default async function handler(req, res) {
       source: "supabase",
       year,
       month,
-      period: { start, end },
+      period: {
+        start,
+        end,
+      },
       summary,
       summaryByReason,
       monthlySummary,
       rows,
       nonCompliantRows,
+      warningRows,
       comment:
         totalDays === 0
           ? "Chưa có dữ liệu đánh giá tuân thủ QT1865 trong kỳ."
-          : `Trong kỳ có ${compliantDays}/${totalDays} ngày đảm bảo QT1865, đạt tỷ lệ ${complianceRate}%. Có ${nonCompliantDays} ngày không đảm bảo.`,
+          : `Trong kỳ có ${compliantDays}/${totalDays} ngày đảm bảo QT1865, đạt tỷ lệ ${complianceRate}%. Có ${nonCompliantDays} ngày không đảm bảo và ${warningDays} ngày cảnh báo.`,
     });
   } catch (err) {
-    return json(res, 500, { ok: false, error: err.message });
+    return json(res, 500, {
+      ok: false,
+      error: err.message,
+    });
   }
 }
