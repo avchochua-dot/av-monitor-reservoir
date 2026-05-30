@@ -1,110 +1,92 @@
-drop view if exists qt1865_turbine_12h_daily;
+import ExcelJS from "exceljs";
 
-create view qt1865_turbine_12h_daily as
-with params as (
-  select 0.01::numeric as turbine_threshold
-),
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-hourly_base as (
-  select
-    time::date as date,
-    time,
-    turbine_flow,
-    case
-      when turbine_flow > (select turbine_threshold from params)
-        then 1
-      else 0
-    end as is_running
-  from reservoir_hourly_data
-  where time is not null
-),
+function json(res, status, data) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(status).json(data);
+}
 
-running_hours as (
-  select
-    date,
-    time,
-    turbine_flow,
-    row_number() over (
-      partition by date
-      order by time
-    ) as rn
-  from hourly_base
-  where is_running = 1
-),
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
-running_groups as (
-  select
-    date,
-    time,
-    turbine_flow,
-    time - (rn::int * interval '1 hour') as grp
-  from running_hours
-),
+function round(v, d = 2) {
+  const n = num(v);
+  if (n === null) return "";
+  return Number(n.toFixed(d));
+}
 
-streaks as (
-  select
-    date,
-    min(time) as streak_start,
-    max(time) as streak_end,
-    count(*) as streak_hours,
-    round(avg(turbine_flow)::numeric, 2) as avg_turbine_flow,
-    round(min(turbine_flow)::numeric, 2) as min_turbine_flow,
-    round(max(turbine_flow)::numeric, 2) as max_turbine_flow
-  from running_groups
-  group by date, grp
-),
+function vnDate(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = String(dateStr).slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
 
-daily_summary as (
-  select
-    h.date,
-    count(*) as total_record_hours,
-    sum(h.is_running) as total_running_hours,
-    round(avg(h.turbine_flow)::numeric, 2) as turbine_flow_avg,
-    round(max(h.turbine_flow)::numeric, 2) as turbine_flow_max
-  from hourly_base h
-  group by h.date
-),
+function fmtDateTime(dateTimeStr) {
+  if (!dateTimeStr) return "";
+  const s = String(dateTimeStr);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return s;
+  return `${m[4]}:${m[5]} ${m[3]}/${m[2]}`;
+}
 
-best_streak as (
-  select distinct on (date)
-    date,
-    streak_start,
-    streak_end,
-    streak_hours,
-    avg_turbine_flow,
-    min_turbine_flow,
-    max_turbine_flow
-  from streaks
-  order by date, streak_hours desc, streak_start asc
-)
+function monthRange(year, month) {
+  if (month) {
+    const start = `${year}-${String(month).padStart(2, "0")}-01`;
+    const endDate = new Date(Number(year), Number(month), 0);
+    const end = `${year}-${String(month).padStart(2, "0")}-${String(
+      endDate.getDate()
+    ).padStart(2, "0")}`;
+    return { start, end };
+  }
 
-select
-  d.date,
-  d.total_record_hours,
-  d.total_running_hours,
-  coalesce(b.streak_hours, 0) as max_turbine_continuous_hours,
-  b.streak_start,
-  b.streak_end,
-  d.turbine_flow_avg,
-  d.turbine_flow_max,
-  b.avg_turbine_flow as streak_avg_turbine_flow,
-  b.min_turbine_flow as streak_min_turbine_flow,
-  b.max_turbine_flow as streak_max_turbine_flow,
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+}
 
-  case
-    when coalesce(b.streak_hours, 0) >= 12 then true
-    else false
-  end as is_turbine_12h_compliant,
+function getDisplayResult(row) {
+  const reason = String(row.reason || "");
 
-  case
-    when coalesce(b.streak_hours, 0) >= 12
-      then 'Đảm bảo chạy máy liên tục tối thiểu 12 giờ'
-    when coalesce(d.total_running_hours, 0) = 0
-      then 'Không chạy máy trong ngày'
-    else 'Không đảm bảo chạy máy liên tục 12 giờ'
-  end as turbine_12h_status
+  if (row.is_compliant) return "Đảm bảo";
+  if (reason.includes("MNH")) return "Không đảm bảo MNH";
+  if (reason.includes("lưu lượng") || reason.includes("Q thấp")) {
+    return "Không đảm bảo lưu lượng";
+  }
 
-from daily_summary d
-left join best_streak b
-  on d.date = b.date
-order by d.date;
+  return "Không đảm bảo";
+}
+
+function buildReasonSummary(rows) {
+  const map = new Map();
+
+  for (const r of rows) {
+    if (r.is_compliant && !String(r.reason || "").includes("Cảnh báo")) {
+      continue;
+    }
+
+    const reason = r.reason || "Không xác định";
+
+    if (!map.has(reason)) {
+      map.set(reason, { reason, count: 0 });
+    }
+
+    map.get(reason).count += 1;
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
+function buildMonthSummary(rows) {
+  const map = new Map();
+
+  for (const r of rows) {
+    const month = String(r.date || "").slice(0
