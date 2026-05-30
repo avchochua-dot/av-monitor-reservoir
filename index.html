@@ -3990,6 +3990,33 @@ body.slideshow-frame-mode section{
   .qt1865-kpis{grid-template-columns:1fr}
 }
 
+
+/* ===== QT1865 12H + PDF PATCH ===== */
+.qt1865-actions button.pdf{
+  background:linear-gradient(135deg,#ef4444,#dc2626)!important;
+  color:#fff!important;
+  border-color:rgba(239,68,68,.28)!important;
+  box-shadow:0 14px 30px rgba(239,68,68,.18)!important;
+}
+.qt1865-kpis.qt1865-kpis-8{
+  grid-template-columns:repeat(8,minmax(0,1fr));
+}
+.qt1865-kpi.purple::after{background:rgba(124,58,237,.12)}
+.qt1865-kpi.purple b{color:#7c3aed}
+.qt-badge.turbine-ok{background:#dcfce7;color:#15803d}
+.qt-badge.turbine-bad{background:#fee2e2;color:#b91c1c}
+.qt-turbine-bad-cell{background:#fef2f2!important;color:#991b1b!important;font-weight:1000!important}
+.qt-turbine-ok-cell{background:#ecfdf5!important;color:#166534!important;font-weight:1000!important}
+@media(max-width:1500px){
+  .qt1865-kpis.qt1865-kpis-8{grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+@media(max-width:1180px){
+  .qt1865-kpis.qt1865-kpis-8{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:640px){
+  .qt1865-kpis.qt1865-kpis-8{grid-template-columns:1fr;}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -4733,11 +4760,12 @@ body.slideshow-frame-mode section{
               <select id="qt1865Year" aria-label="Chọn năm QT1865"></select>
               <button class="primary" type="button" onclick="loadQT1865()">Tổng hợp</button>
               <button class="excel" type="button" onclick="exportQT1865Excel()">Xuất Excel</button>
+              <button class="pdf" type="button" onclick="exportQT1865Pdf()">Xuất PDF</button>
               <span id="qt1865Status" class="qt1865-status">Sẵn sàng</span>
             </div>
           </div>
 
-          <div class="qt1865-kpis">
+          <div class="qt1865-kpis qt1865-kpis-8">
             <div class="qt1865-kpi teal">
               <span>Tổng ngày có dữ liệu</span>
               <b id="qtTotalDays">--</b>
@@ -4757,6 +4785,21 @@ body.slideshow-frame-mode section{
               <span>Cảnh báo</span>
               <b id="qtWarnDays">--</b>
               <small>Q cao hơn quy định</small>
+            </div>
+            <div class="qt1865-kpi ok">
+              <span>Đạt chạy máy 12h</span>
+              <b id="qtTurbineOk">--</b>
+              <small>ngày đạt chuỗi liên tục</small>
+            </div>
+            <div class="qt1865-kpi bad">
+              <span>Không đạt 12h</span>
+              <b id="qtTurbineBad">--</b>
+              <small>không đủ chuỗi liên tục</small>
+            </div>
+            <div class="qt1865-kpi purple">
+              <span>Tỷ lệ đạt 12h</span>
+              <b id="qtTurbineRate">--</b>
+              <small>% tổng ngày có dữ liệu</small>
             </div>
             <div class="qt1865-kpi">
               <span>Tỷ lệ đảm bảo</span>
@@ -4792,6 +4835,11 @@ body.slideshow-frame-mode section{
                     <th>CL GH trên</th>
                     <th>Q ra TB</th>
                     <th>Q quy định</th>
+                    <th>Giờ chạy máy</th>
+                    <th>Giờ chạy liên tục</th>
+                    <th>Bắt đầu chuỗi</th>
+                    <th>Kết thúc chuỗi</th>
+                    <th>Đạt 12h</th>
                     <th>CL Q dưới</th>
                     <th>CL Q trên</th>
                     <th>Kết quả</th>
@@ -4799,7 +4847,7 @@ body.slideshow-frame-mode section{
                   </tr>
                 </thead>
                 <tbody id="qt1865Table">
-                  <tr><td colspan="11">Chưa tải dữ liệu. Bấm “Tổng hợp” để xem đánh giá QT1865.</td></tr>
+                  <tr><td colspan="16">Chưa tải dữ liệu. Bấm “Tổng hợp” để xem đánh giá QT1865.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -4835,6 +4883,13 @@ body.slideshow-frame-mode section{
     if(!s) return "--";
     const p = String(s).slice(0,10).split("-");
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : String(s);
+  }
+
+  function tm(s){
+    if(!s) return "--";
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if(!m) return safe(s);
+    return `${m[4]}:${m[5]} ${m[3]}/${m[2]}`;
   }
   function setText(id, v){
     const el = $id(id);
@@ -4936,11 +4991,15 @@ body.slideshow-frame-mode section{
     }).join("");
   }
 
+  function turbineBadgeClass(r){
+    return r.is_turbine_12h_compliant ? "turbine-ok" : "turbine-bad";
+  }
+
   function renderTable(rows){
     const tb = $id("qt1865Table");
     if(!tb) return;
     if(!rows || !rows.length){
-      tb.innerHTML = '<tr><td colspan="11">Chưa có dữ liệu trong kỳ.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="16">Chưa có dữ liệu trong kỳ.</td></tr>';
       return;
     }
     tb.innerHTML = rows.map(r => `
@@ -4952,6 +5011,13 @@ body.slideshow-frame-mode section{
         <td>${fmt(r.diff_mnh_max,2)}</td>
         <td>${fmt(r.total_outflow_avg,2)}</td>
         <td>${fmt(r.q_min,2)} - ${fmt(r.q_max,2)}</td>
+        <td>${fmt0(r.turbine_running_hours)}</td>
+        <td>${fmt0(r.turbine_continuous_hours)}</td>
+        <td>${tm(r.turbine_12h_start)}</td>
+        <td>${tm(r.turbine_12h_end)}</td>
+        <td class="${r.is_turbine_12h_compliant ? "qt-turbine-ok-cell" : "qt-turbine-bad-cell"}">
+          <span class="qt-badge ${turbineBadgeClass(r)}">${r.is_turbine_12h_compliant ? "Đạt" : "Không đạt"}</span>
+        </td>
         <td>${fmt(r.diff_q_min,2)}</td>
         <td>${fmt(r.diff_q_max,2)}</td>
         <td><span class="qt-badge ${badgeClass(r)}">${safe(resultText(r))}</span></td>
@@ -4996,6 +5062,9 @@ body.slideshow-frame-mode section{
     setText("qtOkDays", fmt0(s.compliantDays));
     setText("qtBadDays", fmt0(s.nonCompliantDays));
     setText("qtWarnDays", fmt0(s.warningDays));
+    setText("qtTurbineOk", fmt0(s.turbine12hCompliantDays));
+    setText("qtTurbineBad", fmt0(s.turbine12hNonCompliantDays));
+    setText("qtTurbineRate", Number.isFinite(Number(s.turbine12hRate)) ? fmt(s.turbine12hRate,1) + "%" : "--");
     setText("qtRate", Number.isFinite(Number(s.complianceRate)) ? fmt(s.complianceRate,1) + "%" : "--");
     renderReasons(data.summaryByReason || []);
     renderTable(data.rows || []);
@@ -5026,6 +5095,482 @@ body.slideshow-frame-mode section{
   window.exportQT1865Excel = function(){
     initQT1865Selectors();
     window.open(apiUrl({export:"xlsx"}), "_blank");
+  };
+
+  function buildQT1865PdfHtml(data){
+    const s = data.summary || {};
+    const rows = data.rows || [];
+    const sel = selected();
+    const periodTitle = sel.month === "" ? `NĂM ${sel.year}` : `THÁNG ${String(sel.month).padStart(2,"0")}/${sel.year}`;
+    const exportTime = new Date().toLocaleString("vi-VN", {
+      hour:"2-digit",
+      minute:"2-digit",
+      day:"2-digit",
+      month:"2-digit",
+      year:"numeric"
+    });
+
+    const logoUrl = "https://ycthhachfxczwkburnfa.supabase.co/storage/v1/object/public/Image/Logo%20AVC.png";
+
+    const reasons = (data.summaryByReason || []).map((x, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="reason-cell">${safe(x.reason || "")}</td>
+        <td>${fmt0(x.count)}</td>
+      </tr>
+    `).join("");
+
+    const tr = rows.map((r, i) => {
+      const result = resultText(r);
+      const reason = String(r.reason || "");
+      const resultClass = !r.is_compliant ? "bad" : (reason.includes("Cảnh báo") ? "warn" : "ok");
+      const turbineClass = r.is_turbine_12h_compliant ? "ok" : "bad";
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${dt(r.date)}</td>
+          <td>${fmt(r.water_level_avg,2)}</td>
+          <td>${fmt(r.mnh_min,2)} - ${fmt(r.mnh_max,2)}</td>
+          <td>${fmt(r.total_outflow_avg,2)}</td>
+          <td>${fmt(r.q_min,2)} - ${fmt(r.q_max,2)}</td>
+          <td>${fmt0(r.turbine_running_hours)}</td>
+          <td>${fmt0(r.turbine_continuous_hours)}</td>
+          <td class="${turbineClass}">${r.is_turbine_12h_compliant ? "Đạt" : "Không đạt"}</td>
+          <td class="${resultClass}">${safe(result)}</td>
+          <td class="reason-cell">${safe(r.reason || "")}</td>
+        </tr>
+      `;
+    }).join("");
+
+    return `
+      <div class="qt-pdf-report">
+        <div class="pdf-cover-header">
+          <div class="logo-cell">
+            <img src="${logoUrl}" alt="AVC Logo" />
+          </div>
+          <div class="title-cell">
+            <div class="company">CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG</div>
+            <div class="unit">TRUNG TÂM GIÁM SÁT & ĐIỀU HÀNH HỒ CHỨA AI</div>
+            <div class="report-title">BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865</div>
+            <div class="period">${periodTitle}</div>
+          </div>
+          <div class="logo-cell right">
+            <img src="${logoUrl}" alt="AVC Logo" />
+          </div>
+        </div>
+
+        <div class="meta-line">
+          <span>Nguồn dữ liệu: Supabase / Dashboard AI AVC</span>
+          <span>Ngày xuất: ${exportTime}</span>
+        </div>
+
+        <div class="pdf-summary">
+          <div><b>${fmt0(s.totalDays)}</b><span>Tổng ngày</span></div>
+          <div><b>${fmt0(s.compliantDays)}</b><span>Đảm bảo</span></div>
+          <div><b>${fmt0(s.nonCompliantDays)}</b><span>Không đảm bảo</span></div>
+          <div><b>${fmt0(s.warningDays)}</b><span>Cảnh báo Q cao</span></div>
+          <div><b>${fmt0(s.turbine12hCompliantDays)}</b><span>Đạt 12h</span></div>
+          <div><b>${fmt0(s.turbine12hNonCompliantDays)}</b><span>Không đạt 12h</span></div>
+          <div><b>${fmt(s.complianceRate,1)}%</b><span>Tỷ lệ đảm bảo</span></div>
+          <div><b>${fmt(s.turbine12hRate,1)}%</b><span>Tỷ lệ đạt 12h</span></div>
+        </div>
+
+        <h3>1. Tổng hợp nguyên nhân / cảnh báo</h3>
+        <table class="pdf-table reason-table">
+          <thead>
+            <tr><th>STT</th><th>Nguyên nhân / cảnh báo</th><th>Số ngày</th></tr>
+          </thead>
+          <tbody>${reasons || '<tr><td colspan="3">Không có nguyên nhân / cảnh báo</td></tr>'}</tbody>
+        </table>
+
+        <h3>2. Chi tiết đánh giá theo ngày</h3>
+        <table class="pdf-table detail-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Ngày</th>
+              <th>MNH TB</th>
+              <th>GH MNH</th>
+              <th>Q ra TB</th>
+              <th>Q quy định</th>
+              <th>Giờ máy</th>
+              <th>Giờ LT</th>
+              <th>Đạt 12h</th>
+              <th>Kết quả</th>
+              <th>Nguyên nhân</th>
+            </tr>
+          </thead>
+          <tbody>${tr || '<tr><td colspan="11">Không có dữ liệu</td></tr>'}</tbody>
+        </table>
+
+        <div class="sign-page">
+          <div class="sign-date">A Vương, ngày ...... tháng ...... năm ........</div>
+          <div class="sign-grid">
+            <div>
+              <b>NGƯỜI LẬP</b>
+              <span>(ký, ghi rõ họ tên)</span>
+            </div>
+            <div>
+              <b>KIỂM TRA</b>
+              <span>(ký, ghi rõ họ tên)</span>
+            </div>
+            <div>
+              <b>PHÊ DUYỆT</b>
+              <span>(ký, ghi rõ họ tên)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.exportQT1865Pdf = async function(){
+    try{
+      initQT1865Selectors();
+      let data = window.qt1865CurrentData;
+      if(!data || !data.ok){
+        setStatus("Đang tải PDF...", "loading");
+        const res = await fetch(apiUrl(), {cache:"no-store"});
+        data = await res.json();
+        if(!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
+        window.qt1865CurrentData = data;
+        render(data);
+      }
+
+      const holder = document.createElement("div");
+      holder.innerHTML = buildQT1865PdfHtml(data);
+      holder.style.width = "100%";
+      holder.style.maxWidth = "100%";
+      holder.style.margin = "0 auto";
+      holder.style.background = "#fff";
+      const style = document.createElement("style");
+      style.textContent = `
+        @page{size:A4 landscape;margin:8mm}
+        *{box-sizing:border-box}
+
+        .qt-pdf-report{
+          font-family:"Times New Roman", Times, serif;
+          color:#111827;
+          background:#fff;
+          width:100%;
+          max-width:100%;
+          margin:0 auto;
+          padding:0;
+          font-size:8pt;
+          line-height:1.18;
+          overflow:visible;
+        }
+
+        .qt-pdf-report table,
+        .qt-pdf-report th,
+        .qt-pdf-report td{
+          position:static!important;
+          left:auto!important;
+          right:auto!important;
+          top:auto!important;
+          bottom:auto!important;
+          white-space:normal!important;
+          font-family:"Times New Roman", Times, serif!important;
+          font-variant-numeric:tabular-nums;
+        }
+
+        .qt-pdf-report td:first-child{
+          position:static!important;
+          left:auto!important;
+          z-index:auto!important;
+          width:auto!important;
+          padding-left:0!important;
+          border-right:1px solid #94a3b8!important;
+          text-align:center!important;
+          background:inherit!important;
+        }
+
+        .pdf-cover-header{
+          display:grid;
+          grid-template-columns:115px 1fr 115px;
+          align-items:center;
+          gap:8px;
+          width:100%;
+          border-bottom:2px solid #1d4ed8;
+          padding:0 0 7px;
+          margin:0 0 6px;
+        }
+
+        .logo-cell{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          min-width:0;
+        }
+
+        .logo-cell img{
+          width:88px;
+          max-width:88px;
+          max-height:44px;
+          object-fit:contain;
+          display:block;
+        }
+
+        .logo-cell.right img{
+          width:88px;
+          max-width:88px;
+        }
+
+        .title-cell{
+          text-align:center;
+          font-weight:bold;
+          min-width:0;
+        }
+
+        .company{
+          font-size:15pt;
+          line-height:1.05;
+          text-transform:uppercase;
+          white-space:nowrap;
+        }
+
+        .unit{
+          font-size:10.5pt;
+          line-height:1.05;
+          color:#1d4ed8;
+          text-transform:uppercase;
+          margin-top:1mm;
+          white-space:nowrap;
+        }
+
+        .report-title{
+          font-size:12pt;
+          line-height:1.05;
+          text-transform:uppercase;
+          margin-top:2mm;
+          white-space:nowrap;
+        }
+
+        .period{
+          display:inline-block;
+          margin-top:1mm;
+          padding:1mm 8mm;
+          border-radius:999px;
+          color:#1d4ed8;
+          background:#eff6ff;
+          border:1px solid #bfdbfe;
+          font-size:10.5pt;
+          line-height:1.05;
+        }
+
+        .meta-line{
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+          color:#475569;
+          font-size:7.5pt;
+          margin:0 0 2mm;
+          border-bottom:1px solid #cbd5e1;
+          padding-bottom:1.2mm;
+        }
+
+        .pdf-summary{
+          display:grid;
+          grid-template-columns:repeat(8,1fr);
+          gap:1.5mm;
+          margin:0 0 3mm;
+          width:100%;
+        }
+
+        .pdf-summary div{
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          padding:1.2mm .6mm;
+          text-align:center;
+          min-height:10mm;
+          background:#f8fafc;
+        }
+
+        .pdf-summary b{
+          display:block;
+          font-size:11pt;
+          line-height:1;
+          color:#1d4ed8;
+        }
+
+        .pdf-summary span{
+          display:block;
+          margin-top:.5mm;
+          font-size:5.8pt;
+          color:#475569;
+          font-weight:bold;
+          white-space:nowrap!important;
+        }
+
+        h3{
+          font-size:9.5pt;
+          margin:2.2mm 0 1.4mm;
+          text-transform:uppercase;
+          color:#111827;
+          page-break-after:avoid;
+        }
+
+        .pdf-table{
+          width:100%;
+          border-collapse:collapse;
+          table-layout:fixed;
+          page-break-inside:auto;
+        }
+
+        .pdf-table thead{display:table-header-group}
+        .pdf-table tr{page-break-inside:avoid;page-break-after:auto}
+
+        .pdf-table th,
+        .pdf-table td{
+          border:1px solid #94a3b8!important;
+          padding:1.1mm .7mm!important;
+          text-align:center!important;
+          vertical-align:middle!important;
+          overflow:hidden;
+          word-break:normal;
+        }
+
+        .pdf-table th{
+          background:#eaf1ff!important;
+          color:#1e3a8a!important;
+          font-weight:bold!important;
+          font-size:6.8pt!important;
+          text-transform:uppercase;
+        }
+
+        .pdf-table td{
+          font-size:7.4pt!important;
+          font-weight:bold!important;
+          color:#111827;
+        }
+
+        .reason-table{
+          width:64%;
+          margin:0 auto 3mm;
+          table-layout:auto;
+        }
+
+        .reason-table th,
+        .reason-table td{
+          font-size:8pt!important;
+          padding:1.8mm!important;
+        }
+
+        .reason-table th:nth-child(1){width:14mm}
+        .reason-table th:nth-child(3){width:18mm}
+
+        .reason-cell{
+          text-align:left!important;
+        }
+
+        .detail-table th:nth-child(1){width:7mm}
+        .detail-table th:nth-child(2){width:15mm}
+        .detail-table th:nth-child(3){width:15mm}
+        .detail-table th:nth-child(4){width:28mm}
+        .detail-table th:nth-child(5){width:17mm}
+        .detail-table th:nth-child(6){width:27mm}
+        .detail-table th:nth-child(7){width:12mm}
+        .detail-table th:nth-child(8){width:12mm}
+        .detail-table th:nth-child(9){width:17mm}
+        .detail-table th:nth-child(10){width:23mm}
+        .detail-table th:nth-child(11){width:auto}
+
+        .ok{
+          color:#166534!important;
+          background:#dcfce7!important;
+          font-weight:bold!important;
+        }
+
+        .bad{
+          color:#991b1b!important;
+          background:#fee2e2!important;
+          font-weight:bold!important;
+        }
+
+        .warn{
+          color:#92400e!important;
+          background:#fef3c7!important;
+          font-weight:bold!important;
+        }
+
+        .sign-page{
+          page-break-before:always;
+          width:100%;
+          min-height:120mm;
+          padding:18mm 16mm 0;
+        }
+
+        .sign-date{
+          text-align:right;
+          font-style:italic;
+          margin-bottom:18mm;
+          font-size:11pt;
+        }
+
+        .sign-grid{
+          display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:18mm;
+          text-align:center;
+        }
+
+        .sign-grid div{
+          min-height:45mm;
+        }
+
+        .sign-grid b{
+          display:block;
+          font-size:12pt;
+          text-transform:uppercase;
+        }
+
+        .sign-grid span{
+          display:block;
+          margin-top:2mm;
+          font-size:10pt;
+          color:#475569;
+        }
+      `;
+      holder.prepend(style);
+
+      const s = selected();
+      const fileName = s.month === ""
+        ? `Bao_cao_QT1865_${s.year}.pdf`
+        : `Bao_cao_QT1865_${s.year}_thang_${String(s.month).padStart(2,"0")}.pdf`;
+
+      if(typeof html2pdf !== "undefined"){
+        await html2pdf()
+          .set({
+            margin: [8, 8, 8, 8],
+            filename: fileName,
+            image: {type: "jpeg", quality: 0.98},
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              letterRendering: true,
+              scrollX: 0,
+              scrollY: 0,
+              backgroundColor: "#ffffff"
+            },
+            jsPDF: {unit: "mm", format: "a4", orientation: "landscape"},
+            pagebreak: {mode: ["css", "legacy"], avoid: [".pdf-cover-header", ".pdf-summary", ".reason-table"]}
+          })
+          .from(holder)
+          .save();
+      }else{
+        const win = window.open("", "_blank");
+        win.document.open();
+        win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${fileName}</title></head><body>${holder.innerHTML}</body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => win.print(), 500);
+      }
+      setStatus("Đã xuất PDF", "ok");
+    }catch(err){
+      console.error(err);
+      setStatus("Lỗi PDF", "error");
+      alert("Lỗi xuất PDF QT1865: " + err.message);
+    }
   };
 
   initQT1865Selectors();
