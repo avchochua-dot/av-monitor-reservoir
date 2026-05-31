@@ -5102,13 +5102,16 @@ body.slideshow-frame-mode section{
     const rows = data.rows || [];
     const sel = selected();
     const periodTitle = sel.month === "" ? `NĂM ${sel.year}` : `THÁNG ${String(sel.month).padStart(2,"0")}/${sel.year}`;
-    const exportTime = new Date().toLocaleString("vi-VN", {
+
+    const now = new Date();
+    const exportTime = now.toLocaleString("vi-VN", {
       hour:"2-digit",
       minute:"2-digit",
       day:"2-digit",
       month:"2-digit",
       year:"numeric"
     });
+    const signDate = `A Vương, ngày ${String(now.getDate()).padStart(2,"0")} tháng ${String(now.getMonth() + 1).padStart(2,"0")} năm ${now.getFullYear()}`;
 
     const logoUrl = "https://ycthhachfxczwkburnfa.supabase.co/storage/v1/object/public/Image/Logo%20AVC.png";
 
@@ -5120,7 +5123,7 @@ body.slideshow-frame-mode section{
       </tr>
     `).join("");
 
-    const tr = rows.map((r, i) => {
+    function detailRowHtml(r, i){
       const result = resultText(r);
       const reason = String(r.reason || "");
       const resultClass = !r.is_compliant ? "bad" : (reason.includes("Cảnh báo") ? "warn" : "ok");
@@ -5140,7 +5143,47 @@ body.slideshow-frame-mode section{
           <td class="reason-cell">${safe(r.reason || "")}</td>
         </tr>
       `;
-    }).join("");
+    }
+
+    function detailTableHtml(chunkRows, startIndex, extraClass){
+      const body = chunkRows.map((r, idx) => detailRowHtml(r, startIndex + idx)).join("");
+      return `
+        <table class="pdf-table detail-table ${extraClass || ""}">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Ngày</th>
+              <th>MNH TB</th>
+              <th>GH MNH</th>
+              <th>Q ra TB</th>
+              <th>Q quy định</th>
+              <th>Giờ máy</th>
+              <th>Giờ LT</th>
+              <th>Đạt 12h</th>
+              <th>Kết quả</th>
+              <th>Nguyên nhân</th>
+            </tr>
+          </thead>
+          <tbody>${body || '<tr><td colspan="11">Không có dữ liệu</td></tr>'}</tbody>
+        </table>
+      `;
+    }
+
+    const isYearReport = sel.month === "";
+    const firstPageRows = isYearReport ? 10 : 15;
+    const nextPageRows = isYearReport ? 30 : 16;
+    const tables = [];
+    if(rows.length <= firstPageRows){
+      tables.push(detailTableHtml(rows, 0, ""));
+    }else{
+      tables.push(detailTableHtml(rows.slice(0, firstPageRows), 0, ""));
+      let start = firstPageRows;
+      while(start < rows.length){
+        const chunk = rows.slice(start, start + nextPageRows);
+        tables.push(`<div class="detail-page-break"></div>${detailTableHtml(chunk, start, "continued-table")}`);
+        start += nextPageRows;
+      }
+    }
 
     return `
       <div class="qt-pdf-report">
@@ -5184,27 +5227,10 @@ body.slideshow-frame-mode section{
         </table>
 
         <h3>2. Chi tiết đánh giá theo ngày</h3>
-        <table class="pdf-table detail-table">
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Ngày</th>
-              <th>MNH TB</th>
-              <th>GH MNH</th>
-              <th>Q ra TB</th>
-              <th>Q quy định</th>
-              <th>Giờ máy</th>
-              <th>Giờ LT</th>
-              <th>Đạt 12h</th>
-              <th>Kết quả</th>
-              <th>Nguyên nhân</th>
-            </tr>
-          </thead>
-          <tbody>${tr || '<tr><td colspan="11">Không có dữ liệu</td></tr>'}</tbody>
-        </table>
+        ${tables.join("")}
 
         <div class="sign-page">
-          <div class="sign-date">A Vương, ngày ...... tháng ...... năm ........</div>
+          <div class="sign-date">${signDate}</div>
           <div class="sign-grid">
             <div>
               <b>NGƯỜI LẬP</b>
@@ -5417,8 +5443,14 @@ body.slideshow-frame-mode section{
           page-break-inside:auto;
         }
 
-        .pdf-table thead{display:table-header-group}
-        .pdf-table tr{page-break-inside:avoid;page-break-after:auto}
+        .pdf-table thead{
+          display:table-header-group!important;
+        }
+
+        .pdf-table tr{
+          page-break-inside:avoid;
+          page-break-after:auto;
+        }
 
         .pdf-table th,
         .pdf-table td{
@@ -5463,17 +5495,30 @@ body.slideshow-frame-mode section{
           text-align:left!important;
         }
 
+        .detail-page-break{
+          page-break-before:always;
+          break-before:page;
+          height:0;
+          line-height:0;
+          overflow:hidden;
+        }
+
+        .continued-table{
+          margin-top:0;
+        }
+
         .detail-table th:nth-child(1){width:7mm}
         .detail-table th:nth-child(2){width:15mm}
         .detail-table th:nth-child(3){width:15mm}
-        .detail-table th:nth-child(4){width:28mm}
-        .detail-table th:nth-child(5){width:17mm}
-        .detail-table th:nth-child(6){width:27mm}
+        .detail-table th:nth-child(4){width:29mm}
+        .detail-table th:nth-child(5){width:18mm}
+        .detail-table th:nth-child(6){width:29mm}
         .detail-table th:nth-child(7){width:12mm}
         .detail-table th:nth-child(8){width:12mm}
         .detail-table th:nth-child(9){width:17mm}
-        .detail-table th:nth-child(10){width:23mm}
+        .detail-table th:nth-child(10){width:25mm}
         .detail-table th:nth-child(11){width:auto}
+        .detail-table .reason-cell{max-width:58mm}
 
         .ok{
           color:#166534!important;
@@ -5494,16 +5539,18 @@ body.slideshow-frame-mode section{
         }
 
         .sign-page{
-          page-break-before:always;
+          page-break-before:auto;
+          break-before:auto;
           width:100%;
-          min-height:120mm;
-          padding:18mm 16mm 0;
+          min-height:0;
+          margin-top:9mm;
+          padding:6mm 16mm 0;
         }
 
         .sign-date{
           text-align:right;
           font-style:italic;
-          margin-bottom:18mm;
+          margin-bottom:14mm;
           font-size:11pt;
         }
 
@@ -5515,7 +5562,7 @@ body.slideshow-frame-mode section{
         }
 
         .sign-grid div{
-          min-height:45mm;
+          min-height:34mm;
         }
 
         .sign-grid b{
@@ -5553,7 +5600,7 @@ body.slideshow-frame-mode section{
               backgroundColor: "#ffffff"
             },
             jsPDF: {unit: "mm", format: "a4", orientation: "landscape"},
-            pagebreak: {mode: ["css", "legacy"], avoid: [".pdf-cover-header", ".pdf-summary", ".reason-table"]}
+            pagebreak: {mode: ["css", "legacy"], before: [".detail-page-break"], avoid: [".pdf-cover-header", ".pdf-summary", ".reason-table"]}
           })
           .from(holder)
           .save();
