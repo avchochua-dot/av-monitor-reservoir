@@ -5100,8 +5100,11 @@ body.slideshow-frame-mode section{
   function buildQT1865PdfHtml(data){
     const s = data.summary || {};
     const rows = data.rows || [];
+    const monthlySummary = data.monthlySummary || [];
+    const reasonSummary = data.summaryByReason || [];
     const sel = selected();
-    const periodTitle = sel.month === "" ? `NĂM ${sel.year}` : `THÁNG ${String(sel.month).padStart(2,"0")}/${sel.year}`;
+    const isYearReport = sel.month === "";
+    const periodTitle = isYearReport ? `NĂM ${sel.year}` : `THÁNG ${String(sel.month).padStart(2,"0")}/${sel.year}`;
 
     const now = new Date();
     const exportTime = now.toLocaleString("vi-VN", {
@@ -5115,13 +5118,186 @@ body.slideshow-frame-mode section{
 
     const logoUrl = "https://ycthhachfxczwkburnfa.supabase.co/storage/v1/object/public/Image/Logo%20AVC.png";
 
-    const reasons = (data.summaryByReason || []).map((x, i) => `
+    function clampText(text, maxLen = 155){
+      const raw = String(text || "").replace(/\s+/g, " ").trim();
+      if(!raw) return "";
+      const parts = raw.split(/;\s*/).filter(Boolean);
+      const unique = [];
+      for(const p of parts){
+        if(!unique.includes(p)) unique.push(p);
+      }
+      const compact = unique.join("; ");
+      return compact.length > maxLen ? compact.slice(0, maxLen - 1) + "…" : compact;
+    }
+
+    function complianceLevel(rate){
+      const v = Number(rate || 0);
+      if(v >= 90) return {text:"TỐT", cls:"level-good"};
+      if(v >= 80) return {text:"KHÁ", cls:"level-ok"};
+      if(v >= 70) return {text:"TRUNG BÌNH", cls:"level-mid"};
+      return {text:"CẦN CẢI THIỆN", cls:"level-bad"};
+    }
+
+    const level = complianceLevel(s.complianceRate);
+    const topReason = reasonSummary && reasonSummary.length ? reasonSummary[0] : null;
+    const mnhHigh = reasonSummary.find(x => String(x.reason || "").includes("vượt giới hạn"));
+    const mnhLow = reasonSummary.find(x => String(x.reason || "").includes("dưới giới hạn"));
+    const qLow = reasonSummary.find(x => String(x.reason || "").includes("lưu lượng") || String(x.reason || "").includes("Q thấp"));
+    const qWarn = reasonSummary.find(x => String(x.reason || "").includes("Cảnh báo"));
+
+    const aiComment = `
+      <p>
+        Trong kỳ đánh giá <b>${periodTitle}</b>, hệ thống ghi nhận <b>${fmt0(s.totalDays)}</b> ngày có dữ liệu vận hành.
+        Kết quả có <b>${fmt0(s.compliantDays)}</b> ngày đảm bảo quy trình, đạt tỷ lệ <b>${fmt(s.complianceRate,1)}%</b>;
+        <b>${fmt0(s.nonCompliantDays)}</b> ngày không đảm bảo và <b>${fmt0(s.warningDays)}</b> ngày có cảnh báo.
+      </p>
+      <p>
+        Mức độ tuân thủ tổng thể được đánh giá là
+        <span class="level-badge ${level.cls}">${level.text}</span>.
+        Nguyên nhân nổi bật nhất là <b>${safe(topReason ? topReason.reason : "không phát hiện nguyên nhân nổi bật")}</b>
+        ${topReason ? `với <b>${fmt0(topReason.count)}</b> ngày ghi nhận.` : "."}
+      </p>
+      <p>
+        Về điều kiện chạy máy liên tục tối thiểu 12 giờ, có <b>${fmt0(s.turbine12hCompliantDays)}</b> ngày đạt
+        và <b>${fmt0(s.turbine12hNonCompliantDays)}</b> ngày không đạt, tương ứng tỷ lệ đạt <b>${fmt(s.turbine12hRate,1)}%</b>.
+      </p>
+      <p>
+        Các nhóm vấn đề cần theo dõi gồm:
+        ${qLow ? `<b>${safe(qLow.reason)}</b> (${fmt0(qLow.count)} ngày); ` : ""}
+        ${mnhHigh ? `<b>${safe(mnhHigh.reason)}</b> (${fmt0(mnhHigh.count)} ngày); ` : ""}
+        ${mnhLow ? `<b>${safe(mnhLow.reason)}</b> (${fmt0(mnhLow.count)} ngày); ` : ""}
+        ${qWarn ? `<b>${safe(qWarn.reason)}</b> (${fmt0(qWarn.count)} ngày).` : ""}
+      </p>
+    `;
+
+    const conclusion = `
+      <p>
+        Căn cứ kết quả tổng hợp, hồ A Vương ${Number(s.complianceRate || 0) >= 80 ? "cơ bản duy trì được mức tuân thủ quy trình vận hành liên hồ 1865." : "cần tiếp tục tăng cường theo dõi và điều chỉnh vận hành để nâng cao mức tuân thủ quy trình liên hồ 1865."}
+      </p>
+      <p>
+        Đề nghị tiếp tục giám sát sát sao các thời điểm có nguy cơ mực nước vượt/thiếu giới hạn vận hành,
+        lưu lượng xả thấp hơn quy định, đồng thời duy trì chế độ vận hành tổ máy liên tục tối thiểu 12 giờ theo yêu cầu.
+      </p>
+    `;
+
+    function mainHeader(){
+      return `
+        <div class="pdf-cover-header">
+          <div class="logo-cell"><img src="${logoUrl}" alt="AVC Logo" /></div>
+          <div class="title-cell">
+            <div class="company">CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG</div>
+            <div class="unit">TRUNG TÂM GIÁM SÁT & ĐIỀU HÀNH HỒ CHỨA AI</div>
+            <div class="report-title">BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865</div>
+            <div class="period">${periodTitle}</div>
+          </div>
+          <div class="logo-cell right"><img src="${logoUrl}" alt="AVC Logo" /></div>
+        </div>
+      `;
+    }
+
+    function slimHeader(title){
+      return `
+        <div class="pdf-slim-header">
+          <div><b>BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865</b> - ${periodTitle}</div>
+          <div>${safe(title || "")}</div>
+        </div>
+      `;
+    }
+
+    function pageFooter(){
+      return `
+        <div class="pdf-page-footer">
+          <span>Nguồn dữ liệu: Supabase / Dashboard AI AVC</span>
+          <span>Ngày xuất: ${exportTime}</span>
+        </div>
+      `;
+    }
+
+    function signatureBlock(inline){
+      return `
+        <div class="signature-group ${inline ? "signature-inline" : ""}">
+          <div class="sign-date">${signDate}</div>
+          <div class="sign-grid">
+            <div>
+              <b>NGƯỜI LẬP</b>
+              <em>(ký, ghi rõ họ tên)</em>
+              <span>Hệ thống AI AVC</span>
+            </div>
+            <div>
+              <b>KIỂM TRA</b>
+              <em>(ký, ghi rõ họ tên)</em>
+              <span>Phân xưởng vận hành</span>
+            </div>
+            <div>
+              <b>LÃNH ĐẠO CÔNG TY</b>
+              <em>(ký tên, đóng dấu)</em>
+              <span>Phê duyệt</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const reasons = reasonSummary.map((x, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td class="reason-cell">${safe(x.reason || "")}</td>
+        <td class="reason-cell col-nguyen-nhan"><span class="reason-text">${safe(clampText(x.reason, 220))}</span></td>
         <td>${fmt0(x.count)}</td>
       </tr>
     `).join("");
+
+    const monthRows = monthlySummary.map((m, i) => {
+      const mm = String(m.month || "").slice(5,7) || String(i + 1).padStart(2,"0");
+      return `
+        <tr>
+          <td>${mm}</td>
+          <td>${fmt0(m.totalDays)}</td>
+          <td class="ok">${fmt0(m.compliantDays)}</td>
+          <td class="bad">${fmt0(m.nonCompliantDays)}</td>
+          <td class="warn">${fmt0(m.warningDays)}</td>
+          <td>${fmt0(m.turbine12hCompliantDays)}</td>
+          <td>${fmt(m.complianceRate,1)}%</td>
+          <td>${fmt(m.turbine12hRate,1)}%</td>
+        </tr>
+      `;
+    }).join("");
+
+    function svgDonut(items, centerText, subtitle){
+      const total = items.reduce((a,x)=>a + Number(x.value || 0), 0) || 1;
+      let offset = 25;
+      const r = 36;
+      const c = 2 * Math.PI * r;
+      const circles = items.map(x => {
+        const pct = Number(x.value || 0) / total;
+        const len = pct * c;
+        const circle = `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${x.color}" stroke-width="16" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${offset}" transform="rotate(-90 50 50)" />`;
+        offset -= len;
+        return circle;
+      }).join("");
+      const legend = items.map(x => `<div><span style="background:${x.color}"></span>${safe(x.label)}: <b>${fmt0(x.value)}</b></div>`).join("");
+      return `
+        <div class="chart-card">
+          <svg viewBox="0 0 100 100" class="donut">
+            <circle cx="50" cy="50" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="16"/>
+            ${circles}
+            <text x="50" y="48" text-anchor="middle" class="donut-text">${safe(centerText)}</text>
+            <text x="50" y="60" text-anchor="middle" class="donut-sub">${safe(subtitle)}</text>
+          </svg>
+          <div class="legend">${legend}</div>
+        </div>
+      `;
+    }
+
+    const complianceChart = svgDonut([
+      {label:"Đảm bảo", value:s.compliantDays, color:"#16a34a"},
+      {label:"Không đảm bảo", value:s.nonCompliantDays, color:"#dc2626"},
+      {label:"Cảnh báo", value:s.warningDays, color:"#f59e0b"}
+    ], `${fmt(s.complianceRate,1)}%`, "Đảm bảo");
+
+    const turbineChart = svgDonut([
+      {label:"Đạt 12h", value:s.turbine12hCompliantDays, color:"#16a34a"},
+      {label:"Không đạt 12h", value:s.turbine12hNonCompliantDays, color:"#dc2626"}
+    ], `${fmt(s.turbine12hRate,1)}%`, "Đạt 12h");
 
     function detailRowHtml(r, i){
       const result = resultText(r);
@@ -5132,23 +5308,23 @@ body.slideshow-frame-mode section{
         <tr>
           <td>${i + 1}</td>
           <td>${dt(r.date)}</td>
-          <td>${fmt(r.water_level_avg,2)}</td>
+          <td class="num-cell">${fmt(r.water_level_avg,2)}</td>
           <td>${fmt(r.mnh_min,2)} - ${fmt(r.mnh_max,2)}</td>
-          <td>${fmt(r.total_outflow_avg,2)}</td>
+          <td class="num-cell">${fmt(r.total_outflow_avg,2)}</td>
           <td>${fmt(r.q_min,2)} - ${fmt(r.q_max,2)}</td>
-          <td>${fmt0(r.turbine_running_hours)}</td>
-          <td>${fmt0(r.turbine_continuous_hours)}</td>
+          <td class="num-cell">${fmt0(r.turbine_running_hours)}</td>
+          <td class="num-cell">${fmt0(r.turbine_continuous_hours)}</td>
           <td class="${turbineClass}">${r.is_turbine_12h_compliant ? "Đạt" : "Không đạt"}</td>
           <td class="${resultClass}">${safe(result)}</td>
-          <td class="reason-cell">${safe(r.reason || "")}</td>
+          <td class="reason-cell col-nguyen-nhan"><span class="reason-text">${safe(clampText(r.reason, 150))}</span></td>
         </tr>
       `;
     }
 
-    function detailTableHtml(chunkRows, startIndex, extraClass){
+    function detailTableHtml(chunkRows, startIndex){
       const body = chunkRows.map((r, idx) => detailRowHtml(r, startIndex + idx)).join("");
       return `
-        <table class="pdf-table detail-table ${extraClass || ""}">
+        <table class="pdf-table report-table detail-table">
           <thead>
             <tr>
               <th>STT</th>
@@ -5169,39 +5345,9 @@ body.slideshow-frame-mode section{
       `;
     }
 
-    const isYearReport = sel.month === "";
-    const firstPageRows = isYearReport ? 10 : 15;
-    const nextPageRows = isYearReport ? 30 : 16;
-    const tables = [];
-    if(rows.length <= firstPageRows){
-      tables.push(detailTableHtml(rows, 0, ""));
-    }else{
-      tables.push(detailTableHtml(rows.slice(0, firstPageRows), 0, ""));
-      let start = firstPageRows;
-      while(start < rows.length){
-        const chunk = rows.slice(start, start + nextPageRows);
-        tables.push(`<div class="detail-page-break"></div>${detailTableHtml(chunk, start, "continued-table")}`);
-        start += nextPageRows;
-      }
-    }
-
-    return `
-      <div class="qt-pdf-report">
-        <div class="pdf-cover-header">
-          <div class="logo-cell">
-            <img src="${logoUrl}" alt="AVC Logo" />
-          </div>
-          <div class="title-cell">
-            <div class="company">CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG</div>
-            <div class="unit">TRUNG TÂM GIÁM SÁT & ĐIỀU HÀNH HỒ CHỨA AI</div>
-            <div class="report-title">BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH LIÊN HỒ 1865</div>
-            <div class="period">${periodTitle}</div>
-          </div>
-          <div class="logo-cell right">
-            <img src="${logoUrl}" alt="AVC Logo" />
-          </div>
-        </div>
-
+    const summaryPage = `
+      <section class="report-page summary-page">
+        ${mainHeader()}
         <div class="meta-line">
           <span>Nguồn dữ liệu: Supabase / Dashboard AI AVC</span>
           <span>Ngày xuất: ${exportTime}</span>
@@ -5218,36 +5364,79 @@ body.slideshow-frame-mode section{
           <div><b>${fmt(s.turbine12hRate,1)}%</b><span>Tỷ lệ đạt 12h</span></div>
         </div>
 
+        <div class="pdf-charts">${complianceChart}${turbineChart}</div>
+
         <h3>1. Tổng hợp nguyên nhân / cảnh báo</h3>
-        <table class="pdf-table reason-table">
-          <thead>
-            <tr><th>STT</th><th>Nguyên nhân / cảnh báo</th><th>Số ngày</th></tr>
-          </thead>
+        <table class="pdf-table report-table reason-table">
+          <thead><tr><th>STT</th><th>Nguyên nhân / cảnh báo</th><th>Số ngày</th></tr></thead>
           <tbody>${reasons || '<tr><td colspan="3">Không có nguyên nhân / cảnh báo</td></tr>'}</tbody>
         </table>
 
-        <h3>2. Chi tiết đánh giá theo ngày</h3>
-        ${tables.join("")}
-
-        <div class="sign-page">
-          <div class="sign-date">${signDate}</div>
-          <div class="sign-grid">
-            <div>
-              <b>NGƯỜI LẬP</b>
-              <span>(ký, ghi rõ họ tên)</span>
-            </div>
-            <div>
-              <b>KIỂM TRA</b>
-              <span>(ký, ghi rõ họ tên)</span>
-            </div>
-            <div>
-              <b>PHÊ DUYỆT</b>
-              <span>(ký, ghi rõ họ tên)</span>
-            </div>
-          </div>
+        <div class="ai-section">
+          <h3>2. Nhận xét tự động</h3>
+          ${aiComment}
         </div>
-      </div>
+
+        ${isYearReport && monthlySummary.length ? `
+          <h3>3. Tổng hợp theo tháng</h3>
+          <table class="pdf-table report-table month-table">
+            <thead>
+              <tr>
+                <th>Tháng</th><th>Tổng ngày</th><th>Đảm bảo</th><th>Không đảm bảo</th>
+                <th>Cảnh báo</th><th>Đạt 12h</th><th>Tỷ lệ đảm bảo</th><th>Tỷ lệ đạt 12h</th>
+              </tr>
+            </thead>
+            <tbody>${monthRows}</tbody>
+          </table>
+        ` : ""}
+        ${pageFooter()}
+      </section>
     `;
+
+    const detailPages = [];
+    const rowsPerDetailPage = isYearReport ? 30 : 20;
+    const detailNo = isYearReport && monthlySummary.length ? "4" : "3";
+    const lastChunkLimitForInlineFinal = isYearReport ? 18 : 14;
+
+    for(let start = 0; start < rows.length; start += rowsPerDetailPage){
+      const chunk = rows.slice(start, start + rowsPerDetailPage);
+      const pageNo = Math.floor(start / rowsPerDetailPage) + 1;
+      const isLastChunk = start + rowsPerDetailPage >= rows.length;
+      const canInlineFinal = isLastChunk && chunk.length <= lastChunkLimitForInlineFinal;
+
+      detailPages.push(`
+        <section class="report-page detail-report-page ${canInlineFinal ? "detail-with-final" : ""}">
+          ${slimHeader(`${detailNo}. Chi tiết đánh giá theo ngày - Trang ${pageNo}`)}
+          <h3>${detailNo}. Chi tiết đánh giá theo ngày</h3>
+          ${detailTableHtml(chunk, start)}
+          ${canInlineFinal ? `
+            <div class="conclusion-section inline-final">
+              <h3>Kết luận</h3>
+              ${conclusion}
+            </div>
+            ${signatureBlock(true)}
+          ` : ""}
+          ${pageFooter()}
+        </section>
+      `);
+    }
+
+    const lastChunkRows = rows.length % rowsPerDetailPage || rowsPerDetailPage;
+    const hasInlineFinal = rows.length > 0 && lastChunkRows <= lastChunkLimitForInlineFinal;
+
+    const finalPage = hasInlineFinal ? "" : `
+      <section class="report-page final-page">
+        ${slimHeader("Kết luận và ký xác nhận")}
+        <div class="conclusion-section">
+          <h3>Kết luận</h3>
+          ${conclusion}
+        </div>
+        ${signatureBlock(false)}
+        ${pageFooter()}
+      </section>
+    `;
+
+    return `<div class="qt-pdf-report">${summaryPage}${detailPages.join("")}${finalPage}</div>`;
   }
 
   window.exportQT1865Pdf = async function(){
@@ -5271,7 +5460,7 @@ body.slideshow-frame-mode section{
       holder.style.background = "#fff";
       const style = document.createElement("style");
       style.textContent = `
-        @page{size:A4 landscape;margin:8mm}
+        @page{size:A4 landscape;margin:0}
         *{box-sizing:border-box}
 
         .qt-pdf-report{
@@ -5284,7 +5473,27 @@ body.slideshow-frame-mode section{
           padding:0;
           font-size:8pt;
           line-height:1.18;
-          overflow:visible;
+          overflow:visible!important;
+        }
+
+        .report-page{
+          width:100%;
+          min-height:194mm;
+          padding:6mm 11mm 8mm;
+          background:#fff;
+          page-break-after:always;
+          break-after:page;
+          position:relative;
+          overflow:visible!important;
+        }
+
+        .report-page:last-child{
+          page-break-after:auto;
+          break-after:auto;
+        }
+
+        .detail-report-page{
+          padding-top:5mm;
         }
 
         .qt-pdf-report table,
@@ -5322,67 +5531,25 @@ body.slideshow-frame-mode section{
           margin:0 0 6px;
         }
 
-        .logo-cell{
+        .pdf-slim-header{
           display:flex;
+          justify-content:space-between;
           align-items:center;
-          justify-content:center;
-          min-width:0;
+          border-bottom:2px solid #1d4ed8;
+          padding:0 0 4px;
+          margin:0 0 5px;
+          color:#1e3a8a;
+          font-size:9pt;
         }
 
-        .logo-cell img{
-          width:88px;
-          max-width:88px;
-          max-height:44px;
-          object-fit:contain;
-          display:block;
-        }
-
-        .logo-cell.right img{
-          width:88px;
-          max-width:88px;
-        }
-
-        .title-cell{
-          text-align:center;
-          font-weight:bold;
-          min-width:0;
-        }
-
-        .company{
-          font-size:15pt;
-          line-height:1.05;
-          text-transform:uppercase;
-          white-space:nowrap;
-        }
-
-        .unit{
-          font-size:10.5pt;
-          line-height:1.05;
-          color:#1d4ed8;
-          text-transform:uppercase;
-          margin-top:1mm;
-          white-space:nowrap;
-        }
-
-        .report-title{
-          font-size:12pt;
-          line-height:1.05;
-          text-transform:uppercase;
-          margin-top:2mm;
-          white-space:nowrap;
-        }
-
-        .period{
-          display:inline-block;
-          margin-top:1mm;
-          padding:1mm 8mm;
-          border-radius:999px;
-          color:#1d4ed8;
-          background:#eff6ff;
-          border:1px solid #bfdbfe;
-          font-size:10.5pt;
-          line-height:1.05;
-        }
+        .logo-cell{display:flex;align-items:center;justify-content:center;min-width:0}
+        .logo-cell img{width:88px;max-width:88px;max-height:44px;object-fit:contain;display:block}
+        .logo-cell.right img{width:88px;max-width:88px}
+        .title-cell{text-align:center;font-weight:bold;min-width:0}
+        .company{font-size:15pt;line-height:1.05;text-transform:uppercase;white-space:nowrap}
+        .unit{font-size:10.5pt;line-height:1.05;color:#1d4ed8;text-transform:uppercase;margin-top:1mm;white-space:nowrap}
+        .report-title{font-size:12pt;line-height:1.05;text-transform:uppercase;margin-top:2mm;white-space:nowrap}
+        .period{display:inline-block;margin-top:1mm;padding:1mm 8mm;border-radius:999px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;font-size:10.5pt;line-height:1.05}
 
         .meta-line{
           display:flex;
@@ -5395,67 +5562,151 @@ body.slideshow-frame-mode section{
           padding-bottom:1.2mm;
         }
 
+        .pdf-page-footer{
+          position:absolute;
+          left:11mm;
+          right:11mm;
+          bottom:3.5mm;
+          border-top:1px solid #cbd5e1;
+          padding-top:1mm;
+          display:flex;
+          justify-content:space-between;
+          color:#64748b;
+          font-size:7.2pt;
+        }
+
         .pdf-summary{
           display:grid;
           grid-template-columns:repeat(8,1fr);
-          gap:1.5mm;
-          margin:0 0 3mm;
+          gap:1.2mm;
+          margin:0 0 1.8mm;
           width:100%;
         }
 
         .pdf-summary div{
           border:1px solid #cbd5e1;
           border-radius:4px;
-          padding:1.2mm .6mm;
+          padding:.8mm .5mm;
           text-align:center;
-          min-height:10mm;
+          min-height:8mm;
           background:#f8fafc;
         }
 
         .pdf-summary b{
           display:block;
-          font-size:11pt;
+          font-size:9.5pt;
           line-height:1;
           color:#1d4ed8;
         }
 
         .pdf-summary span{
           display:block;
-          margin-top:.5mm;
-          font-size:5.8pt;
+          margin-top:.3mm;
+          font-size:5.2pt;
           color:#475569;
           font-weight:bold;
           white-space:nowrap!important;
         }
 
+        .pdf-charts{
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:4mm;
+          margin:0 0 2mm;
+        }
+
+        .chart-card{
+          border:1px solid #dbeafe;
+          background:#f8fbff;
+          border-radius:6px;
+          padding:1mm 2mm;
+          display:grid;
+          grid-template-columns:27mm 1fr;
+          align-items:center;
+          min-height:25mm;
+        }
+
+        .donut{width:25mm;height:25mm}
+        .donut-text{font-size:12px;fill:#1d4ed8;font-weight:bold;font-family:"Times New Roman", Times, serif}
+        .donut-sub{font-size:6px;fill:#475569;font-weight:bold;font-family:"Times New Roman", Times, serif}
+        .legend{font-size:6.8pt;line-height:1.25;color:#334155}
+        .legend div{margin:.6mm 0}
+        .legend span{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+
         h3{
-          font-size:9.5pt;
-          margin:2.2mm 0 1.4mm;
+          font-size:9.2pt;
+          margin:1.6mm 0 1mm;
           text-transform:uppercase;
           color:#111827;
           page-break-after:avoid;
         }
 
-        .pdf-table{
+        .ai-section,
+        .conclusion-section{
+          border:1px solid #dbeafe;
+          background:#f8fbff;
+          border-radius:6px;
+          padding:1.5mm 2.4mm;
+          margin:1.6mm 0;
+          page-break-inside:avoid!important;
+          break-inside:avoid!important;
+        }
+
+        .conclusion-section{
+          background:#fafafa;
+          border-color:#d1d5db;
+        }
+
+        .ai-section h3,
+        .conclusion-section h3{
+          margin-top:0;
+          color:#1d4ed8;
+        }
+
+        .ai-section p,
+        .conclusion-section p{
+          margin:.75mm 0;
+          line-height:1.28;
+          text-align:justify;
+        }
+
+        .level-badge{
+          display:inline-block;
+          padding:.6mm 2.5mm;
+          border-radius:999px;
+          font-weight:bold;
+        }
+
+        .level-good{background:#dcfce7;color:#166534}
+        .level-ok{background:#dbeafe;color:#1d4ed8}
+        .level-mid{background:#fef3c7;color:#92400e}
+        .level-bad{background:#fee2e2;color:#991b1b}
+
+        .pdf-table,
+        .report-table{
           width:100%;
           border-collapse:collapse;
           table-layout:fixed;
-          page-break-inside:auto;
+          page-break-inside:auto!important;
+          break-inside:auto!important;
         }
 
-        .pdf-table thead{
+        .pdf-table thead,
+        .report-table thead{
           display:table-header-group!important;
         }
 
-        .pdf-table tr{
-          page-break-inside:avoid;
+        .pdf-table tr,
+        .report-table tr{
+          page-break-inside:avoid!important;
+          break-inside:avoid!important;
           page-break-after:auto;
         }
 
         .pdf-table th,
         .pdf-table td{
           border:1px solid #94a3b8!important;
-          padding:1.1mm .7mm!important;
+          padding:.68mm .48mm!important;
           text-align:center!important;
           vertical-align:middle!important;
           overflow:hidden;
@@ -5466,92 +5717,106 @@ body.slideshow-frame-mode section{
           background:#eaf1ff!important;
           color:#1e3a8a!important;
           font-weight:bold!important;
-          font-size:6.8pt!important;
+          font-size:6.2pt!important;
           text-transform:uppercase;
         }
 
         .pdf-table td{
-          font-size:7.4pt!important;
+          font-size:6.65pt!important;
           font-weight:bold!important;
           color:#111827;
         }
 
         .reason-table{
           width:64%;
-          margin:0 auto 3mm;
+          margin:0 auto 2mm;
           table-layout:auto;
         }
 
         .reason-table th,
         .reason-table td{
-          font-size:8pt!important;
-          padding:1.8mm!important;
+          font-size:7.5pt!important;
+          padding:1.35mm!important;
         }
 
         .reason-table th:nth-child(1){width:14mm}
         .reason-table th:nth-child(3){width:18mm}
 
+        .month-table{
+          width:100%;
+          margin:0 auto 1.6mm;
+        }
+
+        .month-table th,
+        .month-table td{
+          font-size:7pt!important;
+          padding:.85mm!important;
+        }
+
         .reason-cell{
           text-align:left!important;
+          vertical-align:middle!important;
         }
 
-        .detail-page-break{
-          page-break-before:always;
-          break-before:page;
-          height:0;
-          line-height:0;
+        .col-nguyen-nhan{
+          word-break:break-word!important;
+          overflow-wrap:anywhere!important;
+          white-space:normal!important;
+          display:table-cell!important;
+          overflow:visible!important;
+        }
+
+        .reason-text{
+          display:block;
+          max-height:3.6em;
+          line-height:1.2;
           overflow:hidden;
-        }
-
-        .continued-table{
-          margin-top:0;
+          word-break:break-word!important;
+          overflow-wrap:anywhere!important;
         }
 
         .detail-table th:nth-child(1){width:7mm}
         .detail-table th:nth-child(2){width:15mm}
         .detail-table th:nth-child(3){width:15mm}
-        .detail-table th:nth-child(4){width:29mm}
+        .detail-table th:nth-child(4){width:28mm}
         .detail-table th:nth-child(5){width:18mm}
-        .detail-table th:nth-child(6){width:29mm}
+        .detail-table th:nth-child(6){width:28mm}
         .detail-table th:nth-child(7){width:12mm}
         .detail-table th:nth-child(8){width:12mm}
         .detail-table th:nth-child(9){width:17mm}
-        .detail-table th:nth-child(10){width:25mm}
+        .detail-table th:nth-child(10){width:24mm}
         .detail-table th:nth-child(11){width:auto}
-        .detail-table .reason-cell{max-width:58mm}
 
-        .ok{
-          color:#166534!important;
-          background:#dcfce7!important;
-          font-weight:bold!important;
+        .num-cell{
+          text-align:right!important;
+          font-variant-numeric:tabular-nums;
         }
 
-        .bad{
-          color:#991b1b!important;
-          background:#fee2e2!important;
-          font-weight:bold!important;
+        .ok{color:#166534!important;background:#dcfce7!important;font-weight:bold!important}
+        .bad{color:#991b1b!important;background:#fee2e2!important;font-weight:bold!important}
+        .warn{color:#92400e!important;background:#fef3c7!important;font-weight:bold!important}
+
+        .signature-group{
+          page-break-inside:avoid!important;
+          break-inside:avoid!important;
+          margin-top:10mm;
+          padding-top:4mm;
         }
 
-        .warn{
-          color:#92400e!important;
-          background:#fef3c7!important;
-          font-weight:bold!important;
-        }
-
-        .sign-page{
-          page-break-before:auto;
-          break-before:auto;
-          width:100%;
-          min-height:0;
-          margin-top:9mm;
-          padding:6mm 16mm 0;
+        .signature-inline{
+          margin-top:5mm!important;
+          padding-top:2mm!important;
         }
 
         .sign-date{
           text-align:right;
           font-style:italic;
-          margin-bottom:14mm;
+          margin-bottom:12mm;
           font-size:11pt;
+        }
+
+        .signature-inline .sign-date{
+          margin-bottom:8mm!important;
         }
 
         .sign-grid{
@@ -5565,17 +5830,34 @@ body.slideshow-frame-mode section{
           min-height:34mm;
         }
 
+        .signature-inline .sign-grid div{
+          min-height:24mm!important;
+        }
+
         .sign-grid b{
           display:block;
           font-size:12pt;
           text-transform:uppercase;
         }
 
-        .sign-grid span{
+        .sign-grid em{
           display:block;
           margin-top:2mm;
-          font-size:10pt;
+          font-size:9pt;
           color:#475569;
+          font-style:italic;
+        }
+
+        .sign-grid span{
+          display:block;
+          margin-top:16mm;
+          font-size:10pt;
+          color:#111827;
+          font-weight:bold;
+        }
+
+        .signature-inline .sign-grid span{
+          margin-top:10mm!important;
         }
       `;
       holder.prepend(style);
@@ -5588,7 +5870,7 @@ body.slideshow-frame-mode section{
       if(typeof html2pdf !== "undefined"){
         await html2pdf()
           .set({
-            margin: [8, 8, 8, 8],
+            margin: 0,
             filename: fileName,
             image: {type: "jpeg", quality: 0.98},
             html2canvas: {
@@ -5600,7 +5882,7 @@ body.slideshow-frame-mode section{
               backgroundColor: "#ffffff"
             },
             jsPDF: {unit: "mm", format: "a4", orientation: "landscape"},
-            pagebreak: {mode: ["css", "legacy"], before: [".detail-page-break"], avoid: [".pdf-cover-header", ".pdf-summary", ".reason-table"]}
+            pagebreak: {mode: ["css", "legacy"], avoid: [".pdf-cover-header", ".pdf-summary", ".reason-table", ".ai-section", ".conclusion-section", ".signature-group"]}
           })
           .from(holder)
           .save();
