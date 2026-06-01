@@ -1,27 +1,5 @@
 /**
  * Vercel API: /api/monthly-report?year=2026&month=5
- *
- * ENV required in Vercel:
- * - SUPABASE_URL
- * - SUPABASE_SERVICE_ROLE_KEY
- *
- * Main table:
- * - public.reservoir_hourly_data
- *   time, water_level, inflow, turbine_flow, spillway_flow, rainfallreal
- *
- * Optional table:
- * - public.reservoir_level_limits
- *   date, mnghd, mnght, mndl, mntrl
- *
- * Frequency table:
- * - public.monthly_inflow_frequency
- *   frequency_percent, month, inflow_value
- *
- * Lưu ý:
- * - frequency_percent đang lưu dạng:
- *   0.5 = 50%
- *   0.8 = 80%
- *   0.02 = 2%
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -82,6 +60,16 @@ function monthRangeUtc(year, month) {
   };
 }
 
+function monthRangeDate(year, month) {
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDate = new Date(Number(year), Number(month), 0);
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(
+    endDate.getDate()
+  ).padStart(2, "0")}`;
+
+  return { start, end };
+}
+
 function dateKey(iso) {
   return new Date(iso).toISOString().slice(0, 10);
 }
@@ -106,6 +94,14 @@ function classifyInflowFrequency(frequencyPercent) {
   if (p <= 0.5) return "Nhóm trung bình đến khá";
   if (p <= 0.75) return "Nhóm ít nước";
   return "Nhóm rất ít nước / khô";
+}
+
+function classifyOverallRating(rate) {
+  const r = num(rate) || 0;
+  if (r >= 90) return "TỐT";
+  if (r >= 80) return "KHÁ";
+  if (r >= 70) return "TRUNG BÌNH";
+  return "CẦN CẢI THIỆN";
 }
 
 function groupDaily(rows) {
@@ -217,43 +213,125 @@ function detectEvents(rows, daily, inflowFrequency = null) {
   return events;
 }
 
+function formatReasonSummary(qt1865Summary) {
+  if (!qt1865Summary || !Array.isArray(qt1865Summary.reasons)) {
+    return "- Chưa có dữ liệu nguyên nhân QT1865.";
+  }
+
+  if (!qt1865Summary.reasons.length) {
+    return "- Không ghi nhận nguyên nhân không đảm bảo/cảnh báo nổi bật.";
+  }
+
+  return qt1865Summary.reasons
+    .map(r => `- ${r.reason}: ${r.days} ngày`)
+    .join("\n");
+}
+
 function makeAiPrompt(data) {
   const f = data.inflowFrequency;
+  const q = data.qt1865Summary;
+
+  const waterLevelChange = data.summary.waterLevelChange;
+  const overallRating = classifyOverallRating(q?.complianceRate);
 
   return `
-Bạn là trợ lý AI phân tích vận hành hồ chứa thủy điện A Vương.
-Hãy viết nhận xét báo cáo tháng bằng văn phong kỹ thuật, ngắn gọn, rõ ràng.
+Bạn là **Chuyên gia vận hành hồ chứa thủy điện A Vương**, am hiểu thủy văn, điều tiết hồ chứa, vận hành phát điện và yêu cầu tuân thủ Quy trình liên hồ chứa 1865.
+
+Nhiệm vụ của bạn là viết **nhận xét báo cáo tháng phục vụ lãnh đạo**, không chỉ mô tả số liệu mà phải:
+- Đánh giá trạng thái hồ chứa.
+- Phân tích xu thế nguồn nước.
+- Nhận diện rủi ro vận hành.
+- Đánh giá mức độ tuân thủ QT1865.
+- Đưa ra kiến nghị cụ thể, có thể hành động.
+
+Văn phong:
+- Kỹ thuật, rõ ràng, ngắn gọn.
+- Giống văn phong báo cáo nội bộ ngành điện/thủy điện.
+- Không viết chung chung.
+- Không phóng đại, không suy diễn vượt dữ liệu.
+- Nếu dữ liệu chưa đủ để kết luận, ghi rõ là “cần tiếp tục theo dõi”.
 
 Dữ liệu tháng ${data.month}/${data.year}:
+
+I. Dữ liệu mực nước hồ
 - Mực nước hồ lớn nhất: ${data.summary.waterLevelMax?.value ?? "-"} m lúc ${data.summary.waterLevelMax?.time ?? "-"}
 - Mực nước hồ nhỏ nhất: ${data.summary.waterLevelMin?.value ?? "-"} m lúc ${data.summary.waterLevelMin?.time ?? "-"}
 - Mực nước đầu kỳ: ${data.summary.waterLevelStart ?? "-"} m
 - Mực nước cuối kỳ: ${data.summary.waterLevelEnd ?? "-"} m
-- Q về trung bình: ${data.summary.inflowAvg ?? "-"} m3/s
-- Q về lớn nhất: ${data.summary.inflowMax?.value ?? "-"} m3/s lúc ${data.summary.inflowMax?.time ?? "-"}
-- Q chạy máy trung bình: ${data.summary.turbineFlowAvg ?? "-"} m3/s
-- Q xả trung bình: ${data.summary.spillwayFlowAvg ?? "-"} m3/s
+- Biến đổi mực nước trong kỳ: ${waterLevelChange ?? "-"} m
+
+II. Dữ liệu dòng chảy và vận hành
+- Q về trung bình: ${data.summary.inflowAvg ?? "-"} m³/s
+- Q về lớn nhất: ${data.summary.inflowMax?.value ?? "-"} m³/s lúc ${data.summary.inflowMax?.time ?? "-"}
+- Q chạy máy trung bình: ${data.summary.turbineFlowAvg ?? "-"} m³/s
+- Q xả trung bình: ${data.summary.spillwayFlowAvg ?? "-"} m³/s
+
+III. Dữ liệu mưa
 - Tổng lượng mưa tháng: ${data.summary.rainfallTotal ?? "-"} mm
 - Số ngày có mưa: ${data.summary.rainyDays ?? "-"} ngày
 - Ngày mưa lớn nhất: ${data.summary.rainMaxDay?.date ?? "-"} với ${data.summary.rainMaxDay?.value ?? "-"} mm
 
-${f ? `Đánh giá tần suất nước về:
-- Q về trung bình tháng: ${f.inflowAvg} m3/s
+IV. Đánh giá tần suất nước về
+${f ? `- Q về trung bình tháng: ${f.inflowAvg} m³/s
 - Gần với tần suất P=${f.frequencyLabel}
-- Giá trị tra bảng tại tần suất gần nhất: ${f.inflowFrequencyValue} m3/s
+- Giá trị tra bảng tại tần suất gần nhất: ${f.inflowFrequencyValue} m³/s
 - Phân loại thủy văn: ${f.classification}
-- Nhận xét tần suất: ${f.comment}
-` : `Đánh giá tần suất nước về:
-- Chưa có dữ liệu tần suất nước về hoặc chưa tra được bảng tần suất.
-`}
+- Nhận xét tần suất: ${f.comment}` : `- Chưa có dữ liệu tần suất nước về hoặc chưa tra được bảng tần suất.`}
 
-Yêu cầu trả về:
+V. Đánh giá tuân thủ QT1865
+- Tổng số ngày có dữ liệu: ${q?.totalDays ?? "-"} ngày
+- Số ngày đảm bảo quy trình: ${q?.compliantDays ?? "-"} ngày
+- Số ngày không đảm bảo: ${q?.nonCompliantDays ?? "-"} ngày
+- Số ngày cảnh báo Q cao hơn quy định nhưng vẫn tính đảm bảo: ${q?.warningDays ?? "-"} ngày
+- Tỷ lệ đảm bảo quy trình: ${q?.complianceRate ?? "-"}%
+- Số ngày đạt yêu cầu chạy máy liên tục tối thiểu 12 giờ: ${q?.turbine12hCompliantDays ?? "-"} ngày
+- Số ngày không đạt yêu cầu chạy máy 12 giờ: ${q?.turbine12hNonCompliantDays ?? "-"} ngày
+- Tỷ lệ đạt yêu cầu chạy máy 12 giờ: ${q?.turbine12hRate ?? "-"}%
+- Các nguyên nhân không đảm bảo/cảnh báo chính:
+${formatReasonSummary(q)}
+
+Yêu cầu trả về đúng 6 mục sau:
+
 1. Nhận xét chung
+- Đánh giá tổng thể trạng thái hồ trong tháng.
+- Nêu rõ hồ đang ở trạng thái: tích nước, suy giảm dung tích, vận hành bình thường, thận trọng nguồn nước, hoặc cần chú ý.
+- Không chỉ lặp lại số liệu.
+
 2. Thủy văn và dòng chảy
+- Phân tích xu thế Q về hồ.
+- So sánh tương quan giữa Q về, Q chạy máy, Q xả và biến động mực nước.
+- Nhận diện rủi ro nguồn nước nếu có.
+
 3. Đánh giá tần suất nước về hồ
+- Diễn giải ý nghĩa tần suất nước về.
+- Cho biết tháng này thuộc nhóm nhiều nước, trung bình, ít nước hoặc rất ít nước.
+- Đánh giá ảnh hưởng đến phát điện, tích nước và vận hành các tháng tiếp theo.
+
 4. Mưa trong tháng
-5. Vận hành hồ chứa
+- Nhận xét vai trò của mưa đối với dòng chảy về hồ.
+- Đánh giá phân bố mưa có hỗ trợ cải thiện nguồn nước hay không.
+- Nếu tổng mưa có nhưng mực nước vẫn giảm, cần nêu rõ khả năng mưa chưa đủ để bù lượng nước ra/vận hành.
+
+5. Vận hành hồ chứa và tuân thủ QT1865
+- Đánh giá chế độ vận hành hồ trong tháng.
+- Phân tích số ngày đảm bảo, không đảm bảo, cảnh báo.
+- Phân biệt rõ:
+  + Ngày “cảnh báo Q cao hơn quy định” nhưng vẫn đảm bảo.
+  + Ngày “không đảm bảo” do mực nước hoặc lưu lượng.
+  + Ngày không đạt chạy máy liên tục 12 giờ.
+- Nhận định mức độ ảnh hưởng đến vận hành và tuân thủ quy trình.
+
 6. Kết luận và kiến nghị
+- Đưa ra kết luận ngắn gọn về tình hình vận hành tháng.
+- Đưa ra ít nhất 3 kiến nghị cụ thể, có thể hành động.
+- Kiến nghị phải gắn với số liệu thực tế.
+
+Cuối báo cáo thêm dòng:
+Đánh giá chung: ${overallRating}
+
+Không dùng markdown bảng.
+Không dùng gạch đầu dòng quá dài.
+Không viết quá 900 từ.
 `.trim();
 }
 
@@ -276,7 +354,6 @@ async function fetchAllHourly(startIso, endIso) {
 
     url.searchParams.append("time", `gte.${startIso}`);
     url.searchParams.append("time", `lt.${endIso}`);
-
     url.searchParams.set("order", "time.asc");
     url.searchParams.set("limit", String(pageSize));
     url.searchParams.set("offset", String(offset));
@@ -315,10 +392,8 @@ async function fetchLevelLimits(year) {
     const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_level_limits`);
 
     url.searchParams.set("select", "date,mnghd,mnght,mndl,mntrl");
-
     url.searchParams.append("date", `gte.${year}-01-01`);
     url.searchParams.append("date", `lte.${year}-12-31`);
-
     url.searchParams.set("order", "date.asc");
     url.searchParams.set("limit", "400");
 
@@ -400,6 +475,83 @@ async function fetchInflowFrequency(month, inflowAvg) {
   }
 }
 
+async function fetchQt1865Summary(year, month) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+
+  try {
+    const { start, end } = monthRangeDate(year, month);
+    const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_release_compliance_1865`);
+
+    url.searchParams.set(
+      "select",
+      "date,is_compliant,reason,is_turbine_12h_compliant"
+    );
+    url.searchParams.append("date", `gte.${start}`);
+    url.searchParams.append("date", `lte.${end}`);
+    url.searchParams.set("order", "date.asc");
+    url.searchParams.set("limit", "1000");
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) return null;
+
+    const rows = text ? JSON.parse(text) : [];
+
+    const totalDays = rows.length;
+    const compliantDays = rows.filter(r => r.is_compliant).length;
+    const nonCompliantDays = totalDays - compliantDays;
+    const warningDays = rows.filter(r =>
+      String(r.reason || "").includes("Cảnh báo")
+    ).length;
+
+    const turbine12hCompliantDays = rows.filter(
+      r => r.is_turbine_12h_compliant
+    ).length;
+
+    const turbine12hNonCompliantDays =
+      totalDays - turbine12hCompliantDays;
+
+    const reasonMap = new Map();
+
+    rows.forEach(r => {
+      if (r.is_compliant && !String(r.reason || "").includes("Cảnh báo")) {
+        return;
+      }
+
+      const reason = r.reason || "Không xác định";
+      reasonMap.set(reason, (reasonMap.get(reason) || 0) + 1);
+    });
+
+    return {
+      totalDays,
+      compliantDays,
+      nonCompliantDays,
+      warningDays,
+      complianceRate: totalDays
+        ? Number(((compliantDays / totalDays) * 100).toFixed(1))
+        : 0,
+      turbine12hCompliantDays,
+      turbine12hNonCompliantDays,
+      turbine12hRate: totalDays
+        ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1))
+        : 0,
+      reasons: Array.from(reasonMap.entries())
+        .map(([reason, days]) => ({ reason, days }))
+        .sort((a, b) => b.days - a.days),
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     return json(res, 200, { ok: true });
@@ -428,9 +580,7 @@ export default async function handler(req, res) {
     const { startIso, endIso } = monthRangeUtc(year, month);
 
     const rows = await fetchAllHourly(startIso, endIso);
-
     const daily = groupDaily(rows);
-
     const limits = await fetchLevelLimits(year);
 
     const first = rows[0] || null;
@@ -460,7 +610,6 @@ export default async function handler(req, res) {
 
       waterLevelMax: (() => {
         const x = findExtreme(rows, "water_level", "max");
-
         return {
           value: round(x.value, 2),
           time: x.time,
@@ -469,7 +618,6 @@ export default async function handler(req, res) {
 
       waterLevelMin: (() => {
         const x = findExtreme(rows, "water_level", "min");
-
         return {
           value: round(x.value, 2),
           time: x.time,
@@ -480,7 +628,6 @@ export default async function handler(req, res) {
 
       inflowMax: (() => {
         const x = findExtreme(rows, "inflow", "max");
-
         return {
           value: round(x.value, 2),
           time: x.time,
@@ -511,6 +658,8 @@ export default async function handler(req, res) {
       summary.inflowAvg
     );
 
+    const qt1865Summary = await fetchQt1865Summary(year, month);
+
     const events = detectEvents(rows, daily, inflowFrequency);
 
     const result = {
@@ -528,6 +677,8 @@ export default async function handler(req, res) {
       summary,
 
       inflowFrequency,
+
+      qt1865Summary,
 
       daily,
 
@@ -549,6 +700,7 @@ export default async function handler(req, res) {
         month,
         summary,
         inflowFrequency,
+        qt1865Summary,
       }),
     };
 
