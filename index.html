@@ -1,4 +1,5 @@
 
+
 <!doctype html>
 <html lang="vi">
 <head>
@@ -7933,28 +7934,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const status = $("monthlyReportStatus");
 
       /*
-        PDF Executive luôn dùng bản nhận xét AI mới:
-        1) Lấy aiPrompt mới nhất từ /api/monthly-report đã render vào textarea.
-        2) Gửi POST sang /api/monthly-ai-analysis.
-        3) Lưu kết quả vào monthlyAiAnalysisText.
-        4) createMonthlyExecutiveReportHtml() sẽ lấy monthlyAiAnalysisText để đưa vào mục 5.
+        Xuất PDF Executive chỉ xuất PDF từ dữ liệu hiện có trên màn hình.
+        Không gọi API AI tại đây.
+        Muốn cập nhật nhận xét AI mới thì bấm nút "AI Phân tích" trước.
       */
-      try{
-        await generateMonthlyAiAnalysisForReport({
-          showLoading:true,
-          force:true,
-          reason:"pdf"
-        });
-      }catch(aiErr){
-        console.error("Không tạo được nhận xét AI mới trước khi xuất PDF:", aiErr);
-        const ok = confirm(
-          "Không tạo được nhận xét AI mới: " + aiErr.message + "\n\nBạn vẫn muốn xuất PDF với nhận xét AI hiện có không?"
-        );
-        if(!ok){
-          if(status) status.textContent = "Đã hủy xuất PDF";
-          return;
-        }
-      }
 
       win = window.open("", "_blank");
       if(!win){
@@ -7978,7 +7961,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       win.document.close();
 
       if(status) status.textContent = "Đã mở báo cáo Executive";
-      toast("Đã mở PDF Executive với nhận xét AI mới");
+      toast("Đã mở PDF Executive");
     }catch(err){
       console.error(err);
       try{ if(win && !win.closed) win.close(); }catch(_){}
