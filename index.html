@@ -5064,6 +5064,97 @@ body.slideshow-frame-mode section{
     });
   }
 
+  async function loadQT1865DirectFromSupabase(){
+    const s = selected();
+    const year = Number(s.year || 2026);
+    const month = s.month === "" ? "" : Number(s.month);
+    const SB_REST_URL = "https://ycthhachfxczwkburnfa.supabase.co/rest/v1/reservoir_release_compliance_1865";
+    const SB_ANON_KEY = "sb_publishable_Q0KbTLPBE4owO72Mz-GN6A_khF9z_Ss";
+
+    const start = month === "" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
+    const endObj = month === "" ? new Date(year, 12, 0) : new Date(year, month, 0);
+    const end = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,"0")}-${String(endObj.getDate()).padStart(2,"0")}`;
+
+    const url = new URL(SB_REST_URL);
+    url.searchParams.set("select", "*");
+    url.searchParams.append("date", `gte.${start}`);
+    url.searchParams.append("date", `lte.${end}`);
+    url.searchParams.set("order", "date.asc");
+    url.searchParams.set("limit", "1000");
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        apikey: SB_ANON_KEY,
+        Authorization: `Bearer ${SB_ANON_KEY}`,
+        "Accept": "application/json"
+      },
+      cache: "no-store"
+    });
+
+    const text = await res.text();
+    if(!res.ok) throw new Error(`Supabase fallback ${res.status}: ${text}`);
+    const rows = text ? JSON.parse(text) : [];
+
+    const reasonMap = new Map();
+    rows.forEach(r => {
+      const reasonText = String(r.reason || "").trim();
+      if(r.is_compliant && !reasonText.includes("Cảnh báo") && r.is_turbine_12h_compliant !== false) return;
+      const parts = reasonText
+        .split(";")
+        .map(x => x.trim())
+        .filter(Boolean);
+      if(!parts.length){
+        reasonMap.set("Không xác định", (reasonMap.get("Không xác định") || 0) + 1);
+      }else{
+        parts.forEach(reason => reasonMap.set(reason, (reasonMap.get(reason) || 0) + 1));
+      }
+    });
+
+    const totalDays = rows.length;
+    const compliantDays = rows.filter(r => !!r.is_compliant).length;
+    const nonCompliantDays = totalDays - compliantDays;
+    const warningDays = rows.filter(r => String(r.reason || "").includes("Cảnh báo")).length;
+    const turbine12hCompliantDays = rows.filter(r => !!r.is_turbine_12h_compliant).length;
+    const turbine12hNonCompliantDays = totalDays - turbine12hCompliantDays;
+
+    const monthlyMap = new Map();
+    rows.forEach(r => {
+      const mm = String(r.date || "").slice(5,7);
+      if(!monthlyMap.has(mm)) monthlyMap.set(mm, {month:Number(mm), totalDays:0, compliantDays:0, nonCompliantDays:0, warningDays:0, turbine12hCompliantDays:0, turbine12hNonCompliantDays:0});
+      const x = monthlyMap.get(mm);
+      x.totalDays += 1;
+      if(r.is_compliant) x.compliantDays += 1; else x.nonCompliantDays += 1;
+      if(String(r.reason || "").includes("Cảnh báo")) x.warningDays += 1;
+      if(r.is_turbine_12h_compliant) x.turbine12hCompliantDays += 1; else x.turbine12hNonCompliantDays += 1;
+    });
+    const monthlySummary = Array.from(monthlyMap.values()).map(x => ({
+      ...x,
+      complianceRate: x.totalDays ? Number(((x.compliantDays / x.totalDays) * 100).toFixed(1)) : 0,
+      turbine12hRate: x.totalDays ? Number(((x.turbine12hCompliantDays / x.totalDays) * 100).toFixed(1)) : 0
+    }));
+
+    return {
+      ok: true,
+      source: "supabase-direct-fallback",
+      year,
+      month,
+      rows,
+      monthlySummary,
+      summaryByReason: Array.from(reasonMap.entries()).map(([reason, count]) => ({reason, count})).sort((a,b) => b.count - a.count),
+      summary: {
+        totalDays,
+        compliantDays,
+        nonCompliantDays,
+        warningDays,
+        complianceRate: totalDays ? Number(((compliantDays / totalDays) * 100).toFixed(1)) : 0,
+        turbine12hCompliantDays,
+        turbine12hNonCompliantDays,
+        turbine12hRate: totalDays ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1)) : 0
+      }
+    };
+  }
+
   function render(data){
     const s = data.summary || {};
     setText("qtTotalDays", fmt0(s.totalDays));
@@ -5084,8 +5175,15 @@ body.slideshow-frame-mode section{
     try{
       setStatus("Đang tải...", "loading");
       const res = await fetch(apiUrl(), {cache:"no-store"});
-      const data = await res.json();
+      let data = await res.json();
       if(!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
+
+      // Nếu API Vercel trả rỗng do cache/deploy/API chưa đồng bộ, đọc trực tiếp view Supabase.
+      if(!Array.isArray(data.rows) || data.rows.length === 0){
+        console.warn("QT1865 API returned empty rows, using Supabase direct fallback", data);
+        data = await loadQT1865DirectFromSupabase();
+      }
+
       window.qt1865CurrentData = data;
       render(data);
       loaded = true;
@@ -5095,7 +5193,7 @@ body.slideshow-frame-mode section{
       console.error(err);
       setStatus("Lỗi tải", "error");
       const tb = $id("qt1865Table");
-      if(tb) tb.innerHTML = `<tr><td colspan="11">Lỗi tải dữ liệu QT1865: ${safe(err.message)}</td></tr>`;
+      if(tb) tb.innerHTML = `<tr><td colspan="16">Lỗi tải dữ liệu QT1865: ${safe(err.message)}</td></tr>`;
       alert("Lỗi tải QT1865: " + err.message);
     }
   };
