@@ -4183,9 +4183,12 @@ body.slideshow-frame-mode section{
           <div class="v8-card v8-op">
             <div class="v8-title">Số liệu vận hành</div>
             <div class="v8-stat-grid">
-              <div class="v8-stat blue"><i>💧</i><div><span>Q về</span><b id="txtQin">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat orange"><i>⚙️</i><div><span>Q máy</span><b id="txtQtb">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat red"><i>🛑</i><div><span>Q xả</span><b id="txtQsp">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat blue"><i>💧</i><div><span>Q về hiện tại</span><b id="txtQin">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat orange"><i>⚙️</i><div><span>Q máy hiện tại</span><b id="txtQtb">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat red"><i>🛑</i><div><span>Q xả hiện tại</span><b id="txtQsp">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat blue"><i>📈</i><div><span>Q về TB 24h</span><b id="txtQinAvg24h">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat orange"><i>🌀</i><div><span>Q máy TB 24h</span><b id="txtQtbAvg24h">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat red"><i>📉</i><div><span>Q xả TB 24h</span><b id="txtQspAvg24h">--</b><small>m³/s</small></div></div>
               <div class="v8-stat slate"><i>🗄️</i><div><span>Dung tích</span><b id="txtVol">--</b><small>tr.m³</small></div></div>
               <div class="v8-stat blue"><i>◔</i><div><span>% toàn bộ</span><b id="txtPctTotal">--</b></div></div>
               <div class="v8-stat green"><i>◕</i><div><span>% hữu ích</span><b id="txtPctUseful">--</b></div></div>
@@ -4194,6 +4197,10 @@ body.slideshow-frame-mode section{
               <div class="v8-stat slate"><i>☔</i><div><span>Mưa D-1</span><b id="txtRainD1">--</b><small>mm</small></div></div>
               <div class="v8-stat wide"><i>🛢️</i><div><span>DT hữu ích còn lại</span><b id="txtVolUsefulLeft">--</b><small>tr.m³</small></div></div>
               <div class="v8-stat wide"><i>📏</i><div><span>DT trống đến MNDBT</span><b id="txtVolRemain">--</b><small>tr.m³</small></div></div>
+              <div class="v8-stat blue"><i>↕️</i><div><span>ΔMN 24h</span><b id="txtDeltaWl24h">--</b><small>m</small></div></div>
+              <div class="v8-stat blue"><i>🌊</i><div><span>Q về TB 7 ngày</span><b id="txtQinAvg7d">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat green"><i>📊</i><div><span>Tần suất thủy văn</span><b id="txtHydroFreq">--</b><small id="txtHydroClass">--</small></div></div>
+              <div class="v8-stat red"><i>⏳</i><div><span>Dự báo MN chết</span><b id="txtDeadForecast">--</b><small>ngày</small></div></div>
             </div>
           </div>
 
@@ -7934,10 +7941,28 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const status = $("monthlyReportStatus");
 
       /*
-        Xuất PDF Executive chỉ xuất PDF từ dữ liệu hiện có trên màn hình.
-        Không gọi API AI tại đây.
-        Muốn cập nhật nhận xét AI mới thì bấm nút "AI Phân tích" trước.
+        PDF Executive luôn dùng bản nhận xét AI mới:
+        1) Lấy aiPrompt mới nhất từ /api/monthly-report đã render vào textarea.
+        2) Gửi POST sang /api/monthly-ai-analysis.
+        3) Lưu kết quả vào monthlyAiAnalysisText.
+        4) createMonthlyExecutiveReportHtml() sẽ lấy monthlyAiAnalysisText để đưa vào mục 5.
       */
+      try{
+        await generateMonthlyAiAnalysisForReport({
+          showLoading:true,
+          force:true,
+          reason:"pdf"
+        });
+      }catch(aiErr){
+        console.error("Không tạo được nhận xét AI mới trước khi xuất PDF:", aiErr);
+        const ok = confirm(
+          "Không tạo được nhận xét AI mới: " + aiErr.message + "\n\nBạn vẫn muốn xuất PDF với nhận xét AI hiện có không?"
+        );
+        if(!ok){
+          if(status) status.textContent = "Đã hủy xuất PDF";
+          return;
+        }
+      }
 
       win = window.open("", "_blank");
       if(!win){
@@ -7961,7 +7986,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       win.document.close();
 
       if(status) status.textContent = "Đã mở báo cáo Executive";
-      toast("Đã mở PDF Executive");
+      toast("Đã mở PDF Executive với nhận xét AI mới");
     }catch(err){
       console.error(err);
       try{ if(win && !win.closed) win.close(); }catch(_){}
@@ -8740,6 +8765,40 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return m;
   }
 
+
+  async function updateOverviewHydrologyFrequency(obsTime){
+    const freqEl = $("txtHydroFreq");
+    const classEl = $("txtHydroClass");
+    if(!freqEl && !classEl) return;
+
+    try{
+      const d = obsTime ? new Date(obsTime) : new Date();
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const cacheKey = `overviewHydroFreq_${year}_${month}`;
+      const cached = window[cacheKey];
+
+      let freq = cached;
+      if(!freq){
+        const res = await fetch(`/api/monthly-report?year=${year}&month=${month}`, { cache: "no-store" });
+        const json = await res.json();
+        freq = json && json.inflowFrequency ? json.inflowFrequency : null;
+        window[cacheKey] = freq || { empty: true };
+      }
+
+      if(freq && !freq.empty){
+        if(freqEl) freqEl.textContent = freq.frequencyLabel || "--";
+        if(classEl) classEl.textContent = freq.classification || "--";
+      } else {
+        if(freqEl) freqEl.textContent = "--";
+        if(classEl) classEl.textContent = "Chưa có dữ liệu";
+      }
+    } catch(e){
+      if(freqEl) freqEl.textContent = "--";
+      if(classEl) classEl.textContent = "Lỗi tải";
+    }
+  }
+
   function renderOverview(fcFlow,fcRain){
     const l=state.lastObs;
     if(!l) return;
@@ -8791,6 +8850,69 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     $("txtQin").textContent=fmt2.format(l.inflow);
     $("txtQtb").textContent=fmt2.format(l.turbine_flow);
     $("txtQsp").textContent=fmt2.format(l.spillway_flow);
+
+    const avg24hValue = (field) => {
+      const vals = (state.latest24h || [])
+        .map(r => Number(r?.[field]))
+        .filter(v => Number.isFinite(v));
+      if(!vals.length) return null;
+      return vals.reduce((a,b)=>a+b,0) / vals.length;
+    };
+    const setAvg24h = (id, field) => {
+      const el = $(id);
+      if(!el) return;
+      const v = avg24hValue(field);
+      el.textContent = v == null ? "--" : fmt2.format(v);
+    };
+    setAvg24h("txtQinAvg24h", "inflow");
+    setAvg24h("txtQtbAvg24h", "turbine_flow");
+    setAvg24h("txtQspAvg24h", "spillway_flow");
+
+    const setTextSafe = (id, value) => {
+      const el = $(id);
+      if(el) el.textContent = value;
+    };
+
+    const avgRowsValue = (rows, field) => {
+      const vals = (rows || [])
+        .map(r => Number(r?.[field]))
+        .filter(v => Number.isFinite(v));
+      if(!vals.length) return null;
+      return vals.reduce((a,b)=>a+b,0) / vals.length;
+    };
+
+    const first24 = (state.latest24h || [])[0];
+    const deltaWl24h = first24 && Number.isFinite(Number(first24.water_level))
+      ? Number(l.water_level) - Number(first24.water_level)
+      : null;
+    setTextSafe(
+      "txtDeltaWl24h",
+      deltaWl24h == null ? "--" : `${deltaWl24h > 0 ? "+" : ""}${fmt2.format(deltaWl24h)}`
+    );
+
+    const qinAvg7d = avgRowsValue(state.hourly7D_Obs, "inflow");
+    setTextSafe("txtQinAvg7d", qinAvg7d == null ? "--" : fmt2.format(qinAvg7d));
+
+    const first7d = (state.hourly7D_Obs || [])[0];
+    const last7d = (state.hourly7D_Obs || [])[state.hourly7D_Obs.length - 1];
+    let deadForecastText = "--";
+    if(first7d && last7d){
+      const t1 = new Date(first7d.time).getTime();
+      const t2 = new Date(last7d.time).getTime();
+      const days = Math.max(1, (t2 - t1) / 86400000);
+      const dropPerDay = (Number(first7d.water_level) - Number(last7d.water_level)) / days;
+      if(Number.isFinite(dropPerDay) && dropPerDay > 0.01){
+        const daysToDead = (Number(l.water_level) - RES_CONST.WL_DEAD) / dropPerDay;
+        deadForecastText = Number.isFinite(daysToDead) && daysToDead > 0
+          ? `${Math.round(daysToDead)}`
+          : "--";
+      } else {
+        deadForecastText = "Ổn định";
+      }
+    }
+    setTextSafe("txtDeadForecast", deadForecastText);
+
+    updateOverviewHydrologyFrequency(l.time);
 
     $("txtRain1h").textContent=fmt1.format(state.rainAtHour);
     $("txtRainDay").textContent=fmt1.format(state.rain24hSum);
