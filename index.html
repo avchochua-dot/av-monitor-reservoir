@@ -4304,6 +4304,149 @@ body.slideshow-frame-mode section{
   .pctt-chart-wrap,.pctt-chart-wrap canvas{height:360px!important}
 }
 
+
+/* =========================================================
+   PCTT ĐÀ NẴNG V54 - UI POLISH
+   - Nút chọn hồ đặt phía trên biểu đồ
+   - Mỗi hồ có màu nhận diện riêng
+   - Card thông số hiện tại đi theo màu hồ
+   - Chart bỏ marker point để đường mượt hơn
+   ========================================================= */
+.pctt-card.pctt-header-card .pctt-head{
+  margin-bottom:0!important;
+}
+.pctt-card.pctt-header-card{
+  padding-bottom:16px!important;
+}
+.pctt-chart-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:12px;
+  margin:12px 0 14px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fafc,#ffffff);
+  border:1px solid rgba(15,23,42,.075);
+}
+.pctt-control-group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pctt-control-label{
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-right:2px;
+}
+.pctt-res-btn{
+  --res-color:#2563eb;
+  --res-soft:rgba(37,99,235,.10);
+  --res-border:rgba(37,99,235,.22);
+  width:auto!important;
+  min-width:88px!important;
+  height:38px!important;
+  border-radius:14px!important;
+  padding:8px 14px!important;
+  border:1px solid var(--res-border)!important;
+  background:var(--res-soft)!important;
+  color:var(--res-color)!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+  box-shadow:0 8px 18px rgba(15,23,42,.045)!important;
+}
+.pctt-res-btn.active{
+  background:var(--res-color)!important;
+  color:#fff!important;
+  border-color:transparent!important;
+  box-shadow:0 14px 30px rgba(15,23,42,.14)!important;
+}
+.pctt-res-btn:hover{
+  transform:translateY(-1px);
+}
+.pctt-hour-btn{
+  width:auto!important;
+  min-width:68px!important;
+  height:38px!important;
+  border-radius:14px!important;
+  padding:8px 14px!important;
+}
+.pctt-latest-card{
+  --res-color:#2563eb;
+  --res-soft:rgba(37,99,235,.10);
+  --res-border:rgba(37,99,235,.22);
+  position:relative;
+  padding-top:16px!important;
+  border-color:var(--res-border)!important;
+  background:
+    radial-gradient(130px 90px at 100% 0%, var(--res-soft), transparent 74%),
+    linear-gradient(180deg,#ffffff 0%, #fbfdff 100%)!important;
+}
+.pctt-latest-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:5px;
+  background:var(--res-color);
+  border-radius:18px 18px 0 0;
+}
+.pctt-latest-card h3{
+  color:var(--res-color)!important;
+}
+.pctt-latest-card .time{
+  display:inline-flex;
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--res-soft);
+  color:#475569!important;
+  border:1px solid var(--res-border);
+}
+.pctt-latest-card .pctt-metric{
+  background:rgba(248,250,252,.90)!important;
+}
+.pctt-latest-card .pctt-metric b{
+  color:#0f172a!important;
+}
+.pctt-chart-card{
+  overflow:hidden;
+}
+.pctt-chart-title{
+  letter-spacing:.55px!important;
+}
+.pctt-chart-accent{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.pctt-chart-accent::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:var(--active-res-color,#2563eb);
+  box-shadow:0 0 0 4px var(--active-res-soft,rgba(37,99,235,.12));
+}
+.pctt-table-wrap{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(37,99,235,.35) transparent;
+}
+@media(max-width:900px){
+  .pctt-chart-toolbar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .pctt-control-group{
+    width:100%;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -5044,7 +5187,7 @@ body.slideshow-frame-mode section{
 
       <!-- TAB: PCTT Đà Nẵng -->
       <div id="tab-pcttdanang" class="tab-pane">
-        <section class="pctt-card">
+        <section class="pctt-card pctt-header-card">
           <div class="pctt-head">
             <div>
               <div class="pctt-title">
@@ -5065,17 +5208,6 @@ body.slideshow-frame-mode section{
             </div>
           </div>
 
-          <div class="pctt-switch-row">
-            <span class="pctt-switch-label">Chọn hồ</span>
-            <div id="pcttReservoirButtonsTop" class="pctt-switch-row"></div>
-          </div>
-
-          <div class="pctt-switch-row">
-            <span class="pctt-switch-label">Khung hiển thị</span>
-            <button type="button" class="pctt-btn active" data-pctt-hours="24" onclick="setPcttHours(24)">24h</button>
-            <button type="button" class="pctt-btn" data-pctt-hours="48" onclick="setPcttHours(48)">48h</button>
-            <button type="button" class="pctt-btn" data-pctt-hours="72" onclick="setPcttHours(72)">72h</button>
-          </div>
         </section>
 
         <section class="pctt-card">
@@ -5132,11 +5264,25 @@ body.slideshow-frame-mode section{
           <div class="pctt-chart-card">
             <div class="pctt-chart-head">
               <div>
-                <div class="pctt-chart-title" id="pcttReservoirChartTitle">Biểu đồ vận hành hồ</div>
+                <div class="pctt-chart-title pctt-chart-accent" id="pcttReservoirChartTitle">Biểu đồ vận hành hồ</div>
                 <div class="pctt-chart-sub">MNH, Q về, Qcm/Q nhà máy, Q xả và các đường mực nước quy định.</div>
               </div>
               <span id="pcttReservoirChartBadge" class="pctt-status">24h</span>
             </div>
+
+            <div class="pctt-chart-toolbar">
+              <div class="pctt-control-group">
+                <span class="pctt-control-label">Hồ</span>
+                <div id="pcttReservoirButtonsTop" class="pctt-control-group"></div>
+              </div>
+              <div class="pctt-control-group">
+                <span class="pctt-control-label">Khung</span>
+                <button type="button" class="pctt-btn pctt-hour-btn active" data-pctt-hours="24" onclick="setPcttHours(24)">24h</button>
+                <button type="button" class="pctt-btn pctt-hour-btn" data-pctt-hours="48" onclick="setPcttHours(48)">48h</button>
+                <button type="button" class="pctt-btn pctt-hour-btn" data-pctt-hours="72" onclick="setPcttHours(72)">72h</button>
+              </div>
+            </div>
+
             <div class="pctt-chart-wrap">
               <canvas id="pcttReservoirChart"></canvas>
             </div>
@@ -11618,10 +11764,10 @@ body.slideshow-frame-mode .content::after{
    ========================================================= */
 (function(){
   const PCTT_RESERVOIRS = {
-    1: {id:1, code:"AVUONG", name:"Hồ thủy điện A Vương", shortName:"A Vương", limits:{normal:380, preFloodMax:376, preFloodMin:370, dead:340}},
-    2: {id:2, code:"DAKMI4", name:"Hồ thủy điện Đăk Mi 4", shortName:"Đăk Mi 4", limits:{normal:258, preFloodMax:255, preFloodMin:251.5, dead:240}},
-    3: {id:3, code:"SONGBUNG4", name:"Hồ thủy điện Sông Bung 4", shortName:"Sông Bung 4", limits:{normal:222.5, preFloodMax:217.5, preFloodMin:216, dead:205}},
-    4: {id:4, code:"SONGTRANH2", name:"Hồ thủy điện Sông Tranh 2", shortName:"Sông Tranh 2", limits:{normal:175, preFloodMax:172, preFloodMin:165, dead:140}}
+    1: {id:1, code:"AVUONG", name:"Hồ thủy điện A Vương", shortName:"A Vương", color:"#2563eb", soft:"rgba(37,99,235,.10)", border:"rgba(37,99,235,.24)", limits:{normal:380, preFloodMax:376, preFloodMin:370, dead:340}},
+    2: {id:2, code:"DAKMI4", name:"Hồ thủy điện Đăk Mi 4", shortName:"Đăk Mi 4", color:"#f59e0b", soft:"rgba(245,158,11,.13)", border:"rgba(245,158,11,.28)", limits:{normal:258, preFloodMax:255, preFloodMin:251.5, dead:240}},
+    3: {id:3, code:"SONGBUNG4", name:"Hồ thủy điện Sông Bung 4", shortName:"Sông Bung 4", color:"#10b981", soft:"rgba(16,185,129,.12)", border:"rgba(16,185,129,.26)", limits:{normal:222.5, preFloodMax:217.5, preFloodMin:216, dead:205}},
+    4: {id:4, code:"SONGTRANH2", name:"Hồ thủy điện Sông Tranh 2", shortName:"Sông Tranh 2", color:"#ef4444", soft:"rgba(239,68,68,.11)", border:"rgba(239,68,68,.25)", limits:{normal:175, preFloodMax:172, preFloodMin:165, dead:140}}
   };
 
   let pcttRows = [];
@@ -11734,12 +11880,20 @@ body.slideshow-frame-mode .content::after{
   function renderReservoirButtons(){
     const html = Object.values(PCTT_RESERVOIRS).map(cfg=>{
       const active = Number(cfg.id) === Number(pcttSelectedReservoirId) ? "active" : "";
-      return `<button type="button" class="pctt-btn ${active}" onclick="selectPcttReservoir(${cfg.id})">${cfg.shortName}</button>`;
+      const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
+      return `<button type="button" class="pctt-res-btn ${active}" style="${style}" onclick="selectPcttReservoir(${cfg.id})">${cfg.shortName}</button>`;
     }).join("");
     const top = el("pcttReservoirButtonsTop");
     const table = el("pcttReservoirButtonsTable");
     if(top) top.innerHTML = html;
     if(table) table.innerHTML = html;
+
+    const activeCfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
+    const chartCard = el("pcttReservoirChart")?.closest(".pctt-chart-card");
+    if(chartCard && activeCfg){
+      chartCard.style.setProperty("--active-res-color", activeCfg.color);
+      chartCard.style.setProperty("--active-res-soft", activeCfg.soft);
+    }
   }
 
   function renderHourButtons(){
@@ -11758,8 +11912,9 @@ body.slideshow-frame-mode .content::after{
     const html = Object.values(PCTT_RESERVOIRS).map(cfg=>{
       const item = getLatestReservoirData(cfg.id);
       const r = item?.reservoir || {};
+      const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
       return `
-        <div class="pctt-latest-card">
+        <div class="pctt-latest-card" style="${style}">
           <h3>${cfg.shortName}</h3>
           <div class="time">${item ? formatTime(item.time) : "Chưa có dữ liệu"}</div>
           <div class="pctt-metric-grid">
@@ -11783,15 +11938,16 @@ body.slideshow-frame-mode .content::after{
       return r[key] ?? null;
     });
 
+    const smoothLine = {pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true};
     return [
-      {label:"MNH", yAxisID:"yLevel", data:getSeries("waterLevel"), borderWidth:2.5, tension:.2, pointRadius:2},
-      {label:"Q về", yAxisID:"yFlow", data:getSeries("inflow"), borderWidth:2, tension:.2, pointRadius:2},
-      {label:"Qcm/Q nhà máy", yAxisID:"yFlow", data:getSeries("turbineFlow"), borderWidth:2, tension:.2, pointRadius:2},
-      {label:"Q xả", yAxisID:"yFlow", data:getSeries("spillwayFlow"), borderWidth:2, tension:.2, pointRadius:2},
-      {label:"Dâng bình thường", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.normal), borderDash:[7,5], pointRadius:0, borderWidth:1.5},
-      {label:"Trước lũ cao nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMax), borderDash:[7,5], pointRadius:0, borderWidth:1.5},
-      {label:"Đón lũ thấp nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMin), borderDash:[7,5], pointRadius:0, borderWidth:1.5},
-      {label:"Mực nước chết", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.dead), borderDash:[4,5], pointRadius:0, borderWidth:1.2}
+      {label:"MNH", yAxisID:"yLevel", data:getSeries("waterLevel"), borderColor:"#3b82f6", backgroundColor:"rgba(59,130,246,.10)", borderWidth:2.4, tension:.16, ...smoothLine},
+      {label:"Q về", yAxisID:"yFlow", data:getSeries("inflow"), borderColor:"#f43f5e", backgroundColor:"rgba(244,63,94,.10)", borderWidth:2.2, tension:.12, ...smoothLine},
+      {label:"Qcm/Q nhà máy", yAxisID:"yFlow", data:getSeries("turbineFlow"), borderColor:"#f59e0b", backgroundColor:"rgba(245,158,11,.10)", borderWidth:2.2, tension:.12, ...smoothLine},
+      {label:"Q xả", yAxisID:"yFlow", data:getSeries("spillwayFlow"), borderColor:"#eab308", backgroundColor:"rgba(234,179,8,.10)", borderWidth:2.1, tension:.10, ...smoothLine},
+      {label:"Dâng bình thường", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.normal), borderColor:"#14b8a6", backgroundColor:"rgba(20,184,166,.06)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
+      {label:"Trước lũ cao nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMax), borderColor:"#8b5cf6", backgroundColor:"rgba(139,92,246,.06)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
+      {label:"Đón lũ thấp nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMin), borderColor:"#94a3b8", backgroundColor:"rgba(148,163,184,.08)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
+      {label:"Mực nước chết", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.dead), borderColor:"#38bdf8", backgroundColor:"rgba(56,189,248,.08)", borderDash:[4,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.2}
     ];
   }
 
@@ -11871,8 +12027,8 @@ body.slideshow-frame-mode .content::after{
       data:{
         labels: rows.map(r=>formatHour(r.time)),
         datasets:[
-          {label:"Q về Vu Gia", data:rows.map(r=>r.basin?.qVeVuGia ?? null), borderWidth:2.5, tension:.2, pointRadius:2},
-          {label:"Q về Thu Bồn", data:rows.map(r=>r.basin?.qVeThuBon ?? null), borderWidth:2.5, tension:.2, pointRadius:2}
+          {label:"Q về Vu Gia", data:rows.map(r=>r.basin?.qVeVuGia ?? null), borderColor:"#0ea5e9", backgroundColor:"rgba(14,165,233,.10)", borderWidth:2.5, tension:.14, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true},
+          {label:"Q về Thu Bồn", data:rows.map(r=>r.basin?.qVeThuBon ?? null), borderColor:"#fb7185", backgroundColor:"rgba(251,113,133,.10)", borderWidth:2.5, tension:.14, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true}
         ]
       },
       options:{
