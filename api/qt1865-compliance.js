@@ -1,11 +1,18 @@
 /**
  * Vercel API:
  *
- * 1) API cũ:
+ * 1) API QT1865 cũ - mặc định:
  *    /api/qt1865-compliance?year=2026&month=6
  *
- * 2) API PCTT Hydro:
+ * 2) API QT1865 cũ - gọi rõ mode:
+ *    /api/qt1865-compliance?mode=qt1865&year=2026&month=6
+ *
+ * 3) API báo cáo tháng / AI prompt:
+ *    /api/qt1865-compliance?mode=monthly-report&year=2026&month=6
+ *
+ * 4) API PCTT Đà Nẵng:
  *    /api/qt1865-compliance?mode=pctt-hydro&year=2026&month=6&ids=1,2,3,4
+ *    /api/qt1865-compliance?mode=pctt-hydro&start=2026-06-01T00:00:00+07:00&end=2026-06-30T23:59:59+07:00&ids=1,2,3,4
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -19,38 +26,26 @@ function json(res, status, data) {
   return res.status(status).json(data);
 }
 
-function num(v) {
-  const n = Number(v);
+function num(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-function round(v, d = 2) {
-  const n = num(v);
+function round(value, digits = 2) {
+  const n = num(value);
   if (n === null) return null;
-  return Number(n.toFixed(d));
+  return Number(n.toFixed(digits));
 }
 
 function sum(values) {
-  return values.reduce((s, v) => s + (num(v) || 0), 0);
+  return values.reduce((total, value) => total + (num(value) || 0), 0);
 }
 
 function avg(values) {
   const arr = values.map(num).filter(v => v !== null);
   if (!arr.length) return null;
   return sum(arr) / arr.length;
-}
-
-function findExtreme(rows, key, type = "max") {
-  const valid = rows
-    .map(r => ({ time: r.time, value: num(r[key]) }))
-    .filter(x => x.value !== null);
-
-  if (!valid.length) return { value: null, time: null };
-
-  return valid.reduce((best, cur) => {
-    if (type === "min") return cur.value < best.value ? cur : best;
-    return cur.value > best.value ? cur : best;
-  }, valid[0]);
 }
 
 function monthRangeUtc(year, month) {
@@ -67,17 +62,99 @@ function monthRangeUtc(year, month) {
 }
 
 function monthRangeDate(year, month) {
-  const start = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = new Date(Number(year), Number(month), 0);
-  const end = `${year}-${String(month).padStart(2, "0")}-${String(
+  const y = Number(year);
+  const m = Number(month);
+
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+
+  const endDate = new Date(y, m, 0);
+  const end = `${y}-${String(m).padStart(2, "0")}-${String(
     endDate.getDate()
   ).padStart(2, "0")}`;
 
   return { start, end };
 }
 
-function dateKey(iso) {
-  return new Date(iso).toISOString().slice(0, 10);
+function yearRangeDate(year) {
+  const y = Number(year);
+  return {
+    start: `${y}-01-01`,
+    end: `${y}-12-31`,
+  };
+}
+
+function dateKey(value) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function monthOfDate(value) {
+  const s = String(value || "");
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return Number(match[2]);
+}
+
+function rowDateTime(row) {
+  return row?.date || row?.time || null;
+}
+
+function pickNumber(row, keys) {
+  for (const key of keys) {
+    const v = num(row?.[key]);
+    if (v !== null) return v;
+  }
+  return null;
+}
+
+function findExtreme(rows, key, type = "max") {
+  const valid = rows
+    .map(r => ({
+      time: r.time,
+      date: r.date || null,
+      value: num(r[key]),
+    }))
+    .filter(x => x.value !== null);
+
+  if (!valid.length) {
+    return {
+      value: null,
+      time: null,
+      date: null,
+    };
+  }
+
+  return valid.reduce((best, cur) => {
+    if (type === "min") return cur.value < best.value ? cur : best;
+    return cur.value > best.value ? cur : best;
+  }, valid[0]);
+}
+
+function extremeFromRows(rows, keys, type = "max") {
+  const values = [];
+
+  for (const row of rows || []) {
+    const value = pickNumber(row, keys);
+    if (value === null) continue;
+
+    values.push({
+      value,
+      time: rowDateTime(row),
+      date: row?.date || null,
+    });
+  }
+
+  if (!values.length) {
+    return {
+      value: null,
+      time: null,
+      date: null,
+    };
+  }
+
+  return values.reduce((best, cur) => {
+    if (type === "min") return cur.value < best.value ? cur : best;
+    return cur.value > best.value ? cur : best;
+  }, values[0]);
 }
 
 function formatPercentLabel(value) {
@@ -110,6 +187,526 @@ function classifyOverallRating(rate) {
   return "CẦN CẢI THIỆN";
 }
 
+/* =========================================================
+   SUPABASE HELPERS
+   ========================================================= */
+
+function assertSupabaseEnv() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+}
+
+async function fetchSupabasePaged(table, paramsBuilder) {
+  assertSupabaseEnv();
+
+  const pageSize = 1000;
+  let offset = 0;
+  let all = [];
+
+  while (true) {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+
+    paramsBuilder(url.searchParams);
+
+    url.searchParams.set("limit", String(pageSize));
+    url.searchParams.set("offset", String(offset));
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "count=exact",
+      },
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`Supabase ${table} ${response.status}: ${text}`);
+    }
+
+    const rows = text ? JSON.parse(text) : [];
+
+    all = all.concat(rows);
+
+    if (rows.length < pageSize) break;
+
+    offset += pageSize;
+  }
+
+  return all;
+}
+
+/* =========================================================
+   QT1865 LEGACY MODE
+   Mặc định dùng cho:
+   /api/qt1865-compliance?year=2026&month=6
+   ========================================================= */
+
+async function fetchQt1865Rows(start, end) {
+  return fetchSupabasePaged("reservoir_release_compliance_1865", params => {
+    params.set("select", "*");
+    params.append("date", `gte.${start}`);
+    params.append("date", `lte.${end}`);
+    params.set("order", "date.asc");
+  });
+}
+
+function summarizeReasonsQt1865(rows) {
+  const reasonMap = new Map();
+
+  for (const row of rows || []) {
+    const reason = String(row.reason || "").trim();
+
+    if (row.is_compliant && !reason.includes("Cảnh báo")) {
+      continue;
+    }
+
+    const key = reason || "Không xác định";
+    reasonMap.set(key, (reasonMap.get(key) || 0) + 1);
+  }
+
+  return Array.from(reasonMap.entries())
+    .map(([reason, count]) => ({
+      reason,
+      count,
+      days: count,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function summarizeQt1865Rows(rows) {
+  const totalDays = rows.length;
+
+  const compliantDays = rows.filter(r => Boolean(r.is_compliant)).length;
+  const nonCompliantDays = totalDays - compliantDays;
+
+  const warningDays = rows.filter(r =>
+    String(r.reason || "").includes("Cảnh báo")
+  ).length;
+
+  const turbine12hCompliantDays = rows.filter(r =>
+    Boolean(r.is_turbine_12h_compliant)
+  ).length;
+
+  const turbine12hNonCompliantDays =
+    totalDays - turbine12hCompliantDays;
+
+  const waterLevelAvgValues = rows.map(r =>
+    pickNumber(r, [
+      "water_level_avg",
+      "mnh_avg",
+      "mnh",
+      "waterLevelAvg",
+    ])
+  );
+
+  const totalOutflowValues = rows.map(r =>
+    pickNumber(r, [
+      "total_outflow_avg",
+      "outflow_avg",
+      "q_out_avg",
+      "qxa_avg",
+    ])
+  );
+
+  const inflowValues = rows.map(r =>
+    pickNumber(r, [
+      "inflow_avg",
+      "q_in_avg",
+      "inflow",
+      "qve_avg",
+    ])
+  );
+
+  const turbineFlowValues = rows.map(r =>
+    pickNumber(r, [
+      "turbine_flow_avg",
+      "q_turbine_avg",
+      "qcm_avg",
+      "turbine_avg",
+    ])
+  );
+
+  const spillwayFlowValues = rows.map(r =>
+    pickNumber(r, [
+      "spillway_flow_avg",
+      "q_spillway_avg",
+      "qxa_avg",
+      "spillway_avg",
+    ])
+  );
+
+  const rainfallValues = rows.map(r =>
+    pickNumber(r, [
+      "rainfall_total",
+      "rainfall",
+      "rainfallreal",
+      "rain_total",
+    ])
+  );
+
+  const waterLevelMax = extremeFromRows(
+    rows,
+    [
+      "mnh_max",
+      "water_level_max",
+      "water_level_avg",
+      "mnh_avg",
+      "mnh",
+    ],
+    "max"
+  );
+
+  const waterLevelMin = extremeFromRows(
+    rows,
+    [
+      "mnh_min",
+      "water_level_min",
+      "water_level_avg",
+      "mnh_avg",
+      "mnh",
+    ],
+    "min"
+  );
+
+  const inflowMax = extremeFromRows(
+    rows,
+    [
+      "inflow_max",
+      "inflow_avg",
+      "q_in_avg",
+      "inflow",
+      "qve_avg",
+    ],
+    "max"
+  );
+
+  const totalOutflowMax = extremeFromRows(
+    rows,
+    [
+      "total_outflow_max",
+      "total_outflow_avg",
+      "outflow_avg",
+      "q_out_avg",
+      "qxa_avg",
+    ],
+    "max"
+  );
+
+  const rainMax = extremeFromRows(
+    rows,
+    [
+      "rainfall_total",
+      "rainfall",
+      "rainfallreal",
+      "rain_total",
+    ],
+    "max"
+  );
+
+  const summary = {
+    totalDays,
+    compliantDays,
+    nonCompliantDays,
+    warningDays,
+    complianceRate: totalDays
+      ? Number(((compliantDays / totalDays) * 100).toFixed(1))
+      : 0,
+
+    turbine12hCompliantDays,
+    turbine12hNonCompliantDays,
+    turbine12hRate: totalDays
+      ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1))
+      : 0,
+
+    waterLevelAvg: round(avg(waterLevelAvgValues), 2),
+    waterLevelMax: {
+      value: round(waterLevelMax.value, 2),
+      time: waterLevelMax.time,
+      date: waterLevelMax.date,
+    },
+    waterLevelMin: {
+      value: round(waterLevelMin.value, 2),
+      time: waterLevelMin.time,
+      date: waterLevelMin.date,
+    },
+
+    inflowAvg: round(avg(inflowValues), 2),
+    inflowMax: {
+      value: round(inflowMax.value, 2),
+      time: inflowMax.time,
+      date: inflowMax.date,
+    },
+
+    totalOutflowAvg: round(avg(totalOutflowValues), 2),
+    totalOutflowMax: {
+      value: round(totalOutflowMax.value, 2),
+      time: totalOutflowMax.time,
+      date: totalOutflowMax.date,
+    },
+
+    turbineFlowAvg: round(avg(turbineFlowValues), 2),
+    spillwayFlowAvg: round(avg(spillwayFlowValues), 2),
+
+    rainfallTotal: round(sum(rainfallValues), 2),
+    rainyDays: rows.filter(r => {
+      const rain = pickNumber(r, [
+        "rainfall_total",
+        "rainfall",
+        "rainfallreal",
+        "rain_total",
+      ]);
+      return rain !== null && rain > 0;
+    }).length,
+
+    rainMaxDay: {
+      date: rainMax.date,
+      value: round(rainMax.value, 2),
+    },
+
+    comment:
+      totalDays === 0
+        ? "Chưa có dữ liệu QT1865 trong kỳ."
+        : `Tỷ lệ đảm bảo QT1865 đạt ${
+            totalDays
+              ? Number(((compliantDays / totalDays) * 100).toFixed(1))
+              : 0
+          }%, số ngày không đảm bảo ${nonCompliantDays}, số ngày cảnh báo ${warningDays}.`,
+  };
+
+  // Alias snake_case để tương thích với frontend cũ hoặc Excel cũ nếu có.
+  summary.total_days = summary.totalDays;
+  summary.compliant_days = summary.compliantDays;
+  summary.non_compliant_days = summary.nonCompliantDays;
+  summary.warning_days = summary.warningDays;
+  summary.compliance_rate = summary.complianceRate;
+  summary.turbine_12h_compliant_days = summary.turbine12hCompliantDays;
+  summary.turbine_12h_non_compliant_days = summary.turbine12hNonCompliantDays;
+  summary.turbine_12h_rate = summary.turbine12hRate;
+
+  return summary;
+}
+
+function buildMonthlyQt1865Summary(rows, year) {
+  const result = [];
+
+  for (let m = 1; m <= 12; m++) {
+    const monthRows = (rows || []).filter(r => monthOfDate(r.date) === m);
+    const s = summarizeQt1865Rows(monthRows);
+
+    result.push({
+      year: Number(year),
+      month: m,
+
+      totalDays: s.totalDays,
+      compliantDays: s.compliantDays,
+      nonCompliantDays: s.nonCompliantDays,
+      warningDays: s.warningDays,
+      complianceRate: s.complianceRate,
+
+      turbine12hCompliantDays: s.turbine12hCompliantDays,
+      turbine12hNonCompliantDays: s.turbine12hNonCompliantDays,
+      turbine12hRate: s.turbine12hRate,
+
+      total_days: s.totalDays,
+      compliant_days: s.compliantDays,
+      non_compliant_days: s.nonCompliantDays,
+      warning_days: s.warningDays,
+      compliance_rate: s.complianceRate,
+    });
+  }
+
+  return result;
+}
+
+async function fetchInflowFrequency(month, inflowAvg) {
+  const q = num(inflowAvg);
+
+  if (!SUPABASE_URL || !SUPABASE_KEY || !month || q === null) {
+    return null;
+  }
+
+  try {
+    const rows = await fetchSupabasePaged("monthly_inflow_frequency", params => {
+      params.set("select", "frequency_percent,month,inflow_value");
+      params.set("month", `eq.${month}`);
+      params.set("order", "frequency_percent.asc");
+    });
+
+    if (!rows.length) return null;
+
+    let nearest = rows[0];
+
+    for (const row of rows) {
+      const d1 = Math.abs(Number(row.inflow_value) - q);
+      const d2 = Math.abs(Number(nearest.inflow_value) - q);
+
+      if (d1 < d2) nearest = row;
+    }
+
+    const frequencyPercent = Number(nearest.frequency_percent);
+    const frequencyLabel = formatPercentLabel(frequencyPercent);
+    const inflowFrequencyValue = round(nearest.inflow_value, 2);
+    const classification = classifyInflowFrequency(frequencyPercent);
+
+    return {
+      month,
+      inflowAvg: round(q, 2),
+      frequencyPercent,
+      frequencyLabel,
+      inflowFrequencyValue,
+      classification,
+      nearest,
+      rows,
+      comment: `Q về trung bình tháng ${month} là ${round(
+        q,
+        2
+      )} m3/s, gần với tần suất P=${frequencyLabel}, tương ứng Q=${inflowFrequencyValue} m3/s.`,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function handleQt1865Compliance(req, res) {
+  try {
+    const now = new Date();
+
+    const year = Number(req.query.year || now.getFullYear());
+
+    const hasMonth =
+      req.query.month !== undefined &&
+      req.query.month !== null &&
+      String(req.query.month).trim() !== "";
+
+    const month = hasMonth ? Number(req.query.month) : null;
+
+    if (!year || (hasMonth && (!month || month < 1 || month > 12))) {
+      return json(res, 400, {
+        ok: false,
+        mode: "qt1865",
+        error: "Invalid year/month",
+      });
+    }
+
+    const range = hasMonth
+      ? monthRangeDate(year, month)
+      : yearRangeDate(year);
+
+    const rows = await fetchQt1865Rows(range.start, range.end);
+
+    const summary = summarizeQt1865Rows(rows);
+    const summaryByReason = summarizeReasonsQt1865(rows);
+    const monthlySummary = buildMonthlyQt1865Summary(rows, year);
+
+    let inflowFrequency = null;
+
+    if (hasMonth) {
+      inflowFrequency = await fetchInflowFrequency(
+        month,
+        summary.inflowAvg
+      );
+
+      if (inflowFrequency) {
+        summary.inflowFrequency = inflowFrequency;
+      }
+    }
+
+    return json(res, 200, {
+      ok: true,
+      mode: "qt1865",
+      source: "supabase",
+
+      year,
+      month: hasMonth ? month : null,
+
+      period: {
+        start: range.start,
+        end: range.end,
+      },
+
+      // Schema QT1865 cũ
+      summary,
+      rows,
+      summaryByReason,
+      monthlySummary,
+
+      // Field phụ để không làm hỏng code cũ nếu có kiểm tra
+      inflowFrequency,
+      frequencyTable: inflowFrequency?.rows || [],
+      count: rows.length,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "qt1865",
+      error: err.message,
+    });
+  }
+}
+
+/* =========================================================
+   MONTHLY REPORT MODE
+   /api/qt1865-compliance?mode=monthly-report&year=2026&month=6
+   ========================================================= */
+
+async function fetchAllHourly(startIso, endIso) {
+  return fetchSupabasePaged("reservoir_hourly_data", params => {
+    params.set(
+      "select",
+      "time,water_level,inflow,turbine_flow,spillway_flow,rainfallreal"
+    );
+    params.append("time", `gte.${startIso}`);
+    params.append("time", `lt.${endIso}`);
+    params.set("order", "time.asc");
+  });
+}
+
+async function fetchLevelLimits(year) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+
+  try {
+    return await fetchSupabasePaged("reservoir_level_limits", params => {
+      params.set("select", "date,mnghd,mnght,mndl,mntrl");
+      params.append("date", `gte.${year}-01-01`);
+      params.append("date", `lte.${year}-12-31`);
+      params.set("order", "date.asc");
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
+async function fetchQt1865Summary(year, month) {
+  try {
+    const { start, end } = monthRangeDate(year, month);
+    const rows = await fetchQt1865Rows(start, end);
+    const summary = summarizeQt1865Rows(rows);
+    const reasons = summarizeReasonsQt1865(rows).map(r => ({
+      reason: r.reason,
+      days: r.days,
+    }));
+
+    return {
+      totalDays: summary.totalDays,
+      compliantDays: summary.compliantDays,
+      nonCompliantDays: summary.nonCompliantDays,
+      warningDays: summary.warningDays,
+      complianceRate: summary.complianceRate,
+      turbine12hCompliantDays: summary.turbine12hCompliantDays,
+      turbine12hNonCompliantDays: summary.turbine12hNonCompliantDays,
+      turbine12hRate: summary.turbine12hRate,
+      reasons,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 function groupDaily(rows) {
   const map = new Map();
 
@@ -129,20 +726,43 @@ function groupDaily(rows) {
 
     const item = map.get(d);
 
-    if (num(r.water_level) !== null) item.waterLevels.push(num(r.water_level));
-    if (num(r.inflow) !== null) item.inflows.push(num(r.inflow));
-    if (num(r.turbine_flow) !== null) item.turbineFlows.push(num(r.turbine_flow));
-    if (num(r.spillway_flow) !== null) item.spillwayFlows.push(num(r.spillway_flow));
-    if (num(r.rainfallreal) !== null) item.rainfallValues.push(num(r.rainfallreal));
+    if (num(r.water_level) !== null) {
+      item.waterLevels.push(num(r.water_level));
+    }
+
+    if (num(r.inflow) !== null) {
+      item.inflows.push(num(r.inflow));
+    }
+
+    if (num(r.turbine_flow) !== null) {
+      item.turbineFlows.push(num(r.turbine_flow));
+    }
+
+    if (num(r.spillway_flow) !== null) {
+      item.spillwayFlows.push(num(r.spillway_flow));
+    }
+
+    if (num(r.rainfallreal) !== null) {
+      item.rainfallValues.push(num(r.rainfallreal));
+    }
   }
 
   return Array.from(map.values()).map(d => ({
     date: d.date,
     waterLevelAvg: round(avg(d.waterLevels), 2),
-    waterLevelMax: round(d.waterLevels.length ? Math.max(...d.waterLevels) : null, 2),
-    waterLevelMin: round(d.waterLevels.length ? Math.min(...d.waterLevels) : null, 2),
+    waterLevelMax: round(
+      d.waterLevels.length ? Math.max(...d.waterLevels) : null,
+      2
+    ),
+    waterLevelMin: round(
+      d.waterLevels.length ? Math.min(...d.waterLevels) : null,
+      2
+    ),
     inflowAvg: round(avg(d.inflows), 2),
-    inflowMax: round(d.inflows.length ? Math.max(...d.inflows) : null, 2),
+    inflowMax: round(
+      d.inflows.length ? Math.max(...d.inflows) : null,
+      2
+    ),
     turbineFlowAvg: round(avg(d.turbineFlows), 2),
     spillwayFlowAvg: round(avg(d.spillwayFlows), 2),
     rainfallTotal: round(sum(d.rainfallValues), 2),
@@ -179,7 +799,8 @@ function detectEvents(rows, daily, inflowFrequency = null) {
   const rainMaxDay = daily.reduce((best, cur) => {
     if (!best) return cur;
 
-    return (num(cur.rainfallTotal) || 0) > (num(best.rainfallTotal) || 0)
+    return (num(cur.rainfallTotal) || 0) >
+      (num(best.rainfallTotal) || 0)
       ? cur
       : best;
   }, null);
@@ -190,7 +811,10 @@ function detectEvents(rows, daily, inflowFrequency = null) {
       level: rainMaxDay.rainfallTotal >= 50 ? "warning" : "info",
       time: rainMaxDay.date,
       title: "Ngày mưa lớn nhất tháng",
-      description: `Lượng mưa ngày lớn nhất đạt ${round(rainMaxDay.rainfallTotal, 2)} mm.`,
+      description: `Lượng mưa ngày lớn nhất đạt ${round(
+        rainMaxDay.rainfallTotal,
+        2
+      )} mm.`,
     });
   }
 
@@ -202,7 +826,10 @@ function detectEvents(rows, daily, inflowFrequency = null) {
       level: "warning",
       time: spillMax.time,
       title: "Có ghi nhận xả tràn",
-      description: `Q xả lớn nhất đạt ${round(spillMax.value, 2)} m3/s.`,
+      description: `Q xả lớn nhất đạt ${round(
+        spillMax.value,
+        2
+      )} m3/s.`,
     });
   }
 
@@ -299,38 +926,11 @@ ${formatReasonSummary(q)}
 Yêu cầu trả về đúng 6 mục sau:
 
 1. Nhận xét chung
-- Đánh giá tổng thể trạng thái hồ trong tháng.
-- Nêu rõ hồ đang ở trạng thái: tích nước, suy giảm dung tích, vận hành bình thường, thận trọng nguồn nước, hoặc cần chú ý.
-- Không chỉ lặp lại số liệu.
-
 2. Thủy văn và dòng chảy
-- Phân tích xu thế Q về hồ.
-- So sánh tương quan giữa Q về, Q chạy máy, Q xả và biến động mực nước.
-- Nhận diện rủi ro nguồn nước nếu có.
-
 3. Đánh giá tần suất nước về hồ
-- Diễn giải ý nghĩa tần suất nước về.
-- Cho biết tháng này thuộc nhóm nhiều nước, trung bình, ít nước hoặc rất ít nước.
-- Đánh giá ảnh hưởng đến phát điện, tích nước và vận hành các tháng tiếp theo.
-
 4. Mưa trong tháng
-- Nhận xét vai trò của mưa đối với dòng chảy về hồ.
-- Đánh giá phân bố mưa có hỗ trợ cải thiện nguồn nước hay không.
-- Nếu tổng mưa có nhưng mực nước vẫn giảm, cần nêu rõ khả năng mưa chưa đủ để bù lượng nước ra/vận hành.
-
 5. Vận hành hồ chứa và tuân thủ QT1865
-- Đánh giá chế độ vận hành hồ trong tháng.
-- Phân tích số ngày đảm bảo, không đảm bảo, cảnh báo.
-- Phân biệt rõ:
-  + Ngày “cảnh báo Q cao hơn quy định” nhưng vẫn đảm bảo.
-  + Ngày “không đảm bảo” do mực nước hoặc lưu lượng.
-  + Ngày không đạt chạy máy liên tục 12 giờ.
-- Nhận định mức độ ảnh hưởng đến vận hành và tuân thủ quy trình.
-
 6. Kết luận và kiến nghị
-- Đưa ra kết luận ngắn gọn về tình hình vận hành tháng.
-- Đưa ra ít nhất 3 kiến nghị cụ thể, có thể hành động.
-- Kiến nghị phải gắn với số liệu thực tế.
 
 Cuối báo cáo thêm dòng:
 Đánh giá chung: ${overallRating}
@@ -341,226 +941,159 @@ Không viết quá 900 từ.
 `.trim();
 }
 
-async function fetchAllHourly(startIso, endIso) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  }
+async function handleMonthlyReport(req, res) {
+  try {
+    const now = new Date();
 
-  const pageSize = 1000;
-  let offset = 0;
-  let all = [];
+    const year = Number(req.query.year || now.getFullYear());
+    const month = Number(req.query.month || now.getMonth() + 1);
 
-  while (true) {
-    const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_hourly_data`);
-
-    url.searchParams.set(
-      "select",
-      "time,water_level,inflow,turbine_flow,spillway_flow,rainfallreal"
-    );
-
-    url.searchParams.append("time", `gte.${startIso}`);
-    url.searchParams.append("time", `lt.${endIso}`);
-    url.searchParams.set("order", "time.asc");
-    url.searchParams.set("limit", String(pageSize));
-    url.searchParams.set("offset", String(offset));
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "count=exact",
-      },
-    });
-
-    const text = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`Supabase ${response.status}: ${text}`);
+    if (!year || !month || month < 1 || month > 12) {
+      return json(res, 400, {
+        ok: false,
+        mode: "monthly-report",
+        error: "Invalid year/month",
+      });
     }
 
-    const rows = text ? JSON.parse(text) : [];
+    const { startIso, endIso } = monthRangeUtc(year, month);
 
-    all = all.concat(rows);
+    const rows = await fetchAllHourly(startIso, endIso);
+    const daily = groupDaily(rows);
+    const limits = await fetchLevelLimits(year);
 
-    if (rows.length < pageSize) break;
+    const first = rows[0] || null;
+    const last = rows[rows.length - 1] || null;
 
-    offset += pageSize;
-  }
+    const rainMaxDay = daily.reduce((best, cur) => {
+      if (!best) return cur;
 
-  return all;
-}
+      return (num(cur.rainfallTotal) || 0) >
+        (num(best.rainfallTotal) || 0)
+        ? cur
+        : best;
+    }, null);
 
-async function fetchLevelLimits(year) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+    const summary = {
+      recordCount: rows.length,
+      dayCount: daily.length,
 
-  try {
-    const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_level_limits`);
+      waterLevelStart: first ? round(first.water_level, 2) : null,
+      waterLevelEnd: last ? round(last.water_level, 2) : null,
 
-    url.searchParams.set("select", "date,mnghd,mnght,mndl,mntrl");
-    url.searchParams.append("date", `gte.${year}-01-01`);
-    url.searchParams.append("date", `lte.${year}-12-31`);
-    url.searchParams.set("order", "date.asc");
-    url.searchParams.set("limit", "400");
+      waterLevelChange:
+        first && last
+          ? round(num(last.water_level) - num(first.water_level), 2)
+          : null,
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
+      waterLevelAvg: round(avg(rows.map(r => r.water_level)), 2),
 
-    const text = await response.text();
+      waterLevelMax: (() => {
+        const x = findExtreme(rows, "water_level", "max");
+        return {
+          value: round(x.value, 2),
+          time: x.time,
+        };
+      })(),
 
-    if (!response.ok) return [];
+      waterLevelMin: (() => {
+        const x = findExtreme(rows, "water_level", "min");
+        return {
+          value: round(x.value, 2),
+          time: x.time,
+        };
+      })(),
 
-    return text ? JSON.parse(text) : [];
-  } catch (_) {
-    return [];
-  }
-}
+      inflowAvg: round(avg(rows.map(r => r.inflow)), 2),
 
-async function fetchInflowFrequency(month, inflowAvg) {
-  const q = num(inflowAvg);
+      inflowMax: (() => {
+        const x = findExtreme(rows, "inflow", "max");
+        return {
+          value: round(x.value, 2),
+          time: x.time,
+        };
+      })(),
 
-  if (!SUPABASE_URL || !SUPABASE_KEY || !month || q === null) {
-    return null;
-  }
+      turbineFlowAvg: round(avg(rows.map(r => r.turbine_flow)), 2),
 
-  try {
-    const url = new URL(`${SUPABASE_URL}/rest/v1/monthly_inflow_frequency`);
+      spillwayFlowAvg: round(avg(rows.map(r => r.spillway_flow)), 2),
 
-    url.searchParams.set("select", "frequency_percent,month,inflow_value");
-    url.searchParams.set("month", `eq.${month}`);
-    url.searchParams.set("order", "frequency_percent.asc");
+      rainfallTotal: round(sum(rows.map(r => r.rainfallreal)), 2),
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
+      rainyDays: daily.filter(d => (num(d.rainfallTotal) || 0) > 0).length,
 
-    const text = await response.text();
+      rainMaxDay: rainMaxDay
+        ? {
+            date: rainMaxDay.date,
+            value: round(rainMaxDay.rainfallTotal, 2),
+          }
+        : {
+            date: null,
+            value: null,
+          },
+    };
 
-    if (!response.ok) return null;
-
-    const rows = text ? JSON.parse(text) : [];
-
-    if (!rows.length) return null;
-
-    let nearest = rows[0];
-
-    for (const row of rows) {
-      const d1 = Math.abs(Number(row.inflow_value) - q);
-      const d2 = Math.abs(Number(nearest.inflow_value) - q);
-
-      if (d1 < d2) nearest = row;
-    }
-
-    const frequencyPercent = Number(nearest.frequency_percent);
-    const frequencyLabel = formatPercentLabel(frequencyPercent);
-    const inflowFrequencyValue = round(nearest.inflow_value, 2);
-    const classification = classifyInflowFrequency(frequencyPercent);
-
-    return {
+    const inflowFrequency = await fetchInflowFrequency(
       month,
-      inflowAvg: round(q, 2),
-      frequencyPercent,
-      frequencyLabel,
-      inflowFrequencyValue,
-      classification,
-      nearest,
-      rows,
-      comment: `Q về trung bình tháng ${month} là ${round(q, 2)} m3/s, gần với tần suất P=${frequencyLabel}, tương ứng Q=${inflowFrequencyValue} m3/s.`,
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-async function fetchQt1865Summary(year, month) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-
-  try {
-    const { start, end } = monthRangeDate(year, month);
-    const url = new URL(`${SUPABASE_URL}/rest/v1/reservoir_release_compliance_1865`);
-
-    url.searchParams.set(
-      "select",
-      "date,is_compliant,reason,is_turbine_12h_compliant"
+      summary.inflowAvg
     );
-    url.searchParams.append("date", `gte.${start}`);
-    url.searchParams.append("date", `lte.${end}`);
-    url.searchParams.set("order", "date.asc");
-    url.searchParams.set("limit", "1000");
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
+    const qt1865Summary = await fetchQt1865Summary(year, month);
+
+    const events = detectEvents(rows, daily, inflowFrequency);
+
+    const result = {
+      ok: true,
+      mode: "monthly-report",
+      source: "supabase",
+
+      year,
+      month,
+
+      period: {
+        start: startIso,
+        endExclusive: endIso,
       },
-    });
 
-    const text = await response.text();
+      summary,
+      inflowFrequency,
+      qt1865Summary,
+      daily,
 
-    if (!response.ok) return null;
+      chartData: daily.map(d => ({
+        date: d.date,
+        waterLevelAvg: d.waterLevelAvg,
+        inflowAvg: d.inflowAvg,
+        turbineFlowAvg: d.turbineFlowAvg,
+        spillwayFlowAvg: d.spillwayFlowAvg,
+        rainfallTotal: d.rainfallTotal,
+      })),
 
-    const rows = text ? JSON.parse(text) : [];
+      levelLimits: limits,
+      events,
 
-    const totalDays = rows.length;
-    const compliantDays = rows.filter(r => r.is_compliant).length;
-    const nonCompliantDays = totalDays - compliantDays;
-    const warningDays = rows.filter(r =>
-      String(r.reason || "").includes("Cảnh báo")
-    ).length;
-
-    const turbine12hCompliantDays = rows.filter(
-      r => r.is_turbine_12h_compliant
-    ).length;
-
-    const turbine12hNonCompliantDays =
-      totalDays - turbine12hCompliantDays;
-
-    const reasonMap = new Map();
-
-    rows.forEach(r => {
-      if (r.is_compliant && !String(r.reason || "").includes("Cảnh báo")) {
-        return;
-      }
-
-      const reason = r.reason || "Không xác định";
-      reasonMap.set(reason, (reasonMap.get(reason) || 0) + 1);
-    });
-
-    return {
-      totalDays,
-      compliantDays,
-      nonCompliantDays,
-      warningDays,
-      complianceRate: totalDays
-        ? Number(((compliantDays / totalDays) * 100).toFixed(1))
-        : 0,
-      turbine12hCompliantDays,
-      turbine12hNonCompliantDays,
-      turbine12hRate: totalDays
-        ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1))
-        : 0,
-      reasons: Array.from(reasonMap.entries())
-        .map(([reason, days]) => ({ reason, days }))
-        .sort((a, b) => b.days - a.days),
+      aiPrompt: makeAiPrompt({
+        year,
+        month,
+        summary,
+        inflowFrequency,
+        qt1865Summary,
+      }),
     };
-  } catch (_) {
-    return null;
+
+    return json(res, 200, result);
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "monthly-report",
+      error: err.message,
+    });
   }
 }
 
 /* =========================================================
    PCTT ĐÀ NẴNG HYDRO MODE
-   mode=pctt-hydro
+   /api/qt1865-compliance?mode=pctt-hydro
    ========================================================= */
 
 function getVietnamMonthRange(year, month) {
@@ -580,6 +1113,7 @@ function getVietnamMonthRange(year, month) {
 async function handlePcttHydro(req, res) {
   try {
     const now = new Date();
+
     const year = Number(req.query.year || now.getFullYear());
     const month = Number(req.query.month || now.getMonth() + 1);
 
@@ -595,7 +1129,6 @@ async function handlePcttHydro(req, res) {
 
     const start = req.query.start || vnRange.start;
     const end = req.query.end || vnRange.end;
-
     const ids = String(req.query.ids || "1,2,3,4");
 
     const url =
@@ -629,23 +1162,26 @@ async function handlePcttHydro(req, res) {
       .filter(r => r.time);
 
     const rows = dedupePcttRowsByTime(rowsRaw);
-
     const latest = rows[0] || null;
 
     return json(res, 200, {
       ok: true,
       mode: "pctt-hydro",
       source: "pctt.danang.gov.vn",
+
       year,
       month,
       ids,
+
       period: {
         start,
         endInclusive: end,
       },
+
       countRaw: rowsRaw.length,
       count: rows.length,
       duplicateCount: rowsRaw.length - rows.length,
+
       latest,
       data: rows,
     });
@@ -706,7 +1242,8 @@ function normalizePcttRow(row) {
     reservoirs: [
       {
         id: 1,
-        name: "A Vương",
+        name: "Hồ thủy điện A Vương",
+        shortName: "A Vương",
         waterLevel: numPctt(row.htl1),
         inflow: numPctt(row.qvao1),
         turbineFlow: numPctt(row.luuluongnhamay1),
@@ -714,7 +1251,8 @@ function normalizePcttRow(row) {
       },
       {
         id: 2,
-        name: "Hồ 2",
+        name: "Hồ thủy điện Đăk Mi 4",
+        shortName: "Đăk Mi 4",
         waterLevel: numPctt(row.htl2),
         inflow: numPctt(row.qvao2),
         turbineFlow: numPctt(row.luuluongnhamay2),
@@ -722,7 +1260,8 @@ function normalizePcttRow(row) {
       },
       {
         id: 3,
-        name: "Hồ 3",
+        name: "Hồ thủy điện Sông Bung 4",
+        shortName: "Sông Bung 4",
         waterLevel: numPctt(row.htl3),
         inflow: numPctt(row.qvao3),
         turbineFlow: numPctt(row.luuluongnhamay3),
@@ -730,7 +1269,8 @@ function normalizePcttRow(row) {
       },
       {
         id: 4,
-        name: "Hồ 4",
+        name: "Hồ thủy điện Sông Tranh 2",
+        shortName: "Sông Tranh 2",
         waterLevel: numPctt(row.htl4),
         inflow: numPctt(row.qvao4),
         turbineFlow: numPctt(row.luuluongnhamay4),
@@ -808,155 +1348,16 @@ export default async function handler(req, res) {
     });
   }
 
-  if (req.query.mode === "pctt-hydro") {
+  const mode = String(req.query.mode || "qt1865").trim();
+
+  if (mode === "pctt-hydro") {
     return handlePcttHydro(req, res);
   }
 
-  try {
-    const now = new Date();
-
-    const year = Number(req.query.year || now.getFullYear());
-    const month = Number(req.query.month || now.getMonth() + 1);
-
-    if (!year || !month || month < 1 || month > 12) {
-      return json(res, 400, {
-        ok: false,
-        error: "Invalid year/month",
-      });
-    }
-
-    const { startIso, endIso } = monthRangeUtc(year, month);
-
-    const rows = await fetchAllHourly(startIso, endIso);
-    const daily = groupDaily(rows);
-    const limits = await fetchLevelLimits(year);
-
-    const first = rows[0] || null;
-    const last = rows[rows.length - 1] || null;
-
-    const rainMaxDay = daily.reduce((best, cur) => {
-      if (!best) return cur;
-
-      return (num(cur.rainfallTotal) || 0) > (num(best.rainfallTotal) || 0)
-        ? cur
-        : best;
-    }, null);
-
-    const summary = {
-      recordCount: rows.length,
-      dayCount: daily.length,
-
-      waterLevelStart: first ? round(first.water_level, 2) : null,
-      waterLevelEnd: last ? round(last.water_level, 2) : null,
-
-      waterLevelChange:
-        first && last
-          ? round(num(last.water_level) - num(first.water_level), 2)
-          : null,
-
-      waterLevelAvg: round(avg(rows.map(r => r.water_level)), 2),
-
-      waterLevelMax: (() => {
-        const x = findExtreme(rows, "water_level", "max");
-        return {
-          value: round(x.value, 2),
-          time: x.time,
-        };
-      })(),
-
-      waterLevelMin: (() => {
-        const x = findExtreme(rows, "water_level", "min");
-        return {
-          value: round(x.value, 2),
-          time: x.time,
-        };
-      })(),
-
-      inflowAvg: round(avg(rows.map(r => r.inflow)), 2),
-
-      inflowMax: (() => {
-        const x = findExtreme(rows, "inflow", "max");
-        return {
-          value: round(x.value, 2),
-          time: x.time,
-        };
-      })(),
-
-      turbineFlowAvg: round(avg(rows.map(r => r.turbine_flow)), 2),
-
-      spillwayFlowAvg: round(avg(rows.map(r => r.spillway_flow)), 2),
-
-      rainfallTotal: round(sum(rows.map(r => r.rainfallreal)), 2),
-
-      rainyDays: daily.filter(d => (num(d.rainfallTotal) || 0) > 0).length,
-
-      rainMaxDay: rainMaxDay
-        ? {
-            date: rainMaxDay.date,
-            value: round(rainMaxDay.rainfallTotal, 2),
-          }
-        : {
-            date: null,
-            value: null,
-          },
-    };
-
-    const inflowFrequency = await fetchInflowFrequency(
-      month,
-      summary.inflowAvg
-    );
-
-    const qt1865Summary = await fetchQt1865Summary(year, month);
-
-    const events = detectEvents(rows, daily, inflowFrequency);
-
-    const result = {
-      ok: true,
-      source: "supabase",
-
-      year,
-      month,
-
-      period: {
-        start: startIso,
-        endExclusive: endIso,
-      },
-
-      summary,
-
-      inflowFrequency,
-
-      qt1865Summary,
-
-      daily,
-
-      chartData: daily.map(d => ({
-        date: d.date,
-        waterLevelAvg: d.waterLevelAvg,
-        inflowAvg: d.inflowAvg,
-        turbineFlowAvg: d.turbineFlowAvg,
-        spillwayFlowAvg: d.spillwayFlowAvg,
-        rainfallTotal: d.rainfallTotal,
-      })),
-
-      levelLimits: limits,
-
-      events,
-
-      aiPrompt: makeAiPrompt({
-        year,
-        month,
-        summary,
-        inflowFrequency,
-        qt1865Summary,
-      }),
-    };
-
-    return json(res, 200, result);
-  } catch (err) {
-    return json(res, 500, {
-      ok: false,
-      error: err.message,
-    });
+  if (mode === "monthly-report") {
+    return handleMonthlyReport(req, res);
   }
+
+  // Mặc định trả schema API QT1865 cũ.
+  return handleQt1865Compliance(req, res);
 }
