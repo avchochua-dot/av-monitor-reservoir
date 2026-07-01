@@ -6474,9 +6474,257 @@ body.slideshow-frame-mode section{
     }
   };
 
-  window.exportQT1865Excel = function(){
+  window.exportQT1865Excel = async function(){
     initQT1865Selectors();
-    window.open(apiUrl({export:"xlsx"}), "_blank");
+
+    let data = window.qt1865CurrentData;
+
+    if(!data || !Array.isArray(data.rows) || data.rows.length === 0){
+      try{
+        setStatus("Đang tải dữ liệu để xuất Excel...", "loading");
+        const res = await fetch(apiUrl(), {cache:"no-store"});
+        data = await res.json();
+
+        if(!res.ok || !data.ok){
+          throw new Error(data.error || "Không tải được dữ liệu QT1865");
+        }
+
+        window.qt1865CurrentData = data;
+      }catch(err){
+        console.error(err);
+        alert("Không xuất được Excel: " + err.message);
+        setStatus("Lỗi xuất Excel", "error");
+        return;
+      }
+    }
+
+    const s = selected();
+    const monthText = s.month === "" ? "Cả năm" : `Tháng ${String(s.month).padStart(2,"0")}`;
+    const fileName = `QT1865_${s.year}_${s.month === "" ? "ca_nam" : String(s.month).padStart(2,"0")}.xls`;
+
+    const esc = v => String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    const n = (v, digits = 2) => {
+      if(v === null || v === undefined || v === "") return "";
+      const x = Number(v);
+      if(!Number.isFinite(x)) return esc(v);
+      return x.toLocaleString("vi-VN", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: digits
+      });
+    };
+
+    const summary = data.summary || {};
+    const reasons = Array.isArray(data.summaryByReason) ? data.summaryByReason : [];
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const frequency = summary.inflowFrequency || data.inflowFrequency || null;
+
+    const reasonRows = reasons.length
+      ? reasons.map(r => `
+          <tr>
+            <td>${esc(r.reason)}</td>
+            <td style="text-align:center">${n(r.count ?? r.days, 0)}</td>
+          </tr>
+        `).join("")
+      : `<tr><td colspan="2">Không có nguyên nhân/cảnh báo</td></tr>`;
+
+    const detailRows = rows.length
+      ? rows.map(r => `
+          <tr>
+            <td>${esc(r.date)}</td>
+            <td>${n(r.water_level_avg)}</td>
+            <td>${n(r.water_level_min)}</td>
+            <td>${n(r.water_level_max)}</td>
+            <td>${n(r.mnh_min)}</td>
+            <td>${n(r.mnh_max)}</td>
+            <td>${n(r.diff_mnh_min)}</td>
+            <td>${n(r.diff_mnh_max)}</td>
+            <td>${n(r.inflow_avg)}</td>
+            <td>${n(r.turbine_flow_avg)}</td>
+            <td>${n(r.spillway_flow_avg)}</td>
+            <td>${n(r.total_outflow_avg)}</td>
+            <td>${n(r.total_outflow_min)}</td>
+            <td>${n(r.total_outflow_max)}</td>
+            <td>${n(r.q_min)}</td>
+            <td>${n(r.q_max)}</td>
+            <td>${n(r.diff_q_min)}</td>
+            <td>${n(r.diff_q_max)}</td>
+            <td>${n(r.record_count, 0)}</td>
+            <td>${n(r.turbine_running_hours, 0)}</td>
+            <td>${n(r.turbine_continuous_hours, 0)}</td>
+            <td>${esc(r.turbine_12h_start)}</td>
+            <td>${esc(r.turbine_12h_end)}</td>
+            <td>${esc(r.mnh_status)}</td>
+            <td>${esc(r.flow_status)}</td>
+            <td>${esc(r.turbine_12h_status)}</td>
+            <td>${esc(r.is_compliant ? "Đảm bảo" : "Không đảm bảo")}</td>
+            <td>${esc(r.reason)}</td>
+            <td>${esc(r.note)}</td>
+          </tr>
+        `).join("")
+      : `<tr><td colspan="29">Không có dữ liệu chi tiết</td></tr>`;
+
+    const frequencyHtml = frequency ? `
+      <h2>2. Tần suất nước về</h2>
+      <table>
+        <tr><th>Chỉ tiêu</th><th>Giá trị</th></tr>
+        <tr><td>Q về trung bình tháng</td><td>${n(frequency.inflowAvg)} m3/s</td></tr>
+        <tr><td>Tần suất gần nhất</td><td>${esc(frequency.frequencyLabel)}</td></tr>
+        <tr><td>Q tra bảng</td><td>${n(frequency.inflowFrequencyValue)} m3/s</td></tr>
+        <tr><td>Phân loại thủy văn</td><td>${esc(frequency.classification)}</td></tr>
+        <tr><td>Nhận xét</td><td>${esc(frequency.comment)}</td></tr>
+      </table>
+    ` : "";
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{
+    font-family:Arial, sans-serif;
+    color:#0f172a;
+  }
+  .title{
+    font-size:20px;
+    font-weight:bold;
+    color:#0f172a;
+    text-transform:uppercase;
+  }
+  .sub{
+    color:#475569;
+    font-size:12px;
+    margin:4px 0 16px;
+  }
+  h2{
+    font-size:14px;
+    margin:22px 0 8px;
+    color:#0f766e;
+  }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    margin-bottom:18px;
+  }
+  th{
+    background:#d9ead3;
+    font-weight:bold;
+    text-align:center;
+  }
+  td, th{
+    border:1px solid #999;
+    padding:6px;
+    font-size:12px;
+    vertical-align:middle;
+  }
+  .center{text-align:center}
+  .right{text-align:right}
+  .ok{color:#059669;font-weight:bold}
+  .bad{color:#dc2626;font-weight:bold}
+  .warn{color:#d97706;font-weight:bold}
+</style>
+</head>
+<body>
+  <div class="title">Báo cáo tuân thủ QT1865</div>
+  <div class="sub">${esc(monthText)} - Năm ${esc(s.year)} | Xuất lúc ${esc(new Date().toLocaleString("vi-VN"))}</div>
+
+  <h2>1. Tổng hợp</h2>
+  <table>
+    <tr>
+      <th>Chỉ tiêu</th>
+      <th>Giá trị</th>
+    </tr>
+    <tr><td>Tổng ngày có dữ liệu</td><td class="center">${n(summary.totalDays, 0)}</td></tr>
+    <tr><td>Ngày đảm bảo</td><td class="center">${n(summary.compliantDays, 0)}</td></tr>
+    <tr><td>Ngày không đảm bảo</td><td class="center">${n(summary.nonCompliantDays, 0)}</td></tr>
+    <tr><td>Ngày cảnh báo</td><td class="center">${n(summary.warningDays, 0)}</td></tr>
+    <tr><td>Tỷ lệ đảm bảo (%)</td><td class="center">${n(summary.complianceRate, 1)}</td></tr>
+    <tr><td>Đạt chạy máy liên tục 12h</td><td class="center">${n(summary.turbine12hCompliantDays, 0)}</td></tr>
+    <tr><td>Không đạt chạy máy liên tục 12h</td><td class="center">${n(summary.turbine12hNonCompliantDays, 0)}</td></tr>
+    <tr><td>Tỷ lệ đạt 12h (%)</td><td class="center">${n(summary.turbine12hRate, 1)}</td></tr>
+    <tr><td>MNH trung bình (m)</td><td class="center">${n(summary.waterLevelAvg)}</td></tr>
+    <tr><td>MNH lớn nhất (m)</td><td class="center">${n(summary.waterLevelMax?.value)} - ${esc(summary.waterLevelMax?.date || summary.waterLevelMax?.time || "")}</td></tr>
+    <tr><td>MNH nhỏ nhất (m)</td><td class="center">${n(summary.waterLevelMin?.value)} - ${esc(summary.waterLevelMin?.date || summary.waterLevelMin?.time || "")}</td></tr>
+    <tr><td>Q về trung bình (m3/s)</td><td class="center">${n(summary.inflowAvg)}</td></tr>
+    <tr><td>Q về lớn nhất (m3/s)</td><td class="center">${n(summary.inflowMax?.value)} - ${esc(summary.inflowMax?.date || summary.inflowMax?.time || "")}</td></tr>
+    <tr><td>Q xả tổng trung bình (m3/s)</td><td class="center">${n(summary.totalOutflowAvg)}</td></tr>
+    <tr><td>Q xả tổng lớn nhất (m3/s)</td><td class="center">${n(summary.totalOutflowMax?.value)} - ${esc(summary.totalOutflowMax?.date || summary.totalOutflowMax?.time || "")}</td></tr>
+    <tr><td>Q chạy máy trung bình (m3/s)</td><td class="center">${n(summary.turbineFlowAvg)}</td></tr>
+    <tr><td>Q xả tràn trung bình (m3/s)</td><td class="center">${n(summary.spillwayFlowAvg)}</td></tr>
+    <tr><td>Tổng lượng mưa (mm)</td><td class="center">${n(summary.rainfallTotal)}</td></tr>
+    <tr><td>Số ngày có mưa</td><td class="center">${n(summary.rainyDays, 0)}</td></tr>
+    <tr><td>Nhận xét</td><td>${esc(summary.comment)}</td></tr>
+  </table>
+
+  ${frequencyHtml}
+
+  <h2>3. Nguyên nhân / cảnh báo</h2>
+  <table>
+    <tr>
+      <th>Nguyên nhân</th>
+      <th>Số ngày</th>
+    </tr>
+    ${reasonRows}
+  </table>
+
+  <h2>4. Chi tiết theo ngày</h2>
+  <table>
+    <tr>
+      <th>Ngày</th>
+      <th>MNH TB</th>
+      <th>MNH min thực tế</th>
+      <th>MNH max thực tế</th>
+      <th>MNH min quy định</th>
+      <th>MNH max quy định</th>
+      <th>Chênh MNH min</th>
+      <th>Chênh MNH max</th>
+      <th>Q về TB</th>
+      <th>Q chạy máy TB</th>
+      <th>Q xả tràn TB</th>
+      <th>Q xả tổng TB</th>
+      <th>Q xả tổng min</th>
+      <th>Q xả tổng max</th>
+      <th>Q min quy định</th>
+      <th>Q max quy định</th>
+      <th>Chênh Q min</th>
+      <th>Chênh Q max</th>
+      <th>Số bản ghi</th>
+      <th>Giờ chạy máy</th>
+      <th>Chuỗi chạy liên tục</th>
+      <th>Bắt đầu 12h</th>
+      <th>Kết thúc 12h</th>
+      <th>Trạng thái MNH</th>
+      <th>Trạng thái lưu lượng</th>
+      <th>Trạng thái 12h</th>
+      <th>Kết luận</th>
+      <th>Nguyên nhân</th>
+      <th>Ghi chú</th>
+    </tr>
+    ${detailRows}
+  </table>
+</body>
+</html>
+    `.trim();
+
+    const blob = new Blob(["\ufeff" + html], {
+      type: "application/vnd.ms-excel;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setStatus("Đã xuất Excel", "ok");
   };
 
   function buildQT1865PdfHtml(data){
