@@ -5377,7 +5377,7 @@ body.slideshow-frame-mode section{
     const now = new Date();
     const qs = new URLSearchParams(location.search || "");
     const queryMonth = qs.get("month");
-    const defaultMonth = queryMonth === null ? "5" : String(queryMonth || "");
+    const defaultMonth = queryMonth === null ? String(now.getMonth() + 1) : String(queryMonth || "");
     const defaultYear = Number(qs.get("year") || 2026 || now.getFullYear());
 
     if(m && m.options.length === 0){
@@ -5396,7 +5396,7 @@ body.slideshow-frame-mode section{
       }
 
       const dm = Number(defaultMonth);
-      m.value = defaultMonth === "" ? "" : String(dm >= 1 && dm <= 12 ? dm : 5);
+      m.value = defaultMonth === "" ? "" : String(dm >= 1 && dm <= 12 ? dm : (now.getMonth() + 1));
     }
 
     if(y && y.options.length === 0){
@@ -9078,14 +9078,18 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         mf.dataset.loadedOnce = "1";
       }
     }
-    if(name==='forecast') loadForecasts();
-    if(name==='monthlyreport') loadMonthlyReport(false);
-    if(name==='pcttdanang') loadPcttDanang(false);
+    if(name==='forecast' && typeof loadForecasts === "function") loadForecasts();
+    if(name==='qt1865') {
+      if(typeof initQT1865Selectors === "function") initQT1865Selectors();
+      if(typeof loadQT1865 === "function") loadQT1865();
+    }
+    if(name==='monthlyreport' && typeof loadMonthlyReport === "function") loadMonthlyReport(false);
+    if(name==='pcttdanang' && typeof loadPcttDanang === "function") loadPcttDanang(false);
     if(name==='weathermap') {
       const wf = $('windyWeatherFrame');
-      if(wf && !wf.dataset.loadedOnce) { wf.dataset.loadedOnce = '1'; applyWeatherMap(); }
+      if(wf && !wf.dataset.loadedOnce) { wf.dataset.loadedOnce = '1'; if(typeof applyWeatherMap === "function") applyWeatherMap(); }
     }
-    if(name==='notif') loadAIBulletins();
+    if(name==='notif' && typeof loadAIBulletins === "function") loadAIBulletins();
     if(name==='chart' && chart) chart.resize();
 
     history.replaceState(null, '', '#'+name);
@@ -10955,15 +10959,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     chart_q_forecast: {name:"Biểu đồ - Q dự báo", baseTab:"chart", chartKey:"forecastFlow", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
     chart_db7: {name:"Biểu đồ - Dự báo DB7", baseTab:"chart", chartKey:"db7", refresh: async()=>{ if(typeof loadData==="function") await loadData(); }},
     operationchart: {name:"Biểu đồ điều phối", refresh: async()=>{ if(typeof loadOperationChart==="function") await loadOperationChart(false); }},
+    qt1865: {name:"Tuân thủ QT1865", refresh: async()=>{ if(typeof initQT1865Selectors==="function") initQT1865Selectors(); if(typeof loadQT1865==="function") await loadQT1865(); }},
+    pcttdanang: {name:"PCTT Đà Nẵng", refresh: async()=>{ if(typeof loadPcttDanang==="function") await loadPcttDanang(false); }},
     monthlyreport: {name:"Báo cáo tháng AI", refresh: async()=>{ if(typeof loadMonthlyReport==="function") await loadMonthlyReport(false); }}
   };
 
   const PRESETS = {
-    operator: ["overview","data","rain","operationchart"],
+    operator: ["overview","data","pcttdanang","qt1865","rain","operationchart"],
     rain: ["overview","rain","windyrain","openmeteorarain","openweatherrain"],
     forecast: ["overview","forecast","weathermap","windyrain","openmeteorarain","openweatherrain"],
-    random: ["overview","data","rain","windyrain","openmeteorarain","openweatherrain","forecast","chart_mnh7d","chart_rain_day","chart_db7","operationchart"],
-    custom: ["overview","data","rain","chart_mnh7d","chart_rain_day","operationchart"]
+    random: ["overview","data","pcttdanang","qt1865","rain","windyrain","openmeteorarain","openweatherrain","forecast","chart_mnh7d","chart_rain_day","chart_db7","operationchart","monthlyreport"],
+    custom: ["overview","data","pcttdanang","qt1865","rain","chart_mnh7d","chart_rain_day","operationchart","monthlyreport"]
   };
 
   let timer = null;
@@ -11209,6 +11215,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       ["chart_q_forecast","Q dự báo","Biểu đồ"],
       ["chart_db7","Dự báo DB7","Biểu đồ"],
       ["operationchart","Biểu đồ điều phối",""],
+      ["qt1865","Tuân thủ QT1865","QT"],
+      ["pcttdanang","PCTT Đà Nẵng","PCTT"],
       ["monthlyreport","Báo cáo tháng AI","AI Report"]
     ];
 
