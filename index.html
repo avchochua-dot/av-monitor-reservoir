@@ -4273,13 +4273,44 @@ body.slideshow-frame-mode section{
   margin-top:10px;
 }
 .pctt-table-wrap{
-  max-height:360px;
+  max-height:520px;
   overflow:auto;
   border:1px solid var(--line);
   border-radius:18px;
 }
+.pctt-table-wrap table{
+  width:100%;
+  border-collapse:collapse;
+}
+.pctt-table-wrap thead th{
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:#f1f5f9!important;
+}
+.pctt-table-wrap table th:first-child,
 .pctt-table-wrap table td:first-child{
+  position:sticky;
+  left:0;
+  z-index:6;
   min-width:138px;
+  background:#fff!important;
+  border-right:1px solid var(--line);
+}
+.pctt-table-wrap table thead th:first-child{
+  z-index:7;
+  background:#f1f5f9!important;
+}
+.pctt-table-note{
+  margin-top:8px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+}
+.pctt-table-reservoir-switch{
+  margin:10px 0 14px;
+  padding:10px 0 0;
+  border-top:1px solid var(--line-soft);
 }
 .pctt-alert{
   display:none;
@@ -5030,6 +5061,13 @@ body.slideshow-frame-mode section{
                     <td>216</td>
                     <td>165</td>
                   </tr>
+                  <tr>
+                    <td>Mực nước chết</td>
+                    <td>340</td>
+                    <td>240</td>
+                    <td>205</td>
+                    <td>140</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -5039,10 +5077,18 @@ body.slideshow-frame-mode section{
             <div class="pctt-head">
               <div>
                 <div class="pctt-title" style="font-size:16px;">Bảng số liệu gần nhất</div>
-                <div class="pctt-sub">Hiển thị theo khung đang chọn, sắp xếp từ mới đến cũ.</div>
+                <div class="pctt-sub" id="pcttRecentTableSub">Hiển thị theo hồ và khung đang chọn, sắp xếp từ mới đến cũ.</div>
               </div>
             </div>
+            <div class="pctt-control-group pctt-table-reservoir-switch">
+              <span class="pctt-control-label">Chọn hồ</span>
+              <button class="pctt-btn active" data-pctt-reservoir="1" onclick="selectPcttReservoir(1)">A Vương</button>
+              <button class="pctt-btn" data-pctt-reservoir="2" onclick="selectPcttReservoir(2)">Đăk Mi 4</button>
+              <button class="pctt-btn" data-pctt-reservoir="3" onclick="selectPcttReservoir(3)">Sông Bung 4</button>
+              <button class="pctt-btn" data-pctt-reservoir="4" onclick="selectPcttReservoir(4)">Sông Tranh 2</button>
+            </div>
             <div id="pcttRecentTable" class="pctt-table-wrap"></div>
+            <div class="pctt-table-note">Ghi chú: dấu “-” thể hiện không có số liệu hợp lệ tại thời điểm đó; riêng Q = 0 vẫn được giữ khi bản ghi có dữ liệu vận hành hợp lệ.</div>
           </div>
 
         </section>
@@ -11476,28 +11522,28 @@ body.slideshow-frame-mode .content::after{
       code: "AVUONG",
       name: "Hồ thủy điện A Vương",
       shortName: "A Vương",
-      limits: { normal: 380, preFloodMax: 376, preFloodMin: 370 }
+      limits: { normal: 380, preFloodMax: 376, preFloodMin: 370, dead: 340 }
     },
     2: {
       id: 2,
       code: "DAKMI4",
       name: "Hồ thủy điện Đăk Mi 4",
       shortName: "Đăk Mi 4",
-      limits: { normal: 258, preFloodMax: 255, preFloodMin: 251.5 }
+      limits: { normal: 258, preFloodMax: 255, preFloodMin: 251.5, dead: 240 }
     },
     3: {
       id: 3,
       code: "SONGBUNG4",
       name: "Hồ thủy điện Sông Bung 4",
       shortName: "Sông Bung 4",
-      limits: { normal: 222.5, preFloodMax: 217.5, preFloodMin: 216 }
+      limits: { normal: 222.5, preFloodMax: 217.5, preFloodMin: 216, dead: 205 }
     },
     4: {
       id: 4,
       code: "SONGTRANH2",
       name: "Hồ thủy điện Sông Tranh 2",
       shortName: "Sông Tranh 2",
-      limits: { normal: 175, preFloodMax: 172, preFloodMin: 165 }
+      limits: { normal: 175, preFloodMax: 172, preFloodMin: 165, dead: 140 }
     }
   };
 
@@ -11512,10 +11558,45 @@ body.slideshow-frame-mode .content::after{
 
   function el(id){ return document.getElementById(id); }
 
-  function pcttNum(value, digits = 2){
+  function pcttToNumber(value){
+    if(value === null || value === undefined || value === "") return null;
     const n = Number(value);
-    if(!Number.isFinite(n)) return "--";
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function pcttNum(value, digits = 2, options = {}){
+    const n = pcttToNumber(value);
+    if(n === null) return "-";
+    if(options.zeroAsMissing && n === 0) return "-";
     return n.toLocaleString("vi-VN", { maximumFractionDigits: digits });
+  }
+
+  function cleanWaterLevel(value){
+    const n = pcttToNumber(value);
+    if(n === null || n <= 0) return null;
+    return n;
+  }
+
+  function isNoReservoirData(r){
+    if(!r) return true;
+    const wl = cleanWaterLevel(r.waterLevel);
+    const qIn = pcttToNumber(r.inflow);
+    const qCm = pcttToNumber(r.turbineFlow);
+    const qXa = pcttToNumber(r.spillwayFlow);
+
+    const hasWaterLevel = wl !== null;
+    const hasNonZeroFlow =
+      (qIn !== null && qIn !== 0) ||
+      (qCm !== null && qCm !== 0) ||
+      (qXa !== null && qXa !== 0);
+
+    return !hasWaterLevel && !hasNonZeroFlow;
+  }
+
+  function pcttFlowValue(row, reservoirId, key){
+    const r = getReservoir(row, reservoirId);
+    if(isNoReservoirData(r)) return null;
+    return pcttToNumber(r?.[key]);
   }
 
   function toVietnamIso(date){
@@ -11539,7 +11620,7 @@ body.slideshow-frame-mode .content::after{
   }
 
   function formatPcttDateTime(iso){
-    if(!iso) return "--";
+    if(!iso) return "-";
     const d = new Date(iso);
     if(Number.isNaN(d.getTime())) return iso;
     return d.toLocaleString("vi-VN", {
@@ -11578,6 +11659,23 @@ body.slideshow-frame-mode .content::after{
 
   function getReservoir(row, id){
     return (row?.reservoirs || []).find(r => Number(r.id) === Number(id)) || null;
+  }
+
+  function getLatestReservoirData(rows, reservoirId){
+    const sorted = normalizeRows(rows).slice().reverse();
+
+    for(const row of sorted){
+      const r = getReservoir(row, reservoirId);
+      if(!isNoReservoirData(r)){
+        return {
+          time: row.time,
+          reservoir: r,
+          basin: row.basin || null
+        };
+      }
+    }
+
+    return null;
   }
 
   function showPcttAlert(message){
@@ -11676,18 +11774,21 @@ body.slideshow-frame-mode .content::after{
     if(!wrap) return;
 
     const rows = normalizeRows(pcttRows);
-    const latest = rows[rows.length - 1] || null;
 
-    if(!latest){
+    if(!rows.length){
       wrap.innerHTML = `<div class="pctt-alert show">Chưa có dữ liệu mới nhất.</div>`;
       return;
     }
 
     wrap.innerHTML = Object.values(PCTT_RESERVOIRS).map(cfg => {
-      const r = getReservoir(latest, cfg.id) || {};
-      const diffNormal = Number.isFinite(Number(r.waterLevel))
-        ? Number(r.waterLevel) - Number(cfg.limits.normal)
+      const latestItem = getLatestReservoirData(rows, cfg.id);
+      const r = latestItem?.reservoir || {};
+      const waterLevel = cleanWaterLevel(r.waterLevel);
+
+      const diffNormal = waterLevel !== null
+        ? waterLevel - Number(cfg.limits.normal)
         : null;
+
       const stateText = diffNormal === null
         ? "Chưa có MNH"
         : diffNormal > 0
@@ -11697,9 +11798,9 @@ body.slideshow-frame-mode .content::after{
       return `
         <div class="pctt-latest-card ${cfg.id === pcttSelectedReservoirId ? "active" : ""}" onclick="selectPcttReservoir(${cfg.id})">
           <div class="pctt-latest-name">${cfg.shortName}</div>
-          <div class="pctt-latest-time">${formatPcttDateTime(latest.time)} • ${stateText}</div>
+          <div class="pctt-latest-time">${formatPcttDateTime(latestItem?.time)} • ${stateText}</div>
           <div class="pctt-kpi-grid">
-            <div class="pctt-kpi"><span>MNH</span><b>${pcttNum(r.waterLevel)}</b> <small>m</small></div>
+            <div class="pctt-kpi"><span>MNH</span><b>${pcttNum(waterLevel)}</b> <small>m</small></div>
             <div class="pctt-kpi"><span>Q về</span><b>${pcttNum(r.inflow)}</b> <small>m³/s</small></div>
             <div class="pctt-kpi"><span>Qcm</span><b>${pcttNum(r.turbineFlow)}</b> <small>m³/s</small></div>
             <div class="pctt-kpi"><span>Q xả</span><b>${pcttNum(r.spillwayFlow)}</b> <small>m³/s</small></div>
@@ -11708,8 +11809,17 @@ body.slideshow-frame-mode .content::after{
       `;
     }).join("");
 
+    const latestValidTimes = Object.values(PCTT_RESERVOIRS)
+      .map(cfg => getLatestReservoirData(rows, cfg.id)?.time)
+      .filter(Boolean)
+      .map(t => new Date(t).getTime());
+
+    const latestOverall = latestValidTimes.length
+      ? new Date(Math.max(...latestValidTimes)).toISOString()
+      : rows[rows.length - 1]?.time;
+
     const latestStatus = el("pcttLatestStatus");
-    if(latestStatus) latestStatus.textContent = `Mới nhất: ${formatPcttDateTime(latest.time)}`;
+    if(latestStatus) latestStatus.textContent = `Mới nhất: ${formatPcttDateTime(latestOverall)}`;
 
     const line = el("pcttStatusLine");
     if(line){
@@ -11732,46 +11842,46 @@ body.slideshow-frame-mode .content::after{
         {
           label: "MNH",
           yAxisID: "yLevel",
-          data: displayRows.map(row => getReservoir(row, reservoirId)?.waterLevel ?? null),
+          data: displayRows.map(row => cleanWaterLevel(getReservoir(row, reservoirId)?.waterLevel)),
           borderColor: "rgb(37,99,235)",
           backgroundColor: "rgba(37,99,235,.10)",
           borderWidth: 2.4,
           pointRadius: 2,
           tension: .25,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: "Q về",
           yAxisID: "yFlow",
-          data: displayRows.map(row => getReservoir(row, reservoirId)?.inflow ?? null),
+          data: displayRows.map(row => pcttFlowValue(row, reservoirId, "inflow")),
           borderColor: "rgb(16,185,129)",
           backgroundColor: "rgba(16,185,129,.10)",
           borderWidth: 2,
           pointRadius: 1.8,
           tension: .22,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: "Qcm/Q nhà máy",
           yAxisID: "yFlow",
-          data: displayRows.map(row => getReservoir(row, reservoirId)?.turbineFlow ?? null),
+          data: displayRows.map(row => pcttFlowValue(row, reservoirId, "turbineFlow")),
           borderColor: "rgb(245,158,11)",
           backgroundColor: "rgba(245,158,11,.10)",
           borderWidth: 2,
           pointRadius: 1.8,
           tension: .22,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: "Q xả",
           yAxisID: "yFlow",
-          data: displayRows.map(row => getReservoir(row, reservoirId)?.spillwayFlow ?? null),
+          data: displayRows.map(row => pcttFlowValue(row, reservoirId, "spillwayFlow")),
           borderColor: "rgb(239,68,68)",
           backgroundColor: "rgba(239,68,68,.10)",
           borderWidth: 2,
           pointRadius: 1.8,
           tension: .22,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: "Dâng bình thường",
@@ -11799,9 +11909,31 @@ body.slideshow-frame-mode .content::after{
           borderDash: [7, 5],
           borderWidth: 1.8,
           pointRadius: 0
+        },
+        {
+          label: "Mực nước chết",
+          yAxisID: "yLevel",
+          data: displayRows.map(() => cfg.limits.dead),
+          borderColor: "rgb(100,116,139)",
+          borderDash: [4, 4],
+          borderWidth: 1.4,
+          pointRadius: 0
         }
       ]
     };
+  }
+
+  function getFlowAxisMax(displayRows, reservoirId){
+    const values = [];
+    displayRows.forEach(row => {
+      ["inflow", "turbineFlow", "spillwayFlow"].forEach(key => {
+        const v = pcttFlowValue(row, reservoirId, key);
+        if(v !== null) values.push(v);
+      });
+    });
+
+    const maxValue = values.length ? Math.max(...values) : 0;
+    return Math.max(10, Math.ceil(maxValue * 2.2));
   }
 
   function renderReservoirChart(){
@@ -11815,19 +11947,11 @@ body.slideshow-frame-mode .content::after{
     const chartTitle = el("pcttReservoirChartTitle");
     if(chartTitle) chartTitle.textContent = `Biểu đồ vận hành - ${cfg.name}`;
 
-    const waterValues = displayRows
-      .map(row => getReservoir(row, pcttSelectedReservoirId)?.waterLevel)
-      .filter(v => Number.isFinite(Number(v)))
-      .map(Number);
-
-    const levelSet = waterValues.concat([
-      cfg.limits.normal,
-      cfg.limits.preFloodMax,
-      cfg.limits.preFloodMin
-    ]);
-
-    const suggestedMin = levelSet.length ? Math.floor(Math.min(...levelSet) - 1) : undefined;
-    const suggestedMax = levelSet.length ? Math.ceil(Math.max(...levelSet) + 1) : undefined;
+    const levelRange = Number(cfg.limits.normal) - Number(cfg.limits.dead);
+    const levelPad = Math.max(levelRange * 0.06, 0.5);
+    const levelMin = Number(cfg.limits.dead) - levelPad;
+    const levelMax = Number(cfg.limits.normal) + levelPad;
+    const flowMax = getFlowAxisMax(displayRows, pcttSelectedReservoirId);
 
     if(pcttReservoirChart) pcttReservoirChart.destroy();
 
@@ -11862,14 +11986,15 @@ body.slideshow-frame-mode .content::after{
           yLevel: {
             type: "linear",
             position: "left",
-            suggestedMin,
-            suggestedMax,
+            min: levelMin,
+            max: levelMax,
             title: { display: true, text: "Mực nước (m)" }
           },
           yFlow: {
             type: "linear",
             position: "right",
-            beginAtZero: true,
+            min: 0,
+            max: flowMax,
             title: { display: true, text: "Lưu lượng (m³/s)" },
             grid: { drawOnChartArea: false }
           }
@@ -11888,23 +12013,29 @@ body.slideshow-frame-mode .content::after{
       datasets: [
         {
           label: "Q về Vu Gia",
-          data: displayRows.map(r => r.basin?.qVeVuGia ?? null),
+          data: displayRows.map(r => {
+            const v = pcttToNumber(r.basin?.qVeVuGia);
+            return v === null ? null : v;
+          }),
           borderColor: "rgb(37,99,235)",
           backgroundColor: "rgba(37,99,235,.10)",
           borderWidth: 2.2,
           pointRadius: 2,
           tension: .24,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: "Q về Thu Bồn",
-          data: displayRows.map(r => r.basin?.qVeThuBon ?? null),
+          data: displayRows.map(r => {
+            const v = pcttToNumber(r.basin?.qVeThuBon);
+            return v === null ? null : v;
+          }),
           borderColor: "rgb(16,185,129)",
           backgroundColor: "rgba(16,185,129,.10)",
           borderWidth: 2.2,
           pointRadius: 2,
           tension: .24,
-          spanGaps: true
+          spanGaps: false
         }
       ]
     };
@@ -11943,6 +12074,12 @@ body.slideshow-frame-mode .content::after{
     if(!box) return;
 
     const rows = [...getDisplayRows()].reverse();
+    const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
+
+    const sub = el("pcttRecentTableSub");
+    if(sub){
+      sub.textContent = `Hiển thị dữ liệu hồ ${cfg.shortName} trong ${pcttSelectedHours} giờ gần nhất, sắp xếp từ mới đến cũ.`;
+    }
 
     if(!rows.length){
       box.innerHTML = `<div style="padding:14px;color:#64748b;font-weight:900;">Chưa có dữ liệu.</div>`;
@@ -11950,7 +12087,7 @@ body.slideshow-frame-mode .content::after{
     }
 
     box.innerHTML = `
-      <table>
+      <table class="pctt-table">
         <thead>
           <tr>
             <th>Thời gian</th>
@@ -11965,18 +12102,20 @@ body.slideshow-frame-mode .content::after{
         </thead>
         <tbody>
           ${rows.map(row => {
-            const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
             const r = getReservoir(row, pcttSelectedReservoirId) || {};
+            const noData = isNoReservoirData(r);
+            const basinMissing = noData && pcttToNumber(row.basin?.qVeVuGia) === 0 && pcttToNumber(row.basin?.qVeThuBon) === 0;
+
             return `
               <tr>
                 <td>${formatPcttDateTime(row.time)}</td>
                 <td>${cfg.shortName}</td>
-                <td>${pcttNum(r.waterLevel)}</td>
-                <td>${pcttNum(r.inflow)}</td>
-                <td>${pcttNum(r.turbineFlow)}</td>
-                <td>${pcttNum(r.spillwayFlow)}</td>
-                <td>${pcttNum(row.basin?.qVeVuGia)}</td>
-                <td>${pcttNum(row.basin?.qVeThuBon)}</td>
+                <td>${noData ? "-" : pcttNum(cleanWaterLevel(r.waterLevel))}</td>
+                <td>${noData ? "-" : pcttNum(r.inflow)}</td>
+                <td>${noData ? "-" : pcttNum(r.turbineFlow)}</td>
+                <td>${noData ? "-" : pcttNum(r.spillwayFlow)}</td>
+                <td>${basinMissing ? "-" : pcttNum(row.basin?.qVeVuGia)}</td>
+                <td>${basinMissing ? "-" : pcttNum(row.basin?.qVeThuBon)}</td>
               </tr>
             `;
           }).join("")}
