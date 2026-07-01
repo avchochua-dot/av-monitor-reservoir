@@ -1,5 +1,11 @@
 /**
- * Vercel API: /api/monthly-report?year=2026&month=5
+ * Vercel API:
+ *
+ * 1) API cũ:
+ *    /api/qt1865-compliance?year=2026&month=6
+ *
+ * 2) API PCTT Hydro mới, lồng chung để không vượt giới hạn Vercel Hobby:
+ *    /api/qt1865-compliance?mode=pctt-hydro&year=2026&month=6&ids=1,2,3,4
  */
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -552,6 +558,187 @@ async function fetchQt1865Summary(year, month) {
   }
 }
 
+/* =========================================================
+   PCTT ĐÀ NẴNG HYDRO MODE
+   mode=pctt-hydro
+   ========================================================= */
+
+async function handlePcttHydro(req, res) {
+  try {
+    const now = new Date();
+    const year = Number(req.query.year || now.getFullYear());
+    const month = Number(req.query.month || now.getMonth() + 1);
+
+    if (!year || !month || month < 1 || month > 12) {
+      return json(res, 400, {
+        ok: false,
+        mode: "pctt-hydro",
+        error: "Invalid year/month",
+      });
+    }
+
+    const start =
+      req.query.start ||
+      new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
+
+    const end =
+      req.query.end ||
+      new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
+
+    const ids = String(req.query.ids || "1,2,3,4");
+
+    const url =
+      "https://pctt.danang.gov.vn/DesktopModules/PCTT/api/PCTTApi/baocaothuydiens_thongke" +
+      `?ngaybatdau=${encodeURIComponent(start)}` +
+      `&ngayketthuc=${encodeURIComponent(end)}` +
+      `&lst_thuydien_id=${encodeURIComponent(ids)}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/xml,text/xml,*/*",
+        "User-Agent": "av-monitor-reservoir/1.0",
+      },
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      return json(res, response.status, {
+        ok: false,
+        mode: "pctt-hydro",
+        source: "pctt.danang.gov.vn",
+        error: `PCTT API HTTP ${response.status}`,
+        detail: text.slice(0, 1000),
+        url,
+      });
+    }
+
+    const rows = parsePcttXml(text).map(normalizePcttRow);
+    const latest = rows[0] || null;
+
+    return json(res, 200, {
+      ok: true,
+      mode: "pctt-hydro",
+      source: "pctt.danang.gov.vn",
+      year,
+      month,
+      ids,
+      period: {
+        start,
+        endExclusive: end,
+      },
+      count: rows.length,
+      latest,
+      data: rows,
+    });
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "pctt-hydro",
+      error: err.message,
+    });
+  }
+}
+
+function parsePcttXml(xml) {
+  const tables = String(xml || "").match(/<Table[\s\S]*?<\/Table>/g) || [];
+
+  return tables.map(block => {
+    const row = {};
+    const re = /<([a-zA-Z0-9_]+)>([\s\S]*?)<\/\1>/g;
+    let match;
+
+    while ((match = re.exec(block)) !== null) {
+      const key = match[1];
+      const raw = decodePcttXml(match[2] || "").trim();
+
+      if (raw === "") {
+        row[key] = null;
+      } else if (
+        key !== "thoigianxa" &&
+        key !== "ngay" &&
+        key !== "gio" &&
+        Number.isFinite(Number(raw))
+      ) {
+        row[key] = Number(raw);
+      } else {
+        row[key] = raw;
+      }
+    }
+
+    return row;
+  });
+}
+
+function decodePcttXml(value) {
+  return String(value)
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&apos;/g, "'");
+}
+
+function normalizePcttRow(row) {
+  return {
+    time: row.thoigianxa || null,
+    date: row.ngay || null,
+    hour: row.gio || null,
+
+    reservoirs: [
+      {
+        id: 1,
+        name: "A Vương",
+        waterLevel: numPctt(row.htl1),
+        inflow: numPctt(row.qvao1),
+        turbineFlow: numPctt(row.luuluongnhamay1),
+        spillwayFlow: numPctt(row.qxaquacua1),
+      },
+      {
+        id: 2,
+        name: "Hồ 2",
+        waterLevel: numPctt(row.htl2),
+        inflow: numPctt(row.qvao2),
+        turbineFlow: numPctt(row.luuluongnhamay2),
+        spillwayFlow: numPctt(row.qxaquacua2),
+      },
+      {
+        id: 3,
+        name: "Hồ 3",
+        waterLevel: numPctt(row.htl3),
+        inflow: numPctt(row.qvao3),
+        turbineFlow: numPctt(row.luuluongnhamay3),
+        spillwayFlow: numPctt(row.qxaquacua3),
+      },
+      {
+        id: 4,
+        name: "Hồ 4",
+        waterLevel: numPctt(row.htl4),
+        inflow: numPctt(row.qvao4),
+        turbineFlow: numPctt(row.luuluongnhamay4),
+        spillwayFlow: numPctt(row.qxaquacua4),
+      },
+    ],
+
+    basin: {
+      qVeVuGia: numPctt(row.qvevugia),
+      qVeThuBon: numPctt(row.qvethubon),
+    },
+
+    raw: row,
+  };
+}
+
+function numPctt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* =========================================================
+   MAIN HANDLER
+   ========================================================= */
+
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     return json(res, 200, { ok: true });
@@ -562,6 +749,10 @@ export default async function handler(req, res) {
       ok: false,
       error: "Method not allowed",
     });
+  }
+
+  if (req.query.mode === "pctt-hydro") {
+    return handlePcttHydro(req, res);
   }
 
   try {
