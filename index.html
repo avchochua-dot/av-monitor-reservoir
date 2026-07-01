@@ -4447,6 +4447,668 @@ body.slideshow-frame-mode section{
   }
 }
 
+
+/* =========================================================
+   PCTT ĐÀ NẴNG V55 - UI DETAIL POLISH
+   - Toolbar chọn hồ/khung gọn 1 hàng
+   - Card thông số có icon, đơn vị nhỏ
+   - Bảng quy định màu theo mức vận hành
+   - Bảng số liệu gần nhất đi theo màu hồ đang chọn
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:12px!important;
+  padding:10px 12px!important;
+  margin:10px 0 14px!important;
+  border-radius:18px!important;
+}
+.pctt-control-group{
+  gap:7px!important;
+}
+.pctt-control-label{
+  min-width:auto!important;
+  margin-right:4px!important;
+  font-size:11px!important;
+}
+.pctt-res-btn{
+  min-width:92px!important;
+  height:40px!important;
+  padding:7px 16px!important;
+  border-radius:14px!important;
+  font-size:13px!important;
+}
+.pctt-hour-btn{
+  min-width:58px!important;
+  height:34px!important;
+  padding:6px 12px!important;
+  border-radius:12px!important;
+  font-size:12px!important;
+}
+.pctt-latest-card{
+  border-radius:20px!important;
+  padding:15px!important;
+}
+.pctt-latest-card h3{
+  font-size:15px!important;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.pctt-latest-card h3::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:var(--res-color);
+  box-shadow:0 0 0 4px var(--res-soft);
+}
+.pctt-metric{
+  padding:10px 11px!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#ffffff,rgba(248,250,252,.92))!important;
+  border:1px solid rgba(15,23,42,.065)!important;
+}
+.pctt-metric-head{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:5px;
+}
+.pctt-metric-icon{
+  width:22px;
+  height:22px;
+  border-radius:9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:var(--res-color);
+  background:var(--res-soft);
+  border:1px solid var(--res-border);
+  flex:0 0 22px;
+}
+.pctt-metric-label{
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+.pctt-metric-value{
+  display:flex;
+  align-items:baseline;
+  gap:5px;
+  font-family:var(--font-mono);
+}
+.pctt-metric-number{
+  color:#0f172a;
+  font-size:17px;
+  font-weight:1000;
+  letter-spacing:-.3px;
+}
+.pctt-metric-unit{
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:900;
+  font-family:var(--font-sans);
+  letter-spacing:0;
+}
+.pctt-rule-table tbody tr.rule-normal td{background:rgba(20,184,166,.035)!important}
+.pctt-rule-table tbody tr.rule-pre td{background:rgba(139,92,246,.035)!important}
+.pctt-rule-table tbody tr.rule-low td{background:rgba(148,163,184,.045)!important}
+.pctt-rule-table tbody tr.rule-dead td{background:rgba(56,189,248,.035)!important}
+.pctt-rule-label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 11px;
+  border-radius:999px;
+  font-weight:1000;
+  font-size:12px;
+  white-space:nowrap;
+}
+.pctt-rule-dot{
+  width:9px;
+  height:9px;
+  border-radius:999px;
+  flex:0 0 9px;
+}
+.rule-normal .pctt-rule-label{background:rgba(20,184,166,.12);color:#0f766e}
+.rule-normal .pctt-rule-dot{background:#14b8a6}
+.rule-pre .pctt-rule-label{background:rgba(139,92,246,.12);color:#7c3aed}
+.rule-pre .pctt-rule-dot{background:#8b5cf6}
+.rule-low .pctt-rule-label{background:rgba(148,163,184,.18);color:#475569}
+.rule-low .pctt-rule-dot{background:#94a3b8}
+.rule-dead .pctt-rule-label{background:rgba(56,189,248,.13);color:#0284c7}
+.rule-dead .pctt-rule-dot{background:#38bdf8}
+.pctt-rule-value{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:64px;
+  padding:6px 10px;
+  border-radius:12px;
+  background:rgba(255,255,255,.78);
+  border:1px solid rgba(15,23,42,.055);
+  font-weight:1000;
+  font-family:var(--font-mono);
+  color:#0f172a;
+}
+.pctt-recent-card{
+  --res-color:#2563eb;
+  --res-soft:rgba(37,99,235,.10);
+  --res-border:rgba(37,99,235,.22);
+  --res-soft2:rgba(37,99,235,.05);
+  position:relative;
+  overflow:hidden;
+}
+.pctt-recent-card::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:5px;
+  background:var(--res-color);
+}
+.pctt-recent-card .pctt-title-icon{
+  background:var(--res-color)!important;
+  box-shadow:0 14px 28px rgba(15,23,42,.12)!important;
+}
+.pctt-selected-res{
+  color:var(--res-color);
+  font-weight:1000;
+}
+.pctt-table-wrap{
+  border-color:var(--res-border)!important;
+}
+.pctt-table tbody tr:hover td{
+  background:var(--res-soft2)!important;
+}
+.pctt-table tbody tr:hover td:first-child{
+  background:var(--res-soft)!important;
+}
+.pctt-res-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px 10px;
+  border-radius:999px;
+  background:var(--res-soft);
+  border:1px solid var(--res-border);
+  color:var(--res-color);
+  font-size:12px;
+  font-weight:1000;
+}
+.pctt-num{
+  font-family:var(--font-mono);
+  font-weight:900;
+}
+@media(max-width:1200px){
+  .pctt-chart-toolbar{
+    grid-template-columns:1fr!important;
+  }
+  .pctt-control-group{
+    width:100%;
+  }
+}
+@media(max-width:720px){
+  .pctt-res-btn{min-width:84px!important;font-size:12px!important;padding:7px 12px!important}
+  .pctt-hour-btn{min-width:54px!important}
+}
+
+
+/* =========================================================
+   V56 - PCTT toolbar align fix
+   - Nút chọn hồ nhỏ lại và nằm 1 hàng ngang
+   - Nhóm hồ canh trái, nhóm 24/48/72 canh phải
+   - Nút hồ lớn hơn nút khung giờ một chút
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  flex-wrap:nowrap!important;
+  gap:18px!important;
+}
+.pctt-chart-toolbar > .pctt-control-group{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  flex-wrap:nowrap!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:first-child{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  justify-content:flex-start!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:last-child{
+  flex:0 0 auto!important;
+  margin-left:auto!important;
+  justify-content:flex-end!important;
+}
+.pctt-chart-toolbar .pctt-control-label{
+  min-width:auto!important;
+  margin-right:4px!important;
+  white-space:nowrap!important;
+  font-size:12px!important;
+}
+#pcttReservoirButtonsTop{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  flex-wrap:nowrap!important;
+  min-width:0!important;
+}
+#pcttReservoirButtonsTop .pctt-res-btn{
+  min-width:100px!important;
+  height:34px!important;
+  padding:0 14px!important;
+  border-radius:12px!important;
+  font-size:12px!important;
+  line-height:34px!important;
+  white-space:nowrap!important;
+  box-shadow:0 6px 14px rgba(15,23,42,.04)!important;
+}
+.pctt-chart-toolbar [data-pctt-hours]{
+  min-width:68px!important;
+  height:30px!important;
+  padding:0 12px!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+  line-height:30px!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+}
+.pctt-chart-toolbar [data-pctt-hours].pctt-hour-active{
+  box-shadow:0 8px 18px rgba(37,99,235,.18)!important;
+}
+
+/* Giữ dạng 1 hàng trên desktop; khi quá hẹp mới cho xuống dòng */
+@media (max-width: 1180px){
+  .pctt-chart-toolbar{
+    flex-wrap:wrap!important;
+  }
+  .pctt-chart-toolbar > .pctt-control-group:last-child{
+    margin-left:0!important;
+  }
+}
+
+
+/* =========================================================
+   V57 - PCTT toolbar spacing fix
+   - Căn khoảng cách rõ ràng giữa nhóm Hồ và nhóm Khung
+   - Tránh chồng lấn/đè chữ
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  column-gap:28px!important;
+  row-gap:10px!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:first-child{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:14px!important;
+  min-width:0!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:last-child{
+  display:grid!important;
+  grid-template-columns:auto auto auto auto!important;
+  align-items:center!important;
+  column-gap:10px!important;
+  justify-content:end!important;
+  white-space:nowrap!important;
+}
+#pcttReservoirButtonsTop{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  flex-wrap:nowrap!important;
+  min-width:0!important;
+}
+#pcttReservoirButtonsTop .pctt-res-btn{
+  min-width:94px!important;
+  max-width:112px!important;
+  height:34px!important;
+  padding:0 12px!important;
+  border-radius:12px!important;
+  font-size:12px!important;
+  line-height:34px!important;
+  white-space:nowrap!important;
+  flex:0 1 auto!important;
+}
+.pctt-chart-toolbar [data-pctt-hours]{
+  min-width:58px!important;
+  width:58px!important;
+  height:30px!important;
+  padding:0!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+  line-height:30px!important;
+}
+.pctt-chart-toolbar .pctt-control-label{
+  font-size:11px!important;
+  letter-spacing:.4px!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+@media (max-width: 1180px){
+  .pctt-chart-toolbar{
+    grid-template-columns:1fr!important;
+  }
+  .pctt-chart-toolbar > .pctt-control-group:last-child{
+    justify-content:start!important;
+  }
+}
+
+
+/* =========================================================
+   V58 - PCTT toolbar compact one-row
+   Phương án 1:
+   - Rút gọn Sông Bung 4 -> S.Bung 4, Sông Tranh 2 -> S.Tranh 2 trên nút
+   - Nhóm hồ canh trái, nhóm khung giờ canh phải
+   - Không chồng lấn trong card biểu đồ hẹp
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:12px 22px!important;
+  padding:10px 12px!important;
+  overflow:hidden!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:first-child{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.pctt-chart-toolbar > .pctt-control-group:last-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  min-width:max-content!important;
+  margin-left:auto!important;
+  flex-wrap:nowrap!important;
+}
+#pcttReservoirButtonsTop{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  flex-wrap:nowrap!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+#pcttReservoirButtonsTop .pctt-res-btn{
+  flex:0 1 auto!important;
+  min-width:78px!important;
+  max-width:96px!important;
+  height:32px!important;
+  padding:0 10px!important;
+  border-radius:11px!important;
+  font-size:11.5px!important;
+  line-height:32px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.pctt-chart-toolbar .pctt-control-label{
+  flex:0 0 auto!important;
+  min-width:auto!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+  letter-spacing:.35px!important;
+}
+.pctt-chart-toolbar [data-pctt-hours]{
+  flex:0 0 auto!important;
+  min-width:50px!important;
+  width:50px!important;
+  height:30px!important;
+  padding:0!important;
+  border-radius:10px!important;
+  font-size:11.5px!important;
+  line-height:30px!important;
+  white-space:nowrap!important;
+}
+.pctt-chart-toolbar [data-pctt-hours].active{
+  box-shadow:0 10px 20px rgba(37,99,235,.18)!important;
+}
+@media (max-width: 980px){
+  .pctt-chart-toolbar{
+    grid-template-columns:1fr!important;
+    overflow:visible!important;
+  }
+  .pctt-chart-toolbar > .pctt-control-group:last-child{
+    justify-content:flex-start!important;
+    margin-left:0!important;
+  }
+  #pcttReservoirButtonsTop{
+    flex-wrap:wrap!important;
+    overflow:visible!important;
+  }
+}
+
+
+/* =========================================================
+   V59 - PCTT toolbar fixed layout
+   Mục tiêu:
+   - Không chồng lấn giữa nhóm Hồ và nhóm Khung
+   - Hồ canh trái, Khung canh phải
+   - 4 nút hồ nằm cùng 1 hàng; nút giờ nhỏ hơn
+   - Dùng compact label: S.Bung 4, S.Tranh 2 trên nút
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  column-gap:18px!important;
+  row-gap:10px!important;
+  padding:10px 12px!important;
+  overflow:visible!important;
+}
+
+.pctt-chart-toolbar > .pctt-control-group:first-child{
+  display:grid!important;
+  grid-template-columns:28px repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;
+  column-gap:8px!important;
+  min-width:0!important;
+  overflow:visible!important;
+}
+
+.pctt-chart-toolbar > .pctt-control-group:last-child{
+  display:grid!important;
+  grid-template-columns:48px repeat(3,46px)!important;
+  align-items:center!important;
+  column-gap:8px!important;
+  justify-content:end!important;
+  min-width:204px!important;
+  margin-left:0!important;
+  white-space:nowrap!important;
+}
+
+/* Cho các nút hồ trở thành item trực tiếp của grid cha */
+#pcttReservoirButtonsTop{
+  display:contents!important;
+}
+
+#pcttReservoirButtonsTop .pctt-res-btn{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:32px!important;
+  padding:0 8px!important;
+  border-radius:11px!important;
+  font-size:11.5px!important;
+  line-height:32px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  box-shadow:0 6px 14px rgba(15,23,42,.04)!important;
+}
+
+.pctt-chart-toolbar [data-pctt-hours]{
+  width:46px!important;
+  min-width:46px!important;
+  height:30px!important;
+  padding:0!important;
+  border-radius:10px!important;
+  font-size:11.5px!important;
+  line-height:30px!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+}
+
+.pctt-chart-toolbar [data-pctt-hours].active{
+  box-shadow:0 10px 20px rgba(37,99,235,.18)!important;
+}
+
+.pctt-chart-toolbar .pctt-control-label{
+  margin:0!important;
+  min-width:0!important;
+  font-size:11px!important;
+  line-height:1!important;
+  letter-spacing:.35px!important;
+  white-space:nowrap!important;
+}
+
+/* Nếu khu vực quá hẹp, tự xuống 2 dòng có kiểm soát, không đè nhau */
+@media (max-width: 980px){
+  .pctt-chart-toolbar{
+    grid-template-columns:1fr!important;
+  }
+
+  .pctt-chart-toolbar > .pctt-control-group:first-child{
+    grid-template-columns:28px repeat(4,minmax(72px,1fr))!important;
+  }
+
+  .pctt-chart-toolbar > .pctt-control-group:last-child{
+    justify-content:start!important;
+    min-width:0!important;
+  }
+}
+
+
+/* =========================================================
+   V60 - PCTT toolbar compact simple fix
+   - Giữ đầy đủ tên hồ
+   - Chỉ giảm font/padding để đủ 1 hàng
+   - Hồ canh trái, Khung canh phải
+   ========================================================= */
+.pctt-chart-toolbar{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  flex-wrap:nowrap!important;
+  padding:9px 10px!important;
+  overflow:visible!important;
+}
+
+.pctt-chart-toolbar > .pctt-control-group:first-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  flex-wrap:nowrap!important;
+  overflow:visible!important;
+}
+
+.pctt-chart-toolbar > .pctt-control-group:last-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+  flex:0 0 auto!important;
+  min-width:auto!important;
+  margin-left:auto!important;
+  flex-wrap:nowrap!important;
+  white-space:nowrap!important;
+}
+
+#pcttReservoirButtonsTop{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  flex-wrap:nowrap!important;
+  overflow:visible!important;
+}
+
+#pcttReservoirButtonsTop .pctt-res-btn{
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:30px!important;
+  padding:0 7px!important;
+  border-radius:10px!important;
+  font-size:10px!important;
+  line-height:30px!important;
+  letter-spacing:-.15px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  flex:0 0 auto!important;
+  box-shadow:0 6px 14px rgba(15,23,42,.04)!important;
+}
+
+.pctt-chart-toolbar [data-pctt-hours]{
+  width:42px!important;
+  min-width:42px!important;
+  height:28px!important;
+  padding:0!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+  line-height:28px!important;
+  white-space:nowrap!important;
+  flex:0 0 auto!important;
+  box-shadow:none!important;
+}
+
+.pctt-chart-toolbar [data-pctt-hours].active{
+  box-shadow:0 9px 18px rgba(37,99,235,.18)!important;
+}
+
+.pctt-chart-toolbar .pctt-control-label{
+  flex:0 0 auto!important;
+  min-width:auto!important;
+  margin:0 2px 0 0!important;
+  font-size:10px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+  letter-spacing:.3px!important;
+  white-space:nowrap!important;
+}
+
+/* Nếu thật sự không đủ rộng thì mới xuống 2 hàng, không cắt chữ */
+@media (max-width: 980px){
+  .pctt-chart-toolbar{
+    flex-wrap:wrap!important;
+  }
+  .pctt-chart-toolbar > .pctt-control-group:first-child,
+  .pctt-chart-toolbar > .pctt-control-group:last-child{
+    width:100%!important;
+    margin-left:0!important;
+  }
+  #pcttReservoirButtonsTop{
+    flex-wrap:wrap!important;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -5251,10 +5913,34 @@ body.slideshow-frame-mode section{
                 </tr>
               </thead>
               <tbody>
-                <tr><td>Dâng bình thường</td><td>380</td><td>258</td><td>222.5</td><td>175</td></tr>
-                <tr><td>Trước lũ cao nhất</td><td>376</td><td>255</td><td>217.5</td><td>172</td></tr>
-                <tr><td>Đón lũ thấp nhất</td><td>370</td><td>251.5</td><td>216</td><td>165</td></tr>
-                <tr><td>Mực nước chết</td><td>340</td><td>240</td><td>205</td><td>140</td></tr>
+                <tr class="pctt-rule-row rule-normal">
+                  <td><span class="pctt-rule-label"><span class="pctt-rule-dot"></span>Dâng bình thường</span></td>
+                  <td><span class="pctt-rule-value">380</span></td>
+                  <td><span class="pctt-rule-value">258</span></td>
+                  <td><span class="pctt-rule-value">222.5</span></td>
+                  <td><span class="pctt-rule-value">175</span></td>
+                </tr>
+                <tr class="pctt-rule-row rule-pre">
+                  <td><span class="pctt-rule-label"><span class="pctt-rule-dot"></span>Trước lũ cao nhất</span></td>
+                  <td><span class="pctt-rule-value">376</span></td>
+                  <td><span class="pctt-rule-value">255</span></td>
+                  <td><span class="pctt-rule-value">217.5</span></td>
+                  <td><span class="pctt-rule-value">172</span></td>
+                </tr>
+                <tr class="pctt-rule-row rule-low">
+                  <td><span class="pctt-rule-label"><span class="pctt-rule-dot"></span>Đón lũ thấp nhất</span></td>
+                  <td><span class="pctt-rule-value">370</span></td>
+                  <td><span class="pctt-rule-value">251.5</span></td>
+                  <td><span class="pctt-rule-value">216</span></td>
+                  <td><span class="pctt-rule-value">165</span></td>
+                </tr>
+                <tr class="pctt-rule-row rule-dead">
+                  <td><span class="pctt-rule-label"><span class="pctt-rule-dot"></span>Mực nước chết</span></td>
+                  <td><span class="pctt-rule-value">340</span></td>
+                  <td><span class="pctt-rule-value">240</span></td>
+                  <td><span class="pctt-rule-value">205</span></td>
+                  <td><span class="pctt-rule-value">140</span></td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -5302,7 +5988,7 @@ body.slideshow-frame-mode section{
           </div>
         </section>
 
-        <section class="pctt-card">
+        <section id="pcttRecentCard" class="pctt-card pctt-recent-card">
           <div class="pctt-head">
             <div>
               <div class="pctt-title">
@@ -11764,10 +12450,10 @@ body.slideshow-frame-mode .content::after{
    ========================================================= */
 (function(){
   const PCTT_RESERVOIRS = {
-    1: {id:1, code:"AVUONG", name:"Hồ thủy điện A Vương", shortName:"A Vương", color:"#2563eb", soft:"rgba(37,99,235,.10)", border:"rgba(37,99,235,.24)", limits:{normal:380, preFloodMax:376, preFloodMin:370, dead:340}},
-    2: {id:2, code:"DAKMI4", name:"Hồ thủy điện Đăk Mi 4", shortName:"Đăk Mi 4", color:"#f59e0b", soft:"rgba(245,158,11,.13)", border:"rgba(245,158,11,.28)", limits:{normal:258, preFloodMax:255, preFloodMin:251.5, dead:240}},
-    3: {id:3, code:"SONGBUNG4", name:"Hồ thủy điện Sông Bung 4", shortName:"Sông Bung 4", color:"#10b981", soft:"rgba(16,185,129,.12)", border:"rgba(16,185,129,.26)", limits:{normal:222.5, preFloodMax:217.5, preFloodMin:216, dead:205}},
-    4: {id:4, code:"SONGTRANH2", name:"Hồ thủy điện Sông Tranh 2", shortName:"Sông Tranh 2", color:"#ef4444", soft:"rgba(239,68,68,.11)", border:"rgba(239,68,68,.25)", limits:{normal:175, preFloodMax:172, preFloodMin:165, dead:140}}
+    1: {id:1, code:"AVUONG", name:"Hồ thủy điện A Vương", shortName:"A Vương", compactName:"A Vương", color:"#2563eb", soft:"rgba(37,99,235,.10)", border:"rgba(37,99,235,.24)", limits:{normal:380, preFloodMax:376, preFloodMin:370, dead:340}},
+    2: {id:2, code:"DAKMI4", name:"Hồ thủy điện Đăk Mi 4", shortName:"Đăk Mi 4", compactName:"Đăk Mi 4", color:"#f59e0b", soft:"rgba(245,158,11,.13)", border:"rgba(245,158,11,.28)", limits:{normal:258, preFloodMax:255, preFloodMin:251.5, dead:240}},
+    3: {id:3, code:"SONGBUNG4", name:"Hồ thủy điện Sông Bung 4", shortName:"Sông Bung 4", compactName:"S.Bung 4", color:"#10b981", soft:"rgba(16,185,129,.12)", border:"rgba(16,185,129,.26)", limits:{normal:222.5, preFloodMax:217.5, preFloodMin:216, dead:205}},
+    4: {id:4, code:"SONGTRANH2", name:"Hồ thủy điện Sông Tranh 2", shortName:"Sông Tranh 2", compactName:"S.Tranh 2", color:"#ef4444", soft:"rgba(239,68,68,.11)", border:"rgba(239,68,68,.25)", limits:{normal:175, preFloodMax:172, preFloodMin:165, dead:140}}
   };
 
   let pcttRows = [];
@@ -11881,7 +12567,8 @@ body.slideshow-frame-mode .content::after{
     const html = Object.values(PCTT_RESERVOIRS).map(cfg=>{
       const active = Number(cfg.id) === Number(pcttSelectedReservoirId) ? "active" : "";
       const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
-      return `<button type="button" class="pctt-res-btn ${active}" style="${style}" onclick="selectPcttReservoir(${cfg.id})">${cfg.shortName}</button>`;
+      const label = cfg.shortName;
+      return `<button type="button" class="pctt-res-btn ${active}" title="${cfg.name}" style="${style}" onclick="selectPcttReservoir(${cfg.id})">${label}</button>`;
     }).join("");
     const top = el("pcttReservoirButtonsTop");
     const table = el("pcttReservoirButtonsTable");
@@ -11906,6 +12593,22 @@ body.slideshow-frame-mode .content::after{
     if(bBadge) bBadge.textContent = `${pcttSelectedHours}h`;
   }
 
+  function metricHtml(icon, label, value, unit, options){
+    const shown = fmt(value, 2, options || {});
+    return `
+      <div class="pctt-metric">
+        <div class="pctt-metric-head">
+          <span class="pctt-metric-icon">${icon}</span>
+          <span class="pctt-metric-label">${label}</span>
+        </div>
+        <div class="pctt-metric-value">
+          <span class="pctt-metric-number">${shown}</span>
+          ${shown === "-" ? "" : `<span class="pctt-metric-unit">${unit}</span>`}
+        </div>
+      </div>
+    `;
+  }
+
   function renderLatestCards(){
     const wrap = el("pcttLatestCards");
     if(!wrap) return;
@@ -11918,10 +12621,10 @@ body.slideshow-frame-mode .content::after{
           <h3>${cfg.shortName}</h3>
           <div class="time">${item ? formatTime(item.time) : "Chưa có dữ liệu"}</div>
           <div class="pctt-metric-grid">
-            <div class="pctt-metric"><span>MNH</span><b>${fmt(r.waterLevel, 2, {zeroAsMissing:true})} m</b></div>
-            <div class="pctt-metric"><span>Q về</span><b>${fmt(r.inflow, 2)} m³/s</b></div>
-            <div class="pctt-metric"><span>Qcm</span><b>${fmt(r.turbineFlow, 2)} m³/s</b></div>
-            <div class="pctt-metric"><span>Q xả</span><b>${fmt(r.spillwayFlow, 2)} m³/s</b></div>
+            ${metricHtml("🌊", "MNH", r.waterLevel, "m", {zeroAsMissing:true})}
+            ${metricHtml("↘", "Q về", r.inflow, "m³/s")}
+            ${metricHtml("⚙", "QCM", r.turbineFlow, "m³/s")}
+            ${metricHtml("↗", "Q xả", r.spillwayFlow, "m³/s")}
           </div>
         </div>
       `;
@@ -12053,26 +12756,37 @@ body.slideshow-frame-mode .content::after{
     const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
     const rows = [...getDisplayRows()].sort((a,b)=>new Date(b.time)-new Date(a.time));
 
+    const recentCard = el("pcttRecentCard");
+    if(recentCard && cfg){
+      recentCard.style.setProperty("--res-color", cfg.color);
+      recentCard.style.setProperty("--res-soft", cfg.soft);
+      recentCard.style.setProperty("--res-border", cfg.border);
+      recentCard.style.setProperty("--res-soft2", cfg.soft.replace(/,\s*\.?\d+\)/, ",.055)"));
+    }
+
     const sub = el("pcttTableSub");
-    if(sub) sub.textContent = `Hiển thị dữ liệu hồ ${cfg.shortName} trong ${pcttSelectedHours} giờ gần nhất, sắp xếp từ mới đến cũ.`;
+    if(sub) {
+      sub.innerHTML = `Hiển thị dữ liệu hồ <span class="pctt-selected-res">${cfg.shortName}</span> trong <b>${pcttSelectedHours} giờ</b> gần nhất, sắp xếp từ mới đến cũ.`;
+    }
 
     if(!rows.length){
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center">Không có dữ liệu trong khung đang chọn</td></tr>`;
       return;
     }
 
+    const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
     tbody.innerHTML = rows.map(row=>{
       const r = getReservoir(row, pcttSelectedReservoirId) || {};
       return `
-        <tr>
+        <tr style="${style}">
           <td>${formatTime(row.time)}</td>
-          <td>${cfg.shortName}</td>
-          <td>${fmt(r.waterLevel, 2, {zeroAsMissing:true})}</td>
-          <td>${fmt(r.inflow, 2)}</td>
-          <td>${fmt(r.turbineFlow, 2)}</td>
-          <td>${fmt(r.spillwayFlow, 2)}</td>
-          <td>${fmt(row.basin?.qVeVuGia, 2)}</td>
-          <td>${fmt(row.basin?.qVeThuBon, 2)}</td>
+          <td><span class="pctt-res-badge">${cfg.shortName}</span></td>
+          <td><span class="pctt-num">${fmt(r.waterLevel, 2, {zeroAsMissing:true})}</span></td>
+          <td><span class="pctt-num">${fmt(r.inflow, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(r.turbineFlow, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(r.spillwayFlow, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(row.basin?.qVeVuGia, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(row.basin?.qVeThuBon, 2)}</span></td>
         </tr>
       `;
     }).join("");
