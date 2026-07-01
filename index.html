@@ -4019,6 +4019,7 @@ body.slideshow-frame-mode section{
 
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -5092,9 +5093,145 @@ body.slideshow-frame-mode section{
     }
   };
 
-  window.exportQT1865Excel = function(){
+  window.exportQT1865Excel = async function(){
     initQT1865Selectors();
-    window.open(apiUrl({export:"xlsx"}), "_blank");
+
+    const sel = selected();
+    const periodLabel = sel.month === ""
+      ? `Năm ${sel.year}`
+      : `Tháng ${String(sel.month).padStart(2, "0")}/${sel.year}`;
+    const filePeriod = sel.month === ""
+      ? String(sel.year)
+      : `${sel.year}_${String(sel.month).padStart(2, "0")}`;
+
+    function excelDate(v){
+      if(!v) return "";
+      const d = new Date(v);
+      if(isNaN(d.getTime())) return String(v);
+      return d.toLocaleDateString("vi-VN");
+    }
+
+    function excelTime(v){
+      if(!v) return "";
+      const d = new Date(v);
+      if(isNaN(d.getTime())) return String(v);
+      return d.toLocaleString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+    }
+
+    function addSheet(wb, name, rows, widths){
+      const ws = XLSX.utils.json_to_sheet(rows && rows.length ? rows : [{ "Thông báo": "Không có dữ liệu" }]);
+      if(widths) ws["!cols"] = widths.map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, name.substring(0, 31));
+    }
+
+    try{
+      setStatus("Đang xuất Excel...", "loading");
+
+      if(typeof XLSX === "undefined"){
+        throw new Error("Chưa tải được thư viện xuất Excel XLSX. Kiểm tra kết nối CDN xlsx.full.min.js.");
+      }
+
+      // Chỉ sửa luồng xuất Excel:
+      // - Ưu tiên dữ liệu đang hiển thị trên tab QT1865.
+      // - Nếu chưa bấm “Tổng hợp”, tải JSON thường từ API hiện có, KHÔNG gọi export=xlsx vì API đang trả JSON.
+      let data = window.qt1865CurrentData;
+      if(!data || !data.ok){
+        const res = await fetch(apiUrl(), { cache: "no-store" });
+        data = await res.json();
+        if(!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
+      }
+
+      const s = data.summary || {};
+      const wb = XLSX.utils.book_new();
+      wb.Props = {
+        Title: `Báo cáo tuân thủ QT1865 - ${periodLabel}`,
+        Subject: "Tuân thủ quy trình vận hành liên hồ 1865",
+        Author: "A Vương Reservoir Dashboard",
+        CreatedDate: new Date()
+      };
+
+      addSheet(wb, "Tong_hop", [
+        { "Chỉ tiêu": "Kỳ báo cáo", "Giá trị": periodLabel, "Đơn vị": "" },
+        { "Chỉ tiêu": "Tổng số ngày có dữ liệu", "Giá trị": s.totalDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Số ngày đảm bảo", "Giá trị": s.compliantDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Số ngày không đảm bảo", "Giá trị": s.nonCompliantDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Số ngày cảnh báo", "Giá trị": s.warningDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Tỷ lệ tuân thủ", "Giá trị": s.complianceRate ?? "", "Đơn vị": "%" },
+        { "Chỉ tiêu": "Mực nước trung bình", "Giá trị": s.waterLevelAvg ?? "", "Đơn vị": "m" },
+        { "Chỉ tiêu": "Mực nước lớn nhất", "Giá trị": s.waterLevelMax?.value ?? "", "Đơn vị": "m", "Thời gian": excelTime(s.waterLevelMax?.time) },
+        { "Chỉ tiêu": "Mực nước nhỏ nhất", "Giá trị": s.waterLevelMin?.value ?? "", "Đơn vị": "m", "Thời gian": excelTime(s.waterLevelMin?.time) },
+        { "Chỉ tiêu": "Lưu lượng về trung bình", "Giá trị": s.inflowAvg ?? "", "Đơn vị": "m³/s" },
+        { "Chỉ tiêu": "Lưu lượng về lớn nhất", "Giá trị": s.inflowMax?.value ?? "", "Đơn vị": "m³/s", "Thời gian": excelTime(s.inflowMax?.time) },
+        { "Chỉ tiêu": "Lưu lượng chạy máy trung bình", "Giá trị": s.turbineFlowAvg ?? "", "Đơn vị": "m³/s" },
+        { "Chỉ tiêu": "Lưu lượng xả tràn trung bình", "Giá trị": s.spillwayFlowAvg ?? "", "Đơn vị": "m³/s" },
+        { "Chỉ tiêu": "Tổng lượng mưa", "Giá trị": s.rainfallTotal ?? "", "Đơn vị": "mm" },
+        { "Chỉ tiêu": "Số ngày mưa", "Giá trị": s.rainyDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Mưa ngày lớn nhất", "Giá trị": s.rainMaxDay?.value ?? "", "Đơn vị": "mm", "Thời gian": s.rainMaxDay?.date || "" },
+        { "Chỉ tiêu": "Số ngày đạt chạy máy liên tục tối thiểu 12h", "Giá trị": s.turbine12hCompliantDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Số ngày không đạt chạy máy liên tục tối thiểu 12h", "Giá trị": s.turbine12hNonCompliantDays ?? "", "Đơn vị": "ngày" },
+        { "Chỉ tiêu": "Tỷ lệ đạt chạy máy 12h", "Giá trị": s.turbine12hRate ?? "", "Đơn vị": "%" },
+        { "Chỉ tiêu": "Nhận xét", "Giá trị": s.comment || "", "Đơn vị": "" }
+      ], [48, 24, 14, 24]);
+
+      addSheet(wb, "Chi_tiet_ngay", (data.rows || []).map(r => ({
+        "Ngày": excelDate(r.date),
+        "MNH TB (m)": r.water_level_avg ?? "",
+        "MNH giới hạn min (m)": r.mnh_min ?? "",
+        "MNH giới hạn max (m)": r.mnh_max ?? "",
+        "CL GH dưới (m)": r.diff_mnh_min ?? "",
+        "CL GH trên (m)": r.diff_mnh_max ?? "",
+        "Q ra TB (m³/s)": r.total_outflow_avg ?? "",
+        "Q quy định min (m³/s)": r.q_min ?? "",
+        "Q quy định max (m³/s)": r.q_max ?? "",
+        "Giờ chạy máy": r.turbine_running_hours ?? "",
+        "Giờ chạy liên tục": r.turbine_continuous_hours ?? "",
+        "Bắt đầu chuỗi 12h": excelTime(r.turbine_12h_start),
+        "Kết thúc chuỗi 12h": excelTime(r.turbine_12h_end),
+        "Đạt 12h": r.is_turbine_12h_compliant ? "Đạt" : "Không đạt",
+        "CL Q dưới (m³/s)": r.diff_q_min ?? "",
+        "CL Q trên (m³/s)": r.diff_q_max ?? "",
+        "Kết quả": resultText(r),
+        "Nguyên nhân / Cảnh báo": r.reason || ""
+      })), [14,12,18,18,14,14,15,18,18,14,16,22,22,12,16,16,22,58]);
+
+      addSheet(wb, "Nguyen_nhan", (data.summaryByReason || []).map(x => ({
+        "Nguyên nhân / cảnh báo": x.reason || "Không xác định",
+        "Số ngày": x.count ?? 0
+      })), [70, 12]);
+
+      const frequencyRows =
+        (Array.isArray(s.inflowFrequency?.rows) && s.inflowFrequency.rows) ||
+        (Array.isArray(data.frequencyTable) && data.frequencyTable) ||
+        [];
+      addSheet(wb, "Tan_suat_Q", frequencyRows.map(x => ({
+        "Tháng": x.month ?? sel.month ?? "",
+        "Tần suất (%)": x.frequency_percent ?? "",
+        "Lưu lượng về (m³/s)": x.inflow_value ?? ""
+      })), [12, 16, 22]);
+
+      addSheet(wb, "Tong_hop_thang", (data.monthlySummary || []).map(x => ({
+        "Tháng": x.month ?? "",
+        "Tổng ngày": x.totalDays ?? x.total_days ?? "",
+        "Ngày đảm bảo": x.compliantDays ?? x.compliant_days ?? "",
+        "Ngày không đảm bảo": x.nonCompliantDays ?? x.non_compliant_days ?? "",
+        "Ngày cảnh báo": x.warningDays ?? x.warning_days ?? "",
+        "Tỷ lệ tuân thủ (%)": x.complianceRate ?? x.compliance_rate ?? ""
+      })), [12, 14, 16, 20, 16, 18]);
+
+      const fileName = `Bao_cao_QT1865_${filePeriod}.xlsx`;
+      XLSX.writeFile(wb, fileName, { bookType: "xlsx", compression: true });
+      setStatus("Đã xuất Excel", "ok");
+    }catch(err){
+      console.error(err);
+      setStatus("Lỗi xuất Excel", "error");
+      alert("Lỗi xuất Excel QT1865: " + err.message);
+    }
   };
 
   function buildQT1865PdfHtml(data){
