@@ -4,7 +4,7 @@
  * 1) API cũ:
  *    /api/qt1865-compliance?year=2026&month=6
  *
- * 2) API PCTT Hydro mới, lồng chung để không vượt giới hạn Vercel Hobby:
+ * 2) API PCTT Hydro mới:
  *    /api/qt1865-compliance?mode=pctt-hydro&year=2026&month=6&ids=1,2,3,4
  */
 
@@ -563,6 +563,20 @@ async function fetchQt1865Summary(year, month) {
    mode=pctt-hydro
    ========================================================= */
 
+function getVietnamMonthRange(year, month) {
+  const y = Number(year);
+  const m = Number(month);
+  const ym = `${y}-${String(m).padStart(2, "0")}`;
+
+  const endDate = new Date(y, m, 0);
+  const endDay = String(endDate.getDate()).padStart(2, "0");
+
+  return {
+    start: `${ym}-01T00:00:00+07:00`,
+    end: `${ym}-${endDay}T23:59:59+07:00`,
+  };
+}
+
 async function handlePcttHydro(req, res) {
   try {
     const now = new Date();
@@ -577,13 +591,10 @@ async function handlePcttHydro(req, res) {
       });
     }
 
-    const start =
-      req.query.start ||
-      new Date(Date.UTC(year, month - 1, 1, 0, 0, 0)).toISOString();
+    const vnRange = getVietnamMonthRange(year, month);
 
-    const end =
-      req.query.end ||
-      new Date(Date.UTC(year, month, 1, 0, 0, 0)).toISOString();
+    const start = req.query.start || vnRange.start;
+    const end = req.query.end || vnRange.end;
 
     const ids = String(req.query.ids || "1,2,3,4");
 
@@ -613,7 +624,10 @@ async function handlePcttHydro(req, res) {
       });
     }
 
-    const rows = parsePcttXml(text).map(normalizePcttRow);
+    const rows = parsePcttXml(text)
+      .map(normalizePcttRow)
+      .filter(r => r.time);
+
     const latest = rows[0] || null;
 
     return json(res, 200, {
@@ -625,7 +639,7 @@ async function handlePcttHydro(req, res) {
       ids,
       period: {
         start,
-        endExclusive: end,
+        endInclusive: end,
       },
       count: rows.length,
       latest,
