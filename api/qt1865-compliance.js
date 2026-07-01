@@ -4,7 +4,7 @@
  * 1) API cũ:
  *    /api/qt1865-compliance?year=2026&month=6
  *
- * 2) API PCTT Hydro mới:
+ * 2) API PCTT Hydro:
  *    /api/qt1865-compliance?mode=pctt-hydro&year=2026&month=6&ids=1,2,3,4
  */
 
@@ -624,9 +624,11 @@ async function handlePcttHydro(req, res) {
       });
     }
 
-    const rows = parsePcttXml(text)
+    const rowsRaw = parsePcttXml(text)
       .map(normalizePcttRow)
       .filter(r => r.time);
+
+    const rows = dedupePcttRowsByTime(rowsRaw);
 
     const latest = rows[0] || null;
 
@@ -641,7 +643,9 @@ async function handlePcttHydro(req, res) {
         start,
         endInclusive: end,
       },
+      countRaw: rowsRaw.length,
       count: rows.length,
+      duplicateCount: rowsRaw.length - rows.length,
       latest,
       data: rows,
     });
@@ -747,6 +751,45 @@ function numPctt(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function dedupePcttRowsByTime(rows) {
+  const map = new Map();
+
+  for (const row of rows) {
+    const key = row.time;
+
+    if (!map.has(key)) {
+      map.set(key, row);
+      continue;
+    }
+
+    const oldRow = map.get(key);
+
+    if (scorePcttRow(row) > scorePcttRow(oldRow)) {
+      map.set(key, row);
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    return new Date(b.time).getTime() - new Date(a.time).getTime();
+  });
+}
+
+function scorePcttRow(row) {
+  let score = 0;
+
+  for (const r of row.reservoirs || []) {
+    if (r.waterLevel !== null) score++;
+    if (r.inflow !== null) score++;
+    if (r.turbineFlow !== null) score++;
+    if (r.spillwayFlow !== null) score++;
+  }
+
+  if (row.basin?.qVeVuGia !== null) score++;
+  if (row.basin?.qVeThuBon !== null) score++;
+
+  return score;
 }
 
 /* =========================================================
