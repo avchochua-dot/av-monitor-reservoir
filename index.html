@@ -4017,6 +4017,295 @@ body.slideshow-frame-mode section{
   .qt1865-kpis.qt1865-kpis-8{grid-template-columns:1fr;}
 }
 
+
+/* =========================================================
+   PCTT ĐÀ NẴNG TAB - VẬN HÀNH 4 HỒ
+   ========================================================= */
+.nav-link[data-tab="pcttdanang"]{--nav-accent:#0284c7;--nav-soft:rgba(2,132,199,.13)}
+.nav-link[data-tab="pcttdanang"]::after{
+  content:"PCTT" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#0ea5e9,#0284c7) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(14,165,233,.18);
+}
+.nav-link[data-tab="pcttdanang"]{padding-right:66px!important}
+
+.pctt-shell{display:grid;gap:14px}
+.pctt-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  padding:18px;
+  overflow:hidden;
+}
+.pctt-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  border-bottom:1px solid var(--line-soft);
+  padding-bottom:14px;
+  margin-bottom:16px;
+}
+.pctt-title{
+  color:#0f172a;
+  font-size:20px;
+  font-weight:1000;
+  letter-spacing:-.35px;
+  margin:0;
+}
+.pctt-sub{
+  margin-top:6px;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:800;
+}
+.pctt-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pctt-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#1d4ed8;
+  border:1px solid rgba(37,99,235,.16);
+  font-size:11px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.pctt-chip.ok{
+  background:#ecfdf5;
+  color:#059669;
+  border-color:rgba(16,185,129,.22);
+}
+.pctt-chip.warn{
+  background:#fff7ed;
+  color:#b45309;
+  border-color:rgba(245,158,11,.25);
+}
+.pctt-btn{
+  width:auto!important;
+  min-width:86px!important;
+  min-height:38px!important;
+  padding:8px 12px!important;
+  border-radius:14px!important;
+  border:1px solid rgba(37,99,235,.20)!important;
+  background:#fff!important;
+  color:#172033!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+  box-shadow:0 8px 18px rgba(15,23,42,.045)!important;
+}
+.pctt-btn:hover{transform:translateY(-1px)}
+.pctt-btn.active{
+  background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;
+  color:#fff!important;
+  border-color:rgba(37,99,235,.28)!important;
+  box-shadow:0 14px 30px rgba(37,99,235,.18)!important;
+}
+.pctt-btn.reload{
+  background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(239,246,255,.96))!important;
+  color:#1d4ed8!important;
+}
+.pctt-control-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.pctt-control-group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pctt-control-label{
+  color:#64748b;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.pctt-latest-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+.pctt-latest-card{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:20px;
+  background:
+    radial-gradient(120px 90px at 100% 0%, rgba(37,99,235,.08), transparent 70%),
+    #fff;
+  padding:14px;
+  min-height:148px;
+}
+.pctt-latest-card.active{
+  border-color:rgba(37,99,235,.28);
+  box-shadow:0 16px 34px rgba(37,99,235,.10);
+}
+.pctt-latest-name{
+  color:#0f172a;
+  font-size:14px;
+  font-weight:1000;
+  margin-bottom:4px;
+}
+.pctt-latest-time{
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+  margin-bottom:12px;
+}
+.pctt-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.pctt-kpi{
+  border-radius:14px;
+  background:#f8fafc;
+  border:1px solid rgba(15,23,42,.055);
+  padding:8px;
+}
+.pctt-kpi span{
+  display:block;
+  color:#64748b;
+  font-size:9px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  margin-bottom:3px;
+}
+.pctt-kpi b{
+  color:#0f172a;
+  font-size:15px;
+  font-weight:1000;
+  font-variant-numeric:tabular-nums;
+}
+.pctt-kpi small{
+  color:#64748b;
+  font-size:10px;
+  font-weight:850;
+}
+.pctt-chart-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+  gap:14px;
+}
+.pctt-chart-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  padding:18px;
+}
+.pctt-chart-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+.pctt-chart-title{
+  color:#334155;
+  font-size:13px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.75px;
+}
+.pctt-chart-sub{
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  margin-top:4px;
+}
+.pctt-chart-wrap{
+  height:460px;
+  position:relative;
+}
+.pctt-chart-wrap.small{
+  height:360px;
+}
+.pctt-chart-wrap canvas{
+  height:100%!important;
+}
+.pctt-limits-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  margin-top:12px;
+}
+.pctt-limits-table th,
+.pctt-limits-table td{
+  padding:9px 8px!important;
+  text-align:center;
+  border-bottom:1px solid var(--line-soft);
+}
+.pctt-limits-table th:first-child,
+.pctt-limits-table td:first-child{
+  text-align:left;
+  position:static!important;
+  width:auto!important;
+  border-right:0!important;
+  background:transparent!important;
+}
+.pctt-status-line{
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+  margin-top:10px;
+}
+.pctt-table-wrap{
+  max-height:360px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:18px;
+}
+.pctt-table-wrap table td:first-child{
+  min-width:138px;
+}
+.pctt-alert{
+  display:none;
+  margin:10px 0 0;
+  padding:11px 13px;
+  border-radius:16px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  font-size:12px;
+  font-weight:900;
+}
+.pctt-alert.show{display:block}
+
+@media(max-width:1500px){
+  .pctt-chart-grid{grid-template-columns:1fr}
+  .pctt-latest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .pctt-head{flex-direction:column}
+  .pctt-toolbar{justify-content:flex-start}
+  .pctt-latest-grid{grid-template-columns:1fr}
+  .pctt-chart-wrap{height:380px}
+  .pctt-chart-wrap.small{height:320px}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -4129,6 +4418,11 @@ body.slideshow-frame-mode section{
         <a class="nav-link" data-tab="operationchart">
           <svg viewBox="0 0 24 24"><path d="M3 3h2v16h16v2H3V3zm4 12l3-3 3 2 5-7 2 1.4-6.4 9-3.3-2.2L8.4 17 7 15z"/></svg>
           Biểu đồ điều phối
+        </a>
+        
+        <a class="nav-link" data-tab="pcttdanang">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.7 2 6 4.7 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.3-2.7-6-6-6zm0 8.2A2.2 2.2 0 1 1 12 5.8a2.2 2.2 0 0 1 0 4.4zM4 20h16v2H4v-2zm2-3h12v2H6v-2z"/></svg>
+          PCTT Đà Nẵng
         </a>
         
 
@@ -4624,7 +4918,134 @@ body.slideshow-frame-mode section{
         </section>
 
       
+
       </div>
+
+      <!-- TAB: PCTT Đà Nẵng -->
+      <div id="tab-pcttdanang" class="tab-pane">
+        <section class="pctt-shell">
+
+          <div class="pctt-card">
+            <div class="pctt-head">
+              <div>
+                <h2 class="pctt-title">PCTT Đà Nẵng - Số liệu vận hành thủy điện</h2>
+                <div class="pctt-sub">
+                  Tự động tải dữ liệu 1 tháng gần nhất từ API PCTT, hiển thị nhanh 24h / 48h / 72h gần nhất.
+                  Các đường quy định mực nước được lấy theo bảng quy trình của từng hồ.
+                </div>
+              </div>
+              <div class="pctt-toolbar">
+                <span class="pctt-chip" id="pcttLoadStatus">Chưa tải</span>
+                <span class="pctt-chip ok" id="pcttLatestStatus">--</span>
+                <button class="pctt-btn reload" onclick="loadPcttDanang(true)">Tải lại</button>
+              </div>
+            </div>
+
+            <div class="pctt-control-row">
+              <div class="pctt-control-group">
+                <span class="pctt-control-label">Chọn hồ</span>
+                <button class="pctt-btn active" data-pctt-reservoir="1" onclick="selectPcttReservoir(1)">A Vương</button>
+                <button class="pctt-btn" data-pctt-reservoir="2" onclick="selectPcttReservoir(2)">Đăk Mi 4</button>
+                <button class="pctt-btn" data-pctt-reservoir="3" onclick="selectPcttReservoir(3)">Sông Bung 4</button>
+                <button class="pctt-btn" data-pctt-reservoir="4" onclick="selectPcttReservoir(4)">Sông Tranh 2</button>
+              </div>
+              <div class="pctt-control-group">
+                <span class="pctt-control-label">Khung biểu đồ</span>
+                <button class="pctt-btn active" data-pctt-hours="24" onclick="setPcttHours(24)">24h</button>
+                <button class="pctt-btn" data-pctt-hours="48" onclick="setPcttHours(48)">48h</button>
+                <button class="pctt-btn" data-pctt-hours="72" onclick="setPcttHours(72)">72h</button>
+              </div>
+            </div>
+
+            <div id="pcttAlert" class="pctt-alert"></div>
+            <div id="pcttLatestCards" class="pctt-latest-grid"></div>
+            <div id="pcttStatusLine" class="pctt-status-line">Tab sẽ tự tải dữ liệu khi mở lần đầu.</div>
+          </div>
+
+          <div class="pctt-chart-grid">
+            <div class="pctt-chart-card">
+              <div class="pctt-chart-head">
+                <div>
+                  <div class="pctt-chart-title" id="pcttReservoirChartTitle">Biểu đồ vận hành hồ</div>
+                  <div class="pctt-chart-sub">MNH, Q về, Qcm/Q nhà máy, Q xả và các đường mực nước quy định</div>
+                </div>
+                <span class="pctt-chip" id="pcttReservoirChartRange">24h</span>
+              </div>
+              <div class="pctt-chart-wrap">
+                <canvas id="pcttReservoirChart"></canvas>
+              </div>
+            </div>
+
+            <div class="pctt-chart-card">
+              <div class="pctt-chart-head">
+                <div>
+                  <div class="pctt-chart-title">Q về Vu Gia / Thu Bồn</div>
+                  <div class="pctt-chart-sub">Theo cùng khung thời gian 24h / 48h / 72h</div>
+                </div>
+                <span class="pctt-chip" id="pcttBasinChartRange">24h</span>
+              </div>
+              <div class="pctt-chart-wrap small">
+                <canvas id="pcttBasinChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="pctt-card">
+            <div class="pctt-head">
+              <div>
+                <div class="pctt-title" style="font-size:16px;">Bảng quy định mực nước vận hành hồ chứa thủy điện</div>
+                <div class="pctt-sub">Các đường ngang trên biểu đồ MNH được lấy từ bảng này.</div>
+              </div>
+            </div>
+            <div class="table-container">
+              <table class="pctt-limits-table">
+                <thead>
+                  <tr>
+                    <th>Mực nước (m)</th>
+                    <th>Hồ thủy điện A Vương</th>
+                    <th>Hồ thủy điện Đăk Mi 4</th>
+                    <th>Hồ thủy điện Sông Bung 4</th>
+                    <th>Hồ thủy điện Sông Tranh 2</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Dâng bình thường</td>
+                    <td>380</td>
+                    <td>258</td>
+                    <td>222.5</td>
+                    <td>175</td>
+                  </tr>
+                  <tr>
+                    <td>Trước lũ cao nhất</td>
+                    <td>376</td>
+                    <td>255</td>
+                    <td>217.5</td>
+                    <td>172</td>
+                  </tr>
+                  <tr>
+                    <td>Đón lũ thấp nhất</td>
+                    <td>370</td>
+                    <td>251.5</td>
+                    <td>216</td>
+                    <td>165</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="pctt-card">
+            <div class="pctt-head">
+              <div>
+                <div class="pctt-title" style="font-size:16px;">Bảng số liệu gần nhất</div>
+                <div class="pctt-sub">Hiển thị theo khung đang chọn, sắp xếp từ mới đến cũ.</div>
+              </div>
+            </div>
+            <div id="pcttRecentTable" class="pctt-table-wrap"></div>
+          </div>
+
+        </section>
 
       <!-- TAB: Weather map -->
       <div id="tab-weathermap" class="tab-pane">
@@ -8613,6 +9034,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
     if(name==='forecast') loadForecasts();
     if(name==='monthlyreport') loadMonthlyReport(false);
+    if(name==='pcttdanang') loadPcttDanang(false);
     if(name==='weathermap') {
       const wf = $('windyWeatherFrame');
       if(wf && !wf.dataset.loadedOnce) { wf.dataset.loadedOnce = '1'; applyWeatherMap(); }
@@ -11037,6 +11459,558 @@ body.slideshow-frame-mode .content::after{
     setTimeout(hideOverviewSevenDayForecastSafe, 1800);
     setTimeout(hideOverviewSevenDayForecastSafe, 3500);
   });
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   PCTT ĐÀ NẴNG - TAB VẬN HÀNH THỦY ĐIỆN
+   Nguồn API proxy:
+   /api/qt1865-compliance?mode=pctt-hydro&start=...&end=...&ids=1,2,3,4
+   ========================================================= */
+(function(){
+  const PCTT_RESERVOIRS = {
+    1: {
+      id: 1,
+      code: "AVUONG",
+      name: "Hồ thủy điện A Vương",
+      shortName: "A Vương",
+      limits: { normal: 380, preFloodMax: 376, preFloodMin: 370 }
+    },
+    2: {
+      id: 2,
+      code: "DAKMI4",
+      name: "Hồ thủy điện Đăk Mi 4",
+      shortName: "Đăk Mi 4",
+      limits: { normal: 258, preFloodMax: 255, preFloodMin: 251.5 }
+    },
+    3: {
+      id: 3,
+      code: "SONGBUNG4",
+      name: "Hồ thủy điện Sông Bung 4",
+      shortName: "Sông Bung 4",
+      limits: { normal: 222.5, preFloodMax: 217.5, preFloodMin: 216 }
+    },
+    4: {
+      id: 4,
+      code: "SONGTRANH2",
+      name: "Hồ thủy điện Sông Tranh 2",
+      shortName: "Sông Tranh 2",
+      limits: { normal: 175, preFloodMax: 172, preFloodMin: 165 }
+    }
+  };
+
+  let pcttRows = [];
+  let pcttRawMeta = null;
+  let pcttSelectedReservoirId = 1;
+  let pcttSelectedHours = 24;
+  let pcttLoadedOnce = false;
+  let pcttReservoirChart = null;
+  let pcttBasinChart = null;
+  let pcttAutoRefreshTimer = null;
+
+  function el(id){ return document.getElementById(id); }
+
+  function pcttNum(value, digits = 2){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return "--";
+    return n.toLocaleString("vi-VN", { maximumFractionDigits: digits });
+  }
+
+  function toVietnamIso(date){
+    const vn = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    const y = vn.getUTCFullYear();
+    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(vn.getUTCDate()).padStart(2, "0");
+    const hh = String(vn.getUTCHours()).padStart(2, "0");
+    const mm = String(vn.getUTCMinutes()).padStart(2, "0");
+    const ss = String(vn.getUTCSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d}T${hh}:${mm}:${ss}+07:00`;
+  }
+
+  function getLastOneMonthRange(){
+    const end = new Date();
+    const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return {
+      start: toVietnamIso(start),
+      end: toVietnamIso(end)
+    };
+  }
+
+  function formatPcttDateTime(iso){
+    if(!iso) return "--";
+    const d = new Date(iso);
+    if(Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  }
+
+  function formatPcttChartLabel(iso){
+    if(!iso) return "";
+    const d = new Date(iso);
+    if(Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit"
+    });
+  }
+
+  function normalizeRows(rows){
+    return (rows || [])
+      .filter(r => r && r.time)
+      .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  }
+
+  function getDisplayRows(){
+    const rows = normalizeRows(pcttRows);
+    return rows.slice(-pcttSelectedHours);
+  }
+
+  function getReservoir(row, id){
+    return (row?.reservoirs || []).find(r => Number(r.id) === Number(id)) || null;
+  }
+
+  function showPcttAlert(message){
+    const box = el("pcttAlert");
+    if(!box) return;
+    if(!message){
+      box.classList.remove("show");
+      box.textContent = "";
+      return;
+    }
+    box.textContent = message;
+    box.classList.add("show");
+  }
+
+  function setPcttStatus(text, type){
+    const s = el("pcttLoadStatus");
+    if(!s) return;
+    s.textContent = text;
+    s.classList.remove("ok", "warn");
+    if(type) s.classList.add(type);
+  }
+
+  async function loadPcttDanang(force){
+    if(pcttLoadedOnce && !force){
+      renderPcttDanang();
+      return;
+    }
+
+    setPcttStatus("Đang tải...", "warn");
+    showPcttAlert("");
+
+    try{
+      const range = getLastOneMonthRange();
+      const url =
+        `/api/qt1865-compliance?mode=pctt-hydro` +
+        `&start=${encodeURIComponent(range.start)}` +
+        `&end=${encodeURIComponent(range.end)}` +
+        `&ids=1,2,3,4`;
+
+      const response = await fetch(url, { cache: "no-store" });
+      const json = await response.json();
+
+      if(!response.ok || !json.ok){
+        throw new Error(json.error || `PCTT API HTTP ${response.status}`);
+      }
+
+      pcttRows = normalizeRows(json.data || []);
+      pcttRawMeta = json;
+      pcttLoadedOnce = true;
+
+      setPcttStatus("Đã tải", "ok");
+      renderPcttDanang();
+
+      if(!pcttAutoRefreshTimer){
+        pcttAutoRefreshTimer = setInterval(() => {
+          if(document.getElementById("tab-pcttdanang")?.classList.contains("active")){
+            loadPcttDanang(true);
+          }
+        }, 10 * 60 * 1000);
+      }
+    }catch(err){
+      console.error("PCTT Đà Nẵng load error:", err);
+      setPcttStatus("Lỗi tải dữ liệu", "warn");
+      showPcttAlert(`Không tải được dữ liệu PCTT Đà Nẵng: ${err.message}`);
+    }
+  }
+
+  function renderReservoirButtons(){
+    document.querySelectorAll("[data-pctt-reservoir]").forEach(btn => {
+      btn.classList.toggle("active", Number(btn.dataset.pcttReservoir) === pcttSelectedReservoirId);
+    });
+  }
+
+  function renderHourButtons(){
+    document.querySelectorAll("[data-pctt-hours]").forEach(btn => {
+      btn.classList.toggle("active", Number(btn.dataset.pcttHours) === pcttSelectedHours);
+    });
+    const r = el("pcttReservoirChartRange");
+    const b = el("pcttBasinChartRange");
+    if(r) r.textContent = `${pcttSelectedHours}h`;
+    if(b) b.textContent = `${pcttSelectedHours}h`;
+  }
+
+  function selectPcttReservoir(id){
+    pcttSelectedReservoirId = Number(id) || 1;
+    renderPcttDanang();
+  }
+
+  function setPcttHours(hours){
+    pcttSelectedHours = Number(hours) || 24;
+    renderPcttDanang();
+  }
+
+  function renderLatestCards(){
+    const wrap = el("pcttLatestCards");
+    if(!wrap) return;
+
+    const rows = normalizeRows(pcttRows);
+    const latest = rows[rows.length - 1] || null;
+
+    if(!latest){
+      wrap.innerHTML = `<div class="pctt-alert show">Chưa có dữ liệu mới nhất.</div>`;
+      return;
+    }
+
+    wrap.innerHTML = Object.values(PCTT_RESERVOIRS).map(cfg => {
+      const r = getReservoir(latest, cfg.id) || {};
+      const diffNormal = Number.isFinite(Number(r.waterLevel))
+        ? Number(r.waterLevel) - Number(cfg.limits.normal)
+        : null;
+      const stateText = diffNormal === null
+        ? "Chưa có MNH"
+        : diffNormal > 0
+          ? `Cao hơn DBT ${pcttNum(diffNormal)} m`
+          : `Thấp hơn DBT ${pcttNum(Math.abs(diffNormal))} m`;
+
+      return `
+        <div class="pctt-latest-card ${cfg.id === pcttSelectedReservoirId ? "active" : ""}" onclick="selectPcttReservoir(${cfg.id})">
+          <div class="pctt-latest-name">${cfg.shortName}</div>
+          <div class="pctt-latest-time">${formatPcttDateTime(latest.time)} • ${stateText}</div>
+          <div class="pctt-kpi-grid">
+            <div class="pctt-kpi"><span>MNH</span><b>${pcttNum(r.waterLevel)}</b> <small>m</small></div>
+            <div class="pctt-kpi"><span>Q về</span><b>${pcttNum(r.inflow)}</b> <small>m³/s</small></div>
+            <div class="pctt-kpi"><span>Qcm</span><b>${pcttNum(r.turbineFlow)}</b> <small>m³/s</small></div>
+            <div class="pctt-kpi"><span>Q xả</span><b>${pcttNum(r.spillwayFlow)}</b> <small>m³/s</small></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const latestStatus = el("pcttLatestStatus");
+    if(latestStatus) latestStatus.textContent = `Mới nhất: ${formatPcttDateTime(latest.time)}`;
+
+    const line = el("pcttStatusLine");
+    if(line){
+      const meta = pcttRawMeta || {};
+      line.textContent =
+        `Nguồn: pctt.danang.gov.vn | Bản ghi hiển thị: ${pcttRows.length}` +
+        (meta.countRaw ? ` | Raw: ${meta.countRaw}` : "") +
+        (meta.duplicateCount ? ` | Đã lọc trùng: ${meta.duplicateCount}` : "") +
+        ` | Khoảng tải: 1 tháng gần nhất`;
+    }
+  }
+
+  function buildReservoirDatasets(displayRows, reservoirId){
+    const cfg = PCTT_RESERVOIRS[reservoirId];
+    const labels = displayRows.map(r => formatPcttChartLabel(r.time));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "MNH",
+          yAxisID: "yLevel",
+          data: displayRows.map(row => getReservoir(row, reservoirId)?.waterLevel ?? null),
+          borderColor: "rgb(37,99,235)",
+          backgroundColor: "rgba(37,99,235,.10)",
+          borderWidth: 2.4,
+          pointRadius: 2,
+          tension: .25,
+          spanGaps: true
+        },
+        {
+          label: "Q về",
+          yAxisID: "yFlow",
+          data: displayRows.map(row => getReservoir(row, reservoirId)?.inflow ?? null),
+          borderColor: "rgb(16,185,129)",
+          backgroundColor: "rgba(16,185,129,.10)",
+          borderWidth: 2,
+          pointRadius: 1.8,
+          tension: .22,
+          spanGaps: true
+        },
+        {
+          label: "Qcm/Q nhà máy",
+          yAxisID: "yFlow",
+          data: displayRows.map(row => getReservoir(row, reservoirId)?.turbineFlow ?? null),
+          borderColor: "rgb(245,158,11)",
+          backgroundColor: "rgba(245,158,11,.10)",
+          borderWidth: 2,
+          pointRadius: 1.8,
+          tension: .22,
+          spanGaps: true
+        },
+        {
+          label: "Q xả",
+          yAxisID: "yFlow",
+          data: displayRows.map(row => getReservoir(row, reservoirId)?.spillwayFlow ?? null),
+          borderColor: "rgb(239,68,68)",
+          backgroundColor: "rgba(239,68,68,.10)",
+          borderWidth: 2,
+          pointRadius: 1.8,
+          tension: .22,
+          spanGaps: true
+        },
+        {
+          label: "Dâng bình thường",
+          yAxisID: "yLevel",
+          data: displayRows.map(() => cfg.limits.normal),
+          borderColor: "rgb(220,38,38)",
+          borderDash: [7, 5],
+          borderWidth: 1.8,
+          pointRadius: 0
+        },
+        {
+          label: "Trước lũ cao nhất",
+          yAxisID: "yLevel",
+          data: displayRows.map(() => cfg.limits.preFloodMax),
+          borderColor: "rgb(234,88,12)",
+          borderDash: [7, 5],
+          borderWidth: 1.8,
+          pointRadius: 0
+        },
+        {
+          label: "Đón lũ thấp nhất",
+          yAxisID: "yLevel",
+          data: displayRows.map(() => cfg.limits.preFloodMin),
+          borderColor: "rgb(14,165,233)",
+          borderDash: [7, 5],
+          borderWidth: 1.8,
+          pointRadius: 0
+        }
+      ]
+    };
+  }
+
+  function renderReservoirChart(){
+    const canvas = el("pcttReservoirChart");
+    if(!canvas || typeof Chart === "undefined") return;
+
+    const displayRows = getDisplayRows();
+    const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
+    const data = buildReservoirDatasets(displayRows, pcttSelectedReservoirId);
+
+    const chartTitle = el("pcttReservoirChartTitle");
+    if(chartTitle) chartTitle.textContent = `Biểu đồ vận hành - ${cfg.name}`;
+
+    const waterValues = displayRows
+      .map(row => getReservoir(row, pcttSelectedReservoirId)?.waterLevel)
+      .filter(v => Number.isFinite(Number(v)))
+      .map(Number);
+
+    const levelSet = waterValues.concat([
+      cfg.limits.normal,
+      cfg.limits.preFloodMax,
+      cfg.limits.preFloodMin
+    ]);
+
+    const suggestedMin = levelSet.length ? Math.floor(Math.min(...levelSet) - 1) : undefined;
+    const suggestedMax = levelSet.length ? Math.ceil(Math.max(...levelSet) + 1) : undefined;
+
+    if(pcttReservoirChart) pcttReservoirChart.destroy();
+
+    pcttReservoirChart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: "bottom",
+            labels: { boxWidth: 14, usePointStyle: true }
+          },
+          tooltip: {
+            callbacks: {
+              title: items => {
+                const idx = items?.[0]?.dataIndex ?? 0;
+                return formatPcttDateTime(displayRows[idx]?.time);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+            grid: { display: false }
+          },
+          yLevel: {
+            type: "linear",
+            position: "left",
+            suggestedMin,
+            suggestedMax,
+            title: { display: true, text: "Mực nước (m)" }
+          },
+          yFlow: {
+            type: "linear",
+            position: "right",
+            beginAtZero: true,
+            title: { display: true, text: "Lưu lượng (m³/s)" },
+            grid: { drawOnChartArea: false }
+          }
+        }
+      }
+    });
+  }
+
+  function renderBasinChart(){
+    const canvas = el("pcttBasinChart");
+    if(!canvas || typeof Chart === "undefined") return;
+
+    const displayRows = getDisplayRows();
+    const data = {
+      labels: displayRows.map(r => formatPcttChartLabel(r.time)),
+      datasets: [
+        {
+          label: "Q về Vu Gia",
+          data: displayRows.map(r => r.basin?.qVeVuGia ?? null),
+          borderColor: "rgb(37,99,235)",
+          backgroundColor: "rgba(37,99,235,.10)",
+          borderWidth: 2.2,
+          pointRadius: 2,
+          tension: .24,
+          spanGaps: true
+        },
+        {
+          label: "Q về Thu Bồn",
+          data: displayRows.map(r => r.basin?.qVeThuBon ?? null),
+          borderColor: "rgb(16,185,129)",
+          backgroundColor: "rgba(16,185,129,.10)",
+          borderWidth: 2.2,
+          pointRadius: 2,
+          tension: .24,
+          spanGaps: true
+        }
+      ]
+    };
+
+    if(pcttBasinChart) pcttBasinChart.destroy();
+
+    pcttBasinChart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: true, position: "bottom", labels: { boxWidth: 14, usePointStyle: true } },
+          tooltip: {
+            callbacks: {
+              title: items => {
+                const idx = items?.[0]?.dataIndex ?? 0;
+                return formatPcttDateTime(displayRows[idx]?.time);
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+          y: { beginAtZero: true, title: { display: true, text: "Lưu lượng (m³/s)" } }
+        }
+      }
+    });
+  }
+
+  function renderRecentTable(){
+    const box = el("pcttRecentTable");
+    if(!box) return;
+
+    const rows = [...getDisplayRows()].reverse();
+
+    if(!rows.length){
+      box.innerHTML = `<div style="padding:14px;color:#64748b;font-weight:900;">Chưa có dữ liệu.</div>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Thời gian</th>
+            <th>Hồ</th>
+            <th>MNH (m)</th>
+            <th>Q về</th>
+            <th>Qcm</th>
+            <th>Q xả</th>
+            <th>Q về Vu Gia</th>
+            <th>Q về Thu Bồn</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => {
+            const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
+            const r = getReservoir(row, pcttSelectedReservoirId) || {};
+            return `
+              <tr>
+                <td>${formatPcttDateTime(row.time)}</td>
+                <td>${cfg.shortName}</td>
+                <td>${pcttNum(r.waterLevel)}</td>
+                <td>${pcttNum(r.inflow)}</td>
+                <td>${pcttNum(r.turbineFlow)}</td>
+                <td>${pcttNum(r.spillwayFlow)}</td>
+                <td>${pcttNum(row.basin?.qVeVuGia)}</td>
+                <td>${pcttNum(row.basin?.qVeThuBon)}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderPcttDanang(){
+    renderReservoirButtons();
+    renderHourButtons();
+    renderLatestCards();
+    renderReservoirChart();
+    renderBasinChart();
+    renderRecentTable();
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    document.addEventListener("click", function(e){
+      const nav = e.target.closest && e.target.closest('.nav-link[data-tab="pcttdanang"]');
+      if(nav){
+        setTimeout(() => loadPcttDanang(false), 250);
+      }
+    });
+
+    if(document.getElementById("tab-pcttdanang")?.classList.contains("active")){
+      setTimeout(() => loadPcttDanang(false), 300);
+    }
+  });
+
+  window.loadPcttDanang = loadPcttDanang;
+  window.selectPcttReservoir = selectPcttReservoir;
+  window.setPcttHours = setPcttHours;
+  window.PCTT_RESERVOIRS = PCTT_RESERVOIRS;
 })();
 </script>
 
