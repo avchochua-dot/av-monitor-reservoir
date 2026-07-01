@@ -1,5 +1,4 @@
 
-
 <!doctype html>
 <html lang="vi">
 <head>
@@ -4020,6 +4019,7 @@ body.slideshow-frame-mode section{
 
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -4183,12 +4183,9 @@ body.slideshow-frame-mode section{
           <div class="v8-card v8-op">
             <div class="v8-title">Số liệu vận hành</div>
             <div class="v8-stat-grid">
-              <div class="v8-stat blue"><i>💧</i><div><span>Q về hiện tại</span><b id="txtQin">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat orange"><i>⚙️</i><div><span>Q máy hiện tại</span><b id="txtQtb">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat red"><i>🛑</i><div><span>Q xả hiện tại</span><b id="txtQsp">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat blue"><i>📈</i><div><span>Q về TB 24h</span><b id="txtQinAvg24h">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat orange"><i>🌀</i><div><span>Q máy TB 24h</span><b id="txtQtbAvg24h">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat red"><i>📉</i><div><span>Q xả TB 24h</span><b id="txtQspAvg24h">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat blue"><i>💧</i><div><span>Q về</span><b id="txtQin">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat orange"><i>⚙️</i><div><span>Q máy</span><b id="txtQtb">--</b><small>m³/s</small></div></div>
+              <div class="v8-stat red"><i>🛑</i><div><span>Q xả</span><b id="txtQsp">--</b><small>m³/s</small></div></div>
               <div class="v8-stat slate"><i>🗄️</i><div><span>Dung tích</span><b id="txtVol">--</b><small>tr.m³</small></div></div>
               <div class="v8-stat blue"><i>◔</i><div><span>% toàn bộ</span><b id="txtPctTotal">--</b></div></div>
               <div class="v8-stat green"><i>◕</i><div><span>% hữu ích</span><b id="txtPctUseful">--</b></div></div>
@@ -4197,10 +4194,6 @@ body.slideshow-frame-mode section{
               <div class="v8-stat slate"><i>☔</i><div><span>Mưa D-1</span><b id="txtRainD1">--</b><small>mm</small></div></div>
               <div class="v8-stat wide"><i>🛢️</i><div><span>DT hữu ích còn lại</span><b id="txtVolUsefulLeft">--</b><small>tr.m³</small></div></div>
               <div class="v8-stat wide"><i>📏</i><div><span>DT trống đến MNDBT</span><b id="txtVolRemain">--</b><small>tr.m³</small></div></div>
-              <div class="v8-stat blue"><i>↕️</i><div><span>ΔMN 24h</span><b id="txtDeltaWl24h">--</b><small>m</small></div></div>
-              <div class="v8-stat blue"><i>🌊</i><div><span>Q về TB 7 ngày</span><b id="txtQinAvg7d">--</b><small>m³/s</small></div></div>
-              <div class="v8-stat green"><i>📊</i><div><span>Tần suất thủy văn</span><b id="txtHydroFreq">--</b><small id="txtHydroClass">--</small></div></div>
-              <div class="v8-stat red"><i>⏳</i><div><span>Dự báo MN chết</span><b id="txtDeadForecast">--</b><small>ngày</small></div></div>
             </div>
           </div>
 
@@ -5064,97 +5057,6 @@ body.slideshow-frame-mode section{
     });
   }
 
-  async function loadQT1865DirectFromSupabase(){
-    const s = selected();
-    const year = Number(s.year || 2026);
-    const month = s.month === "" ? "" : Number(s.month);
-    const SB_REST_URL = "https://ycthhachfxczwkburnfa.supabase.co/rest/v1/reservoir_release_compliance_1865";
-    const SB_ANON_KEY = "sb_publishable_Q0KbTLPBE4owO72Mz-GN6A_khF9z_Ss";
-
-    const start = month === "" ? `${year}-01-01` : `${year}-${String(month).padStart(2,"0")}-01`;
-    const endObj = month === "" ? new Date(year, 12, 0) : new Date(year, month, 0);
-    const end = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,"0")}-${String(endObj.getDate()).padStart(2,"0")}`;
-
-    const url = new URL(SB_REST_URL);
-    url.searchParams.set("select", "*");
-    url.searchParams.append("date", `gte.${start}`);
-    url.searchParams.append("date", `lte.${end}`);
-    url.searchParams.set("order", "date.asc");
-    url.searchParams.set("limit", "1000");
-
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        apikey: SB_ANON_KEY,
-        Authorization: `Bearer ${SB_ANON_KEY}`,
-        "Accept": "application/json"
-      },
-      cache: "no-store"
-    });
-
-    const text = await res.text();
-    if(!res.ok) throw new Error(`Supabase fallback ${res.status}: ${text}`);
-    const rows = text ? JSON.parse(text) : [];
-
-    const reasonMap = new Map();
-    rows.forEach(r => {
-      const reasonText = String(r.reason || "").trim();
-      if(r.is_compliant && !reasonText.includes("Cảnh báo") && r.is_turbine_12h_compliant !== false) return;
-      const parts = reasonText
-        .split(";")
-        .map(x => x.trim())
-        .filter(Boolean);
-      if(!parts.length){
-        reasonMap.set("Không xác định", (reasonMap.get("Không xác định") || 0) + 1);
-      }else{
-        parts.forEach(reason => reasonMap.set(reason, (reasonMap.get(reason) || 0) + 1));
-      }
-    });
-
-    const totalDays = rows.length;
-    const compliantDays = rows.filter(r => !!r.is_compliant).length;
-    const nonCompliantDays = totalDays - compliantDays;
-    const warningDays = rows.filter(r => String(r.reason || "").includes("Cảnh báo")).length;
-    const turbine12hCompliantDays = rows.filter(r => !!r.is_turbine_12h_compliant).length;
-    const turbine12hNonCompliantDays = totalDays - turbine12hCompliantDays;
-
-    const monthlyMap = new Map();
-    rows.forEach(r => {
-      const mm = String(r.date || "").slice(5,7);
-      if(!monthlyMap.has(mm)) monthlyMap.set(mm, {month:Number(mm), totalDays:0, compliantDays:0, nonCompliantDays:0, warningDays:0, turbine12hCompliantDays:0, turbine12hNonCompliantDays:0});
-      const x = monthlyMap.get(mm);
-      x.totalDays += 1;
-      if(r.is_compliant) x.compliantDays += 1; else x.nonCompliantDays += 1;
-      if(String(r.reason || "").includes("Cảnh báo")) x.warningDays += 1;
-      if(r.is_turbine_12h_compliant) x.turbine12hCompliantDays += 1; else x.turbine12hNonCompliantDays += 1;
-    });
-    const monthlySummary = Array.from(monthlyMap.values()).map(x => ({
-      ...x,
-      complianceRate: x.totalDays ? Number(((x.compliantDays / x.totalDays) * 100).toFixed(1)) : 0,
-      turbine12hRate: x.totalDays ? Number(((x.turbine12hCompliantDays / x.totalDays) * 100).toFixed(1)) : 0
-    }));
-
-    return {
-      ok: true,
-      source: "supabase-direct-fallback",
-      year,
-      month,
-      rows,
-      monthlySummary,
-      summaryByReason: Array.from(reasonMap.entries()).map(([reason, count]) => ({reason, count})).sort((a,b) => b.count - a.count),
-      summary: {
-        totalDays,
-        compliantDays,
-        nonCompliantDays,
-        warningDays,
-        complianceRate: totalDays ? Number(((compliantDays / totalDays) * 100).toFixed(1)) : 0,
-        turbine12hCompliantDays,
-        turbine12hNonCompliantDays,
-        turbine12hRate: totalDays ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1)) : 0
-      }
-    };
-  }
-
   function render(data){
     const s = data.summary || {};
     setText("qtTotalDays", fmt0(s.totalDays));
@@ -5175,15 +5077,8 @@ body.slideshow-frame-mode section{
     try{
       setStatus("Đang tải...", "loading");
       const res = await fetch(apiUrl(), {cache:"no-store"});
-      let data = await res.json();
+      const data = await res.json();
       if(!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
-
-      // Nếu API Vercel trả rỗng do cache/deploy/API chưa đồng bộ, đọc trực tiếp view Supabase.
-      if(!Array.isArray(data.rows) || data.rows.length === 0){
-        console.warn("QT1865 API returned empty rows, using Supabase direct fallback", data);
-        data = await loadQT1865DirectFromSupabase();
-      }
-
       window.qt1865CurrentData = data;
       render(data);
       loaded = true;
@@ -5193,14 +5088,205 @@ body.slideshow-frame-mode section{
       console.error(err);
       setStatus("Lỗi tải", "error");
       const tb = $id("qt1865Table");
-      if(tb) tb.innerHTML = `<tr><td colspan="16">Lỗi tải dữ liệu QT1865: ${safe(err.message)}</td></tr>`;
+      if(tb) tb.innerHTML = `<tr><td colspan="11">Lỗi tải dữ liệu QT1865: ${safe(err.message)}</td></tr>`;
       alert("Lỗi tải QT1865: " + err.message);
     }
   };
 
-  window.exportQT1865Excel = function(){
+  async function ensureQT1865XlsxLib(){
+    if(window.XLSX) return window.XLSX;
+    await new Promise((resolve, reject) => {
+      const existed = document.querySelector('script[data-qt1865-xlsx="1"]');
+      if(existed){
+        existed.addEventListener("load", resolve, {once:true});
+        existed.addEventListener("error", reject, {once:true});
+        return;
+      }
+      const sc = document.createElement("script");
+      sc.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+      sc.async = true;
+      sc.dataset.qt1865Xlsx = "1";
+      sc.onload = resolve;
+      sc.onerror = () => reject(new Error("Không tải được thư viện XLSX"));
+      document.head.appendChild(sc);
+    });
+    if(!window.XLSX) throw new Error("Thư viện XLSX chưa sẵn sàng");
+    return window.XLSX;
+  }
+
+  function qtNum(v, digits){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return "";
+    return typeof digits === "number" ? Number(n.toFixed(digits)) : n;
+  }
+
+  function qtText(v){
+    if(v === null || v === undefined) return "";
+    return String(v);
+  }
+
+  function qtDateText(v){
+    if(!v) return "";
+    return dt(v);
+  }
+
+  function qtTimeText(v){
+    if(!v) return "";
+    return tm(v);
+  }
+
+  function qt1865FileName(){
+    const s = selected();
+    const mm = s.month === "" ? "Ca_nam" : String(s.month).padStart(2, "0");
+    return `Bao_cao_QT1865_${s.year}_${mm}.xlsx`;
+  }
+
+  function addWorksheetFromJson(wb, sheetName, rows, headerOrder){
+    const XLSX = window.XLSX;
+    const ws = XLSX.utils.json_to_sheet(rows || [], headerOrder ? {header: headerOrder} : {});
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
+    for(let C = range.s.c; C <= range.e.c; C++){
+      const cell = ws[XLSX.utils.encode_cell({r:0,c:C})];
+      if(cell) cell.s = {font:{bold:true}, alignment:{horizontal:"center", vertical:"center"}};
+    }
+    ws["!cols"] = headerOrder
+      ? headerOrder.map(h => ({wch: Math.max(12, Math.min(34, String(h).length + 4))}))
+      : [];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+    return ws;
+  }
+
+  function buildQT1865ExcelWorkbook(data){
+    const XLSX = window.XLSX;
+    const s = data.summary || {};
+    const sel = selected();
+    const wb = XLSX.utils.book_new();
+
+    addWorksheetFromJson(wb, "Tong_hop", [
+      {"Chỉ tiêu":"Năm", "Giá trị": sel.year},
+      {"Chỉ tiêu":"Tháng", "Giá trị": sel.month === "" ? "Cả năm" : String(sel.month).padStart(2, "0")},
+      {"Chỉ tiêu":"Tổng ngày có dữ liệu", "Giá trị": qtNum(s.totalDays, 0)},
+      {"Chỉ tiêu":"Ngày đảm bảo", "Giá trị": qtNum(s.compliantDays, 0)},
+      {"Chỉ tiêu":"Ngày không đảm bảo", "Giá trị": qtNum(s.nonCompliantDays, 0)},
+      {"Chỉ tiêu":"Ngày cảnh báo", "Giá trị": qtNum(s.warningDays, 0)},
+      {"Chỉ tiêu":"Tỷ lệ đảm bảo (%)", "Giá trị": qtNum(s.complianceRate, 1)},
+      {"Chỉ tiêu":"Đạt chạy máy 12h", "Giá trị": qtNum(s.turbine12hCompliantDays, 0)},
+      {"Chỉ tiêu":"Không đạt chạy máy 12h", "Giá trị": qtNum(s.turbine12hNonCompliantDays, 0)},
+      {"Chỉ tiêu":"Tỷ lệ đạt 12h (%)", "Giá trị": qtNum(s.turbine12hRate, 1)},
+      {"Chỉ tiêu":"MNH trung bình", "Giá trị": qtNum(s.waterLevelAvg, 2)},
+      {"Chỉ tiêu":"MNH lớn nhất", "Giá trị": qtNum(s.waterLevelMax?.value, 2), "Thời gian": qtTimeText(s.waterLevelMax?.time)},
+      {"Chỉ tiêu":"MNH nhỏ nhất", "Giá trị": qtNum(s.waterLevelMin?.value, 2), "Thời gian": qtTimeText(s.waterLevelMin?.time)},
+      {"Chỉ tiêu":"Q về trung bình", "Giá trị": qtNum(s.inflowAvg, 2)},
+      {"Chỉ tiêu":"Q về lớn nhất", "Giá trị": qtNum(s.inflowMax?.value, 2), "Thời gian": qtTimeText(s.inflowMax?.time)},
+      {"Chỉ tiêu":"Q máy trung bình", "Giá trị": qtNum(s.turbineFlowAvg, 2)},
+      {"Chỉ tiêu":"Q xả trung bình", "Giá trị": qtNum(s.spillwayFlowAvg, 2)},
+      {"Chỉ tiêu":"Tổng mưa", "Giá trị": qtNum(s.rainfallTotal, 1)},
+      {"Chỉ tiêu":"Số ngày mưa", "Giá trị": qtNum(s.rainyDays, 0)}
+    ], ["Chỉ tiêu", "Giá trị", "Thời gian"]);
+
+    const detailRows = (data.rows || []).map((r, idx) => ({
+      "STT": idx + 1,
+      "Ngày": qtDateText(r.date),
+      "MNH TB": qtNum(r.water_level_avg, 2),
+      "GH MNH": `${fmt(r.mnh_min,2)} - ${fmt(r.mnh_max,2)}`,
+      "CL GH dưới": qtNum(r.diff_mnh_min, 2),
+      "CL GH trên": qtNum(r.diff_mnh_max, 2),
+      "Q ra TB": qtNum(r.total_outflow_avg, 2),
+      "Q quy định": `${fmt(r.q_min,2)} - ${fmt(r.q_max,2)}`,
+      "Giờ chạy máy": qtNum(r.turbine_running_hours, 0),
+      "Giờ chạy liên tục": qtNum(r.turbine_continuous_hours, 0),
+      "Bắt đầu chuỗi": qtTimeText(r.turbine_12h_start),
+      "Kết thúc chuỗi": qtTimeText(r.turbine_12h_end),
+      "Đạt 12h": r.is_turbine_12h_compliant ? "Đạt" : "Không đạt",
+      "CL Q dưới": qtNum(r.diff_q_min, 2),
+      "CL Q trên": qtNum(r.diff_q_max, 2),
+      "Kết quả": resultText(r),
+      "Nguyên nhân / Cảnh báo": qtText(r.reason)
+    }));
+    addWorksheetFromJson(wb, "Chi_tiet_ngay", detailRows, [
+      "STT","Ngày","MNH TB","GH MNH","CL GH dưới","CL GH trên","Q ra TB","Q quy định",
+      "Giờ chạy máy","Giờ chạy liên tục","Bắt đầu chuỗi","Kết thúc chuỗi","Đạt 12h",
+      "CL Q dưới","CL Q trên","Kết quả","Nguyên nhân / Cảnh báo"
+    ]);
+
+    addWorksheetFromJson(wb, "Nguyen_nhan", (data.summaryByReason || []).map(x => ({
+      "Nguyên nhân / cảnh báo": qtText(x.reason || "Không xác định"),
+      "Số ngày": qtNum(x.count, 0)
+    })), ["Nguyên nhân / cảnh báo", "Số ngày"]);
+
+    if(Array.isArray(data.inflowFrequency?.rows)){
+      addWorksheetFromJson(wb, "Tan_suat_Q", data.inflowFrequency.rows.map(x => ({
+        "Tần suất (%)": qtNum(Number(x.frequency_percent) * 100, 2),
+        "Tháng": qtNum(x.month, 0),
+        "Q về": qtNum(x.inflow_value, 2)
+      })), ["Tần suất (%)", "Tháng", "Q về"]);
+    }
+
+    if(Array.isArray(data.monthlySummary)){
+      addWorksheetFromJson(wb, "Tong_hop_thang", data.monthlySummary.map(x => ({
+        "Tháng": qtNum(x.month, 0),
+        "Tổng ngày": qtNum(x.totalDays, 0),
+        "Đảm bảo": qtNum(x.compliantDays, 0),
+        "Không đảm bảo": qtNum(x.nonCompliantDays, 0),
+        "Cảnh báo": qtNum(x.warningDays, 0),
+        "Tỷ lệ đảm bảo (%)": qtNum(x.complianceRate, 1),
+        "Đạt 12h": qtNum(x.turbine12hCompliantDays, 0),
+        "Không đạt 12h": qtNum(x.turbine12hNonCompliantDays, 0),
+        "Tỷ lệ đạt 12h (%)": qtNum(x.turbine12hRate, 1)
+      })), ["Tháng","Tổng ngày","Đảm bảo","Không đảm bảo","Cảnh báo","Tỷ lệ đảm bảo (%)","Đạt 12h","Không đạt 12h","Tỷ lệ đạt 12h (%)"]);
+    }
+
+    if(data.comment || s.comment){
+      addWorksheetFromJson(wb, "Nhan_xet", [{"Nội dung": qtText(data.comment || s.comment)}], ["Nội dung"]);
+    }
+
+    wb.Props = {
+      Title: "Báo cáo tuân thủ QT1865",
+      Subject: "A Vương Reservoir",
+      Author: "Dashboard AI AVC",
+      CreatedDate: new Date()
+    };
+
+    return wb;
+  }
+
+  window.exportQT1865Excel = async function(){
     initQT1865Selectors();
-    window.open(apiUrl({export:"xlsx"}), "_blank");
+    try{
+      setStatus("Đang xuất Excel...", "loading");
+      const XLSX = await ensureQT1865XlsxLib();
+      let data = window.qt1865CurrentData;
+      const s = selected();
+      const cacheOk = data && data.summary && String(data.summary.year || s.year) === String(s.year)
+        && (s.month === "" || String(data.summary.month || s.month) === String(s.month));
+      if(!cacheOk){
+        const res = await fetch(apiUrl(), {cache:"no-store"});
+        const ct = res.headers.get("content-type") || "";
+        if(ct.includes("application/vnd.openxmlformats") || ct.includes("application/octet-stream")){
+          const blob = await res.blob();
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = qt1865FileName();
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+          setStatus("Đã xuất Excel", "ok");
+          return;
+        }
+        data = await res.json();
+        if(!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
+        window.qt1865CurrentData = data;
+      }
+
+      const wb = buildQT1865ExcelWorkbook(data);
+      XLSX.writeFile(wb, qt1865FileName(), {bookType:"xlsx", compression:true});
+      setStatus("Đã xuất Excel", "ok");
+      toast("Đã xuất Excel QT1865");
+    }catch(err){
+      console.error(err);
+      setStatus("Lỗi Excel", "error");
+      alert("Lỗi xuất Excel QT1865: " + err.message);
+    }
   };
 
   function buildQT1865PdfHtml(data){
@@ -7325,8 +7411,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const {year, month} = getMonthlySelection();
     const reportTitle = `BÁO CÁO VẬN HÀNH HỒ CHỨA THÁNG ${String(month).padStart(2,"0")}/${year}`;
     const createdAt = new Date().toLocaleString("vi-VN", { timeZone:"Asia/Ho_Chi_Minh" });
-    const aiText = (monthlyAiAnalysisText || $("monthlyAiResult")?.textContent || "").trim()
-      || "Chưa có nhận xét AI. Vui lòng bấm AI Phân tích hoặc xuất lại PDF khi API AI hoạt động.";
+    const aiText = monthlyAiAnalysisText || $("monthlyAiResult")?.textContent || "";
     const operationChart = monthlyChartImgTag("monthlyOperationChart", "Biểu đồ vận hành tháng");
     const rainChart = monthlyChartImgTag("monthlyRainChart", "Biểu đồ mưa ngày");
 
@@ -8029,28 +8114,11 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
 
   async function exportMonthlyExecutivePdf(){
-    let win = null;
     try{
-      if(!monthlyReportCurrentData){
-        toast("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");
-        return;
-      }
-
-      const status = $("monthlyReportStatus");
-
-      /*
-        Xuất PDF Executive chỉ xuất báo cáo từ dữ liệu hiện có trên màn hình.
-        Không gọi API AI tại đây.
-        Nếu muốn cập nhật nhận xét AI, bấm nút “AI Phân tích” trước khi xuất PDF.
-      */
-
-      win = window.open("", "_blank");
-      if(!win){
-        toast("Trình duyệt đang chặn popup. Hãy cho phép popup để xuất PDF.");
-        return;
-      }
-
-      if(status) status.textContent = "Đang chuẩn bị biểu đồ điều phối...";
+      if(!monthlyReportCurrentData){toast("Chưa có dữ liệu báo cáo. Vui lòng bấm Tổng hợp trước.");return;}
+      const win = window.open("", "_blank");
+      if(!win){toast("Trình duyệt đang chặn popup. Hãy cho phép popup để xuất PDF.");return;}
+      const status = $("monthlyReportStatus"); if(status) status.textContent = "Đang chuẩn bị biểu đồ điều phối...";
       try{
         if(typeof loadOperationChart === "function"){
           await loadOperationChart(false);
@@ -8059,19 +8127,12 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       }catch(e){
         console.warn("Không tải được biểu đồ điều phối trước khi xuất PDF", e);
       }
-
       if(status) status.textContent = "Đang mở PDF Executive...";
-      win.document.open();
-      win.document.write(createMonthlyExecutiveReportHtml());
-      win.document.close();
-
+      win.document.open(); win.document.write(createMonthlyExecutiveReportHtml()); win.document.close();
       if(status) status.textContent = "Đã mở báo cáo Executive";
-      toast("Đã mở PDF Executive");
     }catch(err){
       console.error(err);
-      try{ if(win && !win.closed) win.close(); }catch(_){}
-      const status = $("monthlyReportStatus");
-      if(status) status.textContent = "Lỗi xuất PDF";
+      const status = $("monthlyReportStatus"); if(status) status.textContent = "Lỗi xuất PDF";
       toast("Lỗi xuất PDF Executive: " + err.message);
     }
   }
@@ -8452,80 +8513,49 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   window.loadLatestMonthlyAiReport = loadLatestMonthlyAiReport;
 
-  async function generateMonthlyAiAnalysisForReport(options = {}){
-    const {
-      showLoading = true,
-      force = true,
-      reason = "manual"
-    } = options || {};
-
-    const prompt = $("monthlyAiPrompt")?.value || "";
-    const box = $("monthlyAiResult");
-    const status = $("monthlyReportStatus");
-
-    if(!prompt){
-      throw new Error("Chưa có AI Prompt. Vui lòng bấm Tổng hợp trước.");
-    }
-
-    if(!force && monthlyAiAnalysisText && monthlyAiAnalysisText.trim()){
-      return monthlyAiAnalysisText;
-    }
-
-    if(showLoading && box){
-      box.classList.remove("empty");
-      box.classList.add("loading");
-      box.textContent = reason === "pdf"
-        ? "AI đang tạo nhận xét mới để đưa vào báo cáo PDF..."
-        : "AI đang phân tích và viết nhận xét báo cáo tháng...";
-    }
-
-    if(status){
-      status.textContent = reason === "pdf"
-        ? "Đang tạo nhận xét AI mới cho PDF..."
-        : "AI đang phân tích...";
-    }
-
-    const {year, month} = getMonthlySelection();
-
-    const response = await fetch("/api/monthly-ai-analysis", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        year,
-        month,
-        reportType:"reservoir_operation",
-        prompt,
-        summary: monthlyReportCurrentData || null
-      })
-    });
-
-    const data = await response.json();
-
-    if(!response.ok || !data.ok){
-      throw new Error(data.error || "Lỗi API monthly-ai-analysis");
-    }
-
-    monthlyAiAnalysisText = data.result || data.ai_result || data.saved?.ai_result || data.analysis || data.content || "";
-
-    if(box){
-      box.classList.remove("loading","empty");
-      box.textContent = monthlyAiAnalysisText || "AI không trả về nội dung.";
-    }
-
-    if(status){
-      status.textContent = reason === "pdf" ? "Đã có nhận xét AI mới cho PDF" : "Đã có nhận xét AI";
-    }
-
-    return monthlyAiAnalysisText;
-  }
-
   async function runMonthlyAiAnalysis(){
     try{
-      await generateMonthlyAiAnalysisForReport({
-        showLoading:true,
-        force:true,
-        reason:"manual"
+      const prompt = $("monthlyAiPrompt")?.value || "";
+      const box = $("monthlyAiResult");
+      const status = $("monthlyReportStatus");
+
+      if(!prompt){
+        toast("Chưa có AI Prompt. Vui lòng bấm Tổng hợp trước.");
+        return;
+      }
+
+      if(box){
+        box.classList.remove("empty");
+        box.classList.add("loading");
+        box.textContent = "AI đang phân tích và viết nhận xét báo cáo tháng...";
+      }
+      if(status) status.textContent = "AI đang phân tích...";
+
+      const {year, month} = getMonthlySelection();
+      const response = await fetch("/api/monthly-ai-analysis", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          year,
+          month,
+          reportType:"reservoir_operation",
+          prompt,
+          summary: monthlyReportCurrentData || null
+        })
       });
+
+      const data = await response.json();
+
+      if(!response.ok || !data.ok){
+        throw new Error(data.error || "Lỗi API monthly-ai-analysis");
+      }
+
+      monthlyAiAnalysisText = data.result || data.ai_result || data.saved?.ai_result || data.analysis || data.content || "";
+      if(box){
+        box.classList.remove("loading","empty");
+        box.textContent = monthlyAiAnalysisText || "AI không trả về nội dung.";
+      }
+      if(status) status.textContent = "Đã có nhận xét AI";
       toast("AI đã phân tích xong báo cáo tháng");
     }catch(err){
       console.error(err);
@@ -8606,7 +8636,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
-  window.generateMonthlyAiAnalysisForReport = generateMonthlyAiAnalysisForReport;
   window.runMonthlyAiAnalysis = runMonthlyAiAnalysis;
   window.exportMonthlyPdf = exportMonthlyReportPdf;
 
@@ -8845,40 +8874,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return m;
   }
 
-
-  async function updateOverviewHydrologyFrequency(obsTime){
-    const freqEl = $("txtHydroFreq");
-    const classEl = $("txtHydroClass");
-    if(!freqEl && !classEl) return;
-
-    try{
-      const d = obsTime ? new Date(obsTime) : new Date();
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1;
-      const cacheKey = `overviewHydroFreq_${year}_${month}`;
-      const cached = window[cacheKey];
-
-      let freq = cached;
-      if(!freq){
-        const res = await fetch(`/api/monthly-report?year=${year}&month=${month}`, { cache: "no-store" });
-        const json = await res.json();
-        freq = json && json.inflowFrequency ? json.inflowFrequency : null;
-        window[cacheKey] = freq || { empty: true };
-      }
-
-      if(freq && !freq.empty){
-        if(freqEl) freqEl.textContent = freq.frequencyLabel || "--";
-        if(classEl) classEl.textContent = freq.classification || "--";
-      } else {
-        if(freqEl) freqEl.textContent = "--";
-        if(classEl) classEl.textContent = "Chưa có dữ liệu";
-      }
-    } catch(e){
-      if(freqEl) freqEl.textContent = "--";
-      if(classEl) classEl.textContent = "Lỗi tải";
-    }
-  }
-
   function renderOverview(fcFlow,fcRain){
     const l=state.lastObs;
     if(!l) return;
@@ -8930,69 +8925,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     $("txtQin").textContent=fmt2.format(l.inflow);
     $("txtQtb").textContent=fmt2.format(l.turbine_flow);
     $("txtQsp").textContent=fmt2.format(l.spillway_flow);
-
-    const avg24hValue = (field) => {
-      const vals = (state.latest24h || [])
-        .map(r => Number(r?.[field]))
-        .filter(v => Number.isFinite(v));
-      if(!vals.length) return null;
-      return vals.reduce((a,b)=>a+b,0) / vals.length;
-    };
-    const setAvg24h = (id, field) => {
-      const el = $(id);
-      if(!el) return;
-      const v = avg24hValue(field);
-      el.textContent = v == null ? "--" : fmt2.format(v);
-    };
-    setAvg24h("txtQinAvg24h", "inflow");
-    setAvg24h("txtQtbAvg24h", "turbine_flow");
-    setAvg24h("txtQspAvg24h", "spillway_flow");
-
-    const setTextSafe = (id, value) => {
-      const el = $(id);
-      if(el) el.textContent = value;
-    };
-
-    const avgRowsValue = (rows, field) => {
-      const vals = (rows || [])
-        .map(r => Number(r?.[field]))
-        .filter(v => Number.isFinite(v));
-      if(!vals.length) return null;
-      return vals.reduce((a,b)=>a+b,0) / vals.length;
-    };
-
-    const first24 = (state.latest24h || [])[0];
-    const deltaWl24h = first24 && Number.isFinite(Number(first24.water_level))
-      ? Number(l.water_level) - Number(first24.water_level)
-      : null;
-    setTextSafe(
-      "txtDeltaWl24h",
-      deltaWl24h == null ? "--" : `${deltaWl24h > 0 ? "+" : ""}${fmt2.format(deltaWl24h)}`
-    );
-
-    const qinAvg7d = avgRowsValue(state.hourly7D_Obs, "inflow");
-    setTextSafe("txtQinAvg7d", qinAvg7d == null ? "--" : fmt2.format(qinAvg7d));
-
-    const first7d = (state.hourly7D_Obs || [])[0];
-    const last7d = (state.hourly7D_Obs || [])[state.hourly7D_Obs.length - 1];
-    let deadForecastText = "--";
-    if(first7d && last7d){
-      const t1 = new Date(first7d.time).getTime();
-      const t2 = new Date(last7d.time).getTime();
-      const days = Math.max(1, (t2 - t1) / 86400000);
-      const dropPerDay = (Number(first7d.water_level) - Number(last7d.water_level)) / days;
-      if(Number.isFinite(dropPerDay) && dropPerDay > 0.01){
-        const daysToDead = (Number(l.water_level) - RES_CONST.WL_DEAD) / dropPerDay;
-        deadForecastText = Number.isFinite(daysToDead) && daysToDead > 0
-          ? `${Math.round(daysToDead)}`
-          : "--";
-      } else {
-        deadForecastText = "Ổn định";
-      }
-    }
-    setTextSafe("txtDeadForecast", deadForecastText);
-
-    updateOverviewHydrologyFrequency(l.time);
 
     $("txtRain1h").textContent=fmt1.format(state.rainAtHour);
     $("txtRainDay").textContent=fmt1.format(state.rain24hSum);
