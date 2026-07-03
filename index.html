@@ -13138,25 +13138,49 @@ body.slideshow-frame-mode .content::after{
     const wrap = el("pcttDuplicateKpiRow");
     if(!wrap) return;
 
-    const cfgs = Object.values(PCTT_RESERVOIRS);
-    const statMap = new Map((pcttDuplicateStatsByPlant || []).map(item => [Number(item.id), item]));
+    const cfgs = Object.values(PCTT_RESERVOIRS || {});
+    const stats = Array.isArray(pcttDuplicateStatsByPlant) ? pcttDuplicateStatsByPlant : [];
+
+    const statMap = new Map();
+    stats.forEach(item => {
+      const ids = [
+        Number(item?.id),
+        Number(item?.plantId),
+        Number(item?.reservoirId)
+      ].filter(v => Number.isFinite(v) && v > 0);
+
+      ids.forEach(id => statMap.set(id, item));
+
+      const nameKeys = [
+        String(item?.shortName || "").trim().toLowerCase(),
+        String(item?.name || "").trim().toLowerCase()
+      ].filter(Boolean);
+
+      nameKeys.forEach(key => statMap.set(key, item));
+    });
 
     wrap.innerHTML = cfgs.map(cfg => {
-      const st = statMap.get(Number(cfg.id)) || {};
-      const dup = Number(st.duplicateRows || 0);
-      const kept = Number(st.uniqueRows || 0);
-      const raw = Number(st.rawRows || 0);
+      const st =
+        statMap.get(Number(cfg.id)) ||
+        statMap.get(String(cfg.shortName || "").trim().toLowerCase()) ||
+        statMap.get(String(cfg.name || "").trim().toLowerCase()) ||
+        {};
+
+      const dup = Number(st?.duplicateRows ?? st?.duplicates ?? 0);
+      const kept = Number(st?.uniqueRows ?? st?.keptRows ?? 0);
+      const raw = Number(st?.rawRows ?? st?.totalRows ?? 0);
       const cls = dup === 0 ? "is-zero" : "";
+
       return `
         <div class="pctt-dup-kpi ${cls}">
           <div class="top">
             <span class="name">${cfg.shortName}</span>
             <span class="dot" style="background:${cfg.color}"></span>
           </div>
-          <div class="value">${dup}</div>
+          <div class="value">${Number.isFinite(dup) ? dup : 0}</div>
           <div class="meta">
-            <span>${raw} thô</span>
-            <b>${kept} giữ lại</b>
+            <span>${Number.isFinite(raw) ? raw : 0} thô</span>
+            <b>${Number.isFinite(kept) ? kept : 0} giữ lại</b>
           </div>
         </div>
       `;
@@ -13176,6 +13200,7 @@ function renderAllPctt(){
   async function loadPcttDanang(force){
     if(pcttLoaded && !force){
       renderAllPctt();
+      setTimeout(() => renderPcttDuplicateKpis(), 0);
       return;
     }
 
@@ -13194,6 +13219,8 @@ function renderAllPctt(){
       pcttDuplicateStatsByPlant = Array.isArray(data.duplicateStatsByPlant) ? data.duplicateStatsByPlant : [];
       pcttDuplicateStatsSummary = data.duplicateStatsSummary || null;
       pcttLoaded = true;
+
+      renderPcttDuplicateKpis();
 
       const latest = pcttRows[0]?.time || data.latest?.time || null;
       setStatus(`Đã tải ${data.count ?? pcttRows.length} dòng`);
