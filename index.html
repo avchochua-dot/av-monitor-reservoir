@@ -5109,6 +5109,94 @@ body.slideshow-frame-mode section{
   }
 }
 
+
+/* =========================================================
+   PCTT duplicate stats by plant
+   ========================================================= */
+.pctt-dup-wrap{
+  margin-top:10px;
+  display:grid;
+  gap:10px;
+}
+.pctt-dup-summary{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pctt-dup-summary span{
+  padding:6px 10px;
+  border-radius:999px;
+  background:#f8fafc;
+  border:1px solid var(--line-soft);
+  color:#475569;
+  font-size:12px;
+  font-weight:850;
+}
+.pctt-dup-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.pctt-dup-card{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:18px;
+  background:
+    radial-gradient(120px 80px at 100% 0%, rgba(239,68,68,.08), transparent 72%),
+    #fff;
+  box-shadow:0 10px 24px rgba(15,23,42,.045);
+  padding:14px;
+}
+.pctt-dup-card h4{
+  margin:0 0 8px;
+  color:#0f172a;
+  font-size:14px;
+  font-weight:1000;
+}
+.pctt-dup-kpi{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.pctt-dup-mini{
+  border-radius:14px;
+  padding:9px 10px;
+  background:#f8fafc;
+  border:1px solid rgba(15,23,42,.055);
+}
+.pctt-dup-mini span{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.pctt-dup-mini b{
+  color:#0f172a;
+  font-size:16px;
+  font-weight:1000;
+  font-family:var(--font-mono);
+}
+.pctt-dup-mini.red{
+  background:#fef2f2;
+  border-color:#fecaca;
+}
+.pctt-dup-mini.red b{
+  color:#b91c1c;
+}
+.pctt-dup-note{
+  margin-top:8px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+}
+@media(max-width:1300px){
+  .pctt-dup-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:680px){
+  .pctt-dup-grid{grid-template-columns:1fr;}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -5862,6 +5950,14 @@ body.slideshow-frame-mode section{
               <div class="pctt-source" id="pcttSourceInfo">
                 <span>Nguồn: pctt.danang.gov.vn</span>
                 <span>Trạng thái: chưa tải</span>
+              </div>
+              <div class="pctt-dup-wrap">
+                <div class="pctt-dup-summary" id="pcttDuplicateSummary">
+                  <span>Chưa có thống kê trùng theo nhà máy</span>
+                </div>
+                <div class="pctt-dup-grid" id="pcttDuplicateByPlant">
+                  <div class="soft-box left">Chưa tải thống kê số dòng trùng theo từng nhà máy.</div>
+                </div>
               </div>
             </div>
             <div class="pctt-toolbar">
@@ -12711,6 +12807,8 @@ body.slideshow-frame-mode .content::after{
   let pcttReservoirChart = null;
   let pcttBasinChart = null;
   let pcttAutoTimer = null;
+  let pcttDuplicateStatsByPlant = [];
+  let pcttDuplicateStatsSummary = null;
 
   function el(id){ return document.getElementById(id); }
 
@@ -13040,6 +13138,54 @@ body.slideshow-frame-mode .content::after{
     }).join("");
   }
 
+
+  function renderPcttDuplicateStats(){
+    const summaryNode = el("pcttDuplicateSummary");
+    const gridNode = el("pcttDuplicateByPlant");
+
+    if(summaryNode){
+      const s = pcttDuplicateStatsSummary || {};
+      summaryNode.innerHTML = `
+        <span>Dòng thô cộng gộp: ${fmt(s.rawRows, 0)}</span>
+        <span>Sau loại trùng theo hồ: ${fmt(s.uniqueRows, 0)}</span>
+        <span>Tổng dòng trùng theo hồ: ${fmt(s.duplicateRows, 0)}</span>
+        <span>Hồ có phát sinh trùng: ${fmt(s.plantsWithDuplicates, 0)}</span>
+      `;
+    }
+
+    if(!gridNode) return;
+
+    if(!Array.isArray(pcttDuplicateStatsByPlant) || !pcttDuplicateStatsByPlant.length){
+      gridNode.innerHTML = `<div class="soft-box left">Chưa có thống kê số dòng trùng theo từng nhà máy.</div>`;
+      return;
+    }
+
+    gridNode.innerHTML = pcttDuplicateStatsByPlant.map(item => `
+      <div class="pctt-dup-card">
+        <h4>${item.shortName || item.name || ("Hồ " + item.id)}</h4>
+        <div class="pctt-dup-kpi">
+          <div class="pctt-dup-mini">
+            <span>Dòng thô</span>
+            <b>${fmt(item.rawRows, 0)}</b>
+          </div>
+          <div class="pctt-dup-mini">
+            <span>Dòng giữ lại</span>
+            <b>${fmt(item.uniqueRows, 0)}</b>
+          </div>
+          <div class="pctt-dup-mini red">
+            <span>Dòng trùng</span>
+            <b>${fmt(item.duplicateRows, 0)}</b>
+          </div>
+          <div class="pctt-dup-mini">
+            <span>Mốc thời gian trùng</span>
+            <b>${fmt(item.duplicateTimestamps, 0)}</b>
+          </div>
+        </div>
+        <div class="pctt-dup-note">Số trùng lớn nhất tại một thời điểm: <b>${fmt(item.maxDuplicateAtOneTime, 0)}</b></div>
+      </div>
+    `).join("");
+  }
+
   function renderAllPctt(){
     renderReservoirButtons();
     renderHourButtons();
@@ -13047,6 +13193,7 @@ body.slideshow-frame-mode .content::after{
     renderReservoirChart();
     renderBasinChart();
     renderRecentTable();
+    renderPcttDuplicateStats();
   }
 
   async function loadPcttDanang(force){
@@ -13067,6 +13214,8 @@ body.slideshow-frame-mode .content::after{
       }
 
       pcttRows = Array.isArray(data.data) ? data.data : [];
+      pcttDuplicateStatsByPlant = Array.isArray(data.duplicateStatsByPlant) ? data.duplicateStatsByPlant : [];
+      pcttDuplicateStatsSummary = data.duplicateStatsSummary || null;
       pcttLoaded = true;
 
       const latest = pcttRows[0]?.time || data.latest?.time || null;
@@ -13077,9 +13226,9 @@ body.slideshow-frame-mode .content::after{
         info.innerHTML = `
           <span>Nguồn: ${data.source || "pctt.danang.gov.vn"}</span>
           <span>Cập nhật đến: ${latest ? formatTime(latest) : "-"}</span>
-          <span>Dòng thô: ${data.countRaw ?? "-"}</span>
-          <span>Sau lọc trùng: ${data.count ?? pcttRows.length}</span>
-          <span>Trùng: ${data.duplicateCount ?? 0}</span>
+          <span>Dòng theo thời gian: ${data.countRaw ?? "-"}</span>
+          <span>Sau lọc trùng theo thời gian: ${data.count ?? pcttRows.length}</span>
+          <span>Trùng theo thời gian: ${data.duplicateCount ?? 0}</span>
         `;
       }
 
