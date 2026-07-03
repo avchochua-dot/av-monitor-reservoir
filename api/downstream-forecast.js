@@ -1,74 +1,89 @@
-import { createClient } from "@supabase/supabase-js";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-function getSupabaseClient() {
-  const url =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url) {
-    throw new Error(
-      "Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL in Vercel Environment Variables"
-    );
-  }
-
-  if (!key) {
-    throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY in Vercel Environment Variables"
-    );
-  }
-
-  return createClient(url, key);
+function json(res, status, data) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(status).json(data);
 }
 
-function toNumber(value, defaultValue = null) {
-  if (value === undefined || value === null || value === "") return defaultValue;
+function num(value, defaultValue = null) {
+  if (value === null || value === undefined || value === "") return defaultValue;
   const n = Number(value);
   return Number.isFinite(n) ? n : defaultValue;
 }
 
 function round(value, digits = 2) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-    return null;
-  }
-
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
   const p = Math.pow(10, digits);
-  return Math.round(Number(value) * p) / p;
+  return Math.round(n * p) / p;
 }
 
 function addHours(date, hours) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
 
+async function supabaseSelect(path) {
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase REST ${response.status}: ${text}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Supabase response is not JSON: ${text.slice(0, 300)}`);
+  }
+}
+
 function getInputVariables(query) {
   return {
-    Hoi_Khach_cm: toNumber(query.Hoi_Khach_cm),
-    Ai_Nghia_cm: toNumber(query.Ai_Nghia_cm),
+    Hoi_Khach_cm: num(query.Hoi_Khach_cm),
+    Ai_Nghia_cm: num(query.Ai_Nghia_cm),
 
-    A_Vuong_Qra: toNumber(query.A_Vuong_Qra),
-    DakMi4_Qra: toNumber(query.DakMi4_Qra),
-    SongBung4_Qra: toNumber(query.SongBung4_Qra),
-    SongTranh2_Qra: toNumber(query.SongTranh2_Qra),
+    A_Vuong_Qra: num(query.A_Vuong_Qra),
+    DakMi4_Qra: num(query.DakMi4_Qra),
+    SongBung4_Qra: num(query.SongBung4_Qra),
+    SongTranh2_Qra: num(query.SongTranh2_Qra),
 
-    VuGia_3ho_Qra: toNumber(query.VuGia_3ho_Qra),
-    All4_Qra: toNumber(query.All4_Qra),
+    VuGia_3ho_Qra: num(query.VuGia_3ho_Qra),
+    All4_Qra: num(query.All4_Qra),
 
-    PCTT_Qve_VuGia: toNumber(query.PCTT_Qve_VuGia),
-    PCTT_Qve_ThuBon: toNumber(query.PCTT_Qve_ThuBon),
+    PCTT_Qve_VuGia: num(query.PCTT_Qve_VuGia),
+    PCTT_Qve_ThuBon: num(query.PCTT_Qve_ThuBon),
 
-    HK_Delta_1h: toNumber(query.HK_Delta_1h, 0),
-    HK_Delta_3h: toNumber(query.HK_Delta_3h, 0),
+    HK_Delta_1h: num(query.HK_Delta_1h, 0),
+    HK_Delta_3h: num(query.HK_Delta_3h, 0),
 
-    AN_Delta_1h: toNumber(query.AN_Delta_1h, 0),
-    AN_Delta_3h: toNumber(query.AN_Delta_3h, 0),
+    AN_Delta_1h: num(query.AN_Delta_1h, 0),
+    AN_Delta_3h: num(query.AN_Delta_3h, 0),
 
-    Q_VuGia_Delta_1h: toNumber(query.Q_VuGia_Delta_1h, 0),
-    Q_VuGia_Delta_3h: toNumber(query.Q_VuGia_Delta_3h, 0),
+    Q_VuGia_Delta_1h: num(query.Q_VuGia_Delta_1h, 0),
+    Q_VuGia_Delta_3h: num(query.Q_VuGia_Delta_3h, 0),
   };
 }
 
@@ -92,6 +107,40 @@ function validateInput(input) {
     ok: missing.length === 0,
     missing,
   };
+}
+
+async function loadCoefficients() {
+  return supabaseSelect(
+    "downstream_active_model_coefficients?select=*&order=model_code.asc"
+  );
+}
+
+async function loadThresholds() {
+  const rows = await supabaseSelect(
+    "downstream_alarm_thresholds?select=*"
+  );
+
+  const map = {};
+
+  for (const row of rows || []) {
+    map[row.station_code] = row;
+  }
+
+  return map;
+}
+
+async function loadMetrics() {
+  const rows = await supabaseSelect(
+    "downstream_forecast_model_metrics?select=model_code,station_code,horizon_hours,test_r2,test_mae_cm,test_rmse_cm"
+  );
+
+  const map = {};
+
+  for (const row of rows || []) {
+    map[row.model_code] = row;
+  }
+
+  return map;
 }
 
 function calculateForecast(modelCode, coefficients, input) {
@@ -186,77 +235,33 @@ function getAlarmLevel(forecasts, threshold) {
   };
 }
 
-async function loadCoefficients(supabase) {
-  const { data, error } = await supabase
-    .from("downstream_active_model_coefficients")
-    .select("*")
-    .order("model_code", { ascending: true });
-
-  if (error) {
-    throw new Error(`Lỗi đọc hệ số mô hình: ${error.message}`);
-  }
-
-  return data || [];
-}
-
-async function loadThresholds(supabase) {
-  const { data, error } = await supabase
-    .from("downstream_alarm_thresholds")
-    .select("*");
-
-  if (error) {
-    throw new Error(`Lỗi đọc ngưỡng báo động: ${error.message}`);
-  }
-
-  const map = {};
-
-  for (const row of data || []) {
-    map[row.station_code] = row;
-  }
-
-  return map;
-}
-
-async function loadMetrics(supabase) {
-  const { data, error } = await supabase
-    .from("downstream_forecast_model_metrics")
-    .select(
-      "model_code, station_code, horizon_hours, test_r2, test_mae_cm, test_rmse_cm"
-    );
-
-  if (error) {
-    throw new Error(`Lỗi đọc metrics mô hình: ${error.message}`);
-  }
-
-  const map = {};
-
-  for (const row of data || []) {
-    map[row.model_code] = row;
-  }
-
-  return map;
-}
-
 export default async function handler(req, res) {
   try {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Cache-Control", "no-store");
+    if (req.method === "OPTIONS") {
+      return json(res, 200, { ok: true });
+    }
 
     if (req.method !== "GET") {
-      return res.status(405).json({
+      return json(res, 405, {
         ok: false,
         error: "Method not allowed",
       });
     }
 
-    const supabase = getSupabaseClient();
+    if (req.query.debug === "env") {
+      return json(res, 200, {
+        ok: true,
+        has_SUPABASE_URL: !!SUPABASE_URL,
+        has_SUPABASE_SERVICE_ROLE_KEY: !!SUPABASE_KEY,
+      });
+    }
 
     const forecastTime = req.query.time
       ? new Date(String(req.query.time))
       : new Date();
 
     if (Number.isNaN(forecastTime.getTime())) {
-      return res.status(400).json({
+      return json(res, 400, {
         ok: false,
         error: "Tham số time không hợp lệ",
       });
@@ -266,7 +271,7 @@ export default async function handler(req, res) {
     const valid = validateInput(input);
 
     if (!valid.ok) {
-      return res.status(400).json({
+      return json(res, 400, {
         ok: false,
         error: "Thiếu biến đầu vào",
         missing: valid.missing,
@@ -276,13 +281,15 @@ export default async function handler(req, res) {
     }
 
     const [coefficients, thresholds, metrics] = await Promise.all([
-      loadCoefficients(supabase),
-      loadThresholds(supabase),
-      loadMetrics(supabase),
+      loadCoefficients(),
+      loadThresholds(),
+      loadMetrics(),
     ]);
 
     if (!coefficients.length) {
-      throw new Error("Không có hệ số mô hình trong downstream_active_model_coefficients");
+      throw new Error(
+        "Không có hệ số mô hình trong downstream_active_model_coefficients"
+      );
     }
 
     const modelGroups = [
@@ -351,7 +358,7 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({
+    return json(res, 200, {
       ok: true,
       mode: "downstream-forecast",
       forecast_time: forecastTime.toISOString(),
@@ -359,12 +366,12 @@ export default async function handler(req, res) {
       stations,
     });
   } catch (err) {
-    return res.status(500).json({
+    return json(res, 500, {
       ok: false,
       mode: "downstream-forecast",
       error: err.message,
       hint:
-        "Kiểm tra Vercel Environment Variables, package @supabase/supabase-js, view downstream_active_model_coefficients và bảng downstream_alarm_thresholds",
+        "Kiểm tra SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, view downstream_active_model_coefficients và bảng downstream_alarm_thresholds",
     });
   }
 }
