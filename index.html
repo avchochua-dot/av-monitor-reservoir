@@ -4175,22 +4175,22 @@ body.slideshow-frame-mode section{
   gap:8px;
 }
 .pctt-metric{
-  border-radius:14px;
-  padding:9px;
+  border-radius:16px;
+  padding:12px 14px;
   background:#f8fafc;
   border:1px solid rgba(15,23,42,.055);
 }
 .pctt-metric span{
   display:block;
   color:#64748b;
-  font-size:10px;
+  font-size:12px;
   font-weight:1000;
   text-transform:uppercase;
   margin-bottom:4px;
 }
 .pctt-metric b{
   color:#0f172a;
-  font-size:15px;
+  font-size:18px;
   font-weight:1000;
   font-family:var(--font-mono);
 }
@@ -4413,6 +4413,7 @@ body.slideshow-frame-mode section{
 }
 .pctt-latest-card .pctt-metric b{
   color:#0f172a!important;
+  font-size:18px!important;
 }
 .pctt-chart-card{
   overflow:hidden;
@@ -4513,44 +4514,47 @@ body.slideshow-frame-mode section{
 .pctt-metric-head{
   display:flex;
   align-items:center;
-  gap:7px;
-  margin-bottom:5px;
+  gap:9px;
+  margin-bottom:8px;
 }
 .pctt-metric-icon{
-  width:22px;
-  height:22px;
-  border-radius:9px;
+  width:28px;
+  height:28px;
+  border-radius:10px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
+  font-size:15px;
   color:var(--res-color);
   background:var(--res-soft);
   border:1px solid var(--res-border);
-  flex:0 0 22px;
+  flex:0 0 28px;
 }
 .pctt-metric-label{
   color:#64748b;
-  font-size:10px;
+  font-size:13px;
   font-weight:1000;
   text-transform:uppercase;
-  letter-spacing:.35px;
+  letter-spacing:.2px;
+  line-height:1.1;
 }
 .pctt-metric-value{
   display:flex;
   align-items:baseline;
-  gap:5px;
+  gap:6px;
   font-family:var(--font-mono);
+  flex-wrap:wrap;
 }
 .pctt-metric-number{
   color:#0f172a;
-  font-size:17px;
+  font-size:28px;
   font-weight:1000;
-  letter-spacing:-.3px;
+  letter-spacing:-.5px;
+  line-height:1;
 }
 .pctt-metric-unit{
   color:#64748b;
-  font-size:10.5px;
+  font-size:13px;
   font-weight:900;
   font-family:var(--font-sans);
   letter-spacing:0;
@@ -5176,6 +5180,28 @@ body.slideshow-frame-mode section{
 }
 @media(max-width:640px){
   .pctt-dup-kpi-row{grid-template-columns:1fr}
+}
+
+
+/* ===== Tăng cỡ chữ khối Thông số hiện tại cho dễ đọc ===== */
+#pcttLatestCards .pctt-metric{
+  min-height:88px;
+}
+#pcttLatestCards .pctt-metric-label{
+  font-size:13px !important;
+}
+#pcttLatestCards .pctt-metric-number{
+  font-size:29px !important;
+}
+#pcttLatestCards .pctt-metric-unit{
+  font-size:13px !important;
+}
+#pcttLatestCards .pctt-latest-card h3{
+  font-size:18px !important;
+}
+#pcttLatestCards .pctt-latest-card .time{
+  font-size:14px !important;
+  font-weight:900 !important;
 }
 
 </style>
