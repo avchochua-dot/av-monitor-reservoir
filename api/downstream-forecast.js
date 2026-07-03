@@ -1,9 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getSupabaseClient() {
+  const url =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url) {
+    throw new Error(
+      "Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL in Vercel Environment Variables"
+    );
+  }
+
+  if (!key) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY in Vercel Environment Variables"
+    );
+  }
+
+  return createClient(url, key);
+}
 
 function toNumber(value, defaultValue = null) {
   if (value === undefined || value === null || value === "") return defaultValue;
@@ -15,6 +36,7 @@ function round(value, digits = 2) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) {
     return null;
   }
+
   const p = Math.pow(10, digits);
   return Math.round(Number(value) * p) / p;
 }
@@ -85,6 +107,12 @@ function calculateForecast(modelCode, coefficients, input) {
     const variableName = row.variable_name;
     const coef = Number(row.coefficient);
 
+    if (!Number.isFinite(coef)) {
+      throw new Error(
+        `Hệ số không hợp lệ: model=${modelCode}, variable=${variableName}`
+      );
+    }
+
     if (variableName === "intercept") {
       result += coef;
       continue;
@@ -93,7 +121,9 @@ function calculateForecast(modelCode, coefficients, input) {
     const value = input[variableName];
 
     if (value === undefined || value === null) {
-      throw new Error(`Thiếu biến đầu vào: ${variableName} cho model ${modelCode}`);
+      throw new Error(
+        `Thiếu biến đầu vào ${variableName} cho model ${modelCode}`
+      );
     }
 
     result += coef * Number(value);
@@ -102,7 +132,7 @@ function calculateForecast(modelCode, coefficients, input) {
   return result;
 }
 
-function getAlarmLevel(stationCode, forecasts, threshold) {
+function getAlarmLevel(forecasts, threshold) {
   if (!threshold) {
     return {
       alarm_level: "unknown",
@@ -156,7 +186,7 @@ function getAlarmLevel(stationCode, forecasts, threshold) {
   };
 }
 
-async function loadCoefficients() {
+async function loadCoefficients(supabase) {
   const { data, error } = await supabase
     .from("downstream_active_model_coefficients")
     .select("*")
@@ -169,7 +199,7 @@ async function loadCoefficients() {
   return data || [];
 }
 
-async function loadThresholds() {
+async function loadThresholds(supabase) {
   const { data, error } = await supabase
     .from("downstream_alarm_thresholds")
     .select("*");
@@ -179,6 +209,7 @@ async function loadThresholds() {
   }
 
   const map = {};
+
   for (const row of data || []) {
     map[row.station_code] = row;
   }
@@ -186,16 +217,19 @@ async function loadThresholds() {
   return map;
 }
 
-async function loadMetrics() {
+async function loadMetrics(supabase) {
   const { data, error } = await supabase
     .from("downstream_forecast_model_metrics")
-    .select("model_code, station_code, horizon_hours, test_r2, test_mae_cm, test_rmse_cm");
+    .select(
+      "model_code, station_code, horizon_hours, test_r2, test_mae_cm, test_rmse_cm"
+    );
 
   if (error) {
     throw new Error(`Lỗi đọc metrics mô hình: ${error.message}`);
   }
 
   const map = {};
+
   for (const row of data || []) {
     map[row.model_code] = row;
   }
@@ -205,6 +239,9 @@ async function loadMetrics() {
 
 export default async function handler(req, res) {
   try {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+
     if (req.method !== "GET") {
       return res.status(405).json({
         ok: false,
@@ -212,9 +249,18 @@ export default async function handler(req, res) {
       });
     }
 
+    const supabase = getSupabaseClient();
+
     const forecastTime = req.query.time
       ? new Date(String(req.query.time))
       : new Date();
+
+    if (Number.isNaN(forecastTime.getTime())) {
+      return res.status(400).json({
+        ok: false,
+        error: "Tham số time không hợp lệ",
+      });
+    }
 
     const input = getInputVariables(req.query);
     const valid = validateInput(input);
@@ -224,16 +270,20 @@ export default async function handler(req, res) {
         ok: false,
         error: "Thiếu biến đầu vào",
         missing: valid.missing,
-        required_example:
+        example:
           "/api/downstream-forecast?Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
       });
     }
 
     const [coefficients, thresholds, metrics] = await Promise.all([
-      loadCoefficients(),
-      loadThresholds(),
-      loadMetrics(),
+      loadCoefficients(supabase),
+      loadThresholds(supabase),
+      loadMetrics(supabase),
     ]);
+
+    if (!coefficients.length) {
+      throw new Error("Không có hệ số mô hình trong downstream_active_model_coefficients");
+    }
 
     const modelGroups = [
       {
@@ -262,7 +312,12 @@ export default async function handler(req, res) {
 
     for (const station of modelGroups) {
       const forecasts = station.models.map((m) => {
-        const forecastValue = calculateForecast(m.model_code, coefficients, input);
+        const forecastValue = calculateForecast(
+          m.model_code,
+          coefficients,
+          input
+        );
+
         const metric = metrics[m.model_code] || null;
 
         return {
@@ -281,7 +336,6 @@ export default async function handler(req, res) {
       });
 
       const alarm = getAlarmLevel(
-        station.station_code,
         forecasts,
         thresholds[station.station_code]
       );
@@ -297,8 +351,6 @@ export default async function handler(req, res) {
       });
     }
 
-    res.setHeader("Cache-Control", "no-store");
-
     return res.status(200).json({
       ok: true,
       mode: "downstream-forecast",
@@ -311,6 +363,8 @@ export default async function handler(req, res) {
       ok: false,
       mode: "downstream-forecast",
       error: err.message,
+      hint:
+        "Kiểm tra Vercel Environment Variables, package @supabase/supabase-js, view downstream_active_model_coefficients và bảng downstream_alarm_thresholds",
     });
   }
 }
