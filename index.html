@@ -4175,22 +4175,22 @@ body.slideshow-frame-mode section{
   gap:8px;
 }
 .pctt-metric{
-  border-radius:16px;
-  padding:12px 14px;
+  border-radius:14px;
+  padding:9px;
   background:#f8fafc;
   border:1px solid rgba(15,23,42,.055);
 }
 .pctt-metric span{
   display:block;
   color:#64748b;
-  font-size:12px;
+  font-size:10px;
   font-weight:1000;
   text-transform:uppercase;
   margin-bottom:4px;
 }
 .pctt-metric b{
   color:#0f172a;
-  font-size:18px;
+  font-size:15px;
   font-weight:1000;
   font-family:var(--font-mono);
 }
@@ -4413,7 +4413,6 @@ body.slideshow-frame-mode section{
 }
 .pctt-latest-card .pctt-metric b{
   color:#0f172a!important;
-  font-size:16px!important;
 }
 .pctt-chart-card{
   overflow:hidden;
@@ -4514,47 +4513,44 @@ body.slideshow-frame-mode section{
 .pctt-metric-head{
   display:flex;
   align-items:center;
-  gap:9px;
-  margin-bottom:8px;
+  gap:7px;
+  margin-bottom:5px;
 }
 .pctt-metric-icon{
-  width:28px;
-  height:28px;
-  border-radius:10px;
+  width:22px;
+  height:22px;
+  border-radius:9px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:15px;
+  font-size:12px;
   color:var(--res-color);
   background:var(--res-soft);
   border:1px solid var(--res-border);
-  flex:0 0 28px;
+  flex:0 0 22px;
 }
 .pctt-metric-label{
   color:#64748b;
-  font-size:11px;
+  font-size:10px;
   font-weight:1000;
   text-transform:uppercase;
-  letter-spacing:.2px;
-  line-height:1.1;
+  letter-spacing:.35px;
 }
 .pctt-metric-value{
   display:flex;
   align-items:baseline;
-  gap:6px;
+  gap:5px;
   font-family:var(--font-mono);
-  flex-wrap:wrap;
 }
 .pctt-metric-number{
   color:#0f172a;
-  font-size:21px;
+  font-size:17px;
   font-weight:1000;
   letter-spacing:-.3px;
-  line-height:1.05;
 }
 .pctt-metric-unit{
   color:#64748b;
-  font-size:11px;
+  font-size:10.5px;
   font-weight:900;
   font-family:var(--font-sans);
   letter-spacing:0;
@@ -5183,25 +5179,337 @@ body.slideshow-frame-mode section{
 }
 
 
-/* ===== Tăng cỡ chữ khối Thông số hiện tại cho dễ đọc ===== */
-#pcttLatestCards .pctt-metric{
-  min-height:76px;
+/* =========================================================
+   DOWNSTREAM FORECAST TAB - HẠ DU
+   ========================================================= */
+.nav-link[data-tab="downstreamforecast"]{--nav-accent:#0284c7;--nav-soft:rgba(14,165,233,.13)}
+.nav-link[data-tab="downstreamforecast"]::after{
+  content:"AI" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#0ea5e9,#2563eb) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(14,165,233,.18);
 }
-#pcttLatestCards .pctt-metric-label{
-  font-size:11px !important;
+.nav-link[data-tab="downstreamforecast"]{padding-right:66px!important}
+
+.downstream-shell{display:grid;gap:14px}
+.downstream-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  padding:18px;
+  overflow:hidden;
 }
-#pcttLatestCards .pctt-metric-number{
-  font-size:21px !important;
+.downstream-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  border-bottom:1px solid var(--line-soft);
+  padding-bottom:14px;
+  margin-bottom:16px;
 }
-#pcttLatestCards .pctt-metric-unit{
-  font-size:11px !important;
+.downstream-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
-#pcttLatestCards .pctt-latest-card h3{
-  font-size:15px !important;
+.downstream-title-icon{
+  width:44px;
+  height:44px;
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,rgba(14,165,233,.16),rgba(37,99,235,.08));
+  color:#0369a1;
+  font-size:22px;
+  box-shadow:inset 0 0 0 1px rgba(14,165,233,.13),0 12px 26px rgba(15,23,42,.06);
 }
-#pcttLatestCards .pctt-latest-card .time{
-  font-size:12px !important;
-  font-weight:900 !important;
+.downstream-title h2{
+  margin:0;
+  color:#172033;
+  font-size:18px;
+  font-weight:1000;
+  letter-spacing:-.35px;
+}
+.downstream-title p{
+  margin:4px 0 0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:800;
+}
+.downstream-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.downstream-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#1d4ed8;
+  border:1px solid rgba(37,99,235,.16);
+  font-size:11px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.downstream-status::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:999px;
+  background:#2563eb;
+  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+.downstream-status.ok{background:#ecfdf5;color:#059669;border-color:rgba(16,185,129,.20)}
+.downstream-status.ok::before{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.13)}
+.downstream-status.err{background:#fef2f2;color:#dc2626;border-color:rgba(239,68,68,.20)}
+.downstream-status.err::before{background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.13)}
+.downstream-toolbar button,
+.downstream-toolbar select,
+.downstream-toolbar input{
+  width:auto!important;
+  min-width:96px!important;
+  height:40px!important;
+  border-radius:14px!important;
+  padding:8px 12px!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+}
+.downstream-toolbar select,
+.downstream-toolbar input{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#172033;
+  outline:none;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.downstream-toolbar button{
+  border:1px solid rgba(37,99,235,.24)!important;
+  background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(239,246,255,.96))!important;
+  color:#1d4ed8!important;
+}
+.downstream-toolbar button.primary{
+  background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;
+  color:#fff!important;
+  box-shadow:0 14px 30px rgba(37,99,235,.18)!important;
+}
+.downstream-grid{
+  display:grid;
+  grid-template-columns:1.05fr 1fr;
+  gap:14px;
+  align-items:start;
+}
+.downstream-input-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+}
+.downstream-field label{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+  margin-bottom:6px;
+}
+.downstream-field input{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#fff;
+  color:#172033;
+  font-weight:950;
+  font-family:var(--font-mono);
+  outline:none;
+  padding:10px 11px;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.downstream-field input:focus{
+  border-color:rgba(37,99,235,.35);
+  box-shadow:0 0 0 3px rgba(37,99,235,.10),0 8px 18px rgba(15,23,42,.045);
+}
+.downstream-note{
+  margin-top:12px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px solid rgba(15,23,42,.06);
+  color:#64748b;
+  padding:11px 12px;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.45;
+}
+.downstream-station-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.downstream-station{
+  background:
+    radial-gradient(220px 150px at 0% 0%, rgba(14,165,233,.10), transparent 62%),
+    #fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  padding:18px;
+}
+.downstream-station-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:16px;
+}
+.downstream-station-name{
+  color:#475569;
+  text-transform:uppercase;
+  letter-spacing:.75px;
+  font-size:12px;
+  font-weight:1000;
+}
+.downstream-current{
+  margin-top:6px;
+  color:#0f172a;
+  font-size:40px;
+  font-weight:1000;
+  letter-spacing:-1.8px;
+  line-height:1;
+}
+.downstream-current small{
+  color:#64748b;
+  font-size:15px;
+  margin-left:4px;
+  font-weight:900;
+}
+.downstream-alarm{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:96px;
+  padding:7px 11px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  border:1px solid rgba(15,23,42,.08);
+}
+.downstream-alarm.normal{background:#ecfdf5;color:#059669;border-color:rgba(16,185,129,.22)}
+.downstream-alarm.watch{background:#eff6ff;color:#2563eb;border-color:rgba(37,99,235,.22)}
+.downstream-alarm.warning{background:#fff7ed;color:#b45309;border-color:#fed7aa}
+.downstream-alarm.danger{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+.downstream-alarm.emergency{background:#7f1d1d;color:#fff;border-color:#7f1d1d}
+.downstream-forecast-list{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.downstream-forecast-item{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:18px;
+  background:#fff;
+  padding:14px;
+}
+.downstream-forecast-item span{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-bottom:7px;
+}
+.downstream-forecast-item b{
+  color:#2563eb;
+  font-size:24px;
+  font-weight:1000;
+  letter-spacing:-.8px;
+}
+.downstream-forecast-item small{
+  display:block;
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:850;
+  margin-top:5px;
+  line-height:1.35;
+}
+.downstream-metric-grid{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+}
+.downstream-metric{
+  min-height:86px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:18px;
+  background:#fff;
+  padding:13px;
+}
+.downstream-metric span{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+  margin-bottom:7px;
+}
+.downstream-metric b{
+  color:#0f172a;
+  font-size:19px;
+  font-weight:1000;
+  letter-spacing:-.4px;
+}
+.downstream-metric small{
+  display:block;
+  color:#64748b;
+  font-size:10px;
+  font-weight:850;
+  margin-top:5px;
+}
+.downstream-chart-wrap{
+  height:430px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:12px;
+  background:#fff;
+  box-shadow:0 10px 26px rgba(15,23,42,.045);
+}
+.downstream-chart-wrap canvas{
+  height:400px!important;
+}
+.downstream-table-note{
+  margin-top:10px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+}
+@media(max-width:1400px){
+  .downstream-input-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .downstream-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:1180px){
+  .downstream-grid,.downstream-station-grid{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+  .downstream-head{flex-direction:column}
+  .downstream-toolbar{justify-content:flex-start}
+  .downstream-input-grid,.downstream-metric-grid,.downstream-forecast-list{grid-template-columns:1fr}
+  .downstream-current{font-size:34px}
 }
 
 </style>
@@ -5315,6 +5623,10 @@ body.slideshow-frame-mode section{
         <a class="nav-link" data-tab="operationchart">
           <svg viewBox="0 0 24 24"><path d="M3 3h2v16h16v2H3V3zm4 12l3-3 3 2 5-7 2 1.4-6.4 9-3.3-2.2L8.4 17 7 15z"/></svg>
           Biểu đồ điều phối
+        </a>
+        <a class="nav-link" data-tab="downstreamforecast">
+          <svg viewBox="0 0 24 24"><path d="M12 2c3.86 0 7 3.14 7 7 0 5.25-7 13-7 13S5 14.25 5 9c0-3.86 3.14-7 7-7zm0 2.2A4.8 4.8 0 0 0 7.2 9c0 2.76 2.58 6.86 4.8 9.74 2.22-2.88 4.8-6.98 4.8-9.74A4.8 4.8 0 0 0 12 4.2zM9 10h2v5H9v-5zm4-4h2v9h-2V6z"/></svg>
+          Dự báo hạ du
         </a>
         
 
@@ -5822,6 +6134,136 @@ body.slideshow-frame-mode section{
         </section>
 
       
+      </div>
+
+
+
+      <!-- TAB: Downstream forecast -->
+      <div id="tab-downstreamforecast" class="tab-pane">
+        <div class="downstream-shell">
+
+          <section class="downstream-card">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">🌊</div>
+                <div>
+                  <h2>Dự báo mực nước hạ du</h2>
+                  <p>Mô hình AI dự báo Hội Khách và Ái Nghĩa theo các mốc +4h, +6h, +12h; 4h dùng cảnh báo chính, 6h cảnh báo sớm, 12h tham khảo xu thế.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <span class="downstream-status" id="dsStatus">Chưa tải</span>
+                <button class="primary" type="button" onclick="loadDownstreamForecastTab(true)">Cập nhật</button>
+              </div>
+            </div>
+
+            <div class="downstream-input-grid">
+              <div class="downstream-field"><label>Hội Khách (cm)</label><input id="ds_Hoi_Khach_cm" type="number" step="0.01" value="870"></div>
+              <div class="downstream-field"><label>Ái Nghĩa (cm)</label><input id="ds_Ai_Nghia_cm" type="number" step="0.01" value="270"></div>
+              <div class="downstream-field"><label>A Vương Qra</label><input id="ds_A_Vuong_Qra" type="number" step="0.01" value="0"></div>
+              <div class="downstream-field"><label>Đắk Mi 4 Qra</label><input id="ds_DakMi4_Qra" type="number" step="0.01" value="29.23"></div>
+              <div class="downstream-field"><label>Sông Bung 4 Qra</label><input id="ds_SongBung4_Qra" type="number" step="0.01" value="27"></div>
+              <div class="downstream-field"><label>Sông Tranh 2 Qra</label><input id="ds_SongTranh2_Qra" type="number" step="0.01" value="94.25"></div>
+              <div class="downstream-field"><label>Vu Gia 3 hồ Qra</label><input id="ds_VuGia_3ho_Qra" type="number" step="0.01" value="56.23"></div>
+              <div class="downstream-field"><label>All 4 Qra</label><input id="ds_All4_Qra" type="number" step="0.01" value="150.48"></div>
+              <div class="downstream-field"><label>PCTT Qvề Vu Gia</label><input id="ds_PCTT_Qve_VuGia" type="number" step="0.01" value="56.23"></div>
+              <div class="downstream-field"><label>PCTT Qvề Thu Bồn</label><input id="ds_PCTT_Qve_ThuBon" type="number" step="0.01" value="117.13"></div>
+            </div>
+
+            <details class="downstream-note">
+              <summary style="cursor:pointer;font-weight:1000;color:#334155">Thông số biến động nâng cao</summary>
+              <div class="downstream-input-grid" style="margin-top:12px">
+                <div class="downstream-field"><label>HK Δ1h</label><input id="ds_HK_Delta_1h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>HK Δ3h</label><input id="ds_HK_Delta_3h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>AN Δ1h</label><input id="ds_AN_Delta_1h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>AN Δ3h</label><input id="ds_AN_Delta_3h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>Q VuGia Δ1h</label><input id="ds_Q_VuGia_Delta_1h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>Q VuGia Δ3h</label><input id="ds_Q_VuGia_Delta_3h" type="number" step="0.01" value="0"></div>
+              </div>
+            </details>
+
+            <div class="downstream-note">
+              <b>Ghi chú vận hành:</b> ngưỡng cảnh báo lấy từ bảng <code>downstream_alarm_thresholds</code>. Kết quả mô hình là công cụ hỗ trợ ra quyết định, không thay thế số liệu quan trắc và bản tin chỉ huy vận hành.
+            </div>
+          </section>
+
+          <div class="downstream-station-grid" id="dsStations">
+            <section class="downstream-station">
+              <div class="downstream-station-head">
+                <div><div class="downstream-station-name">Hội Khách</div><div class="downstream-current">-- <small>cm</small></div></div>
+                <span class="downstream-alarm normal">--</span>
+              </div>
+              <div class="downstream-forecast-list"><div class="downstream-forecast-item"><span>Đang tải</span><b>--</b></div></div>
+            </section>
+          </div>
+
+          <section class="downstream-card">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">📊</div>
+                <div>
+                  <h2>Độ tin cậy mô hình</h2>
+                  <p>R², MAE và RMSE lấy từ bộ backtest exact-time đã import vào Supabase.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <span class="downstream-status ok" id="dsSummaryStatus">Sẵn sàng</span>
+              </div>
+            </div>
+            <div class="downstream-metric-grid" id="dsMetrics">
+              <div class="downstream-metric"><span>Chưa tải</span><b>--</b><small>Đang chờ API</small></div>
+            </div>
+          </section>
+
+          <section class="downstream-card">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">📈</div>
+                <div>
+                  <h2>Backtest Forecast vs Actual</h2>
+                  <p>Kiểm tra dự báo quá khứ so với mực nước thực đo theo trạm và horizon.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <select id="dsBacktestStation" onchange="loadDownstreamBacktest(true)">
+                  <option value="HOI_KHACH">Hội Khách</option>
+                  <option value="AI_NGHIA">Ái Nghĩa</option>
+                </select>
+                <select id="dsBacktestHorizon" onchange="loadDownstreamBacktest(true)">
+                  <option value="4">4h</option>
+                  <option value="6" selected>6h</option>
+                  <option value="12">12h</option>
+                </select>
+                <input id="dsBacktestStart" type="date" value="2025-09-01">
+                <input id="dsBacktestEnd" type="date" value="2025-09-10">
+                <button type="button" onclick="loadDownstreamBacktest(true)">Xem</button>
+              </div>
+            </div>
+
+            <div class="downstream-grid">
+              <div class="downstream-chart-wrap">
+                <canvas id="downstreamBacktestChart"></canvas>
+              </div>
+              <div>
+                <div class="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Chỉ số</th>
+                        <th>Giá trị</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dsBacktestSummary">
+                      <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Chưa tải backtest</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="downstream-table-note" id="dsBacktestNote">Chọn trạm và horizon để xem biểu đồ.</div>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </div>
 
       <!-- TAB: Weather map -->
@@ -10255,6 +10697,313 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   window.copyMonthlyAiPrompt = copyMonthlyAiPrompt;
 
 
+
+  /* ======================================================
+     DOWNSTREAM FORECAST TAB
+  ====================================================== */
+  let downstreamForecastLoaded = false;
+  let downstreamBacktestChart = null;
+
+  const DS_FIELDS = [
+    "Hoi_Khach_cm","Ai_Nghia_cm","A_Vuong_Qra","DakMi4_Qra","SongBung4_Qra","SongTranh2_Qra",
+    "VuGia_3ho_Qra","All4_Qra","PCTT_Qve_VuGia","PCTT_Qve_ThuBon",
+    "HK_Delta_1h","HK_Delta_3h","AN_Delta_1h","AN_Delta_3h","Q_VuGia_Delta_1h","Q_VuGia_Delta_3h"
+  ];
+
+  function setDownstreamStatus(text, cls=""){
+    const el = $("dsStatus");
+    if(!el) return;
+    el.className = "downstream-status" + (cls ? " " + cls : "");
+    el.textContent = text;
+  }
+
+  function fmtDsNumber(v, digits=2){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return "--";
+    return n.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function fmtDsTime(value){
+    if(!value) return "--";
+    try{
+      return new Date(value).toLocaleString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit"
+      });
+    }catch(e){
+      return String(value);
+    }
+  }
+
+  function readDownstreamInputs(){
+    const input = {};
+    DS_FIELDS.forEach(k => {
+      const el = $("ds_" + k);
+      const n = Number(el?.value);
+      input[k] = Number.isFinite(n) ? n : 0;
+    });
+    return input;
+  }
+
+  function prefillDownstreamFromReservoir(){
+    try{
+      const l = state?.lastObs;
+      if(!l) return;
+      const qTurbine = Number(l.turbine_flow);
+      const qSpill = Number(l.spillway_flow);
+      const qra = (Number.isFinite(qTurbine) ? qTurbine : 0) + (Number.isFinite(qSpill) ? qSpill : 0);
+      const av = $("ds_A_Vuong_Qra");
+      if(av && Number.isFinite(qra) && qra >= 0){
+        av.value = qra.toFixed(2);
+      }
+    }catch(e){
+      console.warn("prefill downstream", e);
+    }
+  }
+
+  function buildDownstreamForecastUrl(){
+    const input = readDownstreamInputs();
+    const params = new URLSearchParams();
+    params.set("mode", "forecast");
+    Object.keys(input).forEach(k => params.set(k, String(input[k])));
+    return `/api/downstream-forecast?${params.toString()}`;
+  }
+
+  function alarmText(level){
+    const map = {
+      normal: "Bình thường",
+      watch: "Theo dõi",
+      warning: "BĐ I",
+      danger: "BĐ II",
+      emergency: "BĐ III"
+    };
+    return map[level] || level || "--";
+  }
+
+  function renderDownstreamStations(data){
+    const box = $("dsStations");
+    if(!box) return;
+
+    const stations = data?.stations || [];
+    if(!stations.length){
+      box.innerHTML = `<section class="downstream-station"><div class="downstream-note">Chưa có dữ liệu dự báo.</div></section>`;
+      return;
+    }
+
+    box.innerHTML = stations.map(st => {
+      const forecasts = (st.forecasts || []).map(f => `
+        <div class="downstream-forecast-item">
+          <span>${f.horizon_hours} giờ tới</span>
+          <b>${fmtDsNumber(f.forecast_water_level_cm, 2)}</b>
+          <small>
+            Mục tiêu: ${fmtDsTime(f.target_time)}<br>
+            MAE: ${fmtDsNumber(f.model_quality?.test_mae_cm, 2)} cm
+          </small>
+        </div>
+      `).join("");
+
+      return `
+        <section class="downstream-station">
+          <div class="downstream-station-head">
+            <div>
+              <div class="downstream-station-name">${st.station_name || st.station_code}</div>
+              <div class="downstream-current">${fmtDsNumber(st.current_water_level_cm, 0)} <small>cm</small></div>
+            </div>
+            <span class="downstream-alarm ${st.alarm_level || "normal"}">${alarmText(st.alarm_level)}</span>
+          </div>
+          <div class="downstream-forecast-list">${forecasts}</div>
+          <div class="downstream-note" style="margin-top:12px">
+            ${st.alarm_message || "Chưa có thông báo."}
+          </div>
+        </section>
+      `;
+    }).join("");
+  }
+
+  async function loadDownstreamForecastOnly(){
+    const res = await fetch(buildDownstreamForecastUrl(), { cache: "no-store" });
+    const data = await res.json();
+    if(!res.ok || !data.ok){
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    renderDownstreamStations(data);
+    return data;
+  }
+
+  async function loadDownstreamSummary(){
+    const status = $("dsSummaryStatus");
+    if(status) status.textContent = "Đang tải metrics...";
+    const [hkRes, anRes] = await Promise.all([
+      fetch("/api/downstream-forecast?mode=summary&station=HOI_KHACH", { cache: "no-store" }),
+      fetch("/api/downstream-forecast?mode=summary&station=AI_NGHIA", { cache: "no-store" })
+    ]);
+    const [hk, an] = await Promise.all([hkRes.json(), anRes.json()]);
+    if(!hk.ok) throw new Error(hk.error || "Lỗi summary Hội Khách");
+    if(!an.ok) throw new Error(an.error || "Lỗi summary Ái Nghĩa");
+
+    const rows = [...(hk.metrics || []), ...(an.metrics || [])]
+      .sort((a,b) => String(a.station_code).localeCompare(String(b.station_code)) || Number(a.horizon_hours) - Number(b.horizon_hours));
+
+    const box = $("dsMetrics");
+    if(box){
+      box.innerHTML = rows.map(r => `
+        <div class="downstream-metric">
+          <span>${r.model_code}</span>
+          <b>R² ${fmtDsNumber(r.test_r2, 3)}</b>
+          <small>MAE ${fmtDsNumber(r.test_mae_cm, 2)} cm · RMSE ${fmtDsNumber(r.test_rmse_cm, 2)} cm</small>
+        </div>
+      `).join("");
+    }
+    if(status){
+      status.className = "downstream-status ok";
+      status.textContent = "Metrics OK";
+    }
+  }
+
+  function getDownstreamBacktestUrl(){
+    const station = $("dsBacktestStation")?.value || "HOI_KHACH";
+    const horizon = $("dsBacktestHorizon")?.value || "6";
+    const start = $("dsBacktestStart")?.value || "2025-09-01";
+    const end = $("dsBacktestEnd")?.value || "2025-09-10";
+    const params = new URLSearchParams({
+      mode: "backtest",
+      station,
+      horizon,
+      start,
+      end,
+      limit: "500"
+    });
+    return `/api/downstream-forecast?${params.toString()}`;
+  }
+
+  function renderDownstreamBacktest(data){
+    const s = data?.summary || {};
+    const tbody = $("dsBacktestSummary");
+    if(tbody){
+      tbody.innerHTML = `
+        <tr><td>Số điểm</td><td>${s.n_rows ?? 0}</td></tr>
+        <tr><td>Bias</td><td>${fmtDsNumber(s.bias_cm, 2)} cm</td></tr>
+        <tr><td>MAE</td><td>${fmtDsNumber(s.mae_cm, 2)} cm</td></tr>
+        <tr><td>RMSE</td><td>${fmtDsNumber(s.rmse_cm, 2)} cm</td></tr>
+        <tr><td>Sai số lớn nhất</td><td>${fmtDsNumber(s.max_abs_error_cm, 2)} cm</td></tr>
+      `;
+    }
+
+    const note = $("dsBacktestNote");
+    if(note){
+      note.textContent = `${data.station_name || data.station_code} · ${data.horizon_hours}h · ${data.start} đến ${data.end}`;
+    }
+
+    const rows = data?.data || [];
+    const labels = rows.map(r => fmtDsTime(r.forecast_time));
+    const forecast = rows.map(r => Number(r.forecast_water_level_cm));
+    const actual = rows.map(r => Number(r.actual_water_level_cm));
+
+    const ctx = $("downstreamBacktestChart");
+    if(!ctx || typeof Chart === "undefined") return;
+
+    if(downstreamBacktestChart){
+      downstreamBacktestChart.destroy();
+      downstreamBacktestChart = null;
+    }
+
+    downstreamBacktestChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Dự báo",
+            data: forecast,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37,99,235,.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: .32
+          },
+          {
+            label: "Thực đo",
+            data: actual,
+            borderColor: "#16a34a",
+            backgroundColor: "rgba(22,163,74,.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: .32
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmtDsNumber(ctx.parsed.y, 2)} cm`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 8, color: "#64748b", font: { size: 11, weight: "700" } },
+            grid: { color: "rgba(15,23,42,.06)" }
+          },
+          y: {
+            ticks: { color: "#64748b", font: { size: 11, weight: "700" } },
+            grid: { color: "rgba(15,23,42,.06)" },
+            title: { display: true, text: "cm" }
+          }
+        }
+      }
+    });
+  }
+
+  async function loadDownstreamBacktest(force=false){
+    try{
+      const res = await fetch(getDownstreamBacktestUrl(), { cache: force ? "no-store" : "default" });
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      renderDownstreamBacktest(data);
+    }catch(e){
+      console.error(e);
+      const note = $("dsBacktestNote");
+      if(note) note.textContent = "Lỗi tải backtest: " + e.message;
+    }
+  }
+
+  async function loadDownstreamForecastTab(force=false){
+    if(downstreamForecastLoaded && !force) {
+      setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); }, 80);
+      return;
+    }
+
+    try{
+      prefillDownstreamFromReservoir();
+      setDownstreamStatus("Đang tải dự báo...");
+      await Promise.all([
+        loadDownstreamForecastOnly(),
+        loadDownstreamSummary(),
+        loadDownstreamBacktest(force)
+      ]);
+      downstreamForecastLoaded = true;
+      setDownstreamStatus("Đã cập nhật", "ok");
+    }catch(e){
+      console.error(e);
+      setDownstreamStatus("Lỗi tải dữ liệu", "err");
+      toast("Lỗi dự báo hạ du: " + e.message);
+    }
+  }
+
+  window.loadDownstreamForecastTab = loadDownstreamForecastTab;
+  window.loadDownstreamBacktest = loadDownstreamBacktest;
+
+
   // --- Website navigation (sidebar left) ---
   function setActiveNav(tabName){
     document.querySelectorAll('.nav-link').forEach(a=>{
@@ -10279,6 +11028,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       }
     }
     if(name==='forecast') loadForecasts();
+    if(name==='downstreamforecast') loadDownstreamForecastTab(false);
     if(name==='monthlyreport') loadMonthlyReport(false);
     if(name==='pcttdanang' && typeof loadPcttDanang==='function') loadPcttDanang(false);
     if(name==='weathermap') {
@@ -10453,6 +11203,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const activePane = document.querySelector('.tab-pane.active');
       if(activePane && activePane.id==='tab-data') loadTableData();
       if(activePane && activePane.id==='tab-forecast') loadForecasts();
+      if(activePane && activePane.id==='tab-downstreamforecast') loadDownstreamForecastTab(true);
       if(activePane && activePane.id==='tab-notif') loadAIBulletins();
 
       toast("Đã cập nhật dữ liệu");
