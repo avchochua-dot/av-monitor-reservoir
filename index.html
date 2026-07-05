@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương • Dashboard • AI • V66</title>
+  <title>A Vương • Dashboard • AI • V67</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -5197,6 +5197,59 @@ body.slideshow-frame-mode section{
 }
 .nav-link[data-tab="downstreamforecast"]{padding-right:66px!important}
 
+.nav-link[data-tab="downstreammanual"]{--nav-accent:#059669;--nav-soft:rgba(16,185,129,.13)}
+.nav-link[data-tab="downstreammanual"]::after{
+  content:"Nhập" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#10b981,#059669) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(16,185,129,.18);
+}
+.nav-link[data-tab="downstreammanual"]{padding-right:66px!important}
+.downstream-manual-hour-select{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#fff;
+  color:#172033;
+  font-weight:950;
+  font-family:var(--font-mono);
+  outline:none;
+  padding:10px 11px;
+  min-height:42px;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.downstream-edit-btn{
+  width:auto!important;
+  min-width:62px!important;
+  height:32px!important;
+  border-radius:12px!important;
+  padding:6px 10px!important;
+  font-size:11px!important;
+  font-weight:1000!important;
+  border:1px solid rgba(16,185,129,.22)!important;
+  color:#047857!important;
+  background:rgba(16,185,129,.10)!important;
+  box-shadow:none!important;
+}
+.downstream-manual-help{
+  margin-top:12px;
+  padding:11px 12px;
+  border-radius:16px;
+  background:#ecfdf5;
+  border:1px solid rgba(16,185,129,.16);
+  color:#047857;
+  font-size:12px;
+  font-weight:850;
+  line-height:1.45;
+}
+
+
 .downstream-shell{display:grid;gap:14px}
 .downstream-card{
   background:#fff;
@@ -5890,6 +5943,11 @@ body.slideshow-frame-mode section{
           <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
           Thông báo
         </a>
+        <a class="nav-link" data-tab="downstreammanual">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04c.39-.39.39-1.02 0-1.41l-2.51-2.51a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 2-1.66zM20 19H9v2h11v-2z"/></svg>
+          Nhập hạ du
+        </a>
+
       </div>
     </aside>
 
@@ -6429,69 +6487,9 @@ body.slideshow-frame-mode section{
             </div>
           </section>
 
-          <section class="downstream-card downstream-manual-card">
-            <div class="downstream-head">
-              <div class="downstream-title">
-                <div class="downstream-title-icon">✍️</div>
-                <div>
-                  <h2>Nhập mực nước hạ du hiện tại</h2>
-                  <p>Vận hành nhập tay Hội Khách và Ái Nghĩa theo mét; dashboard lưu vào Supabase. Khi có API hạ du, chỉ cần thay nguồn nhập tay bằng nguồn tự động.</p>
-                </div>
-              </div>
-              <div class="downstream-toolbar">
-                <span class="downstream-status" id="dsManualStatus">Nhập tay</span>
-                <button type="button" onclick="saveDownstreamManualObservation()">Lưu số liệu hạ du</button>
-                <button type="button" onclick="loadDownstreamManualHistory()">Lịch sử</button>
-              </div>
-            </div>
+          
+          <!-- V67: Manual downstream input moved to its own tab. -->
 
-            <div class="downstream-manual-grid">
-              <div class="downstream-field">
-                <label>Thời gian quan trắc</label>
-                <input id="dsManualObsTime" type="datetime-local">
-              </div>
-              <div class="downstream-field">
-                <label>Hội Khách (m)</label>
-                <input id="dsManualHoiKhachM" type="number" step="0.01" placeholder="14.20">
-              </div>
-              <div class="downstream-field">
-                <label>Ái Nghĩa (m)</label>
-                <input id="dsManualAiNghiaM" type="number" step="0.01" placeholder="7.60">
-              </div>
-              <div class="downstream-field">
-                <label>Người nhập</label>
-                <input id="dsManualCreatedBy" type="text" value="operator">
-              </div>
-              <div class="downstream-field downstream-field-wide">
-                <label>Ghi chú</label>
-                <input id="dsManualNote" type="text" placeholder="Ví dụ: số liệu vận hành ca sáng">
-              </div>
-            </div>
-
-            <div class="downstream-note">
-              <b>Quy trình vận hành:</b> nhập/lưu mực nước hạ du → bấm <b>Số liệu hiện tại</b> để nạp Hội Khách, Ái Nghĩa và delta từ Supabase; Q vận hành hồ được lấy từ tab PCTT nếu đã có dữ liệu.
-            </div>
-
-            <div class="downstream-history-wrap" id="dsManualHistoryWrap" style="display:none">
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Thời gian</th>
-                      <th>Hội Khách</th>
-                      <th>Ái Nghĩa</th>
-                      <th>Nguồn</th>
-                      <th>Người nhập</th>
-                      <th>Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dsManualHistoryBody">
-                    <tr><td colspan="6">Chưa tải lịch sử.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
 
           <div class="downstream-station-grid" id="dsStations">
             <section class="downstream-station">
@@ -6610,6 +6608,83 @@ body.slideshow-frame-mode section{
 
         </div>
       </div>
+
+
+      <!-- TAB: Downstream manual input -->
+      <div id="tab-downstreammanual" class="tab-pane">
+        <div class="downstream-shell">
+          <section class="downstream-card downstream-manual-card">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">✍️</div>
+                <div>
+                  <h2>Nhập mực nước hạ du theo giờ</h2>
+                  <p>Nhân viên vận hành nhập Hội Khách và Ái Nghĩa theo mét. Mỗi giờ chỉ có 1 bản ghi; nhập lại cùng ngày/giờ sẽ ghi đè dữ liệu cũ.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <span class="downstream-status" id="dsManualStatus">Nhập tay</span>
+                <button type="button" onclick="saveDownstreamManualObservation()">Lưu / ghi đè</button>
+                <button type="button" onclick="loadDownstreamManualHistory()">Lịch sử</button>
+              </div>
+            </div>
+
+            <div class="downstream-manual-grid">
+              <div class="downstream-field">
+                <label>Ngày quan trắc</label>
+                <input id="dsManualObsDate" type="date">
+              </div>
+              <div class="downstream-field">
+                <label>Giờ quan trắc</label>
+                <select id="dsManualObsHour" class="downstream-manual-hour-select"></select>
+              </div>
+              <div class="downstream-field">
+                <label>Hội Khách (m)</label>
+                <input id="dsManualHoiKhachM" type="number" step="0.01" placeholder="14.20">
+              </div>
+              <div class="downstream-field">
+                <label>Ái Nghĩa (m)</label>
+                <input id="dsManualAiNghiaM" type="number" step="0.01" placeholder="7.60">
+              </div>
+              <div class="downstream-field">
+                <label>Người nhập</label>
+                <input id="dsManualCreatedBy" type="text" value="operator">
+              </div>
+              <div class="downstream-field downstream-field-wide">
+                <label>Ghi chú</label>
+                <input id="dsManualNote" type="text" placeholder="Ví dụ: số liệu ca trực 22h">
+              </div>
+            </div>
+
+            <div class="downstream-manual-help">
+              <b>Quy tắc nhập liệu:</b> chọn ngày và giờ tròn. Nếu bản ghi giờ đó đã tồn tại, hệ thống sẽ <b>ghi đè</b> theo khóa <code>obs_hour</code>; bảng dự báo sẽ lấy bản ghi mới nhất qua nút <b>Số liệu hiện tại</b>.
+            </div>
+
+            <div class="downstream-history-wrap" id="dsManualHistoryWrap" style="display:block">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Hội Khách</th>
+                      <th>Ái Nghĩa</th>
+                      <th>Nguồn</th>
+                      <th>Người nhập</th>
+                      <th>Ghi chú</th>
+                      <th>Cập nhật</th>
+                      <th>Sửa</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dsManualHistoryBody">
+                    <tr><td colspan="8">Chưa tải lịch sử.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
 
       <!-- TAB: Weather map -->
       <div id="tab-weathermap" class="tab-pane">
@@ -11148,13 +11223,60 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     el.textContent = text;
   }
 
+  function pad2(n){ return String(n).padStart(2, "0"); }
+
+  function fillDownstreamManualHourOptions(){
+    const el = $("dsManualObsHour");
+    if(!el || el.dataset.ready) return;
+    el.innerHTML = Array.from({length:24}, (_,h) => `<option value="${h}">${pad2(h)}:00</option>`).join("");
+    el.dataset.ready = "1";
+  }
+
   function setDownstreamManualNow(){
-    const el = $("dsManualObsTime");
-    if(!el || el.value) return;
+    fillDownstreamManualHourOptions();
+    const dateEl = $("dsManualObsDate");
+    const hourEl = $("dsManualObsHour");
     const d = new Date();
-    const pad = n => String(n).padStart(2, "0");
-    const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    el.value = local;
+    if(dateEl && !dateEl.value){
+      dateEl.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+    if(hourEl && !hourEl.value){
+      hourEl.value = String(d.getHours());
+    }
+  }
+
+  function setDownstreamManualFromIso(value){
+    if(!value) return;
+    fillDownstreamManualHourOptions();
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return;
+    const vn = new Date(d.toLocaleString("en-US", { timeZone:"Asia/Ho_Chi_Minh" }));
+    const dateEl = $("dsManualObsDate");
+    const hourEl = $("dsManualObsHour");
+    if(dateEl) dateEl.value = `${vn.getFullYear()}-${pad2(vn.getMonth()+1)}-${pad2(vn.getDate())}`;
+    if(hourEl) hourEl.value = String(vn.getHours());
+  }
+
+  function getDownstreamManualDateHour(){
+    setDownstreamManualNow();
+    const obs_date = $("dsManualObsDate")?.value;
+    const obs_hour_value = $("dsManualObsHour")?.value;
+    if(!obs_date) throw new Error("Cần chọn ngày quan trắc");
+    if(obs_hour_value === "" || obs_hour_value === null || obs_hour_value === undefined) throw new Error("Cần chọn giờ quan trắc");
+    return { obs_date, obs_hour_value: Number(obs_hour_value) };
+  }
+
+  function editDownstreamManualObservation(index){
+    const rows = window.downstreamManualHistoryRows || [];
+    const r = rows[index];
+    if(!r) return;
+    setDownstreamManualFromIso(r.obs_hour || r.obs_time);
+    if($("dsManualHoiKhachM")) $("dsManualHoiKhachM").value = Number(r.hoi_khach_m || 0).toFixed(2);
+    if($("dsManualAiNghiaM")) $("dsManualAiNghiaM").value = Number(r.ai_nghia_m || 0).toFixed(2);
+    if($("dsManualCreatedBy")) $("dsManualCreatedBy").value = r.created_by || "operator";
+    if($("dsManualNote")) $("dsManualNote").value = r.note || "";
+    setDownstreamManualStatus("Đang sửa giờ đã chọn", "ok");
+    toast("Đã đưa dòng lịch sử lên form. Bấm Lưu / ghi đè để cập nhật.");
   }
 
   function setDsFieldValue(key, value, digits=2){
@@ -11285,6 +11407,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // Đồng bộ luôn form nhập tay để vận hành nhìn lại số liệu đang dùng
+      setDownstreamManualFromIso(d.obs_hour || d.obs_time);
       if($("dsManualHoiKhachM") && Number.isFinite(Number(d.Hoi_Khach_m))) $("dsManualHoiKhachM").value = Number(d.Hoi_Khach_m).toFixed(2);
       if($("dsManualAiNghiaM") && Number.isFinite(Number(d.Ai_Nghia_m))) $("dsManualAiNghiaM").value = Number(d.Ai_Nghia_m).toFixed(2);
       if($("dsManualNote")) $("dsManualNote").value = d.note || "";
@@ -11310,10 +11433,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   async function saveDownstreamManualObservation(){
     try{
       setDownstreamManualStatus("Đang lưu...");
-      const obsEl = $("dsManualObsTime");
-      const obsTime = obsEl?.value ? new Date(obsEl.value).toISOString() : new Date().toISOString();
+      const dh = getDownstreamManualDateHour();
       const payload = {
-        obs_time: obsTime,
+        obs_date: dh.obs_date,
+        obs_hour_value: dh.obs_hour_value,
         hoi_khach_m: Number($("dsManualHoiKhachM")?.value),
         ai_nghia_m: Number($("dsManualAiNghiaM")?.value),
         note: $("dsManualNote")?.value || "",
@@ -11334,10 +11457,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      setDownstreamManualStatus("Đã lưu", "ok");
-      toast("Đã lưu số liệu hạ du vào Supabase.");
+      setDownstreamManualStatus("Đã lưu / ghi đè", "ok");
+      toast("Đã lưu/ghi đè số liệu hạ du theo giờ.");
       await loadDownstreamManualHistory();
-      await loadDownstreamCurrentInput();
     }catch(e){
       console.error(e);
       setDownstreamManualStatus("Lỗi lưu", "err");
@@ -11358,16 +11480,19 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       if(wrap) wrap.style.display = "block";
       if(body){
         const rows = Array.isArray(data.data) ? data.data : [];
-        body.innerHTML = rows.length ? rows.map(r => `
+        window.downstreamManualHistoryRows = rows;
+        body.innerHTML = rows.length ? rows.map((r, idx) => `
           <tr>
-            <td>${formatDownstreamSampleTime(r.obs_time)}</td>
+            <td>${formatDownstreamSampleTime(r.obs_hour || r.obs_time)}</td>
             <td>${fmtDsNumber(r.hoi_khach_m, 2)} m</td>
             <td>${fmtDsNumber(r.ai_nghia_m, 2)} m</td>
             <td>${r.source || "manual"}</td>
             <td>${r.created_by || "-"}</td>
             <td>${r.note || ""}</td>
+            <td>${formatDownstreamSampleTime(r.updated_at || r.created_at)}</td>
+            <td><button type="button" class="downstream-edit-btn" onclick="editDownstreamManualObservation(${idx})">Sửa</button></td>
           </tr>
-        `).join("") : `<tr><td colspan="6">Chưa có dữ liệu nhập tay.</td></tr>`;
+        `).join("") : `<tr><td colspan="8">Chưa có dữ liệu nhập tay.</td></tr>`;
       }
       setDownstreamManualStatus("Đã tải lịch sử", "ok");
     }catch(e){
@@ -11777,7 +11902,6 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   async function loadDownstreamForecastTab(force=false){
-    setDownstreamManualNow();
     if(downstreamForecastLoaded && !force) {
       setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); }, 80);
       return;
@@ -11789,8 +11913,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       await Promise.all([
         loadDownstreamForecastOnly(),
         loadDownstreamSummary(),
-        loadDownstreamBacktest(force),
-        loadDownstreamManualHistory()
+        loadDownstreamBacktest(force)
       ]);
       downstreamForecastLoaded = true;
       setDownstreamStatus("Đã cập nhật", "ok");
@@ -11836,6 +11959,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
     if(name==='forecast') loadForecasts();
     if(name==='downstreamforecast') loadDownstreamForecastTab(false);
+    if(name==='downstreammanual') { setDownstreamManualNow(); loadDownstreamManualHistory(); }
     if(name==='monthlyreport') loadMonthlyReport(false);
     if(name==='pcttdanang' && typeof loadPcttDanang==='function') loadPcttDanang(false);
     if(name==='weathermap') {
