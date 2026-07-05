@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương • Dashboard • AI • V65</title>
+  <title>A Vương • Dashboard • AI • V66</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -5713,6 +5713,44 @@ body.slideshow-frame-mode section{
   .downstream-flood-list,.downstream-flood-mini{grid-template-columns:1fr 1fr}
 }
 
+
+/* =========================================================
+   DOWNSTREAM V66 - manual input + current data
+   ========================================================= */
+.downstream-current-btn{
+  border-color:rgba(16,185,129,.24)!important;
+  background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(236,253,245,.96))!important;
+  color:#047857!important;
+}
+.downstream-manual-card{
+  background:
+    radial-gradient(260px 170px at 0% 0%, rgba(16,185,129,.09), transparent 62%),
+    #fff;
+}
+.downstream-manual-grid{
+  display:grid;
+  grid-template-columns:1.1fr repeat(3,minmax(0,.75fr)) 1.4fr;
+  gap:10px;
+  align-items:end;
+}
+.downstream-field-wide{
+  grid-column:auto;
+}
+.downstream-history-wrap{
+  margin-top:12px;
+}
+.downstream-history-wrap table td:first-child{
+  min-width:150px;
+}
+@media(max-width:1400px){
+  .downstream-manual-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .downstream-field-wide{grid-column:span 2}
+}
+@media(max-width:720px){
+  .downstream-manual-grid{grid-template-columns:1fr}
+  .downstream-field-wide{grid-column:auto}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -6354,6 +6392,7 @@ body.slideshow-frame-mode section{
               </div>
               <div class="downstream-toolbar">
                 <span class="downstream-status" id="dsStatus">Chưa tải</span>
+                <button class="downstream-current-btn" type="button" onclick="loadDownstreamCurrentInput()">📡 Số liệu hiện tại</button>
                 <button class="downstream-random-btn" type="button" onclick="randomDownstreamHistoricalInput()">🎲 Random quá khứ</button>
                 <button class="primary" type="button" onclick="loadDownstreamForecastTab(true)">Cập nhật</button>
               </div>
@@ -6387,6 +6426,70 @@ body.slideshow-frame-mode section{
             <div class="downstream-note">
               <b>Ghi chú vận hành:</b> ngưỡng cảnh báo lấy từ bảng <code>downstream_alarm_thresholds</code>. Kết quả mô hình là công cụ hỗ trợ ra quyết định, không thay thế số liệu quan trắc và bản tin chỉ huy vận hành.
               <div id="dsInputNote" class="downstream-input-note">Dữ liệu mặc định là mẫu kiểm thử. Có thể bấm <b>Random quá khứ</b> để nạp một bộ số liệu lịch sử thật rồi bấm <b>Cập nhật</b>.</div>
+            </div>
+          </section>
+
+          <section class="downstream-card downstream-manual-card">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">✍️</div>
+                <div>
+                  <h2>Nhập mực nước hạ du hiện tại</h2>
+                  <p>Vận hành nhập tay Hội Khách và Ái Nghĩa theo mét; dashboard lưu vào Supabase. Khi có API hạ du, chỉ cần thay nguồn nhập tay bằng nguồn tự động.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <span class="downstream-status" id="dsManualStatus">Nhập tay</span>
+                <button type="button" onclick="saveDownstreamManualObservation()">Lưu số liệu hạ du</button>
+                <button type="button" onclick="loadDownstreamManualHistory()">Lịch sử</button>
+              </div>
+            </div>
+
+            <div class="downstream-manual-grid">
+              <div class="downstream-field">
+                <label>Thời gian quan trắc</label>
+                <input id="dsManualObsTime" type="datetime-local">
+              </div>
+              <div class="downstream-field">
+                <label>Hội Khách (m)</label>
+                <input id="dsManualHoiKhachM" type="number" step="0.01" placeholder="14.20">
+              </div>
+              <div class="downstream-field">
+                <label>Ái Nghĩa (m)</label>
+                <input id="dsManualAiNghiaM" type="number" step="0.01" placeholder="7.60">
+              </div>
+              <div class="downstream-field">
+                <label>Người nhập</label>
+                <input id="dsManualCreatedBy" type="text" value="operator">
+              </div>
+              <div class="downstream-field downstream-field-wide">
+                <label>Ghi chú</label>
+                <input id="dsManualNote" type="text" placeholder="Ví dụ: số liệu vận hành ca sáng">
+              </div>
+            </div>
+
+            <div class="downstream-note">
+              <b>Quy trình vận hành:</b> nhập/lưu mực nước hạ du → bấm <b>Số liệu hiện tại</b> để nạp Hội Khách, Ái Nghĩa và delta từ Supabase; Q vận hành hồ được lấy từ tab PCTT nếu đã có dữ liệu.
+            </div>
+
+            <div class="downstream-history-wrap" id="dsManualHistoryWrap" style="display:none">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Hội Khách</th>
+                      <th>Ái Nghĩa</th>
+                      <th>Nguồn</th>
+                      <th>Người nhập</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dsManualHistoryBody">
+                    <tr><td colspan="6">Chưa tải lịch sử.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
@@ -11037,6 +11140,243 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     toast("Đã random một bộ số liệu lịch sử. Bấm Cập nhật để chạy dự báo.");
   }
 
+
+  function setDownstreamManualStatus(text, cls=""){
+    const el = $("dsManualStatus");
+    if(!el) return;
+    el.className = "downstream-status" + (cls ? " " + cls : "");
+    el.textContent = text;
+  }
+
+  function setDownstreamManualNow(){
+    const el = $("dsManualObsTime");
+    if(!el || el.value) return;
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    el.value = local;
+  }
+
+  function setDsFieldValue(key, value, digits=2){
+    const el = $("ds_" + key);
+    const n = Number(value);
+    if(!el || !Number.isFinite(n)) return false;
+    el.value = n.toFixed(digits).replace(/\.00$/, "");
+    return true;
+  }
+
+  function getPcttLatestReleaseForReservoir(id){
+    try{
+      if(typeof getLatestReservoirData !== "function") return null;
+      const item = getLatestReservoirData(id);
+      const r = item?.reservoir || null;
+      if(!r) return null;
+      const turbine = Number(r.turbineFlow);
+      const spill = Number(r.spillwayFlow);
+      const parts = [];
+      if(Number.isFinite(turbine)) parts.push(turbine);
+      if(Number.isFinite(spill)) parts.push(spill);
+      if(parts.length) {
+        return {
+          time: item.time,
+          value: parts.reduce((a,b)=>a+b,0),
+          turbineFlow: Number.isFinite(turbine) ? turbine : null,
+          spillwayFlow: Number.isFinite(spill) ? spill : null
+        };
+      }
+      return null;
+    }catch(e){
+      console.warn("get PCTT reservoir release failed", e);
+      return null;
+    }
+  }
+
+  function pickBasinNumberForDownstream(basin, keys){
+    if(!basin) return null;
+    for(const k of keys){
+      const v = basin[k];
+      const n = Number(v);
+      if(Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
+  function collectDownstreamReservoirCurrentInput(){
+    const empty = { values:{}, sourceTime:null, count:0 };
+    try{
+      if(typeof pcttRows === "undefined" || !Array.isArray(pcttRows) || !pcttRows.length) return empty;
+
+      const av = getPcttLatestReleaseForReservoir(1);
+      const dm = getPcttLatestReleaseForReservoir(2);
+      const sb = getPcttLatestReleaseForReservoir(3);
+      const st = getPcttLatestReleaseForReservoir(4);
+
+      const valueOf = x => Number.isFinite(Number(x?.value)) ? Number(x.value) : null;
+      const avQ = valueOf(av);
+      const dmQ = valueOf(dm);
+      const sbQ = valueOf(sb);
+      const stQ = valueOf(st);
+
+      const vals = {};
+      if(Number.isFinite(avQ)) vals.A_Vuong_Qra = avQ;
+      if(Number.isFinite(dmQ)) vals.DakMi4_Qra = dmQ;
+      if(Number.isFinite(sbQ)) vals.SongBung4_Qra = sbQ;
+      if(Number.isFinite(stQ)) vals.SongTranh2_Qra = stQ;
+
+      const vuGia3 = [avQ, dmQ, sbQ].filter(Number.isFinite).reduce((a,b)=>a+b,0);
+      const all4 = [avQ, dmQ, sbQ, stQ].filter(Number.isFinite).reduce((a,b)=>a+b,0);
+      if(Number.isFinite(vuGia3) && [avQ, dmQ, sbQ].filter(Number.isFinite).length) vals.VuGia_3ho_Qra = vuGia3;
+      if(Number.isFinite(all4) && [avQ, dmQ, sbQ, stQ].filter(Number.isFinite).length) vals.All4_Qra = all4;
+
+      const latestRow = [...pcttRows].sort((a,b)=>new Date(b.time)-new Date(a.time))[0] || {};
+      const basin = latestRow.basin || {};
+      const qveVuGia = pickBasinNumberForDownstream(basin, [
+        "qveVuGia","qve_vu_gia","q_ve_vu_gia","qVuGia","q_vu_gia","VuGia","vuGia","qve_vugia"
+      ]);
+      const qveThuBon = pickBasinNumberForDownstream(basin, [
+        "qveThuBon","qve_thu_bon","q_ve_thu_bon","qThuBon","q_thu_bon","ThuBon","thuBon","qve_thubon"
+      ]);
+
+      vals.PCTT_Qve_VuGia = Number.isFinite(qveVuGia) ? qveVuGia : vals.VuGia_3ho_Qra;
+      vals.PCTT_Qve_ThuBon = Number.isFinite(qveThuBon) ? qveThuBon : vals.SongTranh2_Qra;
+
+      const sourceTime = latestRow.time || av?.time || dm?.time || sb?.time || st?.time || null;
+      return { values: vals, sourceTime, count: Object.keys(vals).length };
+    }catch(e){
+      console.warn("collect downstream reservoir current input failed", e);
+      return empty;
+    }
+  }
+
+  function applyDownstreamReservoirCurrentInput(){
+    const pack = collectDownstreamReservoirCurrentInput();
+    Object.entries(pack.values || {}).forEach(([k,v]) => setDsFieldValue(k, v, 2));
+    return pack;
+  }
+
+  async function ensurePcttForDownstream(){
+    try{
+      if(typeof pcttLoaded !== "undefined" && !pcttLoaded && typeof loadPcttDanang === "function"){
+        await loadPcttDanang(false);
+      }
+    }catch(e){
+      console.warn("Không tải được PCTT cho dự báo hạ du", e);
+    }
+  }
+
+  async function loadDownstreamCurrentInput(){
+    try{
+      downstreamLoadedHistoricalSample = false;
+      setDownstreamStatus("Đang nạp số liệu hiện tại...");
+      const res = await fetch("/api/downstream-forecast?mode=latest-input", { cache:"no-store" });
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const d = data.downstream || {};
+      setDownstreamInputValues({
+        Hoi_Khach_cm: Number(d.Hoi_Khach_cm),
+        Ai_Nghia_cm: Number(d.Ai_Nghia_cm),
+        HK_Delta_1h: Number(d.HK_Delta_1h_cm || 0),
+        HK_Delta_3h: Number(d.HK_Delta_3h_cm || 0),
+        AN_Delta_1h: Number(d.AN_Delta_1h_cm || 0),
+        AN_Delta_3h: Number(d.AN_Delta_3h_cm || 0)
+      });
+
+      // Đồng bộ luôn form nhập tay để vận hành nhìn lại số liệu đang dùng
+      if($("dsManualHoiKhachM") && Number.isFinite(Number(d.Hoi_Khach_m))) $("dsManualHoiKhachM").value = Number(d.Hoi_Khach_m).toFixed(2);
+      if($("dsManualAiNghiaM") && Number.isFinite(Number(d.Ai_Nghia_m))) $("dsManualAiNghiaM").value = Number(d.Ai_Nghia_m).toFixed(2);
+      if($("dsManualNote")) $("dsManualNote").value = d.note || "";
+      if($("dsManualCreatedBy")) $("dsManualCreatedBy").value = d.created_by || "operator";
+
+      await ensurePcttForDownstream();
+      const reservoirPack = applyDownstreamReservoirCurrentInput();
+
+      const note = $("dsInputNote");
+      if(note){
+        note.innerHTML = `📡 Đã nạp số liệu hiện tại: hạ du từ <b>Supabase nhập tay</b> lúc <b>${formatDownstreamSampleTime(d.obs_time)}</b>; Q hồ từ <b>PCTT</b>${reservoirPack.sourceTime ? ` lúc <b>${formatDownstreamSampleTime(reservoirPack.sourceTime)}</b>` : ""}. Bấm <b>Cập nhật</b> để chạy dự báo.`;
+      }
+
+      setDownstreamStatus("Đã nạp số liệu hiện tại", "ok");
+      toast("Đã nạp số liệu hiện tại vào form dự báo.");
+    }catch(e){
+      console.error(e);
+      setDownstreamStatus("Lỗi nạp hiện tại", "err");
+      toast("Lỗi nạp số liệu hiện tại: " + e.message);
+    }
+  }
+
+  async function saveDownstreamManualObservation(){
+    try{
+      setDownstreamManualStatus("Đang lưu...");
+      const obsEl = $("dsManualObsTime");
+      const obsTime = obsEl?.value ? new Date(obsEl.value).toISOString() : new Date().toISOString();
+      const payload = {
+        obs_time: obsTime,
+        hoi_khach_m: Number($("dsManualHoiKhachM")?.value),
+        ai_nghia_m: Number($("dsManualAiNghiaM")?.value),
+        note: $("dsManualNote")?.value || "",
+        created_by: $("dsManualCreatedBy")?.value || "operator"
+      };
+
+      if(!Number.isFinite(payload.hoi_khach_m) && !Number.isFinite(payload.ai_nghia_m)){
+        throw new Error("Cần nhập Hội Khách hoặc Ái Nghĩa");
+      }
+
+      const res = await fetch("/api/downstream-forecast?mode=save-manual", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      setDownstreamManualStatus("Đã lưu", "ok");
+      toast("Đã lưu số liệu hạ du vào Supabase.");
+      await loadDownstreamManualHistory();
+      await loadDownstreamCurrentInput();
+    }catch(e){
+      console.error(e);
+      setDownstreamManualStatus("Lỗi lưu", "err");
+      toast("Lỗi lưu số liệu hạ du: " + e.message);
+    }
+  }
+
+  async function loadDownstreamManualHistory(){
+    try{
+      setDownstreamManualStatus("Đang tải lịch sử...");
+      const res = await fetch("/api/downstream-forecast?mode=manual-history&limit=10", { cache:"no-store" });
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const wrap = $("dsManualHistoryWrap");
+      const body = $("dsManualHistoryBody");
+      if(wrap) wrap.style.display = "block";
+      if(body){
+        const rows = Array.isArray(data.data) ? data.data : [];
+        body.innerHTML = rows.length ? rows.map(r => `
+          <tr>
+            <td>${formatDownstreamSampleTime(r.obs_time)}</td>
+            <td>${fmtDsNumber(r.hoi_khach_m, 2)} m</td>
+            <td>${fmtDsNumber(r.ai_nghia_m, 2)} m</td>
+            <td>${r.source || "manual"}</td>
+            <td>${r.created_by || "-"}</td>
+            <td>${r.note || ""}</td>
+          </tr>
+        `).join("") : `<tr><td colspan="6">Chưa có dữ liệu nhập tay.</td></tr>`;
+      }
+      setDownstreamManualStatus("Đã tải lịch sử", "ok");
+    }catch(e){
+      console.error(e);
+      setDownstreamManualStatus("Lỗi lịch sử", "err");
+      toast("Lỗi tải lịch sử hạ du: " + e.message);
+    }
+  }
+
   function setDownstreamBacktestStation(station, autoLoad=false){
     const el = $("dsBacktestStation");
     if(el) el.value = station;
@@ -11437,6 +11777,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   async function loadDownstreamForecastTab(force=false){
+    setDownstreamManualNow();
     if(downstreamForecastLoaded && !force) {
       setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); }, 80);
       return;
@@ -11448,7 +11789,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       await Promise.all([
         loadDownstreamForecastOnly(),
         loadDownstreamSummary(),
-        loadDownstreamBacktest(force)
+        loadDownstreamBacktest(force),
+        loadDownstreamManualHistory()
       ]);
       downstreamForecastLoaded = true;
       setDownstreamStatus("Đã cập nhật", "ok");
@@ -11462,6 +11804,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   window.loadDownstreamForecastTab = loadDownstreamForecastTab;
   window.loadDownstreamBacktest = loadDownstreamBacktest;
   window.randomDownstreamHistoricalInput = randomDownstreamHistoricalInput;
+  window.loadDownstreamCurrentInput = loadDownstreamCurrentInput;
+  window.saveDownstreamManualObservation = saveDownstreamManualObservation;
+  window.loadDownstreamManualHistory = loadDownstreamManualHistory;
   window.setDownstreamBacktestStation = setDownstreamBacktestStation;
   window.setDownstreamBacktestHorizon = setDownstreamBacktestHorizon;
 
