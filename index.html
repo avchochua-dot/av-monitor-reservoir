@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương • Dashboard • AI • V63</title>
+  <title>A Vương • Dashboard • AI • V65</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -6349,7 +6349,7 @@ body.slideshow-frame-mode section{
                 <div class="downstream-title-icon">🌊</div>
                 <div>
                   <h2>Dự báo mực nước hạ du</h2>
-                  <p>Mô hình AI dự báo Hội Khách và Ái Nghĩa theo các mốc +4h, +6h, +12h; 4h dùng cảnh báo chính, 6h cảnh báo sớm, 12h tham khảo xu thế.</p>
+                  <p>Mô hình AI dự báo Hội Khách và Ái Nghĩa theo các mốc +4h, +6h, +12h; hiển thị theo mét, 4h dùng cảnh báo chính, 6h cảnh báo sớm, 12h tham khảo xu thế.</p>
                 </div>
               </div>
               <div class="downstream-toolbar">
@@ -6360,8 +6360,8 @@ body.slideshow-frame-mode section{
             </div>
 
             <div class="downstream-input-grid">
-              <div class="downstream-field"><label>Hội Khách (cm)</label><input id="ds_Hoi_Khach_cm" type="number" step="0.01" value="870"></div>
-              <div class="downstream-field"><label>Ái Nghĩa (cm)</label><input id="ds_Ai_Nghia_cm" type="number" step="0.01" value="270"></div>
+              <div class="downstream-field"><label>Hội Khách (m)</label><input id="ds_Hoi_Khach_cm" type="number" step="0.01" value="8.70"></div>
+              <div class="downstream-field"><label>Ái Nghĩa (m)</label><input id="ds_Ai_Nghia_cm" type="number" step="0.01" value="2.70"></div>
               <div class="downstream-field"><label>A Vương Qra</label><input id="ds_A_Vuong_Qra" type="number" step="0.01" value="0"></div>
               <div class="downstream-field"><label>Đắk Mi 4 Qra</label><input id="ds_DakMi4_Qra" type="number" step="0.01" value="29.23"></div>
               <div class="downstream-field"><label>Sông Bung 4 Qra</label><input id="ds_SongBung4_Qra" type="number" step="0.01" value="27"></div>
@@ -6375,10 +6375,10 @@ body.slideshow-frame-mode section{
             <details class="downstream-note">
               <summary style="cursor:pointer;font-weight:1000;color:#334155">Thông số biến động nâng cao</summary>
               <div class="downstream-input-grid" style="margin-top:12px">
-                <div class="downstream-field"><label>HK Δ1h</label><input id="ds_HK_Delta_1h" type="number" step="0.01" value="0"></div>
-                <div class="downstream-field"><label>HK Δ3h</label><input id="ds_HK_Delta_3h" type="number" step="0.01" value="0"></div>
-                <div class="downstream-field"><label>AN Δ1h</label><input id="ds_AN_Delta_1h" type="number" step="0.01" value="0"></div>
-                <div class="downstream-field"><label>AN Δ3h</label><input id="ds_AN_Delta_3h" type="number" step="0.01" value="0"></div>
+                <div class="downstream-field"><label>HK Δ1h (m)</label><input id="ds_HK_Delta_1h" type="number" step="0.01" value="0.00"></div>
+                <div class="downstream-field"><label>HK Δ3h (m)</label><input id="ds_HK_Delta_3h" type="number" step="0.01" value="0.00"></div>
+                <div class="downstream-field"><label>AN Δ1h (m)</label><input id="ds_AN_Delta_1h" type="number" step="0.01" value="0.00"></div>
+                <div class="downstream-field"><label>AN Δ3h (m)</label><input id="ds_AN_Delta_3h" type="number" step="0.01" value="0.00"></div>
                 <div class="downstream-field"><label>Q VuGia Δ1h</label><input id="ds_Q_VuGia_Delta_1h" type="number" step="0.01" value="0"></div>
                 <div class="downstream-field"><label>Q VuGia Δ3h</label><input id="ds_Q_VuGia_Delta_3h" type="number" step="0.01" value="0"></div>
               </div>
@@ -6393,7 +6393,7 @@ body.slideshow-frame-mode section{
           <div class="downstream-station-grid" id="dsStations">
             <section class="downstream-station">
               <div class="downstream-station-head">
-                <div><div class="downstream-station-name">Hội Khách</div><div class="downstream-current">-- <small>cm</small></div></div>
+                <div><div class="downstream-station-name">Hội Khách</div><div class="downstream-current">-- <small>m</small></div></div>
                 <span class="downstream-alarm normal">--</span>
               </div>
               <div class="downstream-forecast-list"><div class="downstream-forecast-item"><span>Đang tải</span><b>--</b></div></div>
@@ -6418,7 +6418,7 @@ body.slideshow-frame-mode section{
                 <div class="downstream-flood-head">
                   <div>
                     <div class="downstream-flood-title">Hội Khách</div>
-                    <div class="downstream-flood-max">1932 <small>cm</small></div>
+                    <div class="downstream-flood-max">19,32 <small>m</small></div>
                   </div>
                   <div class="downstream-flood-time">29/10/2025 15:00</div>
                 </div>
@@ -10952,6 +10952,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     "HK_Delta_1h","HK_Delta_3h","AN_Delta_1h","AN_Delta_3h","Q_VuGia_Delta_1h","Q_VuGia_Delta_3h"
   ];
 
+  // UI hiển thị mực nước hạ du theo mét để phù hợp thói quen vận hành/người dân.
+  // API và hệ số mô hình vẫn dùng cm, nên frontend tự đổi m <-> cm khi nhập/gọi API.
+  const DS_WATER_LEVEL_FIELDS = new Set([
+    "Hoi_Khach_cm", "Ai_Nghia_cm",
+    "HK_Delta_1h", "HK_Delta_3h",
+    "AN_Delta_1h", "AN_Delta_3h"
+  ]);
+
   const DOWNSTREAM_HISTORICAL_FLOOD_2025 = {
     HOI_KHACH: {
       station_name: "Hội Khách",
@@ -10981,7 +10989,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const el = $("ds_" + k);
       const v = sample[k];
       if(el && v !== undefined && v !== null && Number.isFinite(Number(v))){
-        el.value = Number(v).toFixed(2).replace(/\.00$/, "");
+        const n = Number(v);
+        // Các trường mực nước/delta lưu trong mẫu theo cm, hiển thị trên UI theo m.
+        if(DS_WATER_LEVEL_FIELDS.has(k)){
+          el.value = (n / 100).toFixed(2);
+        }else{
+          el.value = n.toFixed(2).replace(/\.00$/, "");
+        }
       }
     });
   }
@@ -11056,6 +11070,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return n.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 
+  function dsCmToM(value){
+    const n = Number(value);
+    return Number.isFinite(n) ? n / 100 : null;
+  }
+
+  function fmtDsCmAsM(value, digits=2){
+    const m = dsCmToM(value);
+    if(!Number.isFinite(m)) return "--";
+    return fmtDsNumber(m, digits);
+  }
+
   function fmtDsTime(value){
     if(!value) return "--";
     try{
@@ -11076,7 +11101,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     DS_FIELDS.forEach(k => {
       const el = $("ds_" + k);
       const n = Number(el?.value);
-      input[k] = Number.isFinite(n) ? n : 0;
+      // UI nhập m cho mực nước/delta; API/mô hình nhận cm.
+      input[k] = Number.isFinite(n)
+        ? (DS_WATER_LEVEL_FIELDS.has(k) ? n * 100 : n)
+        : 0;
     });
     return input;
   }
@@ -11139,8 +11167,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   function dsGapText(gap){
     const g = Number(gap);
     if(!Number.isFinite(g)) return "--";
-    if(g >= 0) return `-${fmtDsNumber(g, 0)} cm`;
-    return `+${fmtDsNumber(Math.abs(g), 0)} cm`;
+    if(g >= 0) return `-${fmtDsCmAsM(g, 2)} m`;
+    return `+${fmtDsCmAsM(Math.abs(g), 2)} m`;
   }
 
   function dsForecastMap(station){
@@ -11172,14 +11200,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         ["BĐ II", hist.bd2_cm],
         ["BĐ III", hist.bd3_cm],
         ["Max 2025", hist.max_2025_cm]
-      ].map(x => `<div>${x[0]}<b>${fmtDsNumber(x[1], 0)} cm</b></div>`).join("");
+      ].map(x => `<div>${x[0]}<b>${fmtDsCmAsM(x[1], 2)} m</b></div>`).join("");
 
       return `
         <div class="downstream-flood-card">
           <div class="downstream-flood-head">
             <div>
               <div class="downstream-flood-title">${hist.station_name}</div>
-              <div class="downstream-flood-max">${fmtDsNumber(hist.max_2025_cm, 0)} <small>cm</small></div>
+              <div class="downstream-flood-max">${fmtDsCmAsM(hist.max_2025_cm, 2)} <small>m</small></div>
             </div>
             <div class="downstream-flood-time">${fmtDsTime(hist.max_2025_time)}</div>
           </div>
@@ -11209,10 +11237,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const forecasts = (st.forecasts || []).map(f => `
         <div class="downstream-forecast-item">
           <span>${f.horizon_hours} giờ tới</span>
-          <b>${fmtDsNumber(f.forecast_water_level_cm, 2)}</b>
+          <b>${fmtDsCmAsM(f.forecast_water_level_cm, 2)} <small>m</small></b>
           <small>
             Mục tiêu: ${fmtDsTime(f.target_time)}<br>
-            MAE: ${fmtDsNumber(f.model_quality?.test_mae_cm, 2)} cm
+            MAE: ${fmtDsCmAsM(f.model_quality?.test_mae_cm, 2)} m
           </small>
         </div>
       `).join("");
@@ -11222,7 +11250,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           <div class="downstream-station-head">
             <div>
               <div class="downstream-station-name">${st.station_name || st.station_code}</div>
-              <div class="downstream-current">${fmtDsNumber(st.current_water_level_cm, 0)} <small>cm</small></div>
+              <div class="downstream-current">${fmtDsCmAsM(st.current_water_level_cm, 2)} <small>m</small></div>
             </div>
             <span class="downstream-alarm ${st.alarm_level || "normal"}">${alarmText(st.alarm_level)}</span>
           </div>
@@ -11237,7 +11265,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
             const gap12 = dsGapToHistoricalMax(f[12], st.station_code);
             return `
               <div class="downstream-flood-compare">
-                Đỉnh lũ 2025: <b>${fmtDsNumber(hist.max_2025_cm,0)} cm</b> lúc <b>${fmtDsTime(hist.max_2025_time)}</b>.
+                Đỉnh lũ 2025: <b>${fmtDsCmAsM(hist.max_2025_cm,2)} m</b> lúc <b>${fmtDsTime(hist.max_2025_time)}</b>.
                 Hiện tại cách <b class="${dsGapClass(currentGap)}">${dsGapText(currentGap)}</b>;
                 +4h <b class="${dsGapClass(gap4)}">${dsGapText(gap4)}</b>;
                 +6h <b class="${dsGapClass(gap6)}">${dsGapText(gap6)}</b>;
@@ -11284,7 +11312,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         <div class="downstream-metric">
           <span>${r.model_code}</span>
           <b>R² ${fmtDsNumber(r.test_r2, 3)}</b>
-          <small>MAE ${fmtDsNumber(r.test_mae_cm, 2)} cm · RMSE ${fmtDsNumber(r.test_rmse_cm, 2)} cm</small>
+          <small>MAE ${fmtDsCmAsM(r.test_mae_cm, 2)} m · RMSE ${fmtDsCmAsM(r.test_rmse_cm, 2)} m</small>
         </div>
       `).join("");
     }
@@ -11316,10 +11344,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(tbody){
       tbody.innerHTML = `
         <tr><td>Số điểm</td><td>${s.n_rows ?? 0}</td></tr>
-        <tr><td>Bias</td><td>${fmtDsNumber(s.bias_cm, 2)} cm</td></tr>
-        <tr><td>MAE</td><td>${fmtDsNumber(s.mae_cm, 2)} cm</td></tr>
-        <tr><td>RMSE</td><td>${fmtDsNumber(s.rmse_cm, 2)} cm</td></tr>
-        <tr><td>Sai số lớn nhất</td><td>${fmtDsNumber(s.max_abs_error_cm, 2)} cm</td></tr>
+        <tr><td>Bias</td><td>${fmtDsCmAsM(s.bias_cm, 2)} m</td></tr>
+        <tr><td>MAE</td><td>${fmtDsCmAsM(s.mae_cm, 2)} m</td></tr>
+        <tr><td>RMSE</td><td>${fmtDsCmAsM(s.rmse_cm, 2)} m</td></tr>
+        <tr><td>Sai số lớn nhất</td><td>${fmtDsCmAsM(s.max_abs_error_cm, 2)} m</td></tr>
       `;
     }
 
@@ -11330,8 +11358,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     const rows = data?.data || [];
     const labels = rows.map(r => fmtDsTime(r.forecast_time));
-    const forecast = rows.map(r => Number(r.forecast_water_level_cm));
-    const actual = rows.map(r => Number(r.actual_water_level_cm));
+    const forecast = rows.map(r => dsCmToM(r.forecast_water_level_cm));
+    const actual = rows.map(r => dsCmToM(r.actual_water_level_cm));
 
     const ctx = $("downstreamBacktestChart");
     if(!ctx || typeof Chart === "undefined") return;
@@ -11374,7 +11402,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           legend: { position: "top" },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${fmtDsNumber(ctx.parsed.y, 2)} cm`
+              label: (ctx) => `${ctx.dataset.label}: ${fmtDsNumber(ctx.parsed.y, 2)} m`
             }
           }
         },
@@ -11386,7 +11414,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           y: {
             ticks: { color: "#64748b", font: { size: 11, weight: "700" } },
             grid: { color: "rgba(15,23,42,.06)" },
-            title: { display: true, text: "cm" }
+            title: { display: true, text: "m" }
           }
         }
       }
