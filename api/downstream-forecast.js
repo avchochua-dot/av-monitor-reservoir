@@ -49,18 +49,6 @@ function toDateOnly(value) {
   return d.toISOString().slice(0, 10);
 }
 
-function toIsoTime(value) {
-  if (!value) return new Date().toISOString();
-
-  const d = new Date(String(value));
-
-  if (Number.isNaN(d.getTime())) {
-    throw new Error("obs_time không hợp lệ");
-  }
-
-  return d.toISOString();
-}
-
 function readBody(req) {
   if (!req.body) return {};
 
@@ -79,6 +67,50 @@ function pickValue(req, body, key, defaultValue = null) {
   if (body && body[key] !== undefined) return body[key];
   if (req.query && req.query[key] !== undefined) return req.query[key];
   return defaultValue;
+}
+
+function toIsoTime(value) {
+  if (!value) return new Date().toISOString();
+
+  const d = new Date(String(value));
+
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("Thời gian không hợp lệ");
+  }
+
+  return d.toISOString();
+}
+
+function toIsoHour(value) {
+  const d = value ? new Date(String(value)) : new Date();
+
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("obs_hour không hợp lệ");
+  }
+
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString();
+}
+
+function buildObsTimeFromDateHour(req, body) {
+  const obsDate = pickValue(req, body, "obs_date", null);
+  const obsHour = pickValue(req, body, "obs_hour_value", null);
+
+  if (!obsDate || obsHour === null || obsHour === undefined || obsHour === "") {
+    return null;
+  }
+
+  const h = Number(obsHour);
+
+  if (!Number.isInteger(h) || h < 0 || h > 23) {
+    throw new Error("obs_hour_value phải là số nguyên từ 0 đến 23");
+  }
+
+  const hh = String(h).padStart(2, "0");
+
+  // Theo vận hành Việt Nam: ngày + giờ local UTC+7.
+  // Chuyển về UTC khi lưu timestamptz.
+  return `${obsDate}T${hh}:00:00+07:00`;
 }
 
 async function supabaseSelect(path) {
@@ -147,6 +179,43 @@ async function supabaseInsert(path, payload) {
     return JSON.parse(body);
   } catch {
     throw new Error(`Supabase insert response is not JSON: ${body.slice(0, 300)}`);
+  }
+}
+
+async function supabaseUpsert(path, payload, onConflict) {
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  const url =
+    `${SUPABASE_URL}/rest/v1/${path}` +
+    `?on_conflict=${encodeURIComponent(onConflict)}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase REST UPSERT ${response.status}: ${body}`);
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new Error(`Supabase upsert response is not JSON: ${body.slice(0, 300)}`);
   }
 }
 
@@ -443,9 +512,14 @@ async function handleForecast(req, res) {
 async function handleSaveManual(req, res) {
   const body = readBody(req);
 
-  const obsTime = toIsoTime(
-    pickValue(req, body, "obs_time", null)
-  );
+  const obsTimeRaw =
+    pickValue(req, body, "obs_time", null) ||
+    pickValue(req, body, "obs_hour", null) ||
+    pickValue(req, body, "time", null) ||
+    buildObsTimeFromDateHour(req, body);
+
+  const obsTime = toIsoTime(obsTimeRaw);
+  const obsHour = toIsoHour(obsTimeRaw);
 
   const hoiKhachM = num(
     pickValue(req, body, "hoi_khach_m", null)
@@ -487,20 +561,32 @@ async function handleSaveManual(req, res) {
     });
   }
 
-  const inserted = await supabaseInsert("downstream_manual_observations", {
+  const nowIso = new Date().toISOString();
+
+  const payload = {
     obs_time: obsTime,
+    obs_hour: obsHour,
     hoi_khach_m: hoiKhachM,
     ai_nghia_m: aiNghiaM,
     source: "manual",
     note,
     created_by: createdBy,
-  });
+    updated_at: nowIso,
+  };
+
+  const upserted = await supabaseUpsert(
+    "downstream_manual_observations",
+    payload,
+    "obs_hour"
+  );
 
   return json(res, 200, {
     ok: true,
     mode: "save-manual",
-    message: "Đã lưu số liệu hạ du",
-    data: inserted?.[0] || null,
+    action: "upsert_by_obs_hour",
+    message: "Đã lưu/ghi đè số liệu hạ du theo giờ",
+    obs_hour: obsHour,
+    data: upserted?.[0] || null,
   });
 }
 
@@ -528,7 +614,8 @@ async function handleLatestInput(req, res) {
     },
     downstream: {
       id: latest.id,
-      obs_time: latest.obs_time,
+      obs_hour: latest.obs_hour || null,
+      obs_time: latest.obs_time || latest.obs_hour || null,
 
       Hoi_Khach_m: round(latest.hoi_khach_m, 2),
       Ai_Nghia_m: round(latest.ai_nghia_m, 2),
@@ -552,6 +639,7 @@ async function handleLatestInput(req, res) {
       note: latest.note || "",
       created_by: latest.created_by || "",
       created_at: latest.created_at || null,
+      updated_at: latest.updated_at || null,
     },
   });
 }
@@ -560,7 +648,7 @@ async function handleManualHistory(req, res) {
   const limit = Math.min(num(req.query.limit, 50), 500);
 
   const rows = await supabaseSelect(
-    `downstream_manual_observations?select=id,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at&order=obs_time.desc&limit=${limit}`
+    `downstream_manual_observations?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at&order=obs_hour.desc&limit=${limit}`
   );
 
   return json(res, 200, {
@@ -988,10 +1076,11 @@ export default async function handler(req, res) {
         "manual-history",
       ],
       examples: [
-        "/api/downstream-forecast?mode=forecast&Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
         "/api/downstream-forecast?mode=latest-input",
         "/api/downstream-forecast?mode=manual-history&limit=20",
-        "/api/downstream-forecast?mode=save-manual&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
+        "/api/downstream-forecast?mode=save-manual&obs_time=2026-07-05T22:00:00+07:00&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
+        "/api/downstream-forecast?mode=save-manual&obs_date=2026-07-05&obs_hour_value=22&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
+        "/api/downstream-forecast?mode=forecast&Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
         "/api/downstream-forecast?mode=backtest&station=HOI_KHACH&horizon=6&start=2025-09-01&end=2025-12-31",
         "/api/downstream-forecast?mode=summary&station=AI_NGHIA&horizon=12",
       ],
@@ -1002,7 +1091,7 @@ export default async function handler(req, res) {
       mode: req.query.mode || "forecast",
       error: err.message,
       hint:
-        "Kiểm tra SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, bảng/view downstream forecast trong Supabase",
+        "Kiểm tra SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, unique index obs_hour, bảng/view downstream forecast trong Supabase",
     });
   }
 }
