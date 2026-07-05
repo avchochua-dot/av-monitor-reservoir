@@ -3,8 +3,8 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function json(res, status, data, cache = "no-store") {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Cache-Control", cache);
   return res.status(status).json(data);
 }
@@ -49,6 +49,38 @@ function toDateOnly(value) {
   return d.toISOString().slice(0, 10);
 }
 
+function toIsoTime(value) {
+  if (!value) return new Date().toISOString();
+
+  const d = new Date(String(value));
+
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("obs_time không hợp lệ");
+  }
+
+  return d.toISOString();
+}
+
+function readBody(req) {
+  if (!req.body) return {};
+
+  if (typeof req.body === "object") {
+    return req.body;
+  }
+
+  try {
+    return JSON.parse(req.body);
+  } catch {
+    return {};
+  }
+}
+
+function pickValue(req, body, key, defaultValue = null) {
+  if (body && body[key] !== undefined) return body[key];
+  if (req.query && req.query[key] !== undefined) return req.query[key];
+  return defaultValue;
+}
+
 async function supabaseSelect(path) {
   if (!SUPABASE_URL) {
     throw new Error("Missing SUPABASE_URL");
@@ -73,13 +105,48 @@ async function supabaseSelect(path) {
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Supabase REST ${response.status}: ${body}`);
+    throw new Error(`Supabase REST SELECT ${response.status}: ${body}`);
   }
 
   try {
     return JSON.parse(body);
   } catch {
     throw new Error(`Supabase response is not JSON: ${body.slice(0, 300)}`);
+  }
+}
+
+async function supabaseInsert(path, payload) {
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase REST INSERT ${response.status}: ${body}`);
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new Error(`Supabase insert response is not JSON: ${body.slice(0, 300)}`);
   }
 }
 
@@ -366,6 +433,141 @@ async function handleForecast(req, res) {
     forecast_time: forecastTime.toISOString(),
     input,
     stations,
+  });
+}
+
+/* ======================================================
+   MANUAL DOWNSTREAM OBSERVATION
+====================================================== */
+
+async function handleSaveManual(req, res) {
+  const body = readBody(req);
+
+  const obsTime = toIsoTime(
+    pickValue(req, body, "obs_time", null)
+  );
+
+  const hoiKhachM = num(
+    pickValue(req, body, "hoi_khach_m", null)
+  );
+
+  const aiNghiaM = num(
+    pickValue(req, body, "ai_nghia_m", null)
+  );
+
+  const note = text(
+    pickValue(req, body, "note", "")
+  );
+
+  const createdBy = text(
+    pickValue(req, body, "created_by", "operator")
+  );
+
+  if (hoiKhachM === null && aiNghiaM === null) {
+    return json(res, 400, {
+      ok: false,
+      mode: "save-manual",
+      error: "Cần nhập ít nhất hoi_khach_m hoặc ai_nghia_m",
+    });
+  }
+
+  if (hoiKhachM !== null && (hoiKhachM < 0 || hoiKhachM > 30)) {
+    return json(res, 400, {
+      ok: false,
+      mode: "save-manual",
+      error: "hoi_khach_m ngoài khoảng hợp lý 0-30 m",
+    });
+  }
+
+  if (aiNghiaM !== null && (aiNghiaM < 0 || aiNghiaM > 20)) {
+    return json(res, 400, {
+      ok: false,
+      mode: "save-manual",
+      error: "ai_nghia_m ngoài khoảng hợp lý 0-20 m",
+    });
+  }
+
+  const inserted = await supabaseInsert("downstream_manual_observations", {
+    obs_time: obsTime,
+    hoi_khach_m: hoiKhachM,
+    ai_nghia_m: aiNghiaM,
+    source: "manual",
+    note,
+    created_by: createdBy,
+  });
+
+  return json(res, 200, {
+    ok: true,
+    mode: "save-manual",
+    message: "Đã lưu số liệu hạ du",
+    data: inserted?.[0] || null,
+  });
+}
+
+async function handleLatestInput(req, res) {
+  const rows = await supabaseSelect(
+    "downstream_latest_manual_with_delta?select=*&limit=1"
+  );
+
+  const latest = rows?.[0] || null;
+
+  if (!latest) {
+    return json(res, 404, {
+      ok: false,
+      mode: "latest-input",
+      error: "Chưa có số liệu hạ du nhập tay",
+    });
+  }
+
+  return json(res, 200, {
+    ok: true,
+    mode: "latest-input",
+    source: {
+      downstream: "manual_supabase",
+      reservoir: "pctt_or_frontend_current_state",
+    },
+    downstream: {
+      id: latest.id,
+      obs_time: latest.obs_time,
+
+      Hoi_Khach_m: round(latest.hoi_khach_m, 2),
+      Ai_Nghia_m: round(latest.ai_nghia_m, 2),
+
+      Hoi_Khach_cm: round(latest.hoi_khach_cm, 2),
+      Ai_Nghia_cm: round(latest.ai_nghia_cm, 2),
+
+      HK_Delta_1h_cm: round(latest.hk_delta_1h_cm, 2),
+      HK_Delta_3h_cm: round(latest.hk_delta_3h_cm, 2),
+
+      AN_Delta_1h_cm: round(latest.an_delta_1h_cm, 2),
+      AN_Delta_3h_cm: round(latest.an_delta_3h_cm, 2),
+
+      HK_Delta_1h_m: round(Number(latest.hk_delta_1h_cm || 0) / 100, 2),
+      HK_Delta_3h_m: round(Number(latest.hk_delta_3h_cm || 0) / 100, 2),
+
+      AN_Delta_1h_m: round(Number(latest.an_delta_1h_cm || 0) / 100, 2),
+      AN_Delta_3h_m: round(Number(latest.an_delta_3h_cm || 0) / 100, 2),
+
+      source: latest.source || "manual",
+      note: latest.note || "",
+      created_by: latest.created_by || "",
+      created_at: latest.created_at || null,
+    },
+  });
+}
+
+async function handleManualHistory(req, res) {
+  const limit = Math.min(num(req.query.limit, 50), 500);
+
+  const rows = await supabaseSelect(
+    `downstream_manual_observations?select=id,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at&order=obs_time.desc&limit=${limit}`
+  );
+
+  return json(res, 200, {
+    ok: true,
+    mode: "manual-history",
+    limit,
+    data: rows || [],
   });
 }
 
@@ -708,13 +910,6 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true });
     }
 
-    if (req.method !== "GET") {
-      return json(res, 405, {
-        ok: false,
-        error: "Method not allowed",
-      });
-    }
-
     if (req.query.debug === "env") {
       return json(res, 200, {
         ok: true,
@@ -724,6 +919,49 @@ export default async function handler(req, res) {
     }
 
     const mode = String(req.query.mode || "forecast").toLowerCase();
+
+    if (mode === "save-manual") {
+      if (req.method !== "POST" && req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "save-manual chỉ hỗ trợ POST hoặc GET test nhanh",
+        });
+      }
+
+      return handleSaveManual(req, res);
+    }
+
+    if (mode === "latest-input" || mode === "current-input") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "latest-input chỉ hỗ trợ GET",
+        });
+      }
+
+      return handleLatestInput(req, res);
+    }
+
+    if (mode === "manual-history") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "manual-history chỉ hỗ trợ GET",
+        });
+      }
+
+      return handleManualHistory(req, res);
+    }
+
+    if (req.method !== "GET") {
+      return json(res, 405, {
+        ok: false,
+        error: "Method not allowed",
+      });
+    }
 
     if (mode === "forecast" || mode === "predict") {
       return handleForecast(req, res);
@@ -740,9 +978,20 @@ export default async function handler(req, res) {
     return json(res, 400, {
       ok: false,
       error: "mode không hợp lệ",
-      supported_modes: ["forecast", "backtest", "summary"],
+      supported_modes: [
+        "forecast",
+        "backtest",
+        "summary",
+        "save-manual",
+        "latest-input",
+        "current-input",
+        "manual-history",
+      ],
       examples: [
         "/api/downstream-forecast?mode=forecast&Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
+        "/api/downstream-forecast?mode=latest-input",
+        "/api/downstream-forecast?mode=manual-history&limit=20",
+        "/api/downstream-forecast?mode=save-manual&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
         "/api/downstream-forecast?mode=backtest&station=HOI_KHACH&horizon=6&start=2025-09-01&end=2025-12-31",
         "/api/downstream-forecast?mode=summary&station=AI_NGHIA&horizon=12",
       ],
