@@ -108,8 +108,6 @@ function buildObsTimeFromDateHour(req, body) {
 
   const hh = String(h).padStart(2, "0");
 
-  // Theo vận hành Việt Nam: ngày + giờ local UTC+7.
-  // Chuyển về UTC khi lưu timestamptz.
   return `${obsDate}T${hh}:00:00+07:00`;
 }
 
@@ -274,7 +272,7 @@ function parseTtbHtmlTable(html) {
 
   for (let i = 1; i < rowMatches.length; i++) {
     const cols = [...rowMatches[i].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)]
-      .map(m => stripHtml(m[1]));
+      .map((m) => stripHtml(m[1]));
 
     if (cols.length < 3) continue;
 
@@ -304,6 +302,7 @@ async function fetchTtbStationSeries({
   tableName = "mucnuoc_oday",
   stepMinutes = 60,
   aggregate = 0,
+  timeoutMs = 15000,
 }) {
   const startText = formatVnApiDateTime(startTime);
   const endText = formatVnApiDateTime(endTime);
@@ -317,30 +316,57 @@ async function fetchTtbStationSeries({
     `&thoigianbd=${encodeURIComponent(`'${startText}'`)}` +
     `&thoigiankt=${encodeURIComponent(`'${endText}'`)}`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "*/*",
-      "User-Agent": "av-downstream-sync/1.0",
-    },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  const textBody = await response.text();
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "*/*",
+        "User-Agent": "av-downstream-sync/1.0",
+      },
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(
-      `TTB API ${stationId} lỗi HTTP ${response.status}: ${textBody.slice(0, 300)}`
-    );
+    const textBody = await response.text();
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        stationId,
+        url,
+        count: 0,
+        data: [],
+        error: `TTB API ${stationId} lỗi HTTP ${response.status}: ${textBody.slice(0, 300)}`,
+      };
+    }
+
+    const rows = parseTtbHtmlTable(textBody);
+
+    return {
+      ok: true,
+      stationId,
+      url,
+      count: rows.length,
+      data: rows,
+      sample: textBody.slice(0, 200),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      stationId,
+      url,
+      count: 0,
+      data: [],
+      error:
+        err?.name === "AbortError"
+          ? `Timeout sau ${timeoutMs}ms`
+          : err?.message || "Unknown fetch error",
+    };
+  } finally {
+    clearTimeout(timer);
   }
-
-  const rows = parseTtbHtmlTable(textBody);
-
-  return {
-    stationId,
-    url,
-    count: rows.length,
-    data: rows,
-  };
 }
 
 function mergeObservedStations(hkRows, anRows) {
@@ -348,6 +374,7 @@ function mergeObservedStations(hkRows, anRows) {
 
   for (const row of hkRows || []) {
     const key = row.obs_hour;
+
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -369,6 +396,7 @@ function mergeObservedStations(hkRows, anRows) {
 
   for (const row of anRows || []) {
     const key = row.obs_hour;
+
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -406,7 +434,7 @@ async function fetchExistingObservedRows(startIso, endIso) {
 
 function buildSyncPlan(mergedRows, existingRows) {
   const existingMap = new Map(
-    (existingRows || []).map(row => [String(row.obs_hour), row])
+    (existingRows || []).map((row) => [String(row.obs_hour), row])
   );
 
   const toUpsert = [];
@@ -902,35 +930,87 @@ async function handleManualHistory(req, res) {
    OBSERVED / TTB SYNC
 ====================================================== */
 
+async function handleDebugTtb(req, res) {
+  const stationId = String(req.query.station_id || "553100");
+  const hours = Math.min(Math.max(num(req.query.hours, 24), 1), 168);
+
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const result = await fetchTtbStationSeries({
+    stationId,
+    startTime,
+    endTime,
+    tableName: "mucnuoc_oday",
+    stepMinutes: 60,
+    aggregate: 0,
+    timeoutMs: 15000,
+  });
+
+  return json(res, result.ok ? 200 : 502, {
+    ok: result.ok,
+    mode: "debug-ttb",
+    station_id: stationId,
+    hours,
+    result,
+  });
+}
+
 async function handleSyncTtb(req, res) {
   const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
 
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
 
-  const [hoiKhach, aiNghia] = await Promise.all([
-    fetchTtbStationSeries({
-      stationId: "553100",
-      startTime,
-      endTime,
-      tableName: "mucnuoc_oday",
-      stepMinutes: 60,
-      aggregate: 0,
-    }),
-    fetchTtbStationSeries({
-      stationId: "553300",
-      startTime,
-      endTime,
-      tableName: "mucnuoc_oday",
-      stepMinutes: 60,
-      aggregate: 0,
-    }),
-  ]);
+  const hoiKhach = await fetchTtbStationSeries({
+    stationId: "553100",
+    startTime,
+    endTime,
+    tableName: "mucnuoc_oday",
+    stepMinutes: 60,
+    aggregate: 0,
+    timeoutMs: 15000,
+  });
+
+  const aiNghia = await fetchTtbStationSeries({
+    stationId: "553300",
+    startTime,
+    endTime,
+    tableName: "mucnuoc_oday",
+    stepMinutes: 60,
+    aggregate: 0,
+    timeoutMs: 15000,
+  });
+
+  if (!hoiKhach.ok && !aiNghia.ok) {
+    return json(res, 502, {
+      ok: false,
+      mode: "sync-ttb",
+      error: "Không lấy được dữ liệu từ cả 2 trạm TTB",
+      diagnostics: {
+        hoi_khach: hoiKhach,
+        ai_nghia: aiNghia,
+      },
+    });
+  }
 
   const mergedRows = mergeObservedStations(
-    hoiKhach.data,
-    aiNghia.data
+    hoiKhach.ok ? hoiKhach.data : [],
+    aiNghia.ok ? aiNghia.data : []
   );
+
+  if (!mergedRows.length) {
+    return json(res, 200, {
+      ok: true,
+      mode: "sync-ttb",
+      message: "Không có dữ liệu mới để đồng bộ",
+      diagnostics: {
+        hoi_khach: hoiKhach,
+        ai_nghia: aiNghia,
+      },
+      mergedCount: 0,
+    });
+  }
 
   const startIso = mergedRows[0]?.obs_hour || startTime.toISOString();
   const endIso = mergedRows[mergedRows.length - 1]?.obs_hour || endTime.toISOString();
@@ -958,12 +1038,16 @@ async function handleSyncTtb(req, res) {
     },
     sourceStations: {
       hoi_khach: {
+        ok: hoiKhach.ok,
         station_id: "553100",
         count: hoiKhach.count,
+        error: hoiKhach.error || null,
       },
       ai_nghia: {
+        ok: aiNghia.ok,
         station_id: "553300",
         count: aiNghia.count,
+        error: aiNghia.error || null,
       },
     },
     mergedCount: mergedRows.length,
@@ -1417,6 +1501,18 @@ export default async function handler(req, res) {
       return handleManualHistory(req, res);
     }
 
+    if (mode === "debug-ttb") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "debug-ttb chỉ hỗ trợ GET",
+        });
+      }
+
+      return handleDebugTtb(req, res);
+    }
+
     if (mode === "sync-ttb") {
       if (req.method !== "GET" && req.method !== "POST") {
         return json(res, 405, {
@@ -1483,6 +1579,7 @@ export default async function handler(req, res) {
         "latest-input",
         "current-input",
         "manual-history",
+        "debug-ttb",
         "sync-ttb",
         "observed-latest",
         "observed-history",
@@ -1492,6 +1589,8 @@ export default async function handler(req, res) {
         "/api/downstream-forecast?mode=manual-history&limit=20",
         "/api/downstream-forecast?mode=observed-latest",
         "/api/downstream-forecast?mode=observed-history&hours=72",
+        "/api/downstream-forecast?mode=debug-ttb&station_id=553100&hours=24",
+        "/api/downstream-forecast?mode=debug-ttb&station_id=553300&hours=24",
         "/api/downstream-forecast?mode=sync-ttb&hours=72",
         "/api/downstream-forecast?mode=save-manual&obs_time=2026-07-05T22:00:00+07:00&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
         "/api/downstream-forecast?mode=save-manual&obs_date=2026-07-05&obs_hour_value=22&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
