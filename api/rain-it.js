@@ -1,3 +1,8 @@
+headers: {
+  "X-API-KEY": API_KEY,
+  "Accept": "application/json",
+  "User-Agent": "VDV-DamSafety-Dashboard/1.0"
+}
 export default async function handler(req, res) {
   const API_KEY = process.env.IT_RAIN_API_KEY;
   const BASE_URL = "http://14.241.121.249:89/api/QuanTracRain";
