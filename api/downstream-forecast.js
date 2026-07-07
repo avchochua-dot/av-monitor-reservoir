@@ -220,6 +220,241 @@ async function supabaseUpsert(path, payload, onConflict) {
 }
 
 /* ======================================================
+   TTB SYNC HELPERS
+====================================================== */
+
+function formatVnApiDateTime(date) {
+  const d = new Date(date);
+
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("Ngày giờ không hợp lệ");
+  }
+
+  const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+
+  const yyyy = vn.getUTCFullYear();
+  const mm = String(vn.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(vn.getUTCDate()).padStart(2, "0");
+  const hh = String(vn.getUTCHours()).padStart(2, "0");
+  const mi = String(vn.getUTCMinutes()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+function toIsoHourFromVnString(value) {
+  const s = String(value || "").trim();
+  const normalized = s.replace(" ", "T");
+  const iso = normalized.includes("+")
+    ? normalized
+    : `${normalized}+07:00`;
+
+  const d = new Date(iso);
+
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString();
+}
+
+function stripHtml(str) {
+  return String(str || "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .trim();
+}
+
+function parseTtbHtmlTable(html) {
+  const rowMatches = String(html || "").match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const rows = [];
+
+  for (let i = 1; i < rowMatches.length; i++) {
+    const cols = [...rowMatches[i].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)]
+      .map(m => stripHtml(m[1]));
+
+    if (cols.length < 3) continue;
+
+    const stationId = cols[0];
+    const rawTime = cols[1];
+    const value = num(cols[2], null);
+    const obsHour = toIsoHourFromVnString(rawTime);
+
+    if (!obsHour || value === null) continue;
+
+    rows.push({
+      station_id: stationId,
+      raw_time: rawTime,
+      obs_hour: obsHour,
+      value_m: round(value, 2),
+      value_cm: round(value * 100, 2),
+    });
+  }
+
+  return rows;
+}
+
+async function fetchTtbStationSeries({
+  stationId,
+  startTime,
+  endTime,
+  tableName = "mucnuoc_oday",
+  stepMinutes = 60,
+  aggregate = 0,
+}) {
+  const startText = formatVnApiDateTime(startTime);
+  const endText = formatVnApiDateTime(endTime);
+
+  const url =
+    "http://203.209.181.170:2018/API_TTB/XUAT/solieu.php" +
+    `?matram=${encodeURIComponent(stationId)}` +
+    `&ten_table=${encodeURIComponent(tableName)}` +
+    `&sophut=${encodeURIComponent(stepMinutes)}` +
+    `&tinhtong=${encodeURIComponent(aggregate)}` +
+    `&thoigianbd=${encodeURIComponent(`'${startText}'`)}` +
+    `&thoigiankt=${encodeURIComponent(`'${endText}'`)}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "*/*",
+      "User-Agent": "av-downstream-sync/1.0",
+    },
+  });
+
+  const textBody = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `TTB API ${stationId} lỗi HTTP ${response.status}: ${textBody.slice(0, 300)}`
+    );
+  }
+
+  const rows = parseTtbHtmlTable(textBody);
+
+  return {
+    stationId,
+    url,
+    count: rows.length,
+    data: rows,
+  };
+}
+
+function mergeObservedStations(hkRows, anRows) {
+  const map = new Map();
+
+  for (const row of hkRows || []) {
+    const key = row.obs_hour;
+    if (!map.has(key)) {
+      map.set(key, {
+        obs_time: key,
+        obs_hour: key,
+        hoi_khach_m: null,
+        ai_nghia_m: null,
+        hoi_khach_cm: null,
+        ai_nghia_cm: null,
+        source: "api_ttb",
+        note: "sync-72h-ttb",
+        created_by: "system",
+      });
+    }
+
+    const item = map.get(key);
+    item.hoi_khach_m = row.value_m;
+    item.hoi_khach_cm = row.value_cm;
+  }
+
+  for (const row of anRows || []) {
+    const key = row.obs_hour;
+    if (!map.has(key)) {
+      map.set(key, {
+        obs_time: key,
+        obs_hour: key,
+        hoi_khach_m: null,
+        ai_nghia_m: null,
+        hoi_khach_cm: null,
+        ai_nghia_cm: null,
+        source: "api_ttb",
+        note: "sync-72h-ttb",
+        created_by: "system",
+      });
+    }
+
+    const item = map.get(key);
+    item.ai_nghia_m = row.value_m;
+    item.ai_nghia_cm = row.value_cm;
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.obs_hour).getTime() - new Date(b.obs_hour).getTime()
+  );
+}
+
+async function fetchExistingObservedRows(startIso, endIso) {
+  const path =
+    "downstream_manual_observations" +
+    `?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,updated_at` +
+    `&obs_hour=gte.${encodeURIComponent(startIso)}` +
+    `&obs_hour=lte.${encodeURIComponent(endIso)}` +
+    `&order=obs_hour.asc`;
+
+  return supabaseSelect(path);
+}
+
+function buildSyncPlan(mergedRows, existingRows) {
+  const existingMap = new Map(
+    (existingRows || []).map(row => [String(row.obs_hour), row])
+  );
+
+  const toUpsert = [];
+  const skippedManual = [];
+  const overwrittenApi = [];
+  const inserted = [];
+
+  for (const row of mergedRows || []) {
+    const existed = existingMap.get(String(row.obs_hour));
+
+    if (!existed) {
+      inserted.push(row.obs_hour);
+      toUpsert.push({
+        ...row,
+        updated_at: new Date().toISOString(),
+      });
+      continue;
+    }
+
+    if (String(existed.source || "").toLowerCase() === "manual") {
+      skippedManual.push({
+        obs_hour: row.obs_hour,
+        source: existed.source,
+      });
+      continue;
+    }
+
+    overwrittenApi.push({
+      obs_hour: row.obs_hour,
+      old_source: existed.source || "unknown",
+    });
+
+    toUpsert.push({
+      ...row,
+      id: existed.id,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  return {
+    toUpsert,
+    skippedManual,
+    overwrittenApi,
+    inserted,
+  };
+}
+
+/* ======================================================
    FORECAST REALTIME
 ====================================================== */
 
@@ -584,7 +819,7 @@ async function handleSaveManual(req, res) {
     ok: true,
     mode: "save-manual",
     action: "upsert_by_obs_hour",
-    message: "Đã lưu/ghi đè số liệu hạ du theo giờ",
+    message: "Đã lưu/ghi đè số liệu hạ du theo giờ. Manual được ưu tiên cao hơn API.",
     obs_hour: obsHour,
     data: upserted?.[0] || null,
   });
@@ -648,7 +883,11 @@ async function handleManualHistory(req, res) {
   const limit = Math.min(num(req.query.limit, 50), 500);
 
   const rows = await supabaseSelect(
-    `downstream_manual_observations?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at&order=obs_hour.desc&limit=${limit}`
+    "downstream_manual_observations" +
+    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
+    "&source=eq.manual" +
+    "&order=obs_hour.desc" +
+    `&limit=${limit}`
   );
 
   return json(res, 200, {
@@ -657,6 +896,140 @@ async function handleManualHistory(req, res) {
     limit,
     data: rows || [],
   });
+}
+
+/* ======================================================
+   OBSERVED / TTB SYNC
+====================================================== */
+
+async function handleSyncTtb(req, res) {
+  const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
+
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const [hoiKhach, aiNghia] = await Promise.all([
+    fetchTtbStationSeries({
+      stationId: "553100",
+      startTime,
+      endTime,
+      tableName: "mucnuoc_oday",
+      stepMinutes: 60,
+      aggregate: 0,
+    }),
+    fetchTtbStationSeries({
+      stationId: "553300",
+      startTime,
+      endTime,
+      tableName: "mucnuoc_oday",
+      stepMinutes: 60,
+      aggregate: 0,
+    }),
+  ]);
+
+  const mergedRows = mergeObservedStations(
+    hoiKhach.data,
+    aiNghia.data
+  );
+
+  const startIso = mergedRows[0]?.obs_hour || startTime.toISOString();
+  const endIso = mergedRows[mergedRows.length - 1]?.obs_hour || endTime.toISOString();
+
+  const existingRows = await fetchExistingObservedRows(startIso, endIso);
+  const plan = buildSyncPlan(mergedRows, existingRows);
+
+  let upserted = [];
+
+  if (plan.toUpsert.length) {
+    upserted = await supabaseUpsert(
+      "downstream_manual_observations",
+      plan.toUpsert,
+      "obs_hour"
+    );
+  }
+
+  return json(res, 200, {
+    ok: true,
+    mode: "sync-ttb",
+    hours,
+    period: {
+      start: startIso,
+      end: endIso,
+    },
+    sourceStations: {
+      hoi_khach: {
+        station_id: "553100",
+        count: hoiKhach.count,
+      },
+      ai_nghia: {
+        station_id: "553300",
+        count: aiNghia.count,
+      },
+    },
+    mergedCount: mergedRows.length,
+    insertedCount: plan.inserted.length,
+    overwrittenApiCount: plan.overwrittenApi.length,
+    skippedManualCount: plan.skippedManual.length,
+    upsertedCount: upserted.length,
+    skippedManual: plan.skippedManual,
+  });
+}
+
+async function handleObservedLatest(req, res) {
+  const rows = await supabaseSelect(
+    "downstream_manual_observations" +
+    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
+    "&order=obs_hour.desc&limit=1"
+  );
+
+  const latest = rows?.[0] || null;
+
+  if (!latest) {
+    return json(res, 404, {
+      ok: false,
+      mode: "observed-latest",
+      error: "Chưa có dữ liệu observed",
+    });
+  }
+
+  return json(
+    res,
+    200,
+    {
+      ok: true,
+      mode: "observed-latest",
+      data: latest,
+    },
+    "s-maxage=120, stale-while-revalidate=300"
+  );
+}
+
+async function handleObservedHistory(req, res) {
+  const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
+
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const rows = await supabaseSelect(
+    "downstream_manual_observations" +
+    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
+    `&obs_hour=gte.${encodeURIComponent(startTime.toISOString())}` +
+    `&obs_hour=lte.${encodeURIComponent(endTime.toISOString())}` +
+    "&order=obs_hour.asc"
+  );
+
+  return json(
+    res,
+    200,
+    {
+      ok: true,
+      mode: "observed-history",
+      hours,
+      count: rows.length,
+      data: rows,
+    },
+    "s-maxage=120, stale-while-revalidate=300"
+  );
 }
 
 /* ======================================================
@@ -1044,6 +1417,42 @@ export default async function handler(req, res) {
       return handleManualHistory(req, res);
     }
 
+    if (mode === "sync-ttb") {
+      if (req.method !== "GET" && req.method !== "POST") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "sync-ttb chỉ hỗ trợ GET hoặc POST",
+        });
+      }
+
+      return handleSyncTtb(req, res);
+    }
+
+    if (mode === "observed-latest") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "observed-latest chỉ hỗ trợ GET",
+        });
+      }
+
+      return handleObservedLatest(req, res);
+    }
+
+    if (mode === "observed-history") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error: "observed-history chỉ hỗ trợ GET",
+        });
+      }
+
+      return handleObservedHistory(req, res);
+    }
+
     if (req.method !== "GET") {
       return json(res, 405, {
         ok: false,
@@ -1074,10 +1483,16 @@ export default async function handler(req, res) {
         "latest-input",
         "current-input",
         "manual-history",
+        "sync-ttb",
+        "observed-latest",
+        "observed-history",
       ],
       examples: [
         "/api/downstream-forecast?mode=latest-input",
         "/api/downstream-forecast?mode=manual-history&limit=20",
+        "/api/downstream-forecast?mode=observed-latest",
+        "/api/downstream-forecast?mode=observed-history&hours=72",
+        "/api/downstream-forecast?mode=sync-ttb&hours=72",
         "/api/downstream-forecast?mode=save-manual&obs_time=2026-07-05T22:00:00+07:00&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
         "/api/downstream-forecast?mode=save-manual&obs_date=2026-07-05&obs_hour_value=22&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
         "/api/downstream-forecast?mode=forecast&Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
