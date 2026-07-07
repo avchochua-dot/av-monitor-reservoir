@@ -302,7 +302,7 @@ async function fetchTtbStationSeries({
   tableName = "mucnuoc_oday",
   stepMinutes = 60,
   aggregate = 0,
-  timeoutMs = 15000,
+  timeoutMs = 12000,
 }) {
   const startText = formatVnApiDateTime(startTime);
   const endText = formatVnApiDateTime(endTime);
@@ -944,7 +944,7 @@ async function handleDebugTtb(req, res) {
     tableName: "mucnuoc_oday",
     stepMinutes: 60,
     aggregate: 0,
-    timeoutMs: 15000,
+    timeoutMs: 12000,
   });
 
   return json(res, result.ok ? 200 : 502, {
@@ -962,25 +962,26 @@ async function handleSyncTtb(req, res) {
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
 
-  const hoiKhach = await fetchTtbStationSeries({
-    stationId: "553100",
-    startTime,
-    endTime,
-    tableName: "mucnuoc_oday",
-    stepMinutes: 60,
-    aggregate: 0,
-    timeoutMs: 15000,
-  });
-
-  const aiNghia = await fetchTtbStationSeries({
-    stationId: "553300",
-    startTime,
-    endTime,
-    tableName: "mucnuoc_oday",
-    stepMinutes: 60,
-    aggregate: 0,
-    timeoutMs: 15000,
-  });
+  const [hoiKhach, aiNghia] = await Promise.all([
+    fetchTtbStationSeries({
+      stationId: "553100",
+      startTime,
+      endTime,
+      tableName: "mucnuoc_oday",
+      stepMinutes: 60,
+      aggregate: 0,
+      timeoutMs: 12000,
+    }),
+    fetchTtbStationSeries({
+      stationId: "553300",
+      startTime,
+      endTime,
+      tableName: "mucnuoc_oday",
+      stepMinutes: 60,
+      aggregate: 0,
+      timeoutMs: 12000,
+    }),
+  ]);
 
   if (!hoiKhach.ok && !aiNghia.ok) {
     return json(res, 502, {
@@ -988,8 +989,18 @@ async function handleSyncTtb(req, res) {
       mode: "sync-ttb",
       error: "Không lấy được dữ liệu từ cả 2 trạm TTB",
       diagnostics: {
-        hoi_khach: hoiKhach,
-        ai_nghia: aiNghia,
+        hoi_khach: {
+          ok: hoiKhach.ok,
+          station_id: hoiKhach.stationId,
+          count: hoiKhach.count,
+          error: hoiKhach.error || null,
+        },
+        ai_nghia: {
+          ok: aiNghia.ok,
+          station_id: aiNghia.stationId,
+          count: aiNghia.count,
+          error: aiNghia.error || null,
+        },
       },
     });
   }
@@ -1005,8 +1016,18 @@ async function handleSyncTtb(req, res) {
       mode: "sync-ttb",
       message: "Không có dữ liệu mới để đồng bộ",
       diagnostics: {
-        hoi_khach: hoiKhach,
-        ai_nghia: aiNghia,
+        hoi_khach: {
+          ok: hoiKhach.ok,
+          station_id: hoiKhach.stationId,
+          count: hoiKhach.count,
+          error: hoiKhach.error || null,
+        },
+        ai_nghia: {
+          ok: aiNghia.ok,
+          station_id: aiNghia.stationId,
+          count: aiNghia.count,
+          error: aiNghia.error || null,
+        },
       },
       mergedCount: 0,
     });
