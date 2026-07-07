@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   try {
-    const API_KEY = process.env.1BXUPZVGkS35s6Y9EuohNd7ezn0wWvxJ;
+    const API_KEY = process.env.IT_RAIN_API_KEY;
     const BASE_URL = "http://14.241.121.249:89/api/QuanTracRain";
 
     if (!API_KEY) {
