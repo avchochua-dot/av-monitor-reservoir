@@ -75,6 +75,13 @@ function toIsoHour(value) {
   return d.toISOString();
 }
 
+function normalizeObsHourKey(value) {
+  const d = new Date(String(value || ""));
+  if (Number.isNaN(d.getTime())) return String(value || "");
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString();
+}
+
 function buildObsTimeFromDateHour(req, body) {
   const obsDate = pickValue(req, body, "obs_date", null);
   const obsHour = pickValue(req, body, "obs_hour_value", null);
@@ -151,6 +158,34 @@ async function supabaseUpsert(path, payload, onConflict) {
   } catch {
     throw new Error(`Supabase upsert response is not JSON: ${body.slice(0, 300)}`);
   }
+}
+
+async function supabaseUpsertMinimal(path, payload, onConflict) {
+  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
+  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+
+  const url =
+    `${SUPABASE_URL}/rest/v1/${path}` +
+    `?on_conflict=${encodeURIComponent(onConflict)}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase REST UPSERT ${response.status}: ${body}`);
+  }
+
+  return true;
 }
 
 /* ======================================================
@@ -362,7 +397,10 @@ async function fetchExistingObservedRows(startIso, endIso) {
 
 function buildSyncPlan(mergedRows, existingRows) {
   const existingMap = new Map(
-    (existingRows || []).map((row) => [String(row.obs_hour), row])
+    (existingRows || []).map((row) => [
+      normalizeObsHourKey(row.obs_hour),
+      row,
+    ])
   );
 
   const toUpsert = [];
@@ -371,7 +409,8 @@ function buildSyncPlan(mergedRows, existingRows) {
   const inserted = [];
 
   for (const row of mergedRows || []) {
-    const existed = existingMap.get(String(row.obs_hour));
+    const rowKey = normalizeObsHourKey(row.obs_hour);
+    const existed = existingMap.get(rowKey);
 
     if (!existed) {
       inserted.push(row.obs_hour);
@@ -410,8 +449,7 @@ function buildSyncPlan(mergedRows, existingRows) {
   };
 }
 
-async function upsertObservedRowsInBatches(rows, batchSize = 5) {
-  const all = [];
+async function upsertObservedRowsInBatches(rows, batchSize = 3) {
   const chunks = [];
 
   for (let i = 0; i < rows.length; i += batchSize) {
@@ -420,15 +458,14 @@ async function upsertObservedRowsInBatches(rows, batchSize = 5) {
 
   for (let i = 0; i < chunks.length; i++) {
     const batch = chunks[i];
-    const result = await supabaseUpsert(
+    await supabaseUpsertMinimal(
       "downstream_manual_observations",
       batch,
       "obs_hour"
     );
-    all.push(...(Array.isArray(result) ? result : []));
   }
 
-  return all;
+  return rows.length;
 }
 
 /* ======================================================
@@ -834,7 +871,7 @@ async function handleSyncTtb(req, res) {
   let mergedRows = [];
   let existingRows = [];
   let plan = null;
-  let upserted = [];
+  let upsertedCount = 0;
 
   try {
     [hoiKhach, aiNghia] = await Promise.all([
@@ -973,7 +1010,7 @@ async function handleSyncTtb(req, res) {
 
   try {
     if (plan.toUpsert.length) {
-      upserted = await upsertObservedRowsInBatches(plan.toUpsert, 5);
+      upsertedCount = await upsertObservedRowsInBatches(plan.toUpsert, 3);
     }
   } catch (err) {
     return json(res, 500, {
@@ -1020,7 +1057,7 @@ async function handleSyncTtb(req, res) {
     insertedCount: plan.inserted.length,
     overwrittenApiCount: plan.overwrittenApi.length,
     skippedManualCount: plan.skippedManual.length,
-    upsertedCount: upserted.length,
+    upsertedCount,
     skippedManual: plan.skippedManual,
   });
 }
@@ -1136,7 +1173,6 @@ function buildBacktestPath({
   );
 
   params.set("station_code", `eq.${station_code}`);
-
   if (horizon) params.set("horizon_hours", `eq.${horizon}`);
   if (split) params.set("split", `eq.${String(split).toUpperCase()}`);
   if (startDate) params.append("forecast_time", `gte.${startDate}T00:00:00+00:00`);
