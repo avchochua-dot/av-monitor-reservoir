@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     // 2. Khai báo biến môi trường và URL đích
     // Lưu ý: Đưa VRAIN_API_KEY vào Environment Variables của Vercel để bảo mật
     const API_KEY = process.env.VRAIN_API_KEY || "YOUR_FALLBACK_API_KEY"; 
-    const TARGET_URL = "https://vrain.vn/api/v2/stations/rain"; // Thay bằng URL thực tế nếu cần
+    const TARGET_URL = "http://14.241.121.249:89/api/QuanTracRain"; // Thay bằng URL thực tế nếu cần
 
     // 3. Xử lý Timeout 8.5s bằng AbortController
     const controller = new AbortController();
