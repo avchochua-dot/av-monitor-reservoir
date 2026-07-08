@@ -15,25 +15,28 @@ export default async function handler(req, res) {
 
   try {
     // 2. Khai báo biến môi trường và URL đích
-    // Lưu ý: Đưa VRAIN_API_KEY vào Environment Variables của Vercel để bảo mật
-    const API_KEY = process.env.VRAIN_API_KEY || "YOUR_FALLBACK_API_KEY"; 
-    const TARGET_URL = "http://14.241.121.249:89/api/QuanTracRain"; // Thay bằng URL thực tế nếu cần
+    const API_KEY = process.env.VRAIN_API_KEY || "YOUR_FALLBACK_API_KEY";
+    const TARGET_URL = "http://14.241.121.249:89/api/QuanTracRain";
 
     // 3. Xử lý Timeout 8.5s bằng AbortController
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8500);
 
-    // 4. Gọi API đích với cú pháp Header chuẩn xác
+    console.log("[rain-it] Bắt đầu gọi TARGET_URL:", TARGET_URL);
+    const startTime = Date.now();
+
+    // 4. Gọi API đích
     const response = await fetch(TARGET_URL, {
       method: 'GET',
       headers: {
         "Content-Type": "application/json",
-        "X-API-KEY": API_KEY // Lỗi cú pháp cũ đã được khắc phục tại đây
+        "X-API-KEY": API_KEY
       },
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
+    console.log(`[rain-it] Phản hồi sau ${Date.now() - startTime}ms, status:`, response.status);
 
     if (!response.ok) {
       throw new Error(`API đối tác phản hồi mã lỗi: ${response.status}`);
@@ -41,28 +44,47 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 5. Trả dữ liệu mượt mà về cho Frontend
+    // 5. Trả dữ liệu về cho Frontend
     return res.status(200).json({
       ok: true,
       data: data
     });
 
   } catch (error) {
-    console.error("Lỗi API Proxy /rain-it:", error);
+    // Log đầy đủ ra Vercel Runtime Logs để debug
+    console.error("Lỗi API Proxy /rain-it:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      cause: error.cause,
+      stack: error.stack
+    });
 
     // Bắt lỗi Timeout 8.5s
     if (error.name === 'AbortError') {
       return res.status(504).json({
         ok: false,
-        error: "Gateway Timeout: API đích mất quá 8.5s để phản hồi."
+        error: "Gateway Timeout: API đích mất quá 8.5s để phản hồi.",
+        code: 'TIMEOUT'
       });
     }
 
-    // Các lỗi Internal khác
+    // Các lỗi Internal khác — trả kèm chi tiết để debug
     return res.status(500).json({
       ok: false,
       error: "Internal Server Error: Không thể lấy dữ liệu.",
-      details: error.message
+      details: error.message,
+      name: error.name,
+      code: error.code || null,
+      cause: error.cause ? {
+        code: error.cause.code || null,
+        message: error.cause.message || String(error.cause)
+      } : null
     });
   }
 }
+
+// Ép chạy ở region Singapore để gần server đích hơn (giảm khả năng do độ trễ/xa)
+export const config = {
+  regions: ['sin1']
+};
