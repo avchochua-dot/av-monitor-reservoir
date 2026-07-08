@@ -14489,31 +14489,32 @@ body.slideshow-frame-mode .content::after{
 </script>
 
 
+
 <script>
 /* =========================================================
-   PCTT ĐÀ NẴNG MODULE
-   - Added on clean V45 base
-   - Does not modify QT1865 / Monthly AI / Notification pipelines
+   PCTT ĐÀ NẴNG MODULE - OBSERVED HẠ DU
+   - Tab PCTT dùng observed-latest / observed-history / sync-ttb
+   - Safe for file:// by using deployed Vercel domain as API base
    ========================================================= */
 (function(){
-  const PCTT_RESERVOIRS = {
-    1: {id:1, code:"AVUONG", name:"Hồ thủy điện A Vương", shortName:"A Vương", compactName:"A Vương", color:"#2563eb", soft:"rgba(37,99,235,.10)", border:"rgba(37,99,235,.24)", limits:{normal:380, preFloodMax:376, preFloodMin:370, dead:340}},
-    2: {id:2, code:"DAKMI4", name:"Hồ thủy điện Đăk Mi 4", shortName:"Đăk Mi 4", compactName:"Đăk Mi 4", color:"#f59e0b", soft:"rgba(245,158,11,.13)", border:"rgba(245,158,11,.28)", limits:{normal:258, preFloodMax:255, preFloodMin:251.5, dead:240}},
-    3: {id:3, code:"SONGBUNG4", name:"Hồ thủy điện Sông Bung 4", shortName:"Sông Bung 4", compactName:"S.Bung 4", color:"#10b981", soft:"rgba(16,185,129,.12)", border:"rgba(16,185,129,.26)", limits:{normal:222.5, preFloodMax:217.5, preFloodMin:216, dead:205}},
-    4: {id:4, code:"SONGTRANH2", name:"Hồ thủy điện Sông Tranh 2", shortName:"Sông Tranh 2", compactName:"S.Tranh 2", color:"#ef4444", soft:"rgba(239,68,68,.11)", border:"rgba(239,68,68,.25)", limits:{normal:175, preFloodMax:172, preFloodMin:165, dead:140}}
+  const PCTT_API_BASE = (location.protocol === "file:") ? "https://av-monitor-reservoir.vercel.app" : "";
+  const PCTT_STATIONS = {
+    1: {id:1, code:"HOI_KHACH", name:"Trạm hạ du Hội Khách", shortName:"Hội Khách", compactName:"Hội Khách", color:"#2563eb", soft:"rgba(37,99,235,.10)", border:"rgba(37,99,235,.24)"},
+    2: {id:2, code:"AI_NGHIA", name:"Trạm hạ du Ái Nghĩa", shortName:"Ái Nghĩa", compactName:"Ái Nghĩa", color:"#10b981", soft:"rgba(16,185,129,.12)", border:"rgba(16,185,129,.26)"}
   };
 
   let pcttRows = [];
+  let pcttLatest = null;
   let pcttLoaded = false;
   let pcttSelectedReservoirId = 1;
   let pcttSelectedHours = 24;
   let pcttReservoirChart = null;
   let pcttBasinChart = null;
   let pcttAutoTimer = null;
-  let pcttDuplicateStatsByPlant = [];
-  let pcttDuplicateStatsSummary = null;
+  let pcttLastSyncSummary = null;
 
   function el(id){ return document.getElementById(id); }
+  function apiUrl(path){ return `${PCTT_API_BASE}${path}`; }
 
   function setStatus(text, error){
     const node = el("pcttStatus");
@@ -14524,37 +14525,12 @@ body.slideshow-frame-mode .content::after{
     node.style.borderColor = error ? "rgba(239,68,68,.18)" : "rgba(37,99,235,.16)";
   }
 
-  function toVietnamIso(date){
-    const vn = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    const y = vn.getUTCFullYear();
-    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
-    const d = String(vn.getUTCDate()).padStart(2, "0");
-    const hh = String(vn.getUTCHours()).padStart(2, "0");
-    const mm = String(vn.getUTCMinutes()).padStart(2, "0");
-    const ss = String(vn.getUTCSeconds()).padStart(2, "0");
-    return `${y}-${m}-${d}T${hh}:${mm}:${ss}+07:00`;
-  }
-
-  function getLastOneMonthRange(){
-    const end = new Date();
-    const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return {
-      start: toVietnamIso(start),
-      end: toVietnamIso(end)
-    };
-  }
-
   function formatTime(value){
     if(!value) return "-";
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value);
     return d.toLocaleString("vi-VN", {
-      hour:"2-digit",
-      minute:"2-digit",
-      day:"2-digit",
-      month:"2-digit",
-      year:"numeric",
-      hour12:false
+      hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit", year:"numeric", hour12:false
     });
   }
 
@@ -14563,87 +14539,39 @@ body.slideshow-frame-mode .content::after{
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value);
     return d.toLocaleString("vi-VN", {
-      hour:"2-digit",
-      day:"2-digit",
-      month:"2-digit",
-      hour12:false
+      hour:"2-digit", day:"2-digit", month:"2-digit", hour12:false
     });
   }
 
-  function fmt(value, digits, opts){
-    const options = opts || {};
+  function fmt(value, digits){
     if(value === null || value === undefined || value === "") return "-";
     const n = Number(value);
     if(!Number.isFinite(n)) return "-";
-    if(options.zeroAsMissing && n === 0) return "-";
     return n.toLocaleString("vi-VN", {
+      minimumFractionDigits: digits ?? 2,
       maximumFractionDigits: digits ?? 2
     });
   }
 
-  function cleanLevel(value){
-    const n = Number(value);
-    if(!Number.isFinite(n)) return null;
-    if(n <= 0) return null;
-    return n;
+  function getSelectedStation(){
+    return PCTT_STATIONS[pcttSelectedReservoirId] || PCTT_STATIONS[1];
   }
 
-  function getRowsAsc(){
-    return [...pcttRows].sort((a,b)=>new Date(a.time)-new Date(b.time));
-  }
-
-  function getDisplayRows(){
-    return getRowsAsc().slice(-pcttSelectedHours);
-  }
-
-  function getReservoir(row, id){
-    return (row?.reservoirs || []).find(x=>Number(x.id) === Number(id)) || null;
-  }
-
-  function getLatestReservoirData(id){
-    const sorted = [...pcttRows].sort((a,b)=>new Date(b.time)-new Date(a.time));
-    for(const row of sorted){
-      const r = getReservoir(row, id);
-      if(!r) continue;
-      const validLevel = cleanLevel(r.waterLevel) !== null;
-      const hasAny = validLevel || r.inflow !== null || r.turbineFlow !== null || r.spillwayFlow !== null;
-      if(hasAny) return {time: row.time, reservoir: r, basin: row.basin || {}};
+  function getStationMetrics(row, stationId){
+    if(Number(stationId) === 1){
+      return {
+        m: Number.isFinite(Number(row?.hoi_khach_m)) ? Number(row.hoi_khach_m) : null,
+        cm: Number.isFinite(Number(row?.hoi_khach_cm)) ? Number(row.hoi_khach_cm) : null
+      };
     }
-    return null;
+    return {
+      m: Number.isFinite(Number(row?.ai_nghia_m)) ? Number(row.ai_nghia_m) : null,
+      cm: Number.isFinite(Number(row?.ai_nghia_cm)) ? Number(row.ai_nghia_cm) : null
+    };
   }
 
-  function renderReservoirButtons(){
-    const html = Object.values(PCTT_RESERVOIRS).map(cfg=>{
-      const active = Number(cfg.id) === Number(pcttSelectedReservoirId) ? "active" : "";
-      const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
-      const label = cfg.shortName;
-      return `<button type="button" class="pctt-res-btn ${active}" title="${cfg.name}" style="${style}" onclick="selectPcttReservoir(${cfg.id})">${label}</button>`;
-    }).join("");
-    const top = el("pcttReservoirButtonsTop");
-    const table = el("pcttReservoirButtonsTable");
-    if(top) top.innerHTML = html;
-    if(table) table.innerHTML = html;
-
-    const activeCfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
-    const chartCard = el("pcttReservoirChart")?.closest(".pctt-chart-card");
-    if(chartCard && activeCfg){
-      chartCard.style.setProperty("--active-res-color", activeCfg.color);
-      chartCard.style.setProperty("--active-res-soft", activeCfg.soft);
-    }
-  }
-
-  function renderHourButtons(){
-    document.querySelectorAll("[data-pctt-hours]").forEach(btn=>{
-      btn.classList.toggle("active", Number(btn.getAttribute("data-pctt-hours")) === Number(pcttSelectedHours));
-    });
-    const rBadge = el("pcttReservoirChartBadge");
-    const bBadge = el("pcttBasinChartBadge");
-    if(rBadge) rBadge.textContent = `${pcttSelectedHours}h`;
-    if(bBadge) bBadge.textContent = `${pcttSelectedHours}h`;
-  }
-
-  function metricHtml(icon, label, value, unit, options){
-    const shown = fmt(value, 2, options || {});
+  function metricHtml(icon, label, value, unit){
+    const shown = (value === null || value === undefined || Number.isNaN(Number(value))) ? "-" : fmt(value, unit === "cm" ? 0 : 2);
     return `
       <div class="pctt-metric">
         <div class="pctt-metric-head">
@@ -14658,81 +14586,206 @@ body.slideshow-frame-mode .content::after{
     `;
   }
 
+  function patchPcttStaticTexts(){
+    const tab = el("tab-pcttdanang");
+    if(!tab) return;
+
+    const headerTitle = tab.querySelector(".pctt-header-card .pctt-title h2");
+    const headerDesc = tab.querySelector(".pctt-header-card .pctt-title p");
+    if(headerTitle) headerTitle.textContent = "PCTT Đà Nẵng - Mực nước hạ du";
+    if(headerDesc) headerDesc.textContent = "Hiển thị số liệu mực nước hạ du tại Hội Khách và Ái Nghĩa từ bảng observed trên Supabase. Biểu đồ và bảng lọc nhanh 24h / 48h / 72h.";
+
+    const latestTitle = [...tab.querySelectorAll(".pctt-card .pctt-title h2")].find(n => /Thông số hiện tại/i.test(n.textContent||""));
+    if(latestTitle){
+      const p = latestTitle.parentElement?.querySelector("p");
+      if(p) p.textContent = "Lấy bản ghi observed mới nhất để hiển thị mực nước hạ du tại 2 trạm Hội Khách và Ái Nghĩa.";
+    }
+
+    const chartTitle = el("pcttReservoirChartTitle");
+    if(chartTitle) chartTitle.textContent = "Biểu đồ mực nước hạ du";
+    const chartSub = chartTitle?.parentElement?.querySelector(".pctt-chart-sub");
+    if(chartSub) chartSub.textContent = "Đường xu hướng mực nước (m) của Hội Khách và Ái Nghĩa theo khung đang chọn.";
+
+    const basinCard = el("pcttBasinChart");
+    const basinTitle = basinCard?.closest(".pctt-chart-card")?.querySelector(".pctt-chart-title");
+    const basinSub = basinCard?.closest(".pctt-chart-card")?.querySelector(".pctt-chart-sub");
+    if(basinTitle) basinTitle.textContent = "Mực nước quy đổi (cm)";
+    if(basinSub) basinSub.textContent = "Giá trị cm tương ứng để đối chiếu nhanh và phục vụ mô hình dự báo hạ du.";
+
+    const recentTitle = [...tab.querySelectorAll(".pctt-card .pctt-title h2")].find(n => /Bảng số liệu gần nhất/i.test(n.textContent||""));
+    if(recentTitle){
+      const p = recentTitle.parentElement?.querySelector("p");
+      if(p) p.textContent = "Hiển thị chuỗi observed mới nhất của 2 trạm theo khung thời gian đang chọn.";
+    }
+
+    const ruleSection = [...tab.querySelectorAll(".pctt-card")].find(sec => /Bảng quy định mực nước vận hành hồ chứa thủy điện/i.test(sec.textContent || ""));
+    if(ruleSection) ruleSection.style.display = "none";
+
+    const recentTable = tab.querySelector(".pctt-table");
+    if(recentTable){
+      recentTable.querySelector("thead").innerHTML = `
+        <tr>
+          <th>Thời gian</th>
+          <th>Nguồn</th>
+          <th>Hội Khách (m)</th>
+          <th>Hội Khách (cm)</th>
+          <th>Ái Nghĩa (m)</th>
+          <th>Ái Nghĩa (cm)</th>
+        </tr>
+      `;
+    }
+
+    const tableSwitch = el("pcttReservoirButtonsTable")?.closest(".pctt-switch-row");
+    if(tableSwitch) tableSwitch.style.display = "none";
+
+    const toolbar = tab.querySelector(".pctt-header-card .pctt-toolbar");
+    if(toolbar && !el("pcttSyncBtn")){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.id = "pcttSyncBtn";
+      btn.textContent = "Đồng bộ 72h";
+      btn.onclick = function(){ syncPcttObserved(); };
+      toolbar.insertBefore(btn, el("pcttStatus"));
+    }
+  }
+
+  function renderReservoirButtons(){
+    const html = Object.values(PCTT_STATIONS).map(cfg=>{
+      const active = Number(cfg.id) === Number(pcttSelectedReservoirId) ? "active" : "";
+      const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
+      return `<button type="button" class="pctt-res-btn ${active}" title="${cfg.name}" style="${style}" onclick="selectPcttReservoir(${cfg.id})">${cfg.shortName}</button>`;
+    }).join("");
+    const top = el("pcttReservoirButtonsTop");
+    if(top) top.innerHTML = html;
+  }
+
+  function renderHourButtons(){
+    document.querySelectorAll("[data-pctt-hours]").forEach(btn=>{
+      const active = Number(btn.getAttribute("data-pctt-hours")) === Number(pcttSelectedHours);
+      btn.classList.toggle("active", active);
+    });
+    const rBadge = el("pcttReservoirChartBadge");
+    const bBadge = el("pcttBasinChartBadge");
+    if(rBadge) rBadge.textContent = `${pcttSelectedHours}h`;
+    if(bBadge) bBadge.textContent = `${pcttSelectedHours}h`;
+  }
+
+  function renderPcttDuplicateKpis(){
+    const wrap = el("pcttDuplicateKpiRow");
+    if(!wrap) return;
+
+    const total = Array.isArray(pcttRows) ? pcttRows.length : 0;
+    const manualCount = pcttRows.filter(r => String(r?.source || "").toLowerCase() === "manual").length;
+    const apiCount = pcttRows.filter(r => String(r?.source || "").toLowerCase() !== "manual").length;
+    const latestTime = pcttLatest?.obs_time || pcttLatest?.obs_hour || pcttRows[pcttRows.length - 1]?.obs_time || null;
+
+    wrap.innerHTML = `
+      <div class="pctt-dup-kpi">
+        <div class="top"><span class="name">Bản ghi ${pcttSelectedHours}h</span><span class="dot" style="background:#2563eb"></span></div>
+        <div class="value">${total}</div>
+        <div class="meta"><span>Observed</span><b>${pcttSelectedHours} giờ</b></div>
+      </div>
+      <div class="pctt-dup-kpi ${apiCount === 0 ? "is-zero" : ""}">
+        <div class="top"><span class="name">Nguồn API_TTB</span><span class="dot" style="background:#0ea5e9"></span></div>
+        <div class="value">${apiCount}</div>
+        <div class="meta"><span>auto sync</span><b>${apiCount} dòng</b></div>
+      </div>
+      <div class="pctt-dup-kpi ${manualCount === 0 ? "is-zero" : ""}">
+        <div class="top"><span class="name">Nguồn manual</span><span class="dot" style="background:#10b981"></span></div>
+        <div class="value">${manualCount}</div>
+        <div class="meta"><span>giữ nguyên</span><b>${manualCount} dòng</b></div>
+      </div>
+      <div class="pctt-dup-kpi">
+        <div class="top"><span class="name">Cập nhật mới nhất</span><span class="dot" style="background:#f59e0b"></span></div>
+        <div class="value" style="font-size:18px;line-height:1.2">${latestTime ? formatTime(latestTime) : "-"}</div>
+        <div class="meta"><span>latest</span><b>${pcttLatest?.source || "-"}</b></div>
+      </div>
+    `;
+  }
+
   function renderLatestCards(){
     const wrap = el("pcttLatestCards");
     if(!wrap) return;
-    const html = Object.values(PCTT_RESERVOIRS).map(cfg=>{
-      const item = getLatestReservoirData(cfg.id);
-      const r = item?.reservoir || {};
+    if(!pcttLatest){
+      wrap.innerHTML = `<div class="soft-box left">Chưa có dữ liệu observed-latest.</div>`;
+      return;
+    }
+
+    wrap.innerHTML = Object.values(PCTT_STATIONS).map(cfg=>{
+      const metrics = getStationMetrics(pcttLatest, cfg.id);
       const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
       return `
         <div class="pctt-latest-card" style="${style}">
           <h3>${cfg.shortName}</h3>
-          <div class="time">${item ? formatTime(item.time) : "Chưa có dữ liệu"}</div>
+          <div class="time">${formatTime(pcttLatest.obs_time || pcttLatest.obs_hour)}</div>
           <div class="pctt-metric-grid">
-            ${metricHtml("🌊", "MNH", r.waterLevel, "m", {zeroAsMissing:true})}
-            ${metricHtml("↘", "Q về", r.inflow, "m³/s")}
-            ${metricHtml("⚙", "QCM", r.turbineFlow, "m³/s")}
-            ${metricHtml("↗", "Q xả", r.spillwayFlow, "m³/s")}
+            ${metricHtml("🌊", "Mực nước", metrics.m, "m")}
+            ${metricHtml("📏", "Quy đổi", metrics.cm, "cm")}
+            ${metricHtml("🗂", "Nguồn", pcttLatest.source ? 1 : null, "")}
+            <div class="pctt-metric">
+              <div class="pctt-metric-head">
+                <span class="pctt-metric-icon">ℹ️</span>
+                <span class="pctt-metric-label">Trạng thái</span>
+              </div>
+              <div class="pctt-metric-value">
+                <span class="pctt-metric-number" style="font-family:var(--font-sans);font-size:14px">${pcttLatest.source || "-"}</span>
+              </div>
+            </div>
           </div>
         </div>
       `;
     }).join("");
-    wrap.innerHTML = html;
-  }
-
-  function buildReservoirDatasets(rows, reservoirId){
-    const cfg = PCTT_RESERVOIRS[reservoirId];
-    const getSeries = key => rows.map(row=>{
-      const r = getReservoir(row, reservoirId);
-      if(!r) return null;
-      if(key === "waterLevel") return cleanLevel(r.waterLevel);
-      return r[key] ?? null;
-    });
-
-    const smoothLine = {pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true};
-    return [
-      {label:"MNH", yAxisID:"yLevel", data:getSeries("waterLevel"), borderColor:"#3b82f6", backgroundColor:"rgba(59,130,246,.10)", borderWidth:2.4, tension:.16, ...smoothLine},
-      {label:"Q về", yAxisID:"yFlow", data:getSeries("inflow"), borderColor:"#f43f5e", backgroundColor:"rgba(244,63,94,.10)", borderWidth:2.2, tension:.12, ...smoothLine},
-      {label:"Qcm/Q nhà máy", yAxisID:"yFlow", data:getSeries("turbineFlow"), borderColor:"#f59e0b", backgroundColor:"rgba(245,158,11,.10)", borderWidth:2.2, tension:.12, ...smoothLine},
-      {label:"Q xả", yAxisID:"yFlow", data:getSeries("spillwayFlow"), borderColor:"#eab308", backgroundColor:"rgba(234,179,8,.10)", borderWidth:2.1, tension:.10, ...smoothLine},
-      {label:"Dâng bình thường", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.normal), borderColor:"#14b8a6", backgroundColor:"rgba(20,184,166,.06)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
-      {label:"Trước lũ cao nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMax), borderColor:"#8b5cf6", backgroundColor:"rgba(139,92,246,.06)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
-      {label:"Đón lũ thấp nhất", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.preFloodMin), borderColor:"#94a3b8", backgroundColor:"rgba(148,163,184,.08)", borderDash:[7,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.5},
-      {label:"Mực nước chết", yAxisID:"yLevel", data:rows.map(()=>cfg.limits.dead), borderColor:"#38bdf8", backgroundColor:"rgba(56,189,248,.08)", borderDash:[4,5], pointRadius:0, pointHoverRadius:0, borderWidth:1.2}
-    ];
-  }
-
-  function calcQAxisMax(rows, reservoirId){
-    let qMax = 0;
-    rows.forEach(row=>{
-      const r = getReservoir(row, reservoirId);
-      if(!r) return;
-      ["inflow","turbineFlow","spillwayFlow"].forEach(k=>{
-        const n = Number(r[k]);
-        if(Number.isFinite(n)) qMax = Math.max(qMax, n);
-      });
-    });
-    return Math.max(10, Math.ceil(qMax * 2.2));
   }
 
   function renderReservoirChart(){
     const canvas = el("pcttReservoirChart");
     if(!canvas || !window.Chart) return;
-    const rows = getDisplayRows();
-    const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
-    const pad = Math.max(0.5, (cfg.limits.normal - cfg.limits.dead) * 0.06);
-    const qAxisMax = calcQAxisMax(rows, pcttSelectedReservoirId);
-
+    const rows = pcttRows || [];
+    const station = getSelectedStation();
     const title = el("pcttReservoirChartTitle");
-    if(title) title.textContent = `Biểu đồ vận hành - ${cfg.name}`;
+    if(title) title.textContent = `Biểu đồ mực nước hạ du - ${station.shortName}`;
 
     if(pcttReservoirChart) pcttReservoirChart.destroy();
+
+    const selectedData = rows.map(r => getStationMetrics(r, station.id).m);
+    const otherStation = station.id === 1 ? PCTT_STATIONS[2] : PCTT_STATIONS[1];
+    const otherData = rows.map(r => getStationMetrics(r, otherStation.id).m);
+    const all = selectedData.concat(otherData).filter(v => Number.isFinite(Number(v))).map(Number);
+    const minY = all.length ? Math.min(...all) : 0;
+    const maxY = all.length ? Math.max(...all) : 10;
+    const pad = Math.max(0.1, (maxY - minY || 1) * 0.2);
+
     pcttReservoirChart = new Chart(canvas.getContext("2d"), {
       type:"line",
       data:{
-        labels: rows.map(r=>formatHour(r.time)),
-        datasets: buildReservoirDatasets(rows, pcttSelectedReservoirId)
+        labels: rows.map(r=>formatHour(r.obs_time || r.obs_hour)),
+        datasets:[
+          {
+            label: station.shortName,
+            data: selectedData,
+            borderColor: station.color,
+            backgroundColor: station.soft,
+            borderWidth:2.6,
+            tension:.22,
+            pointRadius:0,
+            pointHoverRadius:3,
+            pointHitRadius:10,
+            spanGaps:true
+          },
+          {
+            label: otherStation.shortName,
+            data: otherData,
+            borderColor: otherStation.color,
+            backgroundColor: otherStation.soft,
+            borderWidth:2.0,
+            tension:.22,
+            pointRadius:0,
+            pointHoverRadius:3,
+            pointHitRadius:10,
+            spanGaps:true,
+            borderDash:[6,4]
+          }
+        ]
       },
       options:{
         responsive:true,
@@ -14740,23 +14793,13 @@ body.slideshow-frame-mode .content::after{
         interaction:{mode:"index", intersect:false},
         plugins:{
           legend:{position:"bottom"},
-          tooltip:{callbacks:{title:(items)=> rows[items[0]?.dataIndex] ? formatTime(rows[items[0].dataIndex].time) : ""}}
+          tooltip:{callbacks:{title:(items)=> rows[items[0]?.dataIndex] ? formatTime(rows[items[0].dataIndex].obs_time || rows[items[0].dataIndex].obs_hour) : ""}}
         },
         scales:{
-          yLevel:{
-            type:"linear",
-            position:"left",
-            min: cfg.limits.dead - pad,
-            max: cfg.limits.normal + pad,
+          y:{
+            min:minY - pad,
+            max:maxY + pad,
             title:{display:true, text:"Mực nước (m)"}
-          },
-          yFlow:{
-            type:"linear",
-            position:"right",
-            min:0,
-            max:qAxisMax,
-            title:{display:true, text:"Lưu lượng (m³/s)"},
-            grid:{drawOnChartArea:false}
           },
           x:{ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:8}}
         }
@@ -14767,20 +14810,21 @@ body.slideshow-frame-mode .content::after{
   function renderBasinChart(){
     const canvas = el("pcttBasinChart");
     if(!canvas || !window.Chart) return;
-    const rows = getDisplayRows();
-    let qMax = 0;
-    rows.forEach(r=>{
-      qMax = Math.max(qMax, Number(r.basin?.qVeVuGia) || 0, Number(r.basin?.qVeThuBon) || 0);
-    });
+    const rows = pcttRows || [];
 
     if(pcttBasinChart) pcttBasinChart.destroy();
+    const hk = rows.map(r => getStationMetrics(r, 1).cm);
+    const an = rows.map(r => getStationMetrics(r, 2).cm);
+    const all = hk.concat(an).filter(v => Number.isFinite(Number(v))).map(Number);
+    const maxY = all.length ? Math.max(...all) : 100;
+
     pcttBasinChart = new Chart(canvas.getContext("2d"), {
       type:"line",
       data:{
-        labels: rows.map(r=>formatHour(r.time)),
+        labels: rows.map(r=>formatHour(r.obs_time || r.obs_hour)),
         datasets:[
-          {label:"Q về Vu Gia", data:rows.map(r=>r.basin?.qVeVuGia ?? null), borderColor:"#0ea5e9", backgroundColor:"rgba(14,165,233,.10)", borderWidth:2.5, tension:.14, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true},
-          {label:"Q về Thu Bồn", data:rows.map(r=>r.basin?.qVeThuBon ?? null), borderColor:"#fb7185", backgroundColor:"rgba(251,113,133,.10)", borderWidth:2.5, tension:.14, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true}
+          {label:"Hội Khách (cm)", data:hk, borderColor:PCTT_STATIONS[1].color, backgroundColor:PCTT_STATIONS[1].soft, borderWidth:2.4, tension:.18, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true},
+          {label:"Ái Nghĩa (cm)", data:an, borderColor:PCTT_STATIONS[2].color, backgroundColor:PCTT_STATIONS[2].soft, borderWidth:2.4, tension:.18, pointRadius:0, pointHoverRadius:3, pointHitRadius:10, spanGaps:true}
         ]
       },
       options:{
@@ -14789,10 +14833,10 @@ body.slideshow-frame-mode .content::after{
         interaction:{mode:"index", intersect:false},
         plugins:{
           legend:{position:"bottom"},
-          tooltip:{callbacks:{title:(items)=> rows[items[0]?.dataIndex] ? formatTime(rows[items[0].dataIndex].time) : ""}}
+          tooltip:{callbacks:{title:(items)=> rows[items[0]?.dataIndex] ? formatTime(rows[items[0].dataIndex].obs_time || rows[items[0].dataIndex].obs_hour) : ""}}
         },
         scales:{
-          y:{min:0, max:Math.max(10, Math.ceil(qMax * 1.35)), title:{display:true, text:"Lưu lượng (m³/s)"}},
+          y:{min:0, max:Math.max(10, Math.ceil(maxY * 1.15)), title:{display:true, text:"Mực nước (cm)"}},
           x:{ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:8}}
         }
       }
@@ -14802,100 +14846,45 @@ body.slideshow-frame-mode .content::after{
   function renderRecentTable(){
     const tbody = el("pcttRecentTableBody");
     if(!tbody) return;
-    const cfg = PCTT_RESERVOIRS[pcttSelectedReservoirId];
-    const rows = [...getDisplayRows()].sort((a,b)=>new Date(b.time)-new Date(a.time));
+    const rows = [...(pcttRows || [])].sort((a,b)=>new Date(b.obs_time || b.obs_hour)-new Date(a.obs_time || a.obs_hour));
 
     const recentCard = el("pcttRecentCard");
-    if(recentCard && cfg){
-      recentCard.style.setProperty("--res-color", cfg.color);
-      recentCard.style.setProperty("--res-soft", cfg.soft);
-      recentCard.style.setProperty("--res-border", cfg.border);
-      recentCard.style.setProperty("--res-soft2", cfg.soft.replace(/,\s*\.?\d+\)/, ",.055)"));
+    const station = getSelectedStation();
+    if(recentCard && station){
+      recentCard.style.setProperty("--res-color", station.color);
+      recentCard.style.setProperty("--res-soft", station.soft);
+      recentCard.style.setProperty("--res-border", station.border);
+      recentCard.style.setProperty("--res-soft2", station.soft.replace(/0\.\d+\)/, ".055)"));
     }
 
     const sub = el("pcttTableSub");
     if(sub) {
-      sub.innerHTML = `Hiển thị dữ liệu hồ <span class="pctt-selected-res">${cfg.shortName}</span> trong <b>${pcttSelectedHours} giờ</b> gần nhất, sắp xếp từ mới đến cũ.`;
+      sub.innerHTML = `Chuỗi observed của <span class="pctt-selected-res">Hội Khách</span> và <span class="pctt-selected-res">Ái Nghĩa</span> trong <b>${pcttSelectedHours} giờ</b> gần nhất, sắp xếp từ mới đến cũ.`;
     }
 
     if(!rows.length){
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center">Không có dữ liệu trong khung đang chọn</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">Không có dữ liệu trong khung đang chọn</td></tr>`;
       return;
     }
 
-    const style = `--res-color:${cfg.color};--res-soft:${cfg.soft};--res-border:${cfg.border};`;
     tbody.innerHTML = rows.map(row=>{
-      const r = getReservoir(row, pcttSelectedReservoirId) || {};
+      const hk = getStationMetrics(row, 1);
+      const an = getStationMetrics(row, 2);
       return `
-        <tr style="${style}">
-          <td>${formatTime(row.time)}</td>
-          <td><span class="pctt-res-badge">${cfg.shortName}</span></td>
-          <td><span class="pctt-num">${fmt(r.waterLevel, 2, {zeroAsMissing:true})}</span></td>
-          <td><span class="pctt-num">${fmt(r.inflow, 2)}</span></td>
-          <td><span class="pctt-num">${fmt(r.turbineFlow, 2)}</span></td>
-          <td><span class="pctt-num">${fmt(r.spillwayFlow, 2)}</span></td>
-          <td><span class="pctt-num">${fmt(row.basin?.qVeVuGia, 2)}</span></td>
-          <td><span class="pctt-num">${fmt(row.basin?.qVeThuBon, 2)}</span></td>
+        <tr>
+          <td>${formatTime(row.obs_time || row.obs_hour)}</td>
+          <td><span class="pctt-res-badge" style="--res-color:#2563eb;--res-soft:rgba(37,99,235,.10);--res-border:rgba(37,99,235,.24)">${row.source || "-"}</span></td>
+          <td><span class="pctt-num">${fmt(hk.m, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(hk.cm, 0)}</span></td>
+          <td><span class="pctt-num">${fmt(an.m, 2)}</span></td>
+          <td><span class="pctt-num">${fmt(an.cm, 0)}</span></td>
         </tr>
       `;
     }).join("");
   }
 
-  
-  function renderPcttDuplicateKpis(){
-    const wrap = el("pcttDuplicateKpiRow");
-    if(!wrap) return;
-
-    const cfgs = Object.values(PCTT_RESERVOIRS || {});
-    const stats = Array.isArray(pcttDuplicateStatsByPlant) ? pcttDuplicateStatsByPlant : [];
-
-    const statMap = new Map();
-    stats.forEach(item => {
-      const ids = [
-        Number(item?.id),
-        Number(item?.plantId),
-        Number(item?.reservoirId)
-      ].filter(v => Number.isFinite(v) && v > 0);
-
-      ids.forEach(id => statMap.set(id, item));
-
-      const nameKeys = [
-        String(item?.shortName || "").trim().toLowerCase(),
-        String(item?.name || "").trim().toLowerCase()
-      ].filter(Boolean);
-
-      nameKeys.forEach(key => statMap.set(key, item));
-    });
-
-    wrap.innerHTML = cfgs.map(cfg => {
-      const st =
-        statMap.get(Number(cfg.id)) ||
-        statMap.get(String(cfg.shortName || "").trim().toLowerCase()) ||
-        statMap.get(String(cfg.name || "").trim().toLowerCase()) ||
-        {};
-
-      const dup = Number(st?.duplicateRows ?? st?.duplicates ?? 0);
-      const kept = Number(st?.uniqueRows ?? st?.keptRows ?? 0);
-      const raw = Number(st?.rawRows ?? st?.totalRows ?? 0);
-      const cls = dup === 0 ? "is-zero" : "";
-
-      return `
-        <div class="pctt-dup-kpi ${cls}">
-          <div class="top">
-            <span class="name">${cfg.shortName}</span>
-            <span class="dot" style="background:${cfg.color}"></span>
-          </div>
-          <div class="value">${Number.isFinite(dup) ? dup : 0}</div>
-          <div class="meta">
-            <span>${Number.isFinite(raw) ? raw : 0} thô</span>
-            <b>${Number.isFinite(kept) ? kept : 0} giữ lại</b>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-function renderAllPctt(){
+  function renderAllPctt(){
+    patchPcttStaticTexts();
     renderReservoirButtons();
     renderHourButtons();
     renderPcttDuplicateKpis();
@@ -14908,40 +14897,43 @@ function renderAllPctt(){
   async function loadPcttDanang(force){
     if(pcttLoaded && !force){
       renderAllPctt();
-      setTimeout(() => renderPcttDuplicateKpis(), 0);
       return;
     }
-
     try{
       setStatus("Đang tải...");
-      const range = getLastOneMonthRange();
-      const url = `/api/qt1865-compliance?mode=pctt-hydro&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}&ids=1,2,3,4`;
-      const res = await fetch(url, {cache:"no-store"});
-      const data = await res.json();
+      const [latestRes, historyRes] = await Promise.all([
+        fetch(apiUrl(`/api/downstream-forecast?mode=observed-latest`), {cache:"no-store"}),
+        fetch(apiUrl(`/api/downstream-forecast?mode=observed-history&hours=${pcttSelectedHours}`), {cache:"no-store"})
+      ]);
 
-      if(!res.ok || !data.ok){
-        throw new Error(data.error || `HTTP ${res.status}`);
+      const latestData = await latestRes.json();
+      const historyData = await historyRes.json();
+
+      if(!latestRes.ok || !latestData.ok){
+        throw new Error(latestData.error || `observed-latest HTTP ${latestRes.status}`);
+      }
+      if(!historyRes.ok || !historyData.ok){
+        throw new Error(historyData.error || `observed-history HTTP ${historyRes.status}`);
       }
 
-      pcttRows = Array.isArray(data.data) ? data.data : [];
-      pcttDuplicateStatsByPlant = Array.isArray(data.duplicateStatsByPlant) ? data.duplicateStatsByPlant : [];
-      pcttDuplicateStatsSummary = data.duplicateStatsSummary || null;
+      pcttLatest = latestData.data || null;
+      pcttRows = Array.isArray(historyData.data) ? historyData.data : [];
       pcttLoaded = true;
 
-      renderPcttDuplicateKpis();
-
-      const latest = pcttRows[0]?.time || data.latest?.time || null;
-      setStatus(`Đã tải ${data.count ?? pcttRows.length} dòng`);
+      const latestTime = pcttLatest?.obs_time || pcttLatest?.obs_hour || null;
+      setStatus(`Đã tải ${pcttRows.length} dòng`);
 
       const info = el("pcttSourceInfo");
       if(info){
+        const manualCount = pcttRows.filter(r => String(r?.source || "").toLowerCase() === "manual").length;
+        const apiCount = pcttRows.length - manualCount;
         info.innerHTML = `
-          <span>Nguồn: ${data.source || "pctt.danang.gov.vn"}</span>
-          <span>Cập nhật đến: ${latest ? formatTime(latest) : "-"}</span>
-          <span>Dòng thô: ${data.countRaw ?? "-"}</span>
-          <span>Sau lọc trùng: ${data.count ?? pcttRows.length}</span>
-          <span>Trùng tổng row: ${data.duplicateCount ?? 0}</span>
-          <span>Trùng theo hồ: ${pcttDuplicateStatsSummary?.duplicateRows ?? 0}</span>
+          <span>Nguồn: observed / Supabase</span>
+          <span>Cập nhật đến: ${latestTime ? formatTime(latestTime) : "-"}</span>
+          <span>Khung: ${pcttSelectedHours} giờ</span>
+          <span>Tổng dòng: ${pcttRows.length}</span>
+          <span>API_TTB: ${apiCount}</span>
+          <span>Manual: ${manualCount}</span>
         `;
       }
 
@@ -14950,15 +14942,45 @@ function renderAllPctt(){
       if(!pcttAutoTimer){
         pcttAutoTimer = setInterval(()=>{
           const active = document.getElementById("tab-pcttdanang")?.classList.contains("active");
-          if(active) loadPcttDanang(true);
-        }, 10 * 60 * 1000);
+          if(active){
+            pcttLoaded = false;
+            loadPcttDanang(true);
+          }
+        }, 5 * 60 * 1000);
       }
     }catch(err){
       console.error(err);
-      setStatus("Lỗi tải PCTT", true);
+      setStatus("Lỗi tải observed", true);
       const tbody = el("pcttRecentTableBody");
-      if(tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc2626">Không tải được dữ liệu PCTT: ${String(err.message || err)}</td></tr>`;
+      if(tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#dc2626">Không tải được dữ liệu observed: ${String(err.message || err)}</td></tr>`;
+      const wrap = el("pcttLatestCards");
+      if(wrap) wrap.innerHTML = `<div class="soft-box left">Không tải được observed-latest: ${String(err.message || err)}</div>`;
       if(typeof toast === "function") toast("Không tải được dữ liệu PCTT Đà Nẵng: " + (err.message || err));
+    }
+  }
+
+  async function syncPcttObserved(){
+    try{
+      const btn = el("pcttSyncBtn");
+      if(btn){ btn.disabled = true; btn.textContent = "Đang đồng bộ..."; }
+      setStatus("Đang đồng bộ 72h...");
+      const res = await fetch(apiUrl(`/api/downstream-forecast?mode=sync-ttb&hours=72`), {cache:"no-store"});
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      pcttLastSyncSummary = data;
+      pcttLoaded = false;
+      await loadPcttDanang(true);
+      setStatus(`Đồng bộ xong ${data.upsertedCount || 0} dòng`);
+      if(typeof toast === "function") toast(`Đồng bộ 72h thành công: ${data.upsertedCount || 0} dòng.`);
+    }catch(err){
+      console.error(err);
+      setStatus("Lỗi đồng bộ", true);
+      if(typeof toast === "function") toast("Lỗi đồng bộ 72h: " + (err.message || err));
+    }finally{
+      const btn = el("pcttSyncBtn");
+      if(btn){ btn.disabled = false; btn.textContent = "Đồng bộ 72h"; }
     }
   }
 
@@ -14969,14 +14991,17 @@ function renderAllPctt(){
 
   function setPcttHours(hours){
     pcttSelectedHours = Number(hours) || 24;
-    renderAllPctt();
+    pcttLoaded = false;
+    loadPcttDanang(true);
   }
 
   window.loadPcttDanang = loadPcttDanang;
   window.selectPcttReservoir = selectPcttReservoir;
   window.setPcttHours = setPcttHours;
+  window.syncPcttObserved = syncPcttObserved;
 
   document.addEventListener("DOMContentLoaded", function(){
+    patchPcttStaticTexts();
     renderReservoirButtons();
     renderHourButtons();
     if(document.getElementById("tab-pcttdanang")?.classList.contains("active")){
@@ -14985,6 +15010,7 @@ function renderAllPctt(){
   });
 })();
 </script>
+
 
 </body>
 </html>
