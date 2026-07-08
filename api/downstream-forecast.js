@@ -255,7 +255,6 @@ function parseTtbHtmlTable(html) {
       raw_time: rawTime,
       obs_hour: obsHour,
       value_m: round(value, 2),
-      value_cm: round(value * 100, 2),
     });
   }
 
@@ -347,8 +346,6 @@ function mergeObservedStations(hkRows, anRows) {
         obs_hour: key,
         hoi_khach_m: null,
         ai_nghia_m: null,
-        hoi_khach_cm: null,
-        ai_nghia_cm: null,
         source: "api_ttb",
         note: "sync-72h-ttb",
         created_by: "system",
@@ -356,7 +353,6 @@ function mergeObservedStations(hkRows, anRows) {
     }
     const item = map.get(key);
     item.hoi_khach_m = row.value_m;
-    item.hoi_khach_cm = row.value_cm;
   }
 
   for (const row of anRows || []) {
@@ -367,8 +363,6 @@ function mergeObservedStations(hkRows, anRows) {
         obs_hour: key,
         hoi_khach_m: null,
         ai_nghia_m: null,
-        hoi_khach_cm: null,
-        ai_nghia_cm: null,
         source: "api_ttb",
         note: "sync-72h-ttb",
         created_by: "system",
@@ -376,7 +370,6 @@ function mergeObservedStations(hkRows, anRows) {
     }
     const item = map.get(key);
     item.ai_nghia_m = row.value_m;
-    item.ai_nghia_cm = row.value_cm;
   }
 
   return Array.from(map.values()).sort(
@@ -387,7 +380,7 @@ function mergeObservedStations(hkRows, anRows) {
 async function fetchExistingObservedRows(startIso, endIso) {
   const path =
     "downstream_manual_observations" +
-    `?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,updated_at` +
+    `?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,source,note,created_by,updated_at` +
     `&obs_hour=gte.${encodeURIComponent(startIso)}` +
     `&obs_hour=lte.${encodeURIComponent(endIso)}` +
     `&order=obs_hour.asc`;
@@ -435,8 +428,14 @@ function buildSyncPlan(mergedRows, existingRows) {
     });
 
     toUpsert.push({
-      ...row,
       id: existed.id,
+      obs_time: row.obs_time,
+      obs_hour: row.obs_hour,
+      hoi_khach_m: row.hoi_khach_m,
+      ai_nghia_m: row.ai_nghia_m,
+      source: "api_ttb",
+      note: "sync-72h-ttb",
+      created_by: "system",
       updated_at: new Date().toISOString(),
     });
   }
