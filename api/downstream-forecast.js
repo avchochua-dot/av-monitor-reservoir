@@ -33,29 +33,17 @@ function addHours(date, hours) {
 
 function toDateOnly(value) {
   if (!value) return null;
-
   const s = String(value);
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    return s;
-  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
   const d = new Date(s);
-
-  if (Number.isNaN(d.getTime())) {
-    return null;
-  }
-
+  if (Number.isNaN(d.getTime())) return null;
   return d.toISOString().slice(0, 10);
 }
 
 function readBody(req) {
   if (!req.body) return {};
-
-  if (typeof req.body === "object") {
-    return req.body;
-  }
-
+  if (typeof req.body === "object") return req.body;
   try {
     return JSON.parse(req.body);
   } catch {
@@ -71,23 +59,18 @@ function pickValue(req, body, key, defaultValue = null) {
 
 function toIsoTime(value) {
   if (!value) return new Date().toISOString();
-
   const d = new Date(String(value));
-
   if (Number.isNaN(d.getTime())) {
     throw new Error("Thời gian không hợp lệ");
   }
-
   return d.toISOString();
 }
 
 function toIsoHour(value) {
   const d = value ? new Date(String(value)) : new Date();
-
   if (Number.isNaN(d.getTime())) {
     throw new Error("obs_hour không hợp lệ");
   }
-
   d.setUTCMinutes(0, 0, 0);
   return d.toISOString();
 }
@@ -101,24 +84,17 @@ function buildObsTimeFromDateHour(req, body) {
   }
 
   const h = Number(obsHour);
-
   if (!Number.isInteger(h) || h < 0 || h > 23) {
     throw new Error("obs_hour_value phải là số nguyên từ 0 đến 23");
   }
 
   const hh = String(h).padStart(2, "0");
-
   return `${obsDate}T${hh}:00:00+07:00`;
 }
 
 async function supabaseSelect(path) {
-  if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-  }
-
-  if (!SUPABASE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-  }
+  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
+  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
 
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -145,49 +121,9 @@ async function supabaseSelect(path) {
   }
 }
 
-async function supabaseInsert(path, payload) {
-  if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-  }
-
-  if (!SUPABASE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-  }
-
-  const url = `${SUPABASE_URL}/rest/v1/${path}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const body = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Supabase REST INSERT ${response.status}: ${body}`);
-  }
-
-  try {
-    return JSON.parse(body);
-  } catch {
-    throw new Error(`Supabase insert response is not JSON: ${body.slice(0, 300)}`);
-  }
-}
-
 async function supabaseUpsert(path, payload, onConflict) {
-  if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-  }
-
-  if (!SUPABASE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-  }
+  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
+  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
 
   const url =
     `${SUPABASE_URL}/rest/v1/${path}` +
@@ -223,7 +159,6 @@ async function supabaseUpsert(path, payload, onConflict) {
 
 function formatVnApiDateTime(date) {
   const d = new Date(date);
-
   if (Number.isNaN(d.getTime())) {
     throw new Error("Ngày giờ không hợp lệ");
   }
@@ -247,10 +182,7 @@ function toIsoHourFromVnString(value) {
     : `${normalized}+07:00`;
 
   const d = new Date(iso);
-
-  if (Number.isNaN(d.getTime())) {
-    return null;
-  }
+  if (Number.isNaN(d.getTime())) return null;
 
   d.setUTCMinutes(0, 0, 0);
   return d.toISOString();
@@ -374,7 +306,6 @@ function mergeObservedStations(hkRows, anRows) {
 
   for (const row of hkRows || []) {
     const key = row.obs_hour;
-
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -388,7 +319,6 @@ function mergeObservedStations(hkRows, anRows) {
         created_by: "system",
       });
     }
-
     const item = map.get(key);
     item.hoi_khach_m = row.value_m;
     item.hoi_khach_cm = row.value_cm;
@@ -396,7 +326,6 @@ function mergeObservedStations(hkRows, anRows) {
 
   for (const row of anRows || []) {
     const key = row.obs_hour;
-
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -410,7 +339,6 @@ function mergeObservedStations(hkRows, anRows) {
         created_by: "system",
       });
     }
-
     const item = map.get(key);
     item.ai_nghia_m = row.value_m;
     item.ai_nghia_cm = row.value_cm;
@@ -482,6 +410,27 @@ function buildSyncPlan(mergedRows, existingRows) {
   };
 }
 
+async function upsertObservedRowsInBatches(rows, batchSize = 5) {
+  const all = [];
+  const chunks = [];
+
+  for (let i = 0; i < rows.length; i += batchSize) {
+    chunks.push(rows.slice(i, i + batchSize));
+  }
+
+  for (let i = 0; i < chunks.length; i++) {
+    const batch = chunks[i];
+    const result = await supabaseUpsert(
+      "downstream_manual_observations",
+      batch,
+      "obs_hour"
+    );
+    all.push(...(Array.isArray(result) ? result : []));
+  }
+
+  return all;
+}
+
 /* ======================================================
    FORECAST REALTIME
 ====================================================== */
@@ -543,13 +492,10 @@ async function loadCoefficients() {
 
 async function loadThresholds() {
   const rows = await supabaseSelect("downstream_alarm_thresholds?select=*");
-
   const map = {};
-
   for (const row of rows || []) {
     map[row.station_code] = row;
   }
-
   return map;
 }
 
@@ -557,13 +503,10 @@ async function loadMetrics() {
   const rows = await supabaseSelect(
     "downstream_forecast_model_metrics?select=model_code,station_code,horizon_hours,test_r2,test_mae_cm,test_rmse_cm"
   );
-
   const map = {};
-
   for (const row of rows || []) {
     map[row.model_code] = row;
   }
-
   return map;
 }
 
@@ -581,9 +524,7 @@ function calculateForecast(modelCode, coefficients, input) {
     const coef = Number(row.coefficient);
 
     if (!Number.isFinite(coef)) {
-      throw new Error(
-        `Hệ số không hợp lệ: model=${modelCode}, variable=${variableName}`
-      );
+      throw new Error(`Hệ số không hợp lệ: model=${modelCode}, variable=${variableName}`);
     }
 
     if (variableName === "intercept") {
@@ -592,11 +533,8 @@ function calculateForecast(modelCode, coefficients, input) {
     }
 
     const value = input[variableName];
-
     if (value === undefined || value === null) {
-      throw new Error(
-        `Thiếu biến đầu vào ${variableName} cho model ${modelCode}`
-      );
+      throw new Error(`Thiếu biến đầu vào ${variableName} cho model ${modelCode}`);
     }
 
     result += coef * Number(value);
@@ -626,31 +564,16 @@ function getAlarmLevel(forecasts, threshold) {
   const maxAll = Math.max(fc4 ?? -Infinity, fc6 ?? -Infinity, fc12 ?? -Infinity);
 
   if (max4to6 >= bd3) {
-    return {
-      alarm_level: "emergency",
-      alarm_message: "Dự báo có khả năng vượt báo động III trong 4-6 giờ tới",
-    };
+    return { alarm_level: "emergency", alarm_message: "Dự báo có khả năng vượt báo động III trong 4-6 giờ tới" };
   }
-
   if (max4to6 >= bd2) {
-    return {
-      alarm_level: "danger",
-      alarm_message: "Dự báo có khả năng vượt báo động II trong 4-6 giờ tới",
-    };
+    return { alarm_level: "danger", alarm_message: "Dự báo có khả năng vượt báo động II trong 4-6 giờ tới" };
   }
-
   if (max4to6 >= bd1) {
-    return {
-      alarm_level: "warning",
-      alarm_message: "Dự báo có khả năng vượt báo động I trong 4-6 giờ tới",
-    };
+    return { alarm_level: "warning", alarm_message: "Dự báo có khả năng vượt báo động I trong 4-6 giờ tới" };
   }
-
   if (maxAll >= bd1 * watchRatio) {
-    return {
-      alarm_level: "watch",
-      alarm_message: "Mực nước dự báo tiệm cận báo động I, cần theo dõi",
-    };
+    return { alarm_level: "watch", alarm_message: "Mực nước dự báo tiệm cận báo động I, cần theo dõi" };
   }
 
   return {
@@ -660,15 +583,10 @@ function getAlarmLevel(forecasts, threshold) {
 }
 
 async function handleForecast(req, res) {
-  const forecastTime = req.query.time
-    ? new Date(String(req.query.time))
-    : new Date();
+  const forecastTime = req.query.time ? new Date(String(req.query.time)) : new Date();
 
   if (Number.isNaN(forecastTime.getTime())) {
-    return json(res, 400, {
-      ok: false,
-      error: "Tham số time không hợp lệ",
-    });
+    return json(res, 400, { ok: false, error: "Tham số time không hợp lệ" });
   }
 
   const input = getInputVariables(req.query);
@@ -679,8 +597,6 @@ async function handleForecast(req, res) {
       ok: false,
       error: "Thiếu biến đầu vào",
       missing: valid.missing,
-      example:
-        "/api/downstream-forecast?Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
     });
   }
 
@@ -691,9 +607,7 @@ async function handleForecast(req, res) {
   ]);
 
   if (!coefficients.length) {
-    throw new Error(
-      "Không có hệ số mô hình trong downstream_active_model_coefficients"
-    );
+    throw new Error("Không có hệ số mô hình trong downstream_active_model_coefficients");
   }
 
   const modelGroups = [
@@ -723,12 +637,7 @@ async function handleForecast(req, res) {
 
   for (const station of modelGroups) {
     const forecasts = station.models.map((m) => {
-      const forecastValue = calculateForecast(
-        m.model_code,
-        coefficients,
-        input
-      );
-
+      const forecastValue = calculateForecast(m.model_code, coefficients, input);
       const metric = metrics[m.model_code] || null;
 
       return {
@@ -784,43 +693,16 @@ async function handleSaveManual(req, res) {
   const obsTime = toIsoTime(obsTimeRaw);
   const obsHour = toIsoHour(obsTimeRaw);
 
-  const hoiKhachM = num(
-    pickValue(req, body, "hoi_khach_m", null)
-  );
-
-  const aiNghiaM = num(
-    pickValue(req, body, "ai_nghia_m", null)
-  );
-
-  const note = text(
-    pickValue(req, body, "note", "")
-  );
-
-  const createdBy = text(
-    pickValue(req, body, "created_by", "operator")
-  );
+  const hoiKhachM = num(pickValue(req, body, "hoi_khach_m", null));
+  const aiNghiaM = num(pickValue(req, body, "ai_nghia_m", null));
+  const note = text(pickValue(req, body, "note", ""));
+  const createdBy = text(pickValue(req, body, "created_by", "operator"));
 
   if (hoiKhachM === null && aiNghiaM === null) {
     return json(res, 400, {
       ok: false,
       mode: "save-manual",
       error: "Cần nhập ít nhất hoi_khach_m hoặc ai_nghia_m",
-    });
-  }
-
-  if (hoiKhachM !== null && (hoiKhachM < 0 || hoiKhachM > 30)) {
-    return json(res, 400, {
-      ok: false,
-      mode: "save-manual",
-      error: "hoi_khach_m ngoài khoảng hợp lý 0-30 m",
-    });
-  }
-
-  if (aiNghiaM !== null && (aiNghiaM < 0 || aiNghiaM > 20)) {
-    return json(res, 400, {
-      ok: false,
-      mode: "save-manual",
-      error: "ai_nghia_m ngoài khoảng hợp lý 0-20 m",
     });
   }
 
@@ -847,7 +729,6 @@ async function handleSaveManual(req, res) {
     ok: true,
     mode: "save-manual",
     action: "upsert_by_obs_hour",
-    message: "Đã lưu/ghi đè số liệu hạ du theo giờ. Manual được ưu tiên cao hơn API.",
     obs_hour: obsHour,
     data: upserted?.[0] || null,
   });
@@ -871,33 +752,18 @@ async function handleLatestInput(req, res) {
   return json(res, 200, {
     ok: true,
     mode: "latest-input",
-    source: {
-      downstream: "manual_supabase",
-      reservoir: "pctt_or_frontend_current_state",
-    },
     downstream: {
       id: latest.id,
       obs_hour: latest.obs_hour || null,
       obs_time: latest.obs_time || latest.obs_hour || null,
-
       Hoi_Khach_m: round(latest.hoi_khach_m, 2),
       Ai_Nghia_m: round(latest.ai_nghia_m, 2),
-
       Hoi_Khach_cm: round(latest.hoi_khach_cm, 2),
       Ai_Nghia_cm: round(latest.ai_nghia_cm, 2),
-
       HK_Delta_1h_cm: round(latest.hk_delta_1h_cm, 2),
       HK_Delta_3h_cm: round(latest.hk_delta_3h_cm, 2),
-
       AN_Delta_1h_cm: round(latest.an_delta_1h_cm, 2),
       AN_Delta_3h_cm: round(latest.an_delta_3h_cm, 2),
-
-      HK_Delta_1h_m: round(Number(latest.hk_delta_1h_cm || 0) / 100, 2),
-      HK_Delta_3h_m: round(Number(latest.hk_delta_3h_cm || 0) / 100, 2),
-
-      AN_Delta_1h_m: round(Number(latest.an_delta_1h_cm || 0) / 100, 2),
-      AN_Delta_3h_m: round(Number(latest.an_delta_3h_cm || 0) / 100, 2),
-
       source: latest.source || "manual",
       note: latest.note || "",
       created_by: latest.created_by || "",
@@ -958,77 +824,85 @@ async function handleDebugTtb(req, res) {
 
 async function handleSyncTtb(req, res) {
   const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
+  const dryRun = String(req.query.dry_run || "0") === "1";
 
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
 
-  const [hoiKhach, aiNghia] = await Promise.all([
-    fetchTtbStationSeries({
-      stationId: "553100",
-      startTime,
-      endTime,
-      tableName: "mucnuoc_oday",
-      stepMinutes: 60,
-      aggregate: 0,
-      timeoutMs: 12000,
-    }),
-    fetchTtbStationSeries({
-      stationId: "553300",
-      startTime,
-      endTime,
-      tableName: "mucnuoc_oday",
-      stepMinutes: 60,
-      aggregate: 0,
-      timeoutMs: 12000,
-    }),
-  ]);
+  let hoiKhach = null;
+  let aiNghia = null;
+  let mergedRows = [];
+  let existingRows = [];
+  let plan = null;
+  let upserted = [];
 
-  if (!hoiKhach.ok && !aiNghia.ok) {
+  try {
+    [hoiKhach, aiNghia] = await Promise.all([
+      fetchTtbStationSeries({
+        stationId: "553100",
+        startTime,
+        endTime,
+        tableName: "mucnuoc_oday",
+        stepMinutes: 60,
+        aggregate: 0,
+        timeoutMs: 12000,
+      }),
+      fetchTtbStationSeries({
+        stationId: "553300",
+        startTime,
+        endTime,
+        tableName: "mucnuoc_oday",
+        stepMinutes: 60,
+        aggregate: 0,
+        timeoutMs: 12000,
+      }),
+    ]);
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "sync-ttb",
+      stage: "fetch-ttb",
+      error: err.message,
+    });
+  }
+
+  if (!hoiKhach?.ok && !aiNghia?.ok) {
     return json(res, 502, {
       ok: false,
       mode: "sync-ttb",
+      stage: "fetch-ttb",
       error: "Không lấy được dữ liệu từ cả 2 trạm TTB",
       diagnostics: {
-        hoi_khach: {
-          ok: hoiKhach.ok,
-          station_id: hoiKhach.stationId,
-          count: hoiKhach.count,
-          error: hoiKhach.error || null,
-        },
-        ai_nghia: {
-          ok: aiNghia.ok,
-          station_id: aiNghia.stationId,
-          count: aiNghia.count,
-          error: aiNghia.error || null,
-        },
+        hoi_khach: hoiKhach,
+        ai_nghia: aiNghia,
       },
     });
   }
 
-  const mergedRows = mergeObservedStations(
-    hoiKhach.ok ? hoiKhach.data : [],
-    aiNghia.ok ? aiNghia.data : []
-  );
+  try {
+    mergedRows = mergeObservedStations(
+      hoiKhach?.ok ? hoiKhach.data : [],
+      aiNghia?.ok ? aiNghia.data : []
+    );
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "sync-ttb",
+      stage: "merge",
+      error: err.message,
+      diagnostics: {
+        hoi_khach_count: hoiKhach?.count || 0,
+        ai_nghia_count: aiNghia?.count || 0,
+      },
+    });
+  }
 
   if (!mergedRows.length) {
     return json(res, 200, {
       ok: true,
       mode: "sync-ttb",
+      stage: "merge",
       message: "Không có dữ liệu mới để đồng bộ",
-      diagnostics: {
-        hoi_khach: {
-          ok: hoiKhach.ok,
-          station_id: hoiKhach.stationId,
-          count: hoiKhach.count,
-          error: hoiKhach.error || null,
-        },
-        ai_nghia: {
-          ok: aiNghia.ok,
-          station_id: aiNghia.stationId,
-          count: aiNghia.count,
-          error: aiNghia.error || null,
-        },
-      },
       mergedCount: 0,
     });
   }
@@ -1036,22 +910,92 @@ async function handleSyncTtb(req, res) {
   const startIso = mergedRows[0]?.obs_hour || startTime.toISOString();
   const endIso = mergedRows[mergedRows.length - 1]?.obs_hour || endTime.toISOString();
 
-  const existingRows = await fetchExistingObservedRows(startIso, endIso);
-  const plan = buildSyncPlan(mergedRows, existingRows);
+  try {
+    existingRows = await fetchExistingObservedRows(startIso, endIso);
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "sync-ttb",
+      stage: "db-select",
+      error: err.message,
+      period: { start: startIso, end: endIso },
+      mergedCount: mergedRows.length,
+    });
+  }
 
-  let upserted = [];
+  try {
+    plan = buildSyncPlan(mergedRows, existingRows);
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "sync-ttb",
+      stage: "build-plan",
+      error: err.message,
+      existingCount: existingRows.length,
+      mergedCount: mergedRows.length,
+    });
+  }
 
-  if (plan.toUpsert.length) {
-    upserted = await supabaseUpsert(
-      "downstream_manual_observations",
-      plan.toUpsert,
-      "obs_hour"
-    );
+  if (dryRun) {
+    return json(res, 200, {
+      ok: true,
+      mode: "sync-ttb",
+      stage: "dry-run",
+      hours,
+      period: {
+        start: startIso,
+        end: endIso,
+      },
+      sourceStations: {
+        hoi_khach: {
+          ok: hoiKhach.ok,
+          station_id: "553100",
+          count: hoiKhach.count,
+          error: hoiKhach.error || null,
+        },
+        ai_nghia: {
+          ok: aiNghia.ok,
+          station_id: "553300",
+          count: aiNghia.count,
+          error: aiNghia.error || null,
+        },
+      },
+      mergedCount: mergedRows.length,
+      existingCount: existingRows.length,
+      toUpsertCount: plan.toUpsert.length,
+      insertedCount: plan.inserted.length,
+      overwrittenApiCount: plan.overwrittenApi.length,
+      skippedManualCount: plan.skippedManual.length,
+      sampleRows: mergedRows.slice(0, 3),
+      sampleUpsertRows: plan.toUpsert.slice(0, 3),
+    });
+  }
+
+  try {
+    if (plan.toUpsert.length) {
+      upserted = await upsertObservedRowsInBatches(plan.toUpsert, 5);
+    }
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "sync-ttb",
+      stage: "db-upsert",
+      error: err.message,
+      period: {
+        start: startIso,
+        end: endIso,
+      },
+      mergedCount: mergedRows.length,
+      existingCount: existingRows.length,
+      toUpsertCount: plan.toUpsert.length,
+      firstUpsertRow: plan.toUpsert[0] || null,
+    });
   }
 
   return json(res, 200, {
     ok: true,
     mode: "sync-ttb",
+    stage: "done",
     hours,
     period: {
       start: startIso,
@@ -1072,6 +1016,7 @@ async function handleSyncTtb(req, res) {
       },
     },
     mergedCount: mergedRows.length,
+    existingCount: existingRows.length,
     insertedCount: plan.inserted.length,
     overwrittenApiCount: plan.overwrittenApi.length,
     skippedManualCount: plan.skippedManual.length,
@@ -1192,21 +1137,10 @@ function buildBacktestPath({
 
   params.set("station_code", `eq.${station_code}`);
 
-  if (horizon) {
-    params.set("horizon_hours", `eq.${horizon}`);
-  }
-
-  if (split) {
-    params.set("split", `eq.${String(split).toUpperCase()}`);
-  }
-
-  if (startDate) {
-    params.append("forecast_time", `gte.${startDate}T00:00:00+00:00`);
-  }
-
-  if (endDate) {
-    params.append("forecast_time", `lte.${endDate}T23:59:59+00:00`);
-  }
+  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
+  if (split) params.set("split", `eq.${String(split).toUpperCase()}`);
+  if (startDate) params.append("forecast_time", `gte.${startDate}T00:00:00+00:00`);
+  if (endDate) params.append("forecast_time", `lte.${endDate}T23:59:59+00:00`);
 
   params.set("order", "forecast_time.asc");
   params.set("limit", String(limit));
@@ -1235,11 +1169,7 @@ function buildSummaryPath({ station_code, horizon }) {
   );
 
   params.set("station_code", `eq.${station_code}`);
-
-  if (horizon) {
-    params.set("horizon_hours", `eq.${horizon}`);
-  }
-
+  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
   params.set("order", "horizon_hours.asc,split.asc");
 
   return `downstream_forecast_backtest_summary?${params.toString()}`;
@@ -1271,11 +1201,7 @@ function buildMetricsPath({ station_code, horizon }) {
   );
 
   params.set("station_code", `eq.${station_code}`);
-
-  if (horizon) {
-    params.set("horizon_hours", `eq.${horizon}`);
-  }
-
+  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
   params.set("order", "horizon_hours.asc");
 
   return `downstream_forecast_model_metrics?${params.toString()}`;
@@ -1294,33 +1220,15 @@ function summarizeRows(rows) {
     };
   }
 
-  const errors = rows
-    .map((x) => Number(x.error_cm))
-    .filter((x) => Number.isFinite(x));
+  const errors = rows.map((x) => Number(x.error_cm)).filter(Number.isFinite);
+  const absErrors = rows.map((x) => Number(x.abs_error_cm)).filter(Number.isFinite);
 
-  const absErrors = rows
-    .map((x) => Number(x.abs_error_cm))
-    .filter((x) => Number.isFinite(x));
-
-  const bias =
-    errors.length > 0
-      ? errors.reduce((a, b) => a + b, 0) / errors.length
-      : null;
-
-  const mae =
-    absErrors.length > 0
-      ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length
-      : null;
-
-  const rmse =
-    errors.length > 0
-      ? Math.sqrt(errors.reduce((a, b) => a + b * b, 0) / errors.length)
-      : null;
-
-  const maxAbs =
-    absErrors.length > 0
-      ? Math.max(...absErrors)
-      : null;
+  const bias = errors.length ? errors.reduce((a, b) => a + b, 0) / errors.length : null;
+  const mae = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
+  const rmse = errors.length
+    ? Math.sqrt(errors.reduce((a, b) => a + b * b, 0) / errors.length)
+    : null;
+  const maxAbs = absErrors.length ? Math.max(...absErrors) : null;
 
   return {
     n_rows: rows.length,
@@ -1334,10 +1242,7 @@ function summarizeRows(rows) {
 }
 
 async function handleBacktest(req, res) {
-  const stationInput = text(
-    req.query.station || req.query.station_code || "HOI_KHACH"
-  );
-
+  const stationInput = text(req.query.station || req.query.station_code || "HOI_KHACH");
   const station = getStationConfig(stationInput);
 
   if (!station) {
@@ -1345,15 +1250,10 @@ async function handleBacktest(req, res) {
       ok: false,
       error: "station không hợp lệ",
       supported_station: ["HOI_KHACH", "AI_NGHIA"],
-      examples: [
-        "/api/downstream-forecast?mode=backtest&station=HOI_KHACH&horizon=6",
-        "/api/downstream-forecast?mode=backtest&station=AI_NGHIA&horizon=12",
-      ],
     });
   }
 
   const horizon = num(req.query.horizon || req.query.horizon_hours, null);
-
   if (horizon !== null && ![4, 6, 12].includes(horizon)) {
     return json(res, 400, {
       ok: false,
@@ -1412,10 +1312,7 @@ async function handleBacktest(req, res) {
 }
 
 async function handleSummary(req, res) {
-  const stationInput = text(
-    req.query.station || req.query.station_code || "HOI_KHACH"
-  );
-
+  const stationInput = text(req.query.station || req.query.station_code || "HOI_KHACH");
   const station = getStationConfig(stationInput);
 
   if (!station) {
@@ -1427,7 +1324,6 @@ async function handleSummary(req, res) {
   }
 
   const horizon = num(req.query.horizon || req.query.horizon_hours, null);
-
   if (horizon !== null && ![4, 6, 12].includes(horizon)) {
     return json(res, 400, {
       ok: false,
@@ -1436,18 +1332,8 @@ async function handleSummary(req, res) {
   }
 
   const [summaryRows, metricsRows] = await Promise.all([
-    supabaseSelect(
-      buildSummaryPath({
-        station_code: station.station_code,
-        horizon,
-      })
-    ),
-    supabaseSelect(
-      buildMetricsPath({
-        station_code: station.station_code,
-        horizon,
-      })
-    ),
+    supabaseSelect(buildSummaryPath({ station_code: station.station_code, horizon })),
+    supabaseSelect(buildMetricsPath({ station_code: station.station_code, horizon })),
   ]);
 
   return json(
@@ -1488,106 +1374,60 @@ export default async function handler(req, res) {
 
     if (mode === "save-manual") {
       if (req.method !== "POST" && req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "save-manual chỉ hỗ trợ POST hoặc GET test nhanh",
-        });
+        return json(res, 405, { ok: false, mode, error: "save-manual chỉ hỗ trợ POST hoặc GET" });
       }
-
       return handleSaveManual(req, res);
     }
 
     if (mode === "latest-input" || mode === "current-input") {
       if (req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "latest-input chỉ hỗ trợ GET",
-        });
+        return json(res, 405, { ok: false, mode, error: "latest-input chỉ hỗ trợ GET" });
       }
-
       return handleLatestInput(req, res);
     }
 
     if (mode === "manual-history") {
       if (req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "manual-history chỉ hỗ trợ GET",
-        });
+        return json(res, 405, { ok: false, mode, error: "manual-history chỉ hỗ trợ GET" });
       }
-
       return handleManualHistory(req, res);
     }
 
     if (mode === "debug-ttb") {
       if (req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "debug-ttb chỉ hỗ trợ GET",
-        });
+        return json(res, 405, { ok: false, mode, error: "debug-ttb chỉ hỗ trợ GET" });
       }
-
       return handleDebugTtb(req, res);
     }
 
     if (mode === "sync-ttb") {
       if (req.method !== "GET" && req.method !== "POST") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "sync-ttb chỉ hỗ trợ GET hoặc POST",
-        });
+        return json(res, 405, { ok: false, mode, error: "sync-ttb chỉ hỗ trợ GET hoặc POST" });
       }
-
       return handleSyncTtb(req, res);
     }
 
     if (mode === "observed-latest") {
       if (req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "observed-latest chỉ hỗ trợ GET",
-        });
+        return json(res, 405, { ok: false, mode, error: "observed-latest chỉ hỗ trợ GET" });
       }
-
       return handleObservedLatest(req, res);
     }
 
     if (mode === "observed-history") {
       if (req.method !== "GET") {
-        return json(res, 405, {
-          ok: false,
-          mode,
-          error: "observed-history chỉ hỗ trợ GET",
-        });
+        return json(res, 405, { ok: false, mode, error: "observed-history chỉ hỗ trợ GET" });
       }
-
       return handleObservedHistory(req, res);
     }
 
     if (req.method !== "GET") {
-      return json(res, 405, {
-        ok: false,
-        error: "Method not allowed",
-      });
+      return json(res, 405, { ok: false, error: "Method not allowed" });
     }
 
-    if (mode === "forecast" || mode === "predict") {
-      return handleForecast(req, res);
-    }
-
-    if (mode === "backtest" || mode === "history") {
-      return handleBacktest(req, res);
-    }
-
-    if (mode === "summary" || mode === "metrics") {
-      return handleSummary(req, res);
-    }
+    if (mode === "forecast" || mode === "predict") return handleForecast(req, res);
+    if (mode === "backtest" || mode === "history") return handleBacktest(req, res);
+    if (mode === "summary" || mode === "metrics") return handleSummary(req, res);
 
     return json(res, 400, {
       ok: false,
@@ -1605,28 +1445,13 @@ export default async function handler(req, res) {
         "observed-latest",
         "observed-history",
       ],
-      examples: [
-        "/api/downstream-forecast?mode=latest-input",
-        "/api/downstream-forecast?mode=manual-history&limit=20",
-        "/api/downstream-forecast?mode=observed-latest",
-        "/api/downstream-forecast?mode=observed-history&hours=72",
-        "/api/downstream-forecast?mode=debug-ttb&station_id=553100&hours=24",
-        "/api/downstream-forecast?mode=debug-ttb&station_id=553300&hours=24",
-        "/api/downstream-forecast?mode=sync-ttb&hours=72",
-        "/api/downstream-forecast?mode=save-manual&obs_time=2026-07-05T22:00:00+07:00&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
-        "/api/downstream-forecast?mode=save-manual&obs_date=2026-07-05&obs_hour_value=22&hoi_khach_m=14.35&ai_nghia_m=7.72&note=test-api&created_by=operator",
-        "/api/downstream-forecast?mode=forecast&Hoi_Khach_cm=870&Ai_Nghia_cm=270&A_Vuong_Qra=0&DakMi4_Qra=29.23&SongBung4_Qra=27&SongTranh2_Qra=94.25&VuGia_3ho_Qra=56.23&All4_Qra=150.48&PCTT_Qve_VuGia=56.23&PCTT_Qve_ThuBon=117.13",
-        "/api/downstream-forecast?mode=backtest&station=HOI_KHACH&horizon=6&start=2025-09-01&end=2025-12-31",
-        "/api/downstream-forecast?mode=summary&station=AI_NGHIA&horizon=12",
-      ],
     });
   } catch (err) {
     return json(res, 500, {
       ok: false,
       mode: req.query.mode || "forecast",
       error: err.message,
-      hint:
-        "Kiểm tra SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, unique index obs_hour, bảng/view downstream forecast trong Supabase",
+      hint: "Kiểm tra stage sync, payload upsert và schema bảng downstream_manual_observations",
     });
   }
 }
