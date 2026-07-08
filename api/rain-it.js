@@ -15,8 +15,10 @@ export default async function handler(req, res) {
 
   try {
     // 2. Khai báo biến môi trường và URL đích
-    const API_KEY = process.env.VRAIN_API_KEY || "YOUR_FALLBACK_API_KEY";
-    const TARGET_URL = "http://14.241.121.249:89/api/QuanTracRain";
+    // TARGET_URL giờ trỏ vào Cloudflare Tunnel chạy trên máy nhân viên (đã whitelist),
+    // thay vì gọi thẳng IP nội bộ 14.241.121.249:89 (bị chặn do IT chặn IP nước ngoài).
+    const PROXY_SECRET = process.env.RAIN_PROXY_SECRET || "e4a1b8c2-7f9d-4e5a-b3c1-9d8e7f6a5b4c";
+    const TARGET_URL = process.env.RAIN_TUNNEL_URL || "https://broadcast-arms-gen-twenty.trycloudflare.com/rain-proxy";
 
     // 3. Xử lý Timeout 8.5s bằng AbortController
     const controller = new AbortController();
@@ -25,12 +27,13 @@ export default async function handler(req, res) {
     console.log("[rain-it] Bắt đầu gọi TARGET_URL:", TARGET_URL);
     const startTime = Date.now();
 
-    // 4. Gọi API đích
+    // 4. Gọi API đích qua tunnel — dùng header bí mật thay vì X-API-KEY
+    // (API_KEY thật giờ nằm trong server.js trên máy nhân viên, không lộ ra Vercel/Frontend)
     const response = await fetch(TARGET_URL, {
       method: 'GET',
       headers: {
         "Content-Type": "application/json",
-        "X-API-KEY": API_KEY
+        "X-PROXY-SECRET": PROXY_SECRET
       },
       signal: controller.signal
     });
@@ -83,8 +86,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
-// Ép chạy ở region Singapore để gần server đích hơn (giảm khả năng do độ trễ/xa)
-export const config = {
-  regions: ['sin1']
-};
