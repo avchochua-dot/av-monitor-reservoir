@@ -51,8 +51,8 @@ export default async function handler(req, res) {
 
     const raw = await response.json();
 
-    // Dữ liệu thực tế nằm ở raw.data.data.data (proxy máy nhân viên bọc thêm 1 lớp {ok, data})
-    const rows = raw?.data?.data?.data;
+    // Dữ liệu thực tế nằm ở raw.data.data (raw = {ok, data:{success, ..., data:[...]}})
+    const rows = raw?.data?.data;
 
     let supabaseResult = { inserted: 0, error: null };
 
