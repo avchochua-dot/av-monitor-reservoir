@@ -5804,6 +5804,135 @@ body.slideshow-frame-mode section{
   .downstream-field-wide{grid-column:auto}
 }
 
+
+
+/* =========================================================
+   DOWNSTREAM OBSERVED IN BACKTEST PANEL
+   ========================================================= */
+.ds-observed-wrap{
+  margin-bottom:14px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:linear-gradient(180deg,#ffffff,#f8fbff);
+  box-shadow:0 10px 26px rgba(15,23,42,.045);
+  padding:14px;
+}
+.ds-observed-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.ds-observed-title{
+  color:#334155;
+  font-size:13px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.65px;
+}
+.ds-observed-sub{
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  margin-top:4px;
+}
+.ds-observed-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.ds-observed-latest-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+.ds-observed-latest-card{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:18px;
+  background:#fff;
+  padding:13px 14px;
+  box-shadow:0 8px 20px rgba(15,23,42,.04);
+}
+.ds-observed-latest-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.ds-observed-latest-name{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#0f172a;
+  font-size:14px;
+  font-weight:1000;
+}
+.ds-observed-dot{
+  width:10px;height:10px;border-radius:999px;flex:0 0 10px;
+  box-shadow:0 0 0 4px rgba(15,23,42,.04);
+}
+.ds-observed-time{
+  color:#64748b;
+  font-size:11px;
+  font-weight:850;
+}
+.ds-observed-latest-value{
+  color:#0f172a;
+  font-size:28px;
+  font-weight:1000;
+  letter-spacing:-.8px;
+  line-height:1;
+}
+.ds-observed-latest-value small{
+  color:#64748b;
+  font-size:13px;
+  margin-left:4px;
+}
+.ds-observed-latest-meta{
+  margin-top:8px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:850;
+}
+.ds-observed-chart-wrap{
+  height:300px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  padding:12px;
+  box-shadow:0 8px 20px rgba(15,23,42,.04);
+  margin-bottom:12px;
+}
+.ds-observed-chart-wrap canvas{
+  height:272px!important;
+}
+.ds-observed-table-wrap{
+  max-height:240px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+}
+.ds-observed-table{
+  min-width:720px;
+}
+.ds-observed-note{
+  margin-top:10px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+}
+@media(max-width:980px){
+  .ds-observed-latest-grid{grid-template-columns:1fr}
+  .ds-observed-chart-wrap{height:260px}
+  .ds-observed-chart-wrap canvas{height:232px!important}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -6581,6 +6710,53 @@ body.slideshow-frame-mode section{
                 <input id="dsBacktestEnd" type="date" value="2025-09-10">
                 <button type="button" onclick="loadDownstreamBacktest(true)">Xem</button>
               </div>
+            </div>
+
+
+            <div class="ds-observed-wrap">
+              <div class="ds-observed-toolbar">
+                <div>
+                  <div class="ds-observed-title">Mực nước hạ du thực đo</div>
+                  <div class="ds-observed-sub">Lấy từ observed-latest và observed-history 24h / 48h / 72h.</div>
+                </div>
+                <div class="ds-observed-actions">
+                  <span class="downstream-status" id="dsObservedStatus">Đang chờ</span>
+                  <div class="downstream-quick-group" role="group" aria-label="Khung observed">
+                    <span>Observed</span>
+                    <button type="button" class="downstream-quick-btn" data-ds-observed-hours="24" onclick="setDsObservedHours(24, true)">24h</button>
+                    <button type="button" class="downstream-quick-btn" data-ds-observed-hours="48" onclick="setDsObservedHours(48, true)">48h</button>
+                    <button type="button" class="downstream-quick-btn active" data-ds-observed-hours="72" onclick="setDsObservedHours(72, true)">72h</button>
+                  </div>
+                  <button type="button" class="downstream-random-btn" onclick="syncDownstreamObserved72h()">Đồng bộ 72h</button>
+                </div>
+              </div>
+
+              <div class="ds-observed-latest-grid" id="dsObservedLatestGrid">
+                <div class="ds-observed-latest-card"><div class="ds-observed-latest-head"><div class="ds-observed-latest-name"><span class="ds-observed-dot" style="background:#2563eb"></span>Hội Khách</div><div class="ds-observed-time">--</div></div><div class="ds-observed-latest-value">-- <small>m</small></div><div class="ds-observed-latest-meta">Chưa có dữ liệu</div></div>
+                <div class="ds-observed-latest-card"><div class="ds-observed-latest-head"><div class="ds-observed-latest-name"><span class="ds-observed-dot" style="background:#10b981"></span>Ái Nghĩa</div><div class="ds-observed-time">--</div></div><div class="ds-observed-latest-value">-- <small>m</small></div><div class="ds-observed-latest-meta">Chưa có dữ liệu</div></div>
+              </div>
+
+              <div class="ds-observed-chart-wrap">
+                <canvas id="downstreamObservedChart"></canvas>
+              </div>
+
+              <div class="ds-observed-table-wrap">
+                <table class="ds-observed-table">
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Hội Khách (m)</th>
+                      <th>Ái Nghĩa (m)</th>
+                      <th>Nguồn</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dsObservedTableBody">
+                    <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Đang chờ dữ liệu observed</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="ds-observed-note" id="dsObservedNote">Khung hiển thị: 72h</div>
             </div>
 
             <div class="downstream-grid">
@@ -11522,6 +11698,196 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
 
+
+  const DS_API_BASE = (location.protocol === "file:") ? "https://av-monitor-reservoir.vercel.app" : "";
+  let downstreamObservedChart = null;
+  let downstreamObservedHours = 72;
+  let downstreamObservedLoaded = false;
+
+  function dsApi(path){
+    if(!path) return DS_API_BASE || "";
+    if(/^https?:\/\//i.test(path)) return path;
+    return `${DS_API_BASE}${path}`;
+  }
+
+  function setDsObservedStatus(text, cls=""){
+    const el = $("dsObservedStatus");
+    if(!el) return;
+    el.className = "downstream-status" + (cls ? " " + cls : "");
+    el.textContent = text;
+  }
+
+  function setDsObservedHours(hours, autoLoad){
+    downstreamObservedHours = Number(hours) || 72;
+    document.querySelectorAll("[data-ds-observed-hours]").forEach(btn => {
+      btn.classList.toggle("active", Number(btn.getAttribute("data-ds-observed-hours")) === downstreamObservedHours);
+    });
+    const note = $("dsObservedNote");
+    if(note) note.textContent = `Khung hiển thị: ${downstreamObservedHours}h`;
+    if(autoLoad) loadDownstreamObserved(true);
+  }
+
+  function renderDownstreamObservedLatest(latest){
+    const box = $("dsObservedLatestGrid");
+    if(!box) return;
+    const obsTime = fmtDsTime(latest?.obs_time || latest?.obs_hour);
+    const source = latest?.source || "--";
+    const note = latest?.note || "";
+    box.innerHTML = [
+      {
+        name: "Hội Khách",
+        color: "#2563eb",
+        value: latest?.hoi_khach_m
+      },
+      {
+        name: "Ái Nghĩa",
+        color: "#10b981",
+        value: latest?.ai_nghia_m
+      }
+    ].map(item => `
+      <div class="ds-observed-latest-card">
+        <div class="ds-observed-latest-head">
+          <div class="ds-observed-latest-name">
+            <span class="ds-observed-dot" style="background:${item.color}"></span>${item.name}
+          </div>
+          <div class="ds-observed-time">${obsTime}</div>
+        </div>
+        <div class="ds-observed-latest-value">${fmtDsNumber(item.value, 2)} <small>m</small></div>
+        <div class="ds-observed-latest-meta">Nguồn: ${source}${note ? ` · ${note}` : ""}</div>
+      </div>
+    `).join("");
+  }
+
+  function renderDownstreamObservedHistory(rows){
+    const tbody = $("dsObservedTableBody");
+    if(tbody){
+      if(!rows.length){
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Không có dữ liệu observed trong khung đã chọn</td></tr>`;
+      }else{
+        tbody.innerHTML = rows.slice().reverse().map(r => `
+          <tr>
+            <td>${fmtDsTime(r.obs_time || r.obs_hour)}</td>
+            <td>${fmtDsNumber(r.hoi_khach_m, 2)}</td>
+            <td>${fmtDsNumber(r.ai_nghia_m, 2)}</td>
+            <td>${r.source || "--"}</td>
+            <td>${r.note || ""}</td>
+          </tr>
+        `).join("");
+      }
+    }
+
+    const ctx = $("downstreamObservedChart");
+    if(!ctx || typeof Chart === "undefined") return;
+
+    if(downstreamObservedChart){
+      downstreamObservedChart.destroy();
+      downstreamObservedChart = null;
+    }
+
+    const labels = rows.map(r => fmtDsTime(r.obs_time || r.obs_hour));
+    const hk = rows.map(r => Number(r.hoi_khach_m));
+    const an = rows.map(r => Number(r.ai_nghia_m));
+
+    downstreamObservedChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Hội Khách",
+            data: hk,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37,99,235,.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: .32
+          },
+          {
+            label: "Ái Nghĩa",
+            data: an,
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16,185,129,.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: .32
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmtDsNumber(ctx.parsed.y, 2)} m`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 9, color: "#64748b", font: { size: 11, weight: "700" } },
+            grid: { color: "rgba(15,23,42,.06)" }
+          },
+          y: {
+            ticks: { color: "#64748b", font: { size: 11, weight: "700" } },
+            grid: { color: "rgba(15,23,42,.06)" },
+            title: { display: true, text: "m" }
+          }
+        }
+      }
+    });
+  }
+
+  async function loadDownstreamObserved(force=false){
+    try{
+      setDsObservedStatus("Đang tải observed...");
+      const latestUrl = dsApi(`/api/downstream-forecast?mode=observed-latest`);
+      const historyUrl = dsApi(`/api/downstream-forecast?mode=observed-history&hours=${downstreamObservedHours}`);
+      const [latestRes, historyRes] = await Promise.all([
+        fetch(latestUrl, { cache: force ? "no-store" : "default" }),
+        fetch(historyUrl, { cache: force ? "no-store" : "default" })
+      ]);
+      const [latest, history] = await Promise.all([latestRes.json(), historyRes.json()]);
+      if(!latestRes.ok || !latest.ok) throw new Error(latest.error || `observed-latest HTTP ${latestRes.status}`);
+      if(!historyRes.ok || !history.ok) throw new Error(history.error || `observed-history HTTP ${historyRes.status}`);
+      renderDownstreamObservedLatest(latest.data || {});
+      renderDownstreamObservedHistory(history.data || []);
+      const note = $("dsObservedNote");
+      if(note){
+        note.textContent = `Khung hiển thị: ${downstreamObservedHours}h · ${history.count || 0} điểm dữ liệu`;
+      }
+      setDsObservedStatus("Observed OK", "ok");
+      downstreamObservedLoaded = true;
+    }catch(e){
+      console.error(e);
+      setDsObservedStatus("Lỗi observed", "err");
+      const tbody = $("dsObservedTableBody");
+      if(tbody){
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#dc2626">Lỗi tải observed: ${String(e.message || e)}</td></tr>`;
+      }
+      const note = $("dsObservedNote");
+      if(note) note.textContent = "Không tải được dữ liệu observed";
+    }
+  }
+
+  async function syncDownstreamObserved72h(){
+    try{
+      setDsObservedStatus("Đang đồng bộ 72h...");
+      const res = await fetch(dsApi(`/api/downstream-forecast?mode=sync-ttb&hours=72`), { cache: "no-store" });
+      const data = await res.json();
+      if(!res.ok || !data.ok) throw new Error(data.error || `sync-ttb HTTP ${res.status}`);
+      setDsObservedStatus("Sync 72h OK", "ok");
+      toast(`Đã đồng bộ ${data.upsertedCount || 0} dòng observed`);
+      await loadDownstreamObserved(true);
+    }catch(e){
+      console.error(e);
+      setDsObservedStatus("Lỗi sync", "err");
+      toast("Lỗi đồng bộ observed: " + e.message);
+    }
+  }
+
   function setDownstreamStatus(text, cls=""){
     const el = $("dsStatus");
     if(!el) return;
@@ -11600,7 +11966,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const params = new URLSearchParams();
     params.set("mode", "forecast");
     Object.keys(input).forEach(k => params.set(k, String(input[k])));
-    return `/api/downstream-forecast?${params.toString()}`;
+    return dsApi(`/api/downstream-forecast?${params.toString()}`);
   }
 
   function alarmText(level){
@@ -11761,8 +12127,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const status = $("dsSummaryStatus");
     if(status) status.textContent = "Đang tải metrics...";
     const [hkRes, anRes] = await Promise.all([
-      fetch("/api/downstream-forecast?mode=summary&station=HOI_KHACH", { cache: "no-store" }),
-      fetch("/api/downstream-forecast?mode=summary&station=AI_NGHIA", { cache: "no-store" })
+      fetch(dsApi("/api/downstream-forecast?mode=summary&station=HOI_KHACH"), { cache: "no-store" }),
+      fetch(dsApi("/api/downstream-forecast?mode=summary&station=AI_NGHIA"), { cache: "no-store" })
     ]);
     const [hk, an] = await Promise.all([hkRes.json(), anRes.json()]);
     if(!hk.ok) throw new Error(hk.error || "Lỗi summary Hội Khách");
@@ -11903,7 +12269,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   async function loadDownstreamForecastTab(force=false){
     if(downstreamForecastLoaded && !force) {
-      setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); }, 80);
+      setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); if(downstreamObservedChart) downstreamObservedChart.resize(); }, 80);
       return;
     }
 
@@ -11913,7 +12279,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       await Promise.all([
         loadDownstreamForecastOnly(),
         loadDownstreamSummary(),
-        loadDownstreamBacktest(force)
+        loadDownstreamBacktest(force),
+        loadDownstreamObserved(force)
       ]);
       downstreamForecastLoaded = true;
       setDownstreamStatus("Đã cập nhật", "ok");
@@ -11932,6 +12299,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   window.loadDownstreamManualHistory = loadDownstreamManualHistory;
   window.setDownstreamBacktestStation = setDownstreamBacktestStation;
   window.setDownstreamBacktestHorizon = setDownstreamBacktestHorizon;
+  window.setDsObservedHours = setDsObservedHours;
+  window.syncDownstreamObserved72h = syncDownstreamObserved72h;
 
 
   // --- Website navigation (sidebar left) ---
