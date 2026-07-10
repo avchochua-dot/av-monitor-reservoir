@@ -1,6 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const APP_BASE_URL = process.env.APP_BASE_URL || ""; // ví dụ https://your-app.vercel.app
+const APP_BASE_URL = process.env.APP_BASE_URL || "";
 
 function json(res, status, data, cache = "no-store") {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -35,6 +35,39 @@ function readBody(req) {
     return JSON.parse(req.body);
   } catch {
     return {};
+  }
+}
+
+function getAppBaseUrl(req) {
+  if (APP_BASE_URL) return APP_BASE_URL.replace(/\/$/, "");
+  const proto = req.headers["x-forwarded-proto"] || "https";
+  const host = req.headers.host;
+  return `${proto}://${host}`;
+}
+
+async function fetchJson(url, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${body.slice(0, 500)}`);
+    }
+
+    try {
+      return JSON.parse(body);
+    } catch {
+      throw new Error(`Response is not JSON: ${body.slice(0, 500)}`);
+    }
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -95,48 +128,103 @@ async function supabaseInsert(path, payload, prefer = "return=representation") {
 }
 
 /* ======================================================
-   INTERNAL FETCH HELPERS
+   DASHBOARD INPUT FORMAT - HARD WIRED
 ====================================================== */
 
-function getAppBaseUrl(req) {
-  if (APP_BASE_URL) return APP_BASE_URL.replace(/\/$/, "");
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const host = req.headers.host;
-  return `${proto}://${host}`;
+function getDashboardInput(req) {
+  const body = readBody(req);
+  const query = req.query || {};
+
+  const get = (key, def = null) =>
+    body[key] !== undefined ? body[key] : query[key] !== undefined ? query[key] : def;
+
+  return {
+    time: get("time", null),
+
+    Hoi_Khach_cm: num(get("Hoi_Khach_cm")),
+    Ai_Nghia_cm: num(get("Ai_Nghia_cm")),
+
+    A_Vuong_Qra: num(get("A_Vuong_Qra"), 0),
+    DakMi4_Qra: num(get("DakMi4_Qra"), 0),
+    SongBung4_Qra: num(get("SongBung4_Qra"), 0),
+    SongTranh2_Qra: num(get("SongTranh2_Qra"), 0),
+
+    VuGia_3ho_Qra: num(get("VuGia_3ho_Qra"), 0),
+    All4_Qra: num(get("All4_Qra"), 0),
+
+    PCTT_Qve_VuGia: num(get("PCTT_Qve_VuGia"), 0),
+    PCTT_Qve_ThuBon: num(get("PCTT_Qve_ThuBon"), 0),
+
+    HK_Delta_1h: num(get("HK_Delta_1h"), 0),
+    HK_Delta_3h: num(get("HK_Delta_3h"), 0),
+
+    AN_Delta_1h: num(get("AN_Delta_1h"), 0),
+    AN_Delta_3h: num(get("AN_Delta_3h"), 0),
+
+    Q_VuGia_Delta_1h: num(get("Q_VuGia_Delta_1h"), 0),
+    Q_VuGia_Delta_3h: num(get("Q_VuGia_Delta_3h"), 0),
+  };
 }
 
-async function fetchJson(url, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+function validateDashboardInput(input) {
+  const missing = [];
+  if (input.Hoi_Khach_cm === null) missing.push("Hoi_Khach_cm");
+  if (input.Ai_Nghia_cm === null) missing.push("Ai_Nghia_cm");
 
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    const textBody = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${textBody.slice(0, 500)}`);
-    }
-
-    try {
-      return JSON.parse(textBody);
-    } catch {
-      throw new Error(`Response is not JSON: ${textBody.slice(0, 500)}`);
-    }
-  } finally {
-    clearTimeout(timer);
-  }
+  return {
+    ok: missing.length === 0,
+    missing,
+  };
 }
 
-function getNowIso() {
-  return new Date().toISOString();
+function buildPlantOperationsFromDashboardInput(input) {
+  const plants = [
+    {
+      plant_code: "A_VUONG",
+      plant_name: "A Vương",
+      discharge_m3s: num(input.A_Vuong_Qra, 0),
+      spillway_m3s: 0,
+      turbine_m3s: num(input.A_Vuong_Qra, 0),
+      status: num(input.A_Vuong_Qra, 0) > 0 ? "normal" : "idle",
+    },
+    {
+      plant_code: "DAKMI4",
+      plant_name: "Đắk Mi 4",
+      discharge_m3s: num(input.DakMi4_Qra, 0),
+      spillway_m3s: 0,
+      turbine_m3s: num(input.DakMi4_Qra, 0),
+      status: num(input.DakMi4_Qra, 0) > 0 ? "normal" : "idle",
+    },
+    {
+      plant_code: "SONGBUNG4",
+      plant_name: "Sông Bung 4",
+      discharge_m3s: num(input.SongBung4_Qra, 0),
+      spillway_m3s: 0,
+      turbine_m3s: num(input.SongBung4_Qra, 0),
+      status: num(input.SongBung4_Qra, 0) > 0 ? "normal" : "idle",
+    },
+    {
+      plant_code: "SONGTRANH2",
+      plant_name: "Sông Tranh 2",
+      discharge_m3s: num(input.SongTranh2_Qra, 0),
+      spillway_m3s: 0,
+      turbine_m3s: num(input.SongTranh2_Qra, 0),
+      status: num(input.SongTranh2_Qra, 0) > 0 ? "normal" : "idle",
+    },
+  ];
+
+  return {
+    plants,
+    vu_gia_total_discharge_m3s: num(input.VuGia_3ho_Qra, 0),
+    thu_bon_total_discharge_m3s: num(input.PCTT_Qve_ThuBon, 0),
+    all4_total_discharge_m3s: num(input.All4_Qra, 0),
+    pctt_qve_vugia_m3s: num(input.PCTT_Qve_VuGia, 0),
+    pctt_qve_thubon_m3s: num(input.PCTT_Qve_ThuBon, 0),
+  };
 }
 
 /* ======================================================
-   DATA LOADERS
+   LOADERS
 ====================================================== */
 
 async function loadObservedLatest(req) {
@@ -149,7 +237,6 @@ async function loadObservedLatest(req) {
   }
 
   const row = data.data;
-
   return {
     obs_hour: row.obs_hour,
     hoi_khach: {
@@ -182,32 +269,13 @@ async function loadObservedHistory(req, hours = 72) {
   }));
 }
 
-/**
- * TODO:
- * Hàm này cần ghép đúng với API forecast đang chạy thực tế của bạn.
- * Hiện skeleton giả định frontend/backend đã có cách truyền input forecast.
- *
- * Có 2 hướng:
- * 1. req query/body truyền sẵn input rồi gọi mode=forecast
- * 2. đọc input hiện tại từ bảng/endpoint nội bộ khác rồi tính forecast
- */
-async function loadForecastNow(req) {
-  const body = readBody(req);
+async function loadForecastNow(req, dashboardInput) {
   const baseUrl = getAppBaseUrl(req);
-
-  // Cho phép gọi thẳng bằng body.forecast_input nếu có
-  const forecastInput = body.forecast_input || null;
-
-  if (!forecastInput) {
-    throw new Error(
-      "Thiếu forecast_input. Cần truyền input hiện tại để gọi downstream forecast."
-    );
-  }
-
   const qs = new URLSearchParams();
+
   qs.set("mode", "forecast");
 
-  for (const [key, value] of Object.entries(forecastInput)) {
+  for (const [key, value] of Object.entries(dashboardInput)) {
     if (value !== null && value !== undefined && value !== "") {
       qs.set(key, String(value));
     }
@@ -265,40 +333,6 @@ async function loadForecastNow(req) {
   };
 }
 
-/**
- * TODO:
- * Thay phần này bằng nguồn vận hành hồ thực tế của bạn.
- * Có thể đọc từ API hiện có / Supabase / PCTT / telemetry.
- */
-async function loadPlantOperations(req) {
-  const body = readBody(req);
-
-  const plants = Array.isArray(body.plants) ? body.plants : [];
-
-  const normalized = plants.map((p) => ({
-    plant_code: text(p.plant_code).toUpperCase(),
-    plant_name: text(p.plant_name),
-    discharge_m3s: num(p.discharge_m3s, 0),
-    spillway_m3s: num(p.spillway_m3s, 0),
-    turbine_m3s: num(p.turbine_m3s, 0),
-    status: text(p.status, "normal"),
-  }));
-
-  const vuGiaTotal = normalized
-    .filter((p) => ["A_VUONG", "DAKMI4", "SONGBUNG4"].includes(p.plant_code))
-    .reduce((s, p) => s + Number(p.discharge_m3s || 0), 0);
-
-  const thuBonTotal = normalized
-    .filter((p) => ["SONGTRANH2"].includes(p.plant_code))
-    .reduce((s, p) => s + Number(p.discharge_m3s || 0), 0);
-
-  return {
-    plants: normalized,
-    vu_gia_total_discharge_m3s: round(vuGiaTotal, 2),
-    thu_bon_total_discharge_m3s: round(thuBonTotal, 2),
-  };
-}
-
 /* ======================================================
    RULE ENGINE
 ====================================================== */
@@ -312,19 +346,8 @@ function getTrend(delta4h) {
   return "rising_fast";
 }
 
-function getSeverityByForecast({
-  current_m,
-  h4_m,
-  h6_m,
-  h12_m,
-  thresholds,
-  delta4h,
-}) {
-  const max46 = Math.max(
-    h4_m ?? Number.NEGATIVE_INFINITY,
-    h6_m ?? Number.NEGATIVE_INFINITY
-  );
-
+function getSeverityByForecast({ h4_m, h6_m, thresholds, delta4h }) {
+  const max46 = Math.max(h4_m ?? Number.NEGATIVE_INFINITY, h6_m ?? Number.NEGATIVE_INFINITY);
   const bd1 = thresholds?.bd1_cm != null ? Number(thresholds.bd1_cm) / 100 : null;
   const bd2 = thresholds?.bd2_cm != null ? Number(thresholds.bd2_cm) / 100 : null;
 
@@ -340,7 +363,7 @@ function maxSeverity(a, b) {
   return (order[a] ?? 0) >= (order[b] ?? 0) ? a : b;
 }
 
-function evaluateRules(snapshot) {
+function evaluateRules(snapshot, dashboardInput) {
   const hkCurrent = snapshot.observed.hoi_khach.current_m;
   const anCurrent = snapshot.observed.ai_nghia.current_m;
 
@@ -361,38 +384,27 @@ function evaluateRules(snapshot) {
   const anDelta12 = anCurrent != null && an12 != null ? round(an12 - anCurrent, 2) : null;
 
   const hkSeverity = getSeverityByForecast({
-    current_m: hkCurrent,
     h4_m: hk4,
     h6_m: hk6,
-    h12_m: hk12,
     thresholds: snapshot.forecast.hoi_khach.thresholds,
     delta4h: hkDelta4,
   });
 
   const anSeverity = getSeverityByForecast({
-    current_m: anCurrent,
     h4_m: an4,
     h6_m: an6,
-    h12_m: an12,
     thresholds: snapshot.forecast.ai_nghia.thresholds,
     delta4h: anDelta4,
   });
 
-  const plants = Array.isArray(snapshot.operations.plants)
-    ? snapshot.operations.plants
-    : [];
-
+  const plants = snapshot.operations.plants || [];
   const maxPlant = plants.reduce((best, p) => {
     if (!best) return p;
     return Number(p.discharge_m3s || 0) > Number(best.discharge_m3s || 0) ? p : best;
   }, null);
 
-  const spillwayActiveCount = plants.filter(
-    (p) => Number(p.spillway_m3s || 0) > 0 || p.status === "spill_active"
-  ).length;
-
   let overall = maxSeverity(hkSeverity, anSeverity);
-  if (spillwayActiveCount > 0 && overall === "normal") overall = "watch";
+  if (num(dashboardInput.All4_Qra, 0) >= 1000 && overall === "normal") overall = "watch";
 
   return {
     hoi_khach: {
@@ -428,8 +440,12 @@ function evaluateRules(snapshot) {
     system: {
       max_discharge_plant: maxPlant?.plant_code || null,
       max_discharge_m3s: num(maxPlant?.discharge_m3s, 0),
-      spillway_active_count: spillwayActiveCount,
+      spillway_active_count: 0,
       overall_severity: overall,
+      all4_qra_m3s: num(dashboardInput.All4_Qra, 0),
+      vugia_3ho_qra_m3s: num(dashboardInput.VuGia_3ho_Qra, 0),
+      q_vugia_delta_1h: num(dashboardInput.Q_VuGia_Delta_1h, 0),
+      q_vugia_delta_3h: num(dashboardInput.Q_VuGia_Delta_3h, 0),
     },
   };
 }
@@ -439,17 +455,25 @@ function evaluateRules(snapshot) {
 ====================================================== */
 
 async function buildSnapshot(req) {
+  const dashboardInput = getDashboardInput(req);
+  const valid = validateDashboardInput(dashboardInput);
+  if (!valid.ok) {
+    throw new Error(`Thiếu input dashboard: ${valid.missing.join(", ")}`);
+  }
+
   const hours = Math.min(Math.max(num(req.query.hours, 72), 6), 168);
 
-  const [observedLatest, observedHistory, forecast, operations] = await Promise.all([
+  const [observedLatest, observedHistory, forecast] = await Promise.all([
     loadObservedLatest(req),
     loadObservedHistory(req, hours),
-    loadForecastNow(req),
-    loadPlantOperations(req),
+    loadForecastNow(req, dashboardInput),
   ]);
 
+  const operations = buildPlantOperationsFromDashboardInput(dashboardInput);
+
   const snapshot = {
-    snapshot_time: getNowIso(),
+    snapshot_time: dashboardInput.time || new Date().toISOString(),
+    dashboard_input: dashboardInput,
     observed: {
       obs_hour: observedLatest.obs_hour,
       hoi_khach: observedLatest.hoi_khach,
@@ -461,10 +485,11 @@ async function buildSnapshot(req) {
     operations,
   };
 
-  const rules = evaluateRules(snapshot);
+  const rules = evaluateRules(snapshot, dashboardInput);
 
   return {
     snapshot_time: snapshot.snapshot_time,
+    dashboard_input: snapshot.dashboard_input,
     observed: snapshot.observed,
     forecast: snapshot.forecast,
     operations: snapshot.operations,
@@ -473,22 +498,18 @@ async function buildSnapshot(req) {
 }
 
 /* ======================================================
-   TEMPLATE / AI BRIEF
+   BRIEF GENERATION - RULE BASED
 ====================================================== */
 
 function generateRuleBasedBrief(channel, snapshot) {
   const hkObs = snapshot.observed.hoi_khach.current_m;
   const anObs = snapshot.observed.ai_nghia.current_m;
-
   const hk4 = snapshot.forecast.hoi_khach.h4_m;
   const hk6 = snapshot.forecast.hoi_khach.h6_m;
   const hk12 = snapshot.forecast.hoi_khach.h12_m;
-
   const an4 = snapshot.forecast.ai_nghia.h4_m;
   const an6 = snapshot.forecast.ai_nghia.h6_m;
   const an12 = snapshot.forecast.ai_nghia.h12_m;
-
-  const hkDelta4 = snapshot.rules.hoi_khach.delta_4h_m;
   const overall = snapshot.rules.system.overall_severity;
   const maxPlant = snapshot.rules.system.max_discharge_plant;
   const maxQ = snapshot.rules.system.max_discharge_m3s;
@@ -496,7 +517,7 @@ function generateRuleBasedBrief(channel, snapshot) {
   if (channel === "dashboard") {
     return {
       title: "Tóm tắt AI",
-      message: `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h. Mức rủi ro: ${overall}.`,
+      message: `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h. Rủi ro: ${overall}.`,
       severity: overall,
     };
   }
@@ -505,10 +526,10 @@ function generateRuleBasedBrief(channel, snapshot) {
     return {
       title: "Bản tin nội bộ hạ du",
       message:
-        `Cập nhật: Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h. ` +
+        `Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h. ` +
         `Ái Nghĩa hiện ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h. ` +
-        `Nhà máy xả lớn nhất hiện tại là ${maxPlant || "N/A"} với khoảng ${maxQ ?? 0} m3/s. ` +
-        `Xu hướng Hội Khách ${snapshot.rules.hoi_khach.trend}, mức rủi ro tổng thể ${overall}.`,
+        `Nhà máy xả lớn nhất là ${maxPlant || "N/A"} khoảng ${maxQ ?? 0} m3/s. ` +
+        `Tổng Q xả 4 nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s. Mức rủi ro tổng thể ${overall}.`,
       severity: overall,
     };
   }
@@ -518,8 +539,8 @@ function generateRuleBasedBrief(channel, snapshot) {
       title: "Thông báo hạ du",
       message:
         `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m. ` +
-        `Dự báo trong 4 giờ tới, mực nước có xu hướng ${hkDelta4 !== null && hkDelta4 > 0 ? "tăng" : "ổn định"} tại một số vị trí hạ du. ` +
-        `Người dân ven sông cần theo dõi thông báo tiếp theo và hạn chế hoạt động gần sông suối khi không cần thiết.`,
+        `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m. ` +
+        `Một số hồ thủy điện trên lưu vực đang vận hành xả nước. Người dân ven sông cần theo dõi thông báo tiếp theo và hạn chế hoạt động gần sông suối khi không cần thiết.`,
       severity: overall,
     };
   }
@@ -530,7 +551,7 @@ function generateRuleBasedBrief(channel, snapshot) {
       message:
         `[Cập nhật hạ du] Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m. ` +
         `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m. ` +
-        `Một số hồ đang vận hành xả nước. Đề nghị người dân ven sông chú ý theo dõi thông báo tiếp theo.`,
+        `Tổng lưu lượng xả các nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s. Đề nghị người dân ven sông chú ý theo dõi thông báo tiếp theo.`,
       severity: overall,
     };
   }
@@ -542,12 +563,6 @@ function generateRuleBasedBrief(channel, snapshot) {
   };
 }
 
-/**
- * TODO:
- * Khi tích hợp AI thật, thay thế hàm này bằng:
- * - gửi snapshot + prompt JSON sang OpenAI/internal AI service
- * - nếu AI lỗi thì fallback sang rule-based
- */
 async function generateBrief(channel, snapshot) {
   return generateRuleBasedBrief(channel, snapshot);
 }
@@ -562,9 +577,12 @@ async function saveSnapshot(snapshot, note = null) {
     observed_payload: snapshot.observed,
     forecast_payload: snapshot.forecast,
     operations_payload: snapshot.operations,
-    rules_payload: snapshot.rules,
+    rules_payload: {
+      ...snapshot.rules,
+      dashboard_input: snapshot.dashboard_input,
+    },
     overall_severity: snapshot.rules.system.overall_severity,
-    source: "system",
+    source: "downstream-brief",
     note,
   });
 
@@ -579,7 +597,7 @@ async function saveBrief(snapshotId, channel, brief) {
     title: brief.title || null,
     message: brief.message,
     model_name: "rule-based-v1",
-    prompt_version: "v1",
+    prompt_version: "v1-hardwired-dashboard-input",
     extra_payload: {},
   });
 
@@ -592,7 +610,6 @@ async function saveBrief(snapshotId, channel, brief) {
 
 async function handleSnapshot(req, res) {
   const snapshot = await buildSnapshot(req);
-
   return json(res, 200, {
     ok: true,
     mode: "snapshot",
@@ -733,21 +750,14 @@ export default async function handler(req, res) {
     return json(res, 400, {
       ok: false,
       error: "mode không hợp lệ",
-      supported_modes: [
-        "snapshot",
-        "generate",
-        "save",
-        "latest",
-        "latest-briefs",
-      ],
+      supported_modes: ["snapshot", "generate", "save", "latest", "latest-briefs"],
     });
   } catch (err) {
     return json(res, 500, {
       ok: false,
       mode: req.query.mode || "snapshot",
       error: err.message,
-      hint:
-        "Kiểm tra forecast_input, plants, APP_BASE_URL và các API downstream-forecast liên quan",
+      hint: "Kiểm tra input dashboard, downstream-forecast API, observed-latest/history, và bảng AI snapshot/brief",
     });
   }
 }
