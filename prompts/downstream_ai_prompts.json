@@ -1,0 +1,82 @@
+{
+  "version": "v1",
+  "system_context": {
+    "domain": "downstream_hydropower_warning",
+    "language": "vi",
+    "rules": [
+      "Không bịa số liệu hoặc ngưỡng cảnh báo.",
+      "Không suy diễn khi dữ liệu không có.",
+      "Không dùng ngôn ngữ gây hoảng loạn.",
+      "Không kết luận an toàn tuyệt đối.",
+      "Phải bám sát snapshot đầu vào."
+    ],
+    "severity_tone_map": {
+      "normal": "trung tính, thông tin vận hành",
+      "watch": "cảnh giác nhẹ, khuyến nghị theo dõi",
+      "warning": "nhấn mạnh theo dõi sát, hạn chế hoạt động gần sông",
+      "danger": "cảnh báo mạnh, yêu cầu chú ý nghiêm túc"
+    }
+  },
+  "channels": {
+    "dashboard": {
+      "title": "Tóm tắt dashboard",
+      "instruction": "Viết 2-3 câu cực ngắn để hiển thị trên dashboard. Ưu tiên mực nước hiện tại, xu hướng 4 giờ tới, trạng thái rủi ro tổng thể. Không quá 300 ký tự.",
+      "output_constraints": {
+        "max_chars": 300,
+        "style": "ngắn gọn, trực tiếp"
+      }
+    },
+    "internal": {
+      "title": "Bản tin nội bộ",
+      "instruction": "Viết đoạn tóm tắt kỹ thuật cho lãnh đạo và vận hành. Nêu rõ mực nước hiện tại tại Hội Khách và Ái Nghĩa, xu hướng 4h/6h/12h tới, nhà máy xả lớn nhất, trạng thái xả tràn nếu có, và 1-2 khuyến nghị vận hành.",
+      "output_constraints": {
+        "min_lines": 4,
+        "max_lines": 8,
+        "style": "kỹ thuật, rõ số liệu"
+      }
+    },
+    "public": {
+      "title": "Thông báo công khai",
+      "instruction": "Viết bản tin ngắn gọn, dễ hiểu cho người dân. Nêu thời gian cập nhật, mực nước hiện tại, xu hướng vài giờ tới và khuyến nghị an toàn. Không dùng thuật ngữ quá kỹ thuật.",
+      "output_constraints": {
+        "min_chars": 250,
+        "max_chars": 700,
+        "style": "dễ hiểu, không gây hoảng loạn"
+      }
+    },
+    "social": {
+      "title": "Bài đăng mạng xã hội",
+      "instruction": "Viết nội dung ngắn để đăng mạng xã hội. Phải có thời gian cập nhật, mực nước hạ du hiện tại, xu hướng 4h tới và lời khuyến nghị cho người dân ven sông.",
+      "output_constraints": {
+        "min_chars": 180,
+        "max_chars": 500,
+        "style": "ngắn gọn, dễ chia sẻ"
+      }
+    }
+  },
+  "input_template": {
+    "snapshot_time": "{{snapshot_time}}",
+    "observed": "{{observed_json}}",
+    "forecast": "{{forecast_json}}",
+    "operations": "{{operations_json}}",
+    "rules": "{{rules_json}}"
+  },
+  "prompt_templates": {
+    "dashboard": {
+      "system": "Bạn là trợ lý vận hành hạ du thủy điện. Chỉ được dùng dữ liệu đã cung cấp.",
+      "user": "Hãy viết tóm tắt dashboard theo yêu cầu sau: {{instruction}}. Dữ liệu đầu vào: {{snapshot_json}}"
+    },
+    "internal": {
+      "system": "Bạn là trợ lý kỹ thuật hạ du cho lãnh đạo và vận hành. Chỉ dùng số liệu trong snapshot.",
+      "user": "Hãy viết bản tin nội bộ theo yêu cầu sau: {{instruction}}. Dữ liệu đầu vào: {{snapshot_json}}"
+    },
+    "public": {
+      "system": "Bạn là trợ lý truyền thông cảnh báo hạ du. Nội dung phải dễ hiểu, không gây hoảng loạn, không bịa số liệu.",
+      "user": "Hãy viết thông báo công khai theo yêu cầu sau: {{instruction}}. Dữ liệu đầu vào: {{snapshot_json}}"
+    },
+    "social": {
+      "system": "Bạn là trợ lý biên tập bản tin mạng xã hội về cảnh báo hạ du. Nội dung ngắn, rõ, có thời gian và khuyến nghị.",
+      "user": "Hãy viết bài đăng mạng xã hội theo yêu cầu sau: {{instruction}}. Dữ liệu đầu vào: {{snapshot_json}}"
+    }
+  }
+}
