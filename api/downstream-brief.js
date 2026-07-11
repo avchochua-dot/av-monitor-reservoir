@@ -900,60 +900,34 @@ async function handleGenerate(req, res) {
   });
 }
 
-async function handleSave(req, res) {
-  const body = readBody(req);
-  const channels = Array.isArray(body.channels) && body.channels.length
-    ? body.channels
-    : ["dashboard", "internal", "public", "social"];
+async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) {
+  const payload = {
+    snapshot_id: snapshotId,
+    channel,
+    severity: mergedBrief.severity || "normal",
 
-  const useAi = String(req.query.use_ai || body.use_ai || "0") === "1";
+    // tương thích schema cũ
+    title: mergedBrief.final_title || mergedBrief.rule_based_title || null,
+    message: mergedBrief.final_message || mergedBrief.rule_based_message || "",
 
-  const snapshot = await buildSnapshot(req);
-  const savedSnapshot = await saveSnapshot(snapshot, text(body.note, ""));
+    // schema mới
+    rule_based_title: mergedBrief.rule_based_title || null,
+    rule_based_message: mergedBrief.rule_based_message || "",
+    ai_title: mergedBrief.ai_title || null,
+    ai_message: mergedBrief.ai_message || null,
+    final_title: mergedBrief.final_title || null,
+    final_message: mergedBrief.final_message || "",
+    generation_mode: mergedBrief.generation_mode || "rule_based",
+    is_ai_success: !!mergedBrief.is_ai_success,
+    ai_error: mergedBrief.ai_error || null,
+    model_name: mergedBrief.model_name || null,
+    prompt_version: mergedBrief.prompt_version || "v1",
+    extra_payload: extraPayload || {},
+  };
 
-  if (!savedSnapshot?.id) {
-    throw new Error("Không lưu được snapshot");
-  }
-
-  const savedBriefs = [];
-
-  for (const channel of channels) {
-    const ruleBrief = generateRuleBasedBrief(channel, snapshot);
-
-    let aiBrief = null;
-    let aiMeta = {};
-
-    if (useAi) {
-      const aiResult = await generateAiEnhancedBrief(channel, snapshot, ruleBrief);
-      aiBrief = {
-        title: aiResult?.title || null,
-        message: aiResult?.message || null,
-        severity: aiResult?.severity || ruleBrief.severity,
-      };
-      aiMeta = aiResult?.meta || {};
-    }
-
-    const merged = chooseFinalBrief(ruleBrief, aiBrief, aiMeta);
-
-    const saved = await saveBriefV2(savedSnapshot.id, channel, merged, {
-      channel,
-      snapshot_time: snapshot.snapshot_time,
-      use_ai: useAi,
-    });
-
-    savedBriefs.push(saved);
-  }
-
-  return json(res, 200, {
-    ok: true,
-    mode: "save",
-    use_ai: useAi,
-    snapshot_id: savedSnapshot.id,
-    briefs_saved: savedBriefs.length,
-    briefs: savedBriefs,
-  });
+  const inserted = await supabaseInsert("downstream_ai_briefs", payload);
+  return inserted?.[0] || null;
 }
-
 async function handleLatest(req, res) {
   const rows = await supabaseSelect(
     "downstream_ai_snapshots?select=*&order=snapshot_time.desc&limit=1"
