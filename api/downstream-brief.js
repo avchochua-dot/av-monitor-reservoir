@@ -2,6 +2,10 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const APP_BASE_URL = process.env.APP_BASE_URL || "";
 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const OPENAI_API_BASE = process.env.OPENAI_API_BASE || "https://api.openai.com/v1";
+
 function json(res, status, data, cache = "no-store") {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -45,26 +49,36 @@ function getAppBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
-async function fetchJson(url, timeoutMs = 15000) {
+function truncate(str, max = 900) {
+  const s = text(str, "");
+  return s.length > max ? `${s.slice(0, max).trim()}...` : s;
+}
+
+async function fetchJson(url, timeoutMs = 15000, method = "GET", body = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
+      method,
+      headers: {
+        Accept: "application/json",
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
 
-    const body = await response.text();
+    const raw = await response.text();
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${body.slice(0, 500)}`);
+      throw new Error(`HTTP ${response.status}: ${raw.slice(0, 800)}`);
     }
 
     try {
-      return JSON.parse(body);
+      return JSON.parse(raw);
     } catch {
-      throw new Error(`Response is not JSON: ${body.slice(0, 500)}`);
+      throw new Error(`Response is not JSON: ${raw.slice(0, 800)}`);
     }
   } finally {
     clearTimeout(timer);
@@ -564,19 +578,176 @@ function generateRuleBasedBrief(channel, snapshot) {
 }
 
 /* ======================================================
-   AI-ENHANCED LAYER
+   OPENAI
 ====================================================== */
+
+function buildOpenAiPrompt(channel, snapshot, ruleBrief) {
+  const channelConfig = {
+    dashboard: {
+      style: "Viết 2-3 câu cực ngắn cho dashboard. Không quá 300 ký tự. Rõ số liệu, rõ xu hướng, rõ mức rủi ro.",
+    },
+    internal: {
+      style: "Viết bản tin nội bộ kỹ thuật cho vận hành/lãnh đạo. Nêu hiện trạng, dự báo 4h/6h/12h, nhà máy xả lớn nhất, và khuyến nghị ngắn.",
+    },
+    public: {
+      style: "Viết thông báo công khai dễ hiểu cho người dân. Không dùng thuật ngữ quá kỹ thuật. Không gây hoảng loạn.",
+    },
+    social: {
+      style: "Viết bài đăng mạng xã hội ngắn gọn, dễ chia sẻ, có thời gian, có khuyến nghị rõ ràng.",
+    },
+  };
+
+  const cfg = channelConfig[channel] || channelConfig.dashboard;
+
+  const system = [
+    "Bạn là trợ lý cảnh báo hạ du thủy điện.",
+    "Chỉ được dùng dữ liệu có trong snapshot.",
+    "Không bịa số liệu, không bịa ngưỡng, không suy diễn vượt ngoài dữ liệu.",
+    "Không dùng ngôn từ gây hoảng loạn.",
+    "Nếu mức severity là danger hoặc warning thì phải nhấn mạnh theo dõi/cảnh giác phù hợp.",
+    "Nếu có rule_based_message thì dùng nó làm nền, nhưng viết lại cho tự nhiên, mạch lạc hơn.",
+  ].join(" ");
+
+  const user = `
+KÊNH: ${channel}
+
+YÊU CẦU:
+${cfg.style}
+
+RULE-BASED DRAFT:
+${ruleBrief?.message || ""}
+
+SNAPSHOT JSON:
+${JSON.stringify(snapshot, null, 2)}
+
+Trả về đúng JSON object với format:
+{
+  "title": "string",
+  "message": "string",
+  "severity": "normal|watch|warning|danger"
+}
+
+Chỉ trả JSON, không thêm markdown, không thêm giải thích.
+  `.trim();
+
+  return { system, user };
+}
+
+async function callOpenAiJson({ system, user, timeoutMs = 25000 }) {
+  if (!OPENAI_API_KEY) {
+    throw new Error("Thiếu OPENAI_API_KEY");
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${OPENAI_API_BASE}/responses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        input: [
+          { role: "system", content: [{ type: "input_text", text: system }] },
+          { role: "user", content: [{ type: "input_text", text: user }] },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "downstream_brief",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                title: { type: "string" },
+                message: { type: "string" },
+                severity: {
+                  type: "string",
+                  enum: ["normal", "watch", "warning", "danger"],
+                },
+              },
+              required: ["title", "message", "severity"],
+            },
+          },
+        },
+      }),
+    });
+
+    const bodyText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`OpenAI HTTP ${response.status}: ${bodyText.slice(0, 800)}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(bodyText);
+    } catch {
+      throw new Error(`OpenAI response không phải JSON: ${bodyText.slice(0, 800)}`);
+    }
+
+    let raw = "";
+    if (typeof data.output_text === "string" && data.output_text.trim()) {
+      raw = data.output_text.trim();
+    } else if (Array.isArray(data.output)) {
+      for (const item of data.output) {
+        if (Array.isArray(item.content)) {
+          for (const c of item.content) {
+            if (typeof c.text === "string" && c.text.trim()) {
+              raw += c.text;
+            }
+          }
+        }
+      }
+      raw = raw.trim();
+    }
+
+    if (!raw) {
+      throw new Error("OpenAI không trả về output_text hợp lệ");
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error(`Không parse được JSON từ OpenAI: ${raw.slice(0, 800)}`);
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("JSON từ OpenAI không hợp lệ");
+    }
+
+    if (!parsed.message || !parsed.severity) {
+      throw new Error("OpenAI JSON thiếu message hoặc severity");
+    }
+
+    return {
+      title: text(parsed.title, null),
+      message: truncate(text(parsed.message, ""), 1200),
+      severity: text(parsed.severity, "normal"),
+      raw_response: data,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
   try {
-    // Chưa gọi OpenAI thật. Dùng skeleton/fallback.
+    const prompt = buildOpenAiPrompt(channel, snapshot, ruleBrief);
+    const ai = await callOpenAiJson(prompt);
+
     return {
-      title: null,
-      message: null,
-      severity: ruleBrief.severity,
+      title: ai.title || ruleBrief.title || null,
+      message: ai.message || null,
+      severity: ai.severity || ruleBrief.severity,
       meta: {
-        model_name: null,
-        prompt_version: "v1",
+        model_name: OPENAI_MODEL,
+        prompt_version: "v2-openai-json",
       },
     };
   } catch (err) {
@@ -586,8 +757,8 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       severity: ruleBrief.severity,
       meta: {
         error: err.message,
-        model_name: null,
-        prompt_version: "v1",
+        model_name: OPENAI_MODEL,
+        prompt_version: "v2-openai-json",
       },
     };
   }
@@ -906,7 +1077,7 @@ export default async function handler(req, res) {
       ok: false,
       mode: req.query.mode || "snapshot",
       error: err.message,
-      hint: "Kiểm tra input dashboard, downstream-forecast API, observed-latest/history, và schema DB mới",
+      hint: "Kiểm tra OPENAI_API_KEY, APP_BASE_URL, downstream-forecast API, observed-latest/history và schema DB mới",
     });
   }
 }
