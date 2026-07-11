@@ -796,30 +796,17 @@ function chooseFinalBrief(ruleBrief, aiBrief, aiMeta = {}) {
    SAVE HELPERS
 ====================================================== */
 
-async function saveSnapshot(snapshot, note = null) {
-  const inserted = await supabaseInsert("downstream_ai_snapshots", {
-    snapshot_time: snapshot.snapshot_time,
-    observed_payload: snapshot.observed,
-    forecast_payload: snapshot.forecast,
-    operations_payload: snapshot.operations,
-    rules_payload: {
-      ...snapshot.rules,
-      dashboard_input: snapshot.dashboard_input,
-    },
-    overall_severity: snapshot.rules.system.overall_severity,
-    source: "downstream-brief",
-    note,
-  });
-
-  return inserted?.[0] || null;
-}
-
 async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) {
   const inserted = await supabaseInsert("downstream_ai_briefs", {
     snapshot_id: snapshotId,
     channel,
     severity: mergedBrief.severity || "normal",
 
+    // tương thích schema cũ
+    title: mergedBrief.final_title || mergedBrief.rule_based_title || null,
+    message: mergedBrief.final_message || mergedBrief.rule_based_message || "",
+
+    // schema mới
     rule_based_title: mergedBrief.rule_based_title || null,
     rule_based_message: mergedBrief.rule_based_message || "",
 
@@ -840,7 +827,6 @@ async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) 
 
   return inserted?.[0] || null;
 }
-
 /* ======================================================
    HANDLERS
 ====================================================== */
