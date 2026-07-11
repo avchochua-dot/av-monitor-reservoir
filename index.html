@@ -5314,6 +5314,45 @@ body.slideshow-frame-mode section{
   resize:vertical;
   outline:none;
 }
+
+.downstream-brief-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:68px;
+  height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  border:1px solid rgba(15,23,42,.08);
+  background:#f8fafc;
+  color:#475569;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.downstream-brief-badge.ai{
+  background:rgba(16,185,129,.10);
+  border-color:rgba(16,185,129,.20);
+  color:#059669;
+}
+.downstream-brief-badge.rule{
+  background:rgba(100,116,139,.10);
+  border-color:rgba(100,116,139,.18);
+  color:#475569;
+}
+.downstream-brief-output-head-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.downstream-toolbar button.rule{
+  background:linear-gradient(135deg,rgba(100,116,139,.12),rgba(248,250,252,.96))!important;
+  color:#334155!important;
+  border-color:rgba(100,116,139,.22)!important;
+}
+
 .downstream-brief-actions{
   display:flex;
   align-items:center;
@@ -6933,13 +6972,14 @@ body.slideshow-frame-mode section{
                 <div class="downstream-title-icon">🧠</div>
                 <div>
                   <h2>AI Briefing hạ du</h2>
-                  <p>Gom mực nước hạ du hiện tại, dự báo 4h / 6h / 12h và lưu lượng xả các nhà máy để tạo bản tin ngắn cho dashboard, nội bộ, cảnh báo công khai và mạng xã hội.</p>
+                  <p>Hiển thị snapshot mới nhất và 4 bản tin cho dashboard, nội bộ, công khai và mạng xã hội. UI luôn ưu tiên final_message đã lưu trong hệ thống.</p>
                 </div>
               </div>
               <div class="downstream-toolbar">
                 <span class="downstream-status" id="dsBriefStatus">Chưa tải</span>
-                <button type="button" class="ai" onclick="generateDownstreamBriefs(false)">Tạo bản tin AI</button>
-                <button type="button" class="saveai" onclick="generateDownstreamBriefs(true)">Lưu snapshot</button>
+                <button type="button" class="rule" onclick="saveDownstreamBriefRule()">Lưu rule-based</button>
+                <button type="button" class="ai" onclick="saveDownstreamBriefAI()">Tạo bản tin AI</button>
+                <button type="button" onclick="loadDownstreamBriefLatest(true)">Tải lại</button>
               </div>
             </div>
 
@@ -6957,7 +6997,10 @@ body.slideshow-frame-mode section{
                   <div class="downstream-brief-output">
                     <div class="downstream-brief-output-head">
                       <div class="downstream-brief-output-title">Dashboard</div>
-                      <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('dashboard')">Sao chép</button>
+                      <div class="downstream-brief-output-head-right">
+                        <span class="downstream-brief-badge rule" id="dsBriefBadgeDashboard">--</span>
+                        <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('dashboard')">Sao chép</button>
+                      </div>
                     </div>
                     <div class="downstream-brief-text empty" id="dsBriefDashboard">Chưa có bản tin dashboard.</div>
                   </div>
@@ -6965,7 +7008,10 @@ body.slideshow-frame-mode section{
                   <div class="downstream-brief-output">
                     <div class="downstream-brief-output-head">
                       <div class="downstream-brief-output-title">Nội bộ vận hành</div>
-                      <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('internal')">Sao chép</button>
+                      <div class="downstream-brief-output-head-right">
+                        <span class="downstream-brief-badge rule" id="dsBriefBadgeInternal">--</span>
+                        <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('internal')">Sao chép</button>
+                      </div>
                     </div>
                     <div class="downstream-brief-text empty" id="dsBriefInternal">Chưa có bản tin nội bộ.</div>
                   </div>
@@ -6973,7 +7019,10 @@ body.slideshow-frame-mode section{
                   <div class="downstream-brief-output">
                     <div class="downstream-brief-output-head">
                       <div class="downstream-brief-output-title">Công khai / cảnh báo</div>
-                      <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('public')">Sao chép</button>
+                      <div class="downstream-brief-output-head-right">
+                        <span class="downstream-brief-badge rule" id="dsBriefBadgePublic">--</span>
+                        <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('public')">Sao chép</button>
+                      </div>
                     </div>
                     <div class="downstream-brief-text empty" id="dsBriefPublic">Chưa có bản tin công khai.</div>
                   </div>
@@ -6981,7 +7030,10 @@ body.slideshow-frame-mode section{
                   <div class="downstream-brief-output">
                     <div class="downstream-brief-output-head">
                       <div class="downstream-brief-output-title">Mạng xã hội</div>
-                      <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('social')">Sao chép</button>
+                      <div class="downstream-brief-output-head-right">
+                        <span class="downstream-brief-badge rule" id="dsBriefBadgeSocial">--</span>
+                        <button type="button" class="downstream-brief-copy" onclick="copyDownstreamBrief('social')">Sao chép</button>
+                      </div>
                     </div>
                     <div class="downstream-brief-text empty" id="dsBriefSocial">Chưa có bài đăng mạng xã hội.</div>
                   </div>
@@ -6996,7 +7048,7 @@ body.slideshow-frame-mode section{
                   <span id="dsBriefMetaSource">Nguồn: downstream-brief</span>
                   <span id="dsBriefMetaSaved">Snapshot ID: --</span>
                 </div>
-                <div class="downstream-note" id="dsBriefNote">Bấm "Tạo bản tin AI" để gom số liệu hiện tại trên tab này và sinh ra 4 loại bản tin.</div>
+                <div class="downstream-note" id="dsBriefNote">Tab này tự đọc latest + latest-briefs. Bấm "Tạo bản tin AI" để lưu xuống DB, hoặc "Lưu rule-based" để fallback vận hành.</div>
               </div>
             </div>
           </section>
@@ -11982,7 +12034,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   let downstreamForecastRealtimeData = null;
   let downstreamBriefState = {
     snapshot: null,
+    snapshotRow: null,
     briefs: {},
+    briefRows: [],
     snapshotId: null
   };
 
@@ -12001,8 +12055,45 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     el.classList.toggle("empty", !txt);
   }
 
+  function setBriefBadge(id, mode){
+    const el = $(id);
+    if(!el) return;
+    const isAi = String(mode || "") === "ai_enhanced";
+    el.className = "downstream-brief-badge " + (isAi ? "ai" : "rule");
+    el.textContent = mode ? (isAi ? "AI" : "RULE") : "--";
+  }
+
+  function getBriefMessage(row){
+    return String(row?.final_message || row?.message || row?.ai_message || row?.rule_based_message || "").trim();
+  }
+
+  function normalizeLatestSnapshotRow(row){
+    if(!row) return null;
+    return {
+      snapshot_time: row.snapshot_time || null,
+      observed: row.observed_payload || {},
+      forecast: row.forecast_payload || {},
+      operations: row.operations_payload || {},
+      rules: row.rules_payload || {}
+    };
+  }
+
+  function normalizeGeneratedSnapshot(data){
+    if(!data) return null;
+    return {
+      snapshot_time: data.snapshot_time || null,
+      observed: data.observed || {},
+      forecast: data.forecast || {},
+      operations: data.operations || {},
+      rules: data.rules || {}
+    };
+  }
+
   function buildDownstreamBriefBody(){
     const input = readDownstreamInputs();
+    if(downstreamForecastRealtimeData?.snapshot_time && !input.time){
+      input.time = downstreamForecastRealtimeData.snapshot_time;
+    }
     return {
       channels: ["dashboard","internal","public","social"],
       ...input
@@ -12015,6 +12106,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const overall = snapshot?.rules?.system?.overall_severity || "--";
     const hk4 = snapshot?.forecast?.hoi_khach?.h4_m;
     const an4 = snapshot?.forecast?.ai_nghia?.h4_m;
+    const hkCur = snapshot?.observed?.hoi_khach?.current_m;
+    const anCur = snapshot?.observed?.ai_nghia?.current_m;
     const maxPlantCode = snapshot?.rules?.system?.max_discharge_plant || "--";
     const maxQ = snapshot?.rules?.system?.max_discharge_m3s;
     const stationMap = {
@@ -12034,17 +12127,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       <div class="downstream-brief-kpi ${sevClass}">
         <span>Mức rủi ro</span>
         <b>${String(overall).toUpperCase()}</b>
-        <small>${snapshotId ? `Snapshot #${snapshotId}` : "Tính từ snapshot hiện tại"}</small>
+        <small>${snapshotId ? `Snapshot #${snapshotId}` : "Từ snapshot hiện tại"}</small>
       </div>
       <div class="downstream-brief-kpi blue">
         <span>Hội Khách +4h</span>
         <b>${fmtDsNumber(hk4, 2)}</b>
-        <small>Hiện tại ${fmtDsNumber(snapshot?.observed?.hoi_khach?.current_m, 2)} m</small>
+        <small>Hiện tại ${fmtDsNumber(hkCur, 2)} m</small>
       </div>
       <div class="downstream-brief-kpi green">
         <span>Ái Nghĩa +4h</span>
         <b>${fmtDsNumber(an4, 2)}</b>
-        <small>Hiện tại ${fmtDsNumber(snapshot?.observed?.ai_nghia?.current_m, 2)} m</small>
+        <small>Hiện tại ${fmtDsNumber(anCur, 2)} m</small>
       </div>
       <div class="downstream-brief-kpi orange">
         <span>Xả lớn nhất</span>
@@ -12055,20 +12148,32 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
   function renderDownstreamBriefSection(payload, opts={}){
-    const snapshot = payload?.snapshot || payload || null;
-    const briefs = payload?.briefs || {};
+    const snapshot = payload?.snapshot || null;
+    const briefRows = Array.isArray(payload?.briefRows) ? payload.briefRows : [];
+    const briefMap = payload?.briefs || {};
     const snapshotId = opts.snapshotId ?? payload?.snapshot_id ?? downstreamBriefState.snapshotId ?? null;
 
     downstreamBriefState.snapshot = snapshot;
-    downstreamBriefState.briefs = briefs || {};
+    downstreamBriefState.briefRows = briefRows;
+    downstreamBriefState.briefs = briefMap || {};
     if(snapshotId) downstreamBriefState.snapshotId = snapshotId;
 
     renderDownstreamBriefKpis(snapshot, snapshotId);
 
-    setBriefText("dsBriefDashboard", briefs?.dashboard?.message || "");
-    setBriefText("dsBriefInternal", briefs?.internal?.message || "");
-    setBriefText("dsBriefPublic", briefs?.public?.message || "");
-    setBriefText("dsBriefSocial", briefs?.social?.message || "");
+    const dashboardRow = briefMap.dashboard || {};
+    const internalRow = briefMap.internal || {};
+    const publicRow = briefMap.public || {};
+    const socialRow = briefMap.social || {};
+
+    setBriefText("dsBriefDashboard", getBriefMessage(dashboardRow));
+    setBriefText("dsBriefInternal", getBriefMessage(internalRow));
+    setBriefText("dsBriefPublic", getBriefMessage(publicRow));
+    setBriefText("dsBriefSocial", getBriefMessage(socialRow));
+
+    setBriefBadge("dsBriefBadgeDashboard", dashboardRow.generation_mode);
+    setBriefBadge("dsBriefBadgeInternal", internalRow.generation_mode);
+    setBriefBadge("dsBriefBadgePublic", publicRow.generation_mode);
+    setBriefBadge("dsBriefBadgeSocial", socialRow.generation_mode);
 
     const snapBox = $("dsBriefSnapshotJson");
     if(snapBox){
@@ -12080,21 +12185,22 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(s) s.textContent = `Snapshot ID: ${snapshotId || "--"}`;
     const src = $("dsBriefMetaSource");
     if(src){
-      src.textContent = `Nguồn: ${briefs && Object.keys(briefs).length ? "AI Briefing realtime" : "downstream_ai_snapshots"}`;
+      const aiCount = briefRows.filter(r => String(r?.generation_mode || "") === "ai_enhanced").length;
+      src.textContent = `Nguồn: latest + latest-briefs${briefRows.length ? ` · AI ${aiCount}/${briefRows.length}` : ""}`;
     }
     const note = $("dsBriefNote");
     if(note){
       const sev = snapshot?.rules?.system?.overall_severity || "--";
-      note.textContent = briefs && Object.keys(briefs).length
-        ? `Đã sinh bản tin AI mức ${String(sev).toUpperCase()} từ số liệu hiện tại trên tab Dự báo hạ du.`
-        : "Đang hiển thị snapshot/bản tin AI đã lưu gần nhất trong hệ thống.";
+      note.textContent = briefRows.length
+        ? `Đã nạp ${briefRows.length} kênh bản tin. Mức rủi ro hiện tại: ${String(sev).toUpperCase()}. UI luôn dùng final_message; badge AI/Rule lấy từ generation_mode.`
+        : "Chưa có brief đã lưu. Bấm Tạo bản tin AI hoặc Lưu rule-based để sinh dữ liệu.";
     }
   }
 
-  async function generateDownstreamBriefs(save=false){
+  async function saveDownstreamBrief(useAi){
     try{
-      setDsBriefStatus(save ? "Đang lưu snapshot..." : "Đang sinh AI...");
-      const url = dsApi(`/api/downstream-brief?mode=${save ? "save" : "generate"}`);
+      setDsBriefStatus(useAi ? "Đang tạo bản tin AI..." : "Đang lưu rule-based...");
+      const url = dsApi(`/api/downstream-brief?mode=save&use_ai=${useAi ? 1 : 0}`);
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -12104,9 +12210,24 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       if(!res.ok || !data.ok){
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      renderDownstreamBriefSection(data, { snapshotId: data.snapshot_id || null });
-      setDsBriefStatus(save ? "Đã lưu snapshot" : "AI Briefing OK", "ok");
-      toast(save ? `Đã lưu snapshot AI #${data.snapshot_id || "--"}` : "Đã tạo bản tin AI");
+
+      const snapshot = normalizeGeneratedSnapshot({
+        snapshot_time: data.snapshot_time || new Date().toISOString(),
+        ...(data.snapshot || {})
+      });
+      const briefRows = Array.isArray(data.briefs) ? data.briefs : [];
+      const briefMap = {};
+      briefRows.forEach(item => {
+        if(item?.channel) briefMap[item.channel] = item;
+      });
+
+      renderDownstreamBriefSection(
+        { snapshot, briefs: briefMap, briefRows },
+        { snapshotId: data.snapshot_id || null }
+      );
+      setDsBriefStatus(useAi ? "Đã lưu bản tin AI" : "Đã lưu rule-based", "ok");
+      toast(useAi ? `Đã tạo và lưu AI Brief #${data.snapshot_id || "--"}` : `Đã lưu brief rule-based #${data.snapshot_id || "--"}`);
+      await loadDownstreamBriefLatest(true);
     }catch(e){
       console.error(e);
       setDsBriefStatus("Lỗi AI Brief", "err");
@@ -12114,9 +12235,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+  async function saveDownstreamBriefAI(){
+    await saveDownstreamBrief(true);
+  }
+
+  async function saveDownstreamBriefRule(){
+    await saveDownstreamBrief(false);
+  }
+
   async function loadDownstreamBriefLatest(force=false){
     try{
-      setDsBriefStatus("Đang tải snapshot...");
+      setDsBriefStatus("Đang tải AI briefing...");
       const [snapRes, briefRes] = await Promise.all([
         fetch(dsApi(`/api/downstream-brief?mode=latest`), { cache: force ? "no-store" : "default" }),
         fetch(dsApi(`/api/downstream-brief?mode=latest-briefs`), { cache: force ? "no-store" : "default" })
@@ -12124,40 +12253,37 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const snap = await snapRes.json();
       const brief = await briefRes.json();
 
-      if(snapRes.ok && snap.ok && snap.data){
-        const briefMap = {};
-        if(briefRes.ok && brief.ok && Array.isArray(brief.data)){
-          brief.data.forEach(item => {
-            if(item?.channel) briefMap[item.channel] = { message: item.message || "", title: item.title || "" };
-          });
-        }
-        const snapshot = {
-          snapshot_time: snap.data.snapshot_time,
-          observed: snap.data.observed_payload || {},
-          forecast: snap.data.forecast_payload || {},
-          operations: snap.data.operations_payload || {},
-          rules: snap.data.rules_payload || {}
-        };
-        renderDownstreamBriefSection({ snapshot, briefs: briefMap }, { snapshotId: snap.data.id || null });
-        setDsBriefStatus("Đã nạp snapshot", "ok");
-      }else{
-        setDsBriefStatus("Chưa có snapshot");
+      if(!(snapRes.ok && snap.ok && snap.data)){
+        throw new Error(snap?.error || `latest HTTP ${snapRes.status}`);
       }
+      if(!(briefRes.ok && brief.ok && Array.isArray(brief.data))){
+        throw new Error(brief?.error || `latest-briefs HTTP ${briefRes.status}`);
+      }
+
+      const snapshot = normalizeLatestSnapshotRow(snap.data);
+      const briefRows = brief.data || [];
+      const briefMap = {};
+      briefRows.forEach(item => {
+        if(item?.channel) briefMap[item.channel] = item;
+      });
+
+      renderDownstreamBriefSection(
+        { snapshot, briefs: briefMap, briefRows },
+        { snapshotId: snap.data.id || null }
+      );
+      setDsBriefStatus("AI briefing OK", "ok");
     }catch(e){
       console.error(e);
-      setDsBriefStatus("Chưa có snapshot");
+      setDsBriefStatus("Chưa có AI briefing", "err");
+      const note = $("dsBriefNote");
+      if(note) note.textContent = "Không tải được latest/latest-briefs: " + e.message;
     }
   }
 
   async function copyDownstreamBrief(channel){
     try{
-      const map = {
-        dashboard: $("dsBriefDashboard")?.textContent || "",
-        internal: $("dsBriefInternal")?.textContent || "",
-        public: $("dsBriefPublic")?.textContent || "",
-        social: $("dsBriefSocial")?.textContent || ""
-      };
-      const txt = String(map[channel] || "").trim();
+      const row = downstreamBriefState?.briefs?.[channel];
+      const txt = getBriefMessage(row);
       if(!txt) return toast("Chưa có nội dung để sao chép");
       await navigator.clipboard.writeText(txt);
       toast("Đã sao chép bản tin " + channel);
@@ -12893,7 +13019,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   window.setDownstreamBacktestHorizon = setDownstreamBacktestHorizon;
   window.setDsObservedHours = setDsObservedHours;
   window.syncDownstreamObserved72h = syncDownstreamObserved72h;
-  window.generateDownstreamBriefs = generateDownstreamBriefs;
+  window.saveDownstreamBriefAI = saveDownstreamBriefAI;
+  window.saveDownstreamBriefRule = saveDownstreamBriefRule;
   window.copyDownstreamBrief = copyDownstreamBrief;
 
 
