@@ -128,7 +128,7 @@ async function supabaseInsert(path, payload, prefer = "return=representation") {
 }
 
 /* ======================================================
-   DASHBOARD INPUT FORMAT - HARD WIRED
+   DASHBOARD INPUT
 ====================================================== */
 
 function getDashboardInput(req) {
@@ -498,7 +498,7 @@ async function buildSnapshot(req) {
 }
 
 /* ======================================================
-   BRIEF GENERATION - RULE BASED
+   RULE-BASED BRIEF
 ====================================================== */
 
 function generateRuleBasedBrief(channel, snapshot) {
@@ -516,7 +516,7 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "dashboard") {
     return {
-      title: "Tóm tắt AI",
+      title: "Dashboard",
       message: `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h. Rủi ro: ${overall}.`,
       severity: overall,
     };
@@ -524,7 +524,7 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "internal") {
     return {
-      title: "Bản tin nội bộ hạ du",
+      title: "Nội bộ vận hành",
       message:
         `Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h. ` +
         `Ái Nghĩa hiện ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h. ` +
@@ -536,7 +536,7 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "public") {
     return {
-      title: "Thông báo hạ du",
+      title: "Công khai / cảnh báo",
       message:
         `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m. ` +
         `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m. ` +
@@ -547,7 +547,7 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "social") {
     return {
-      title: "Bản tin MXH",
+      title: "Mạng xã hội",
       message:
         `[Cập nhật hạ du] Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m. ` +
         `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m. ` +
@@ -557,14 +557,68 @@ function generateRuleBasedBrief(channel, snapshot) {
   }
 
   return {
-    title: "Bản tin mặc định",
+    title: "Mặc định",
     message: "Không xác định channel.",
     severity: overall,
   };
 }
 
-async function generateBrief(channel, snapshot) {
-  return generateRuleBasedBrief(channel, snapshot);
+/* ======================================================
+   AI-ENHANCED LAYER
+====================================================== */
+
+async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
+  try {
+    // Chưa gọi OpenAI thật. Dùng skeleton/fallback.
+    return {
+      title: null,
+      message: null,
+      severity: ruleBrief.severity,
+      meta: {
+        model_name: null,
+        prompt_version: "v1",
+      },
+    };
+  } catch (err) {
+    return {
+      title: null,
+      message: null,
+      severity: ruleBrief.severity,
+      meta: {
+        error: err.message,
+        model_name: null,
+        prompt_version: "v1",
+      },
+    };
+  }
+}
+
+function chooseFinalBrief(ruleBrief, aiBrief, aiMeta = {}) {
+  const aiOk = !!(aiBrief && aiBrief.message && !aiMeta.error);
+
+  return {
+    severity: aiBrief?.severity || ruleBrief?.severity || "normal",
+
+    rule_based_title: ruleBrief?.title || null,
+    rule_based_message: ruleBrief?.message || "",
+
+    ai_title: aiBrief?.title || null,
+    ai_message: aiBrief?.message || null,
+
+    final_title: aiOk
+      ? (aiBrief?.title || ruleBrief?.title || null)
+      : (ruleBrief?.title || null),
+
+    final_message: aiOk
+      ? aiBrief.message
+      : (ruleBrief?.message || ""),
+
+    generation_mode: aiOk ? "ai_enhanced" : "rule_based",
+    is_ai_success: aiOk,
+    ai_error: aiMeta.error || null,
+    model_name: aiMeta.model_name || null,
+    prompt_version: aiMeta.prompt_version || "v1",
+  };
 }
 
 /* ======================================================
@@ -589,16 +643,28 @@ async function saveSnapshot(snapshot, note = null) {
   return inserted?.[0] || null;
 }
 
-async function saveBrief(snapshotId, channel, brief) {
+async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) {
   const inserted = await supabaseInsert("downstream_ai_briefs", {
     snapshot_id: snapshotId,
     channel,
-    severity: brief.severity || "normal",
-    title: brief.title || null,
-    message: brief.message,
-    model_name: "rule-based-v1",
-    prompt_version: "v1-hardwired-dashboard-input",
-    extra_payload: {},
+    severity: mergedBrief.severity || "normal",
+
+    rule_based_title: mergedBrief.rule_based_title || null,
+    rule_based_message: mergedBrief.rule_based_message || "",
+
+    ai_title: mergedBrief.ai_title || null,
+    ai_message: mergedBrief.ai_message || null,
+
+    final_title: mergedBrief.final_title || null,
+    final_message: mergedBrief.final_message || "",
+
+    generation_mode: mergedBrief.generation_mode || "rule_based",
+    is_ai_success: !!mergedBrief.is_ai_success,
+    ai_error: mergedBrief.ai_error || null,
+
+    model_name: mergedBrief.model_name || null,
+    prompt_version: mergedBrief.prompt_version || "v1",
+    extra_payload: extraPayload || {},
   });
 
   return inserted?.[0] || null;
@@ -623,16 +689,55 @@ async function handleGenerate(req, res) {
     ? body.channels
     : ["dashboard", "internal", "public", "social"];
 
+  const useAi = String(req.query.use_ai || body.use_ai || "0") === "1";
+
   const snapshot = await buildSnapshot(req);
   const briefs = {};
 
   for (const channel of channels) {
-    briefs[channel] = await generateBrief(channel, snapshot);
+    const ruleBrief = generateRuleBasedBrief(channel, snapshot);
+
+    let aiBrief = null;
+    let aiMeta = {};
+
+    if (useAi) {
+      const aiResult = await generateAiEnhancedBrief(channel, snapshot, ruleBrief);
+      aiBrief = {
+        title: aiResult?.title || null,
+        message: aiResult?.message || null,
+        severity: aiResult?.severity || ruleBrief.severity,
+      };
+      aiMeta = aiResult?.meta || {};
+    }
+
+    const merged = chooseFinalBrief(ruleBrief, aiBrief, aiMeta);
+
+    briefs[channel] = {
+      severity: merged.severity,
+      rule_based: {
+        title: merged.rule_based_title,
+        message: merged.rule_based_message,
+      },
+      ai: {
+        title: merged.ai_title,
+        message: merged.ai_message,
+      },
+      final: {
+        title: merged.final_title,
+        message: merged.final_message,
+      },
+      generation_mode: merged.generation_mode,
+      is_ai_success: merged.is_ai_success,
+      ai_error: merged.ai_error,
+      model_name: merged.model_name,
+      prompt_version: merged.prompt_version,
+    };
   }
 
   return json(res, 200, {
     ok: true,
     mode: "generate",
+    use_ai: useAi,
     snapshot,
     briefs,
   });
@@ -644,6 +749,8 @@ async function handleSave(req, res) {
     ? body.channels
     : ["dashboard", "internal", "public", "social"];
 
+  const useAi = String(req.query.use_ai || body.use_ai || "0") === "1";
+
   const snapshot = await buildSnapshot(req);
   const savedSnapshot = await saveSnapshot(snapshot, text(body.note, ""));
 
@@ -652,15 +759,38 @@ async function handleSave(req, res) {
   }
 
   const savedBriefs = [];
+
   for (const channel of channels) {
-    const brief = await generateBrief(channel, snapshot);
-    const saved = await saveBrief(savedSnapshot.id, channel, brief);
+    const ruleBrief = generateRuleBasedBrief(channel, snapshot);
+
+    let aiBrief = null;
+    let aiMeta = {};
+
+    if (useAi) {
+      const aiResult = await generateAiEnhancedBrief(channel, snapshot, ruleBrief);
+      aiBrief = {
+        title: aiResult?.title || null,
+        message: aiResult?.message || null,
+        severity: aiResult?.severity || ruleBrief.severity,
+      };
+      aiMeta = aiResult?.meta || {};
+    }
+
+    const merged = chooseFinalBrief(ruleBrief, aiBrief, aiMeta);
+
+    const saved = await saveBriefV2(savedSnapshot.id, channel, merged, {
+      channel,
+      snapshot_time: snapshot.snapshot_time,
+      use_ai: useAi,
+    });
+
     savedBriefs.push(saved);
   }
 
   return json(res, 200, {
     ok: true,
     mode: "save",
+    use_ai: useAi,
     snapshot_id: savedSnapshot.id,
     briefs_saved: savedBriefs.length,
     briefs: savedBriefs,
@@ -673,6 +803,7 @@ async function handleLatest(req, res) {
   );
 
   const latest = rows?.[0] || null;
+
   if (!latest) {
     return json(res, 404, {
       ok: false,
@@ -689,14 +820,32 @@ async function handleLatest(req, res) {
 }
 
 async function handleLatestBriefs(req, res) {
-  const rows = await supabaseSelect(
-    "downstream_ai_briefs_latest?select=*"
-  );
+  const rows = await supabaseSelect("downstream_ai_briefs_latest?select=*");
 
   return json(res, 200, {
     ok: true,
     mode: "latest-briefs",
-    data: rows || [],
+    data: (rows || []).map((row) => ({
+      id: row.id,
+      snapshot_id: row.snapshot_id,
+      channel: row.channel,
+      severity: row.severity,
+      title: row.final_title,
+      message: row.final_message,
+      rule_based_title: row.rule_based_title,
+      rule_based_message: row.rule_based_message,
+      ai_title: row.ai_title,
+      ai_message: row.ai_message,
+      final_title: row.final_title,
+      final_message: row.final_message,
+      generation_mode: row.generation_mode,
+      is_ai_success: row.is_ai_success,
+      ai_error: row.ai_error,
+      model_name: row.model_name,
+      prompt_version: row.prompt_version,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    })),
   });
 }
 
@@ -757,7 +906,7 @@ export default async function handler(req, res) {
       ok: false,
       mode: req.query.mode || "snapshot",
       error: err.message,
-      hint: "Kiểm tra input dashboard, downstream-forecast API, observed-latest/history, và bảng AI snapshot/brief",
+      hint: "Kiểm tra input dashboard, downstream-forecast API, observed-latest/history, và schema DB mới",
     });
   }
 }
