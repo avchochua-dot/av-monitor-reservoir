@@ -1040,15 +1040,15 @@ export default async function handler(req, res) {
     }
 
     if (mode === "generate") {
-      if (req.method !== "POST") {
-        return json(res, 405, { ok: false, mode, error: "generate chỉ hỗ trợ POST" });
+      if (req.method !== "POST" && req.method !== "GET") {
+        return json(res, 405, { ok: false, mode, error: "generate chỉ hỗ trợ POST/GET" });
       }
       return handleGenerate(req, res);
     }
 
     if (mode === "save") {
-      if (req.method !== "POST") {
-        return json(res, 405, { ok: false, mode, error: "save chỉ hỗ trợ POST" });
+      if (req.method !== "POST" && req.method !== "GET") {
+        return json(res, 405, { ok: false, mode, error: "save chỉ hỗ trợ POST/GET" });
       }
       return handleSave(req, res);
     }
