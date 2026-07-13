@@ -1449,17 +1449,21 @@ async function handleDebugConfig(req, res) {
 ====================================================== */
 
 export default async function handler(req, res) {
+  const safeMode = String(req?.query?.mode || "snapshot").toLowerCase();
+
   try {
     if (req.method === "OPTIONS") {
       return json(res, 200, { ok: true });
     }
-if (mode === "debug-config") {
-  if (req.method !== "GET") {
-    return json(res, 405, { ok: false, mode, error: "debug-config chỉ hỗ trợ GET" });
-  }
-  return handleDebugConfig(req, res);
-}
-    const mode = String(req.query.mode || "snapshot").toLowerCase();
+
+    const mode = safeMode;
+
+    if (mode === "debug-config") {
+      if (req.method !== "GET") {
+        return json(res, 405, { ok: false, mode, error: "debug-config chỉ hỗ trợ GET" });
+      }
+      return handleDebugConfig(req, res);
+    }
 
     if (mode === "snapshot") {
       if (req.method !== "GET" && req.method !== "POST") {
@@ -1498,13 +1502,14 @@ if (mode === "debug-config") {
 
     return json(res, 400, {
       ok: false,
+      mode,
       error: "mode không hợp lệ",
-      supported_modes: ["snapshot", "generate", "save", "latest", "latest-briefs"],
+      supported_modes: ["snapshot", "generate", "save", "latest", "latest-briefs", "debug-config"],
     });
   } catch (err) {
     return json(res, 500, {
       ok: false,
-      mode: req.query.mode || "snapshot",
+      mode: safeMode,
       error: err.message,
       hint: "Kiểm tra OPENAI_API_KEY, APP_BASE_URL, downstream-forecast API, Supabase schema",
     });
