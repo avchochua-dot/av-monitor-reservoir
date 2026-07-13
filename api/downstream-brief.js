@@ -61,11 +61,13 @@ function formatAreasVi(areas = [], partial = false) {
   return partial ? `một phần ${joined}` : joined;
 }
 
+// FIX: normalize mạnh hơn để tránh lỗi do underscore / dash / invisible chars
 function normalizeStationKey(code) {
-  const s = String(code || "").toUpperCase().trim();
-  if (s === "HOI_KHACH") return "hoi_khach";
-  if (s === "AI_NGHIA") return "ai_nghia";
-  return s.toLowerCase();
+  const raw = String(code || "").trim().toUpperCase();
+  const s = raw.replace(/[^A-Z0-9]/g, "");
+  if (s === "HOIKHACH") return "hoi_khach";
+  if (s === "AINGHIA") return "ai_nghia";
+  return raw.toLowerCase();
 }
 
 async function fetchJson(url, timeoutMs = 20000, method = "GET", body = null) {
@@ -251,9 +253,10 @@ function buildPlantOperationsFromDashboardInput(input) {
    CONFIG LOADERS
 ====================================================== */
 
+// FIX: map có fallback mạnh hơn
 async function loadStationImpacts() {
   const rows = await supabaseSelect(
-    "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at"
+    "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at&order=station_code.asc"
   );
 
   const out = {
@@ -263,7 +266,8 @@ async function loadStationImpacts() {
 
   for (const row of rows || []) {
     const key = normalizeStationKey(row.station_code);
-    out[key] = {
+
+    const item = {
       station_code: row.station_code,
       station_name: row.station_name,
       impact_level: row.impact_level,
@@ -271,14 +275,52 @@ async function loadStationImpacts() {
       note: row.note || null,
       updated_at: row.updated_at || null,
     };
+
+    if (key === "hoi_khach") out.hoi_khach = item;
+    if (key === "ai_nghia") out.ai_nghia = item;
+  }
+
+  if (!out.hoi_khach) {
+    const fallback = (rows || []).find((r) => {
+      const s = String(r.station_code || "").toUpperCase();
+      return s.includes("HOI") && s.includes("KHACH");
+    });
+    if (fallback) {
+      out.hoi_khach = {
+        station_code: fallback.station_code,
+        station_name: fallback.station_name,
+        impact_level: fallback.impact_level,
+        affected_areas: Array.isArray(fallback.affected_areas) ? fallback.affected_areas : [],
+        note: fallback.note || null,
+        updated_at: fallback.updated_at || null,
+      };
+    }
+  }
+
+  if (!out.ai_nghia) {
+    const fallback = (rows || []).find((r) => {
+      const s = String(r.station_code || "").toUpperCase();
+      return s.includes("AI") && s.includes("NGHIA");
+    });
+    if (fallback) {
+      out.ai_nghia = {
+        station_code: fallback.station_code,
+        station_name: fallback.station_name,
+        impact_level: fallback.impact_level,
+        affected_areas: Array.isArray(fallback.affected_areas) ? fallback.affected_areas : [],
+        note: fallback.note || null,
+        updated_at: fallback.updated_at || null,
+      };
+    }
   }
 
   return out;
 }
 
+// FIX: map có fallback mạnh hơn
 async function loadPeakReferences() {
   const rows = await supabaseSelect(
-    "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at"
+    "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at&order=station_code.asc"
   );
 
   const out = {
@@ -288,7 +330,8 @@ async function loadPeakReferences() {
 
   for (const row of rows || []) {
     const key = normalizeStationKey(row.station_code);
-    out[key] = {
+
+    const item = {
       station_code: row.station_code,
       station_name: row.station_name,
       peak_2025_m: num(row.peak_2025_m),
@@ -299,6 +342,49 @@ async function loadPeakReferences() {
       note: row.note || null,
       updated_at: row.updated_at || null,
     };
+
+    if (key === "hoi_khach") out.hoi_khach = item;
+    if (key === "ai_nghia") out.ai_nghia = item;
+  }
+
+  if (!out.hoi_khach) {
+    const fallback = (rows || []).find((r) => {
+      const s = String(r.station_code || "").toUpperCase();
+      return s.includes("HOI") && s.includes("KHACH");
+    });
+    if (fallback) {
+      out.hoi_khach = {
+        station_code: fallback.station_code,
+        station_name: fallback.station_name,
+        peak_2025_m: num(fallback.peak_2025_m),
+        peak_2025_time: fallback.peak_2025_time || null,
+        bd1_m: num(fallback.bd1_m),
+        bd2_m: num(fallback.bd2_m),
+        bd3_m: num(fallback.bd3_m),
+        note: fallback.note || null,
+        updated_at: fallback.updated_at || null,
+      };
+    }
+  }
+
+  if (!out.ai_nghia) {
+    const fallback = (rows || []).find((r) => {
+      const s = String(r.station_code || "").toUpperCase();
+      return s.includes("AI") && s.includes("NGHIA");
+    });
+    if (fallback) {
+      out.ai_nghia = {
+        station_code: fallback.station_code,
+        station_name: fallback.station_name,
+        peak_2025_m: num(fallback.peak_2025_m),
+        peak_2025_time: fallback.peak_2025_time || null,
+        bd1_m: num(fallback.bd1_m),
+        bd2_m: num(fallback.bd2_m),
+        bd3_m: num(fallback.bd3_m),
+        note: fallback.note || null,
+        updated_at: fallback.updated_at || null,
+      };
+    }
   }
 
   return out;
@@ -1019,7 +1105,12 @@ async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) 
 async function handleSnapshot(req, res) {
   try {
     const snapshot = await buildSnapshot(req);
-    return json(res, 200, { ok: true, mode: "snapshot", ...snapshot });
+    return json(res, 200, {
+      ok: true,
+      mode: "snapshot",
+      code_version: "downstream-brief-areas-2025-v2",
+      ...snapshot,
+    });
   } catch (err) {
     return json(res, 500, {
       ok: false,
