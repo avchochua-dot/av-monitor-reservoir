@@ -1409,7 +1409,41 @@ async function handleLatestBriefs(req, res) {
     });
   }
 }
+async function handleDebugConfig(req, res) {
+  try {
+    const impactsRaw = await supabaseSelect(
+      "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at&order=station_code.asc"
+    );
 
+    const peaksRaw = await supabaseSelect(
+      "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at&order=station_code.asc"
+    );
+
+    const impactsMapped = await loadStationImpacts();
+    const peaksMapped = await loadPeakReferences();
+
+    return json(res, 200, {
+      ok: true,
+      mode: "debug-config",
+      code_version: "downstream-brief-areas-2025-v2",
+      supabase_url: SUPABASE_URL,
+      impacts_raw_count: Array.isArray(impactsRaw) ? impactsRaw.length : null,
+      peaks_raw_count: Array.isArray(peaksRaw) ? peaksRaw.length : null,
+      impacts_raw: impactsRaw,
+      peaks_raw: peaksRaw,
+      impacts_mapped: impactsMapped,
+      peaks_mapped: peaksMapped
+    });
+  } catch (err) {
+    return json(res, 500, {
+      ok: false,
+      mode: "debug-config",
+      code_version: "downstream-brief-areas-2025-v2",
+      error: err.message,
+      supabase_url: SUPABASE_URL
+    });
+  }
+}
 /* ======================================================
    ENTRY
 ====================================================== */
@@ -1419,7 +1453,12 @@ export default async function handler(req, res) {
     if (req.method === "OPTIONS") {
       return json(res, 200, { ok: true });
     }
-
+if (mode === "debug-config") {
+  if (req.method !== "GET") {
+    return json(res, 405, { ok: false, mode, error: "debug-config chỉ hỗ trợ GET" });
+  }
+  return handleDebugConfig(req, res);
+}
     const mode = String(req.query.mode || "snapshot").toLowerCase();
 
     if (mode === "snapshot") {
