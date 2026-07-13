@@ -54,6 +54,20 @@ function getAppBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
+function formatAreasVi(areas = [], partial = false) {
+  const arr = (areas || []).filter(Boolean).map((x) => String(x).trim()).filter(Boolean);
+  if (!arr.length) return "";
+  const joined = arr.join(", ");
+  return partial ? `một phần ${joined}` : joined;
+}
+
+function normalizeStationKey(code) {
+  const s = String(code || "").toUpperCase().trim();
+  if (s === "HOI_KHACH") return "hoi_khach";
+  if (s === "AI_NGHIA") return "ai_nghia";
+  return s.toLowerCase();
+}
+
 async function fetchJson(url, timeoutMs = 20000, method = "GET", body = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -234,6 +248,63 @@ function buildPlantOperationsFromDashboardInput(input) {
 }
 
 /* ======================================================
+   CONFIG LOADERS
+====================================================== */
+
+async function loadStationImpacts() {
+  const rows = await supabaseSelect(
+    "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at"
+  );
+
+  const out = {
+    hoi_khach: null,
+    ai_nghia: null,
+  };
+
+  for (const row of rows || []) {
+    const key = normalizeStationKey(row.station_code);
+    out[key] = {
+      station_code: row.station_code,
+      station_name: row.station_name,
+      impact_level: row.impact_level,
+      affected_areas: Array.isArray(row.affected_areas) ? row.affected_areas : [],
+      note: row.note || null,
+      updated_at: row.updated_at || null,
+    };
+  }
+
+  return out;
+}
+
+async function loadPeakReferences() {
+  const rows = await supabaseSelect(
+    "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at"
+  );
+
+  const out = {
+    hoi_khach: null,
+    ai_nghia: null,
+  };
+
+  for (const row of rows || []) {
+    const key = normalizeStationKey(row.station_code);
+    out[key] = {
+      station_code: row.station_code,
+      station_name: row.station_name,
+      peak_2025_m: num(row.peak_2025_m),
+      peak_2025_time: row.peak_2025_time || null,
+      bd1_m: num(row.bd1_m),
+      bd2_m: num(row.bd2_m),
+      bd3_m: num(row.bd3_m),
+      note: row.note || null,
+      updated_at: row.updated_at || null,
+    };
+  }
+
+  return out;
+}
+
+/* ======================================================
    LOADERS
 ====================================================== */
 
@@ -372,6 +443,23 @@ function maxSeverity(a, b) {
   return (order[a] ?? 0) >= (order[b] ?? 0) ? a : b;
 }
 
+function shouldShowImpactZones(currentM, h4, h6, h12, ref) {
+  const bd2 = num(ref?.bd2_m);
+  if (bd2 === null) return false;
+  return [currentM, h4, h6, h12].some((v) => num(v) !== null && num(v) >= bd2);
+}
+
+function shouldShow2025Reference(currentM, h4, h6, h12, ref) {
+  const bd3 = num(ref?.bd3_m);
+  if (bd3 === null) return false;
+  return [currentM, h4, h6, h12].some((v) => num(v) !== null && num(v) >= bd3);
+}
+
+function deltaToPeak(peak, value) {
+  if (num(peak) === null || num(value) === null) return null;
+  return round(num(value) - num(peak), 2);
+}
+
 function evaluateRules(snapshot, dashboardInput) {
   const hkCurrent = snapshot.observed.hoi_khach.current_m;
   const anCurrent = snapshot.observed.ai_nghia.current_m;
@@ -383,6 +471,9 @@ function evaluateRules(snapshot, dashboardInput) {
   const an4 = snapshot.forecast.ai_nghia.h4_m;
   const an6 = snapshot.forecast.ai_nghia.h6_m;
   const an12 = snapshot.forecast.ai_nghia.h12_m;
+
+  const hkRef = snapshot.references?.hoi_khach || null;
+  const anRef = snapshot.references?.ai_nghia || null;
 
   const hkDelta4 = hkCurrent != null && hk4 != null ? round(hk4 - hkCurrent, 2) : null;
   const hkDelta6 = hkCurrent != null && hk6 != null ? round(hk6 - hkCurrent, 2) : null;
@@ -415,6 +506,12 @@ function evaluateRules(snapshot, dashboardInput) {
   let overall = maxSeverity(hkSeverity, anSeverity);
   if (num(dashboardInput.All4_Qra, 0) >= 1000 && overall === "normal") overall = "watch";
 
+  const showImpactZonesHk = shouldShowImpactZones(hkCurrent, hk4, hk6, hk12, hkRef);
+  const showImpactZonesAn = shouldShowImpactZones(anCurrent, an4, an6, an12, anRef);
+
+  const show2025ReferenceHk = shouldShow2025Reference(hkCurrent, hk4, hk6, hk12, hkRef);
+  const show2025ReferenceAn = shouldShow2025Reference(anCurrent, an4, an6, an12, anRef);
+
   return {
     hoi_khach: {
       delta_4h_m: hkDelta4,
@@ -430,6 +527,14 @@ function evaluateRules(snapshot, dashboardInput) {
           : hkSeverity === "watch"
           ? "HK_RISING"
           : "HK_NORMAL",
+      show_impact_zones: showImpactZonesHk,
+      show_2025_reference: show2025ReferenceHk,
+      peak_2025_m: hkRef?.peak_2025_m ?? null,
+      peak_2025_time: hkRef?.peak_2025_time ?? null,
+      delta_current_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hkCurrent),
+      delta_h4_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk4),
+      delta_h6_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk6),
+      delta_h12_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk12),
     },
     ai_nghia: {
       delta_4h_m: anDelta4,
@@ -445,6 +550,14 @@ function evaluateRules(snapshot, dashboardInput) {
           : anSeverity === "watch"
           ? "AN_RISING"
           : "AN_NORMAL",
+      show_impact_zones: showImpactZonesAn,
+      show_2025_reference: show2025ReferenceAn,
+      peak_2025_m: anRef?.peak_2025_m ?? null,
+      peak_2025_time: anRef?.peak_2025_time ?? null,
+      delta_current_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, anCurrent),
+      delta_h4_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an4),
+      delta_h6_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an6),
+      delta_h12_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an12),
     },
     system: {
       max_discharge_plant: maxPlant?.plant_code || null,
@@ -472,10 +585,12 @@ async function buildSnapshot(req) {
 
   const hours = Math.min(Math.max(num(req.query.hours, 72), 6), 168);
 
-  const [observedLatest, observedHistory, forecast] = await Promise.all([
+  const [observedLatest, observedHistory, forecast, impactZones, references] = await Promise.all([
     loadObservedLatest(req),
     loadObservedHistory(req, hours),
     loadForecastNow(req, dashboardInput),
+    loadStationImpacts(),
+    loadPeakReferences(),
   ]);
 
   const operations = buildPlantOperationsFromDashboardInput(dashboardInput);
@@ -492,6 +607,8 @@ async function buildSnapshot(req) {
     },
     forecast,
     operations,
+    impact_zones: impactZones,
+    references,
   };
 
   const rules = evaluateRules(snapshot, dashboardInput);
@@ -502,13 +619,53 @@ async function buildSnapshot(req) {
     observed: snapshot.observed,
     forecast: snapshot.forecast,
     operations: snapshot.operations,
+    impact_zones: snapshot.impact_zones,
+    references: snapshot.references,
     rules,
   };
 }
 
 /* ======================================================
-   BRIEFS
+   RULE-BASED BRIEFS
 ====================================================== */
+
+function stationAreaSentence(snapshot, stationKey) {
+  const rule = snapshot.rules?.[stationKey];
+  const impact = snapshot.impact_zones?.[stationKey];
+  if (!rule?.show_impact_zones || !impact?.affected_areas?.length) return "";
+
+  const partial = String(impact.impact_level || "").toLowerCase().includes("partial");
+  const areasText = formatAreasVi(impact.affected_areas, partial);
+
+  if (stationKey === "hoi_khach") {
+    return `Diễn biến tại trạm Hội Khách cần lưu ý cho ${areasText}.`;
+  }
+  return `Diễn biến tại trạm Ái Nghĩa cần lưu ý cho ${areasText}.`;
+}
+
+function stationPeak2025Sentence(snapshot, stationKey) {
+  const rule = snapshot.rules?.[stationKey];
+  const ref = snapshot.references?.[stationKey];
+  if (!rule?.show_2025_reference || num(ref?.peak_2025_m) === null) return "";
+
+  const target =
+    num(rule.delta_h4_to_peak_2025_m) !== null
+      ? rule.delta_h4_to_peak_2025_m
+      : rule.delta_current_to_peak_2025_m;
+
+  if (target === null) return "";
+
+  const absVal = Math.abs(target);
+  const stationName = ref.station_name || (stationKey === "hoi_khach" ? "Hội Khách" : "Ái Nghĩa");
+
+  if (target < 0) {
+    return `${stationName} vẫn thấp hơn đỉnh lũ năm 2025 khoảng ${round(absVal, 2)} m.`;
+  }
+  if (target > 0) {
+    return `${stationName} đã vượt mốc đỉnh lũ năm 2025 khoảng ${round(absVal, 2)} m.`;
+  }
+  return `${stationName} đang xấp xỉ mốc đỉnh lũ năm 2025.`;
+}
 
 function generateRuleBasedBrief(channel, snapshot) {
   const hkObs = snapshot.observed.hoi_khach.current_m;
@@ -523,44 +680,76 @@ function generateRuleBasedBrief(channel, snapshot) {
   const maxPlant = snapshot.rules.system.max_discharge_plant;
   const maxQ = snapshot.rules.system.max_discharge_m3s;
 
+  const hkArea = stationAreaSentence(snapshot, "hoi_khach");
+  const anArea = stationAreaSentence(snapshot, "ai_nghia");
+  const hkPeak = stationPeak2025Sentence(snapshot, "hoi_khach");
+  const anPeak = stationPeak2025Sentence(snapshot, "ai_nghia");
+
   if (channel === "dashboard") {
+    const parts = [
+      `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
+      `Rủi ro: ${overall}.`,
+    ];
+    if (hkArea || anArea) parts.push([hkArea, anArea].filter(Boolean).join(" "));
+    if (hkPeak || anPeak) parts.push([hkPeak, anPeak].filter(Boolean).join(" "));
     return {
       title: "Dashboard",
-      message: `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h. Rủi ro: ${overall}.`,
+      message: parts.join(" "),
       severity: overall,
     };
   }
 
   if (channel === "internal") {
+    const parts = [
+      `Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
+      `Ái Nghĩa hiện ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
+      `Nhà máy xả lớn nhất là ${maxPlant || "N/A"} khoảng ${maxQ ?? 0} m3/s.`,
+      `Tổng Q xả 4 nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s.`,
+      `Mức rủi ro tổng thể ${overall}.`,
+    ];
+    if (hkArea) parts.push(hkArea);
+    if (anArea) parts.push(anArea);
+    if (hkPeak) parts.push(hkPeak);
+    if (anPeak) parts.push(anPeak);
     return {
       title: "Nội bộ vận hành",
-      message:
-        `Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h. ` +
-        `Ái Nghĩa hiện ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h. ` +
-        `Nhà máy xả lớn nhất là ${maxPlant || "N/A"} khoảng ${maxQ ?? 0} m3/s. ` +
-        `Tổng Q xả 4 nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s. Mức rủi ro tổng thể ${overall}.`,
+      message: parts.join(" "),
       severity: overall,
     };
   }
 
   if (channel === "public") {
+    const parts = [
+      `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m.`,
+      `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
+      `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
+    ];
+    if (hkArea) parts.push(hkArea);
+    if (anArea) parts.push(anArea);
+    if (hkPeak) parts.push(hkPeak);
+    if (anPeak) parts.push(anPeak);
+    parts.push(`Người dân cần theo dõi thông báo tiếp theo và hạn chế hoạt động gần sông suối khi không cần thiết.`);
     return {
       title: "Công khai / cảnh báo",
-      message:
-        `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m. ` +
-        `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m. ` +
-        `Một số hồ thủy điện trên lưu vực đang vận hành xả nước. Người dân ven sông cần theo dõi thông báo tiếp theo và hạn chế hoạt động gần sông suối khi không cần thiết.`,
+      message: parts.join(" "),
       severity: overall,
     };
   }
 
   if (channel === "social") {
+    const parts = [
+      `[Cập nhật hạ du] Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
+      `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
+      `Tổng lưu lượng xả các nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s.`,
+    ];
+    if (hkArea) parts.push(hkArea);
+    if (anArea) parts.push(anArea);
+    if (hkPeak) parts.push(hkPeak);
+    if (anPeak) parts.push(anPeak);
+    parts.push(`Đề nghị người dân chú ý theo dõi thông báo tiếp theo.`);
     return {
       title: "Mạng xã hội",
-      message:
-        `[Cập nhật hạ du] Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m. ` +
-        `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m. ` +
-        `Tổng lưu lượng xả các nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s. Đề nghị người dân ven sông chú ý theo dõi thông báo tiếp theo.`,
+      message: parts.join(" "),
       severity: overall,
     };
   }
@@ -572,21 +761,31 @@ function generateRuleBasedBrief(channel, snapshot) {
   };
 }
 
+/* ======================================================
+   OPENAI
+====================================================== */
+
 function buildOpenAiPrompt(channel, snapshot, ruleBrief) {
   const channelConfig = {
-    dashboard: "Viết 2-3 câu cực ngắn cho dashboard. Không quá 300 ký tự. Rõ số liệu, rõ xu hướng, rõ mức rủi ro.",
-    internal: "Viết bản tin nội bộ kỹ thuật cho vận hành/lãnh đạo. Nêu hiện trạng, dự báo 4h/6h/12h, nhà máy xả lớn nhất, và khuyến nghị ngắn.",
-    public: "Viết thông báo công khai dễ hiểu cho người dân. Không dùng thuật ngữ quá kỹ thuật. Không gây hoảng loạn.",
-    social: "Viết bài đăng mạng xã hội ngắn gọn, dễ chia sẻ, có thời gian, có khuyến nghị rõ ràng.",
+    dashboard:
+      "Viết 2-3 câu ngắn cho dashboard. Không quá 320 ký tự. Chỉ nêu xã ảnh hưởng trực tiếp nếu snapshot.rules của trạm cho phép show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
+    internal:
+      "Viết bản tin nội bộ kỹ thuật cho vận hành/lãnh đạo. Có thể chi tiết hơn. Chỉ nêu xã ảnh hưởng trực tiếp nếu show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
+    public:
+      "Viết thông báo công khai dễ hiểu cho người dân. Không dùng thuật ngữ quá kỹ thuật. Không gây hoảng loạn. Chỉ nêu đúng các xã trong impact_zones khi show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 khi show_2025_reference = true.",
+    social:
+      "Viết bài đăng mạng xã hội ngắn gọn, dễ chia sẻ. Chỉ nêu xã ảnh hưởng trực tiếp nếu show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
   };
 
   const system = [
     "Bạn là trợ lý cảnh báo hạ du thủy điện.",
     "Chỉ được dùng dữ liệu có trong snapshot.",
     "Không bịa số liệu, không bịa ngưỡng, không suy diễn vượt ngoài dữ liệu.",
-    "Không dùng ngôn từ gây hoảng loạn.",
-    "Nếu severity là danger hoặc warning thì nhấn mạnh mức độ theo dõi phù hợp.",
-    "Nếu có rule_based_message thì dùng nó làm nền nhưng viết lại tự nhiên hơn.",
+    "Không tự thêm địa danh ngoài danh sách impact_zones.",
+    "Chỉ được nhắc vùng ảnh hưởng của Hội Khách/Ái Nghĩa khi rules.<station>.show_impact_zones = true.",
+    "Chỉ được nhắc mốc lũ hoặc đỉnh lũ 2025 khi rules.<station>.show_2025_reference = true.",
+    "Không đưa tọa độ, số điện thoại, mã mốc AVC vào bản tin.",
+    "Nếu có rule_based_message thì dùng làm nền nhưng viết lại tự nhiên hơn.",
   ].join(" ");
 
   const user = `
@@ -599,7 +798,7 @@ RULE-BASED DRAFT:
 ${ruleBrief?.message || ""}
 
 SNAPSHOT JSON:
-${JSON.stringify(snapshot, null, 2)}
+${JSON.stringify(snapshot)}
 
 Trả về đúng JSON object:
 {
@@ -716,7 +915,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       severity: ai.severity || ruleBrief.severity,
       meta: {
         model_name: OPENAI_MODEL,
-        prompt_version: "v2-openai-json",
+        prompt_version: "v3-areas-2025-thresholded",
       },
     };
   } catch (err) {
@@ -727,7 +926,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       meta: {
         error: err.message,
         model_name: OPENAI_MODEL,
-        prompt_version: "v2-openai-json",
+        prompt_version: "v3-areas-2025-thresholded",
       },
     };
   }
@@ -774,6 +973,8 @@ async function saveSnapshot(snapshot, note = null) {
     rules_payload: {
       ...snapshot.rules,
       dashboard_input: snapshot.dashboard_input,
+      references: snapshot.references,
+      impact_zones: snapshot.impact_zones,
     },
     overall_severity: snapshot.rules.system.overall_severity,
     source: "downstream-brief",
@@ -790,11 +991,9 @@ async function saveBriefV2(snapshotId, channel, mergedBrief, extraPayload = {}) 
     channel,
     severity: mergedBrief.severity || "normal",
 
-    // tương thích schema cũ
     title: mergedBrief.final_title || mergedBrief.rule_based_title || null,
     message: mergedBrief.final_message || mergedBrief.rule_based_message || "",
 
-    // schema mới
     rule_based_title: mergedBrief.rule_based_title || null,
     rule_based_message: mergedBrief.rule_based_message || "",
     ai_title: mergedBrief.ai_title || null,
