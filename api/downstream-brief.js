@@ -61,7 +61,6 @@ function formatAreasVi(areas = [], partial = false) {
   return partial ? `một phần ${joined}` : joined;
 }
 
-// FIX: normalize mạnh hơn để tránh lỗi do underscore / dash / invisible chars
 function normalizeStationKey(code) {
   const raw = String(code || "").trim().toUpperCase();
   const s = raw.replace(/[^A-Z0-9]/g, "");
@@ -253,7 +252,6 @@ function buildPlantOperationsFromDashboardInput(input) {
    CONFIG LOADERS
 ====================================================== */
 
-// FIX: map có fallback mạnh hơn
 async function loadStationImpacts() {
   const rows = await supabaseSelect(
     "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at&order=station_code.asc"
@@ -317,7 +315,6 @@ async function loadStationImpacts() {
   return out;
 }
 
-// FIX: map có fallback mạnh hơn
 async function loadPeakReferences() {
   const rows = await supabaseSelect(
     "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at&order=station_code.asc"
@@ -852,49 +849,243 @@ function generateRuleBasedBrief(channel, snapshot) {
 ====================================================== */
 
 function buildOpenAiPrompt(channel, snapshot, ruleBrief) {
-  const channelConfig = {
-    dashboard:
-      "Viết 2-3 câu ngắn cho dashboard. Không quá 320 ký tự. Chỉ nêu xã ảnh hưởng trực tiếp nếu snapshot.rules của trạm cho phép show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
-    internal:
-      "Viết bản tin nội bộ kỹ thuật cho vận hành/lãnh đạo. Có thể chi tiết hơn. Chỉ nêu xã ảnh hưởng trực tiếp nếu show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
-    public:
-      "Viết thông báo công khai dễ hiểu cho người dân. Không dùng thuật ngữ quá kỹ thuật. Không gây hoảng loạn. Chỉ nêu đúng các xã trong impact_zones khi show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 khi show_2025_reference = true.",
-    social:
-      "Viết bài đăng mạng xã hội ngắn gọn, dễ chia sẻ. Chỉ nêu xã ảnh hưởng trực tiếp nếu show_impact_zones = true. Chỉ nhắc đỉnh lũ 2025 nếu show_2025_reference = true.",
-  };
+  const system = `
+Bạn là trợ lý AI cảnh báo hạ du thủy điện.
 
-  const system = [
-    "Bạn là trợ lý cảnh báo hạ du thủy điện.",
-    "Chỉ được dùng dữ liệu có trong snapshot.",
-    "Không bịa số liệu, không bịa ngưỡng, không suy diễn vượt ngoài dữ liệu.",
-    "Không tự thêm địa danh ngoài danh sách impact_zones.",
-    "Chỉ được nhắc vùng ảnh hưởng của Hội Khách/Ái Nghĩa khi rules.<station>.show_impact_zones = true.",
-    "Chỉ được nhắc mốc lũ hoặc đỉnh lũ 2025 khi rules.<station>.show_2025_reference = true.",
-    "Không đưa tọa độ, số điện thoại, mã mốc AVC vào bản tin.",
-    "Nếu có rule_based_message thì dùng làm nền nhưng viết lại tự nhiên hơn.",
-  ].join(" ");
+NGUYÊN TẮC BẮT BUỘC:
+- Chỉ được dùng dữ liệu có trong SNAPSHOT JSON.
+- Không bịa số liệu, không bịa ngưỡng, không bịa địa danh, không bịa mức ngập.
+- Không gọi Hội Khách hoặc Ái Nghĩa là địa phương; đây là tên trạm quan trắc.
+- Phải tách rõ: trạm quan trắc và khu vực/xã chịu ảnh hưởng.
+- Chỉ được nhắc khu vực/xã ảnh hưởng khi:
+  - snapshot.rules.hoi_khach.show_impact_zones = true
+  - hoặc snapshot.rules.ai_nghia.show_impact_zones = true
+- Chỉ được nhắc đỉnh lũ 2025 khi:
+  - snapshot.rules.hoi_khach.show_2025_reference = true
+  - hoặc snapshot.rules.ai_nghia.show_2025_reference = true
+- Nếu show_impact_zones = false thì không được tự thêm tên xã.
+- Nếu show_2025_reference = false thì không được tự thêm so sánh với đỉnh lũ 2025.
+- Không dùng câu sai ngữ nghĩa như:
+  - "Hai địa phương Hội Khách, Ái Nghĩa..."
+  - "các xã Ái Nghĩa..."
+- Trong tình huống nghiêm trọng, không dùng câu sáo rỗng hoặc quá nhẹ như:
+  - "hạn chế gần sông suối"
+  - "chú ý đi lại"
+  nếu dữ liệu cho thấy nguy cơ ngập sâu, vượt BĐ III hoặc gần đỉnh lũ 2025.
+- Nếu tình huống vượt BĐ III hoặc gần đỉnh lũ 2025, phải dùng ngôn ngữ phù hợp thực tế:
+  - "cảnh báo ngập sâu"
+  - "nguy hiểm"
+  - "ưu tiên an toàn tính mạng"
+  - "đưa người và tài sản thiết yếu lên cao"
+  - "sẵn sàng sơ tán"
+- Không đưa tọa độ, số điện thoại, mã mốc AVC vào bản tin.
+- Có thể dùng icon phù hợp như: 🚨 ⚠️ 📍 📊 🏘️ 💧 🛑
+- Nếu có RULE_BASED_DRAFT thì dùng làm nền, nhưng viết lại tự nhiên hơn, đúng nghiệp vụ hơn.
+- Ưu tiên final message rõ, đúng tình huống, hữu ích cho người dân/vận hành hơn là ngắn một cách máy móc.
 
-  const user = `
-KÊNH: ${channel}
+QUY TẮC ĐÁNH GIÁ MỨC ĐỘ:
+- Nếu severity = normal: văn phong trung tính, theo dõi.
+- Nếu severity = watch hoặc warning: văn phong cảnh giác cao, nêu khu vực ảnh hưởng nếu được phép.
+- Nếu severity = danger: văn phong mạnh, rõ, thực tế; nếu dữ liệu rất cao thì phải nhấn mạnh nguy cơ ngập sâu và hành động cần làm.
 
-YÊU CẦU:
-${channelConfig[channel] || channelConfig.dashboard}
-
-RULE-BASED DRAFT:
-${ruleBrief?.message || ""}
-
-SNAPSHOT JSON:
-${JSON.stringify(snapshot)}
-
+TRẢ VỀ:
 Trả về đúng JSON object:
 {
   "title": "string",
   "message": "string",
   "severity": "normal|watch|warning|danger"
 }
+`.trim();
 
-Chỉ trả JSON.
-  `.trim();
+  const channelInstructions = {
+    dashboard: `
+Bạn đang viết cho kênh DASHBOARD.
+
+MỤC TIÊU:
+- Tóm tắt nhanh trên màn hình dashboard cho người vận hành/lãnh đạo nhìn lướt.
+- Nêu được:
+  1. mức rủi ro hiện tại,
+  2. mực nước dự báo 4 giờ tới tại Hội Khách và Ái Nghĩa,
+  3. khu vực ảnh hưởng trực tiếp nếu đủ điều kiện,
+  4. so với đỉnh lũ 2025 nếu đủ điều kiện.
+
+YÊU CẦU VĂN PHONG:
+- Viết 2 đến 4 câu.
+- Độ dài khoảng 220 đến 420 ký tự là tốt.
+- Súc tích nhưng không được cụt ý.
+- Nếu tình huống nguy hiểm, phải hiện rõ mức độ.
+- Có thể dùng icon đầu câu.
+
+MẪU DIỄN ĐẠT TỐT:
+- "🚨 Mực nước hạ du dự báo rất cao..."
+- "Hội Khách dự báo ... m trong 4 giờ tới..."
+- "Khu vực cần lưu ý gồm..."
+- "Ái Nghĩa còn thấp hơn đỉnh lũ 2025 khoảng ... m"
+
+CẤM:
+- Không dùng câu quá dài, nhiều mệnh đề.
+- Không gọi trạm là địa phương.
+`.trim(),
+
+    internal: `
+Bạn đang viết cho kênh NỘI BỘ VẬN HÀNH.
+
+MỤC TIÊU:
+- Viết bản tin nội bộ kỹ thuật cho trực vận hành, lãnh đạo ca, theo dõi điều tiết.
+- Phải phản ánh:
+  1. hiện trạng mực nước tại Hội Khách và Ái Nghĩa,
+  2. dự báo 4h / 6h / 12h,
+  3. mức vượt/ngưỡng báo động,
+  4. so với đỉnh lũ 2025 nếu đủ điều kiện,
+  5. khu vực bị ảnh hưởng trực tiếp theo từng trạm,
+  6. lưu lượng xả và nhà máy nổi bật,
+  7. nhận định rủi ro tổng thể,
+  8. khuyến nghị vận hành/cảnh giác.
+
+YÊU CẦU VĂN PHONG:
+- Viết 1 tiêu đề + 1 đoạn nội dung từ 5 đến 9 câu.
+- Rõ ràng, kỹ thuật nhưng dễ hiểu.
+- Ưu tiên đầy đủ ý hơn là ngắn.
+- Có thể dùng icon hợp lý.
+
+GỢI Ý CẤU TRÚC:
+- Câu 1: hiện trạng
+- Câu 2: dự báo 4h / 6h / 12h
+- Câu 3: đánh giá theo BĐ I / II / III
+- Câu 4: so với đỉnh lũ 2025 nếu được phép
+- Câu 5: lưu lượng xả và nhà máy nổi bật
+- Câu 6: khu vực ảnh hưởng theo từng trạm
+- Câu 7: rủi ro tổng thể
+- Câu 8: khuyến nghị vận hành
+
+LƯU Ý QUAN TRỌNG:
+- Nếu dữ liệu cho thấy rất nghiêm trọng thì phải dùng từ như "nguy hiểm", "cảnh báo mức cao", "cần theo dõi chặt", "sẵn sàng phương án ứng phó".
+- Không dùng khuyến nghị quá nhẹ khi tình huống đã nặng.
+`.trim(),
+
+    public: `
+Bạn đang viết cho kênh CÔNG KHAI / CẢNH BÁO.
+
+MỤC TIÊU:
+- Viết bản tin công khai dễ hiểu cho người dân và chính quyền địa phương.
+- Người đọc cần hiểu:
+  1. mực nước hiện tại,
+  2. dự báo 4 giờ tới,
+  3. mức độ nguy hiểm theo số liệu,
+  4. khu vực chịu ảnh hưởng trực tiếp nếu đủ điều kiện,
+  5. so với đỉnh lũ 2025 nếu đủ điều kiện,
+  6. hành động phù hợp với nguy cơ thực tế.
+
+YÊU CẦU VĂN PHONG:
+- Viết 1 đoạn từ 4 đến 8 câu.
+- Dễ hiểu, không quá kỹ thuật.
+- Có số liệu chính quan trọng.
+- Có thể dùng icon hợp lý.
+- Không giật gân, nhưng không được làm nhẹ tình hình nếu dữ liệu đang nguy hiểm.
+
+QUY TẮC HÀNH ĐỘNG:
+- Nếu mới ở mức theo dõi: có thể dùng từ "theo dõi", "lưu ý".
+- Nếu rất cao / vượt BĐ III / gần đỉnh lũ 2025:
+  - phải chuyển sang kiểu cảnh báo mạnh hơn:
+    - "cảnh báo ngập sâu"
+    - "nguy hiểm"
+    - "cần chuẩn bị sơ tán"
+    - "ưu tiên an toàn tính mạng"
+    - "đưa người và tài sản thiết yếu lên cao"
+- Không dùng câu kiểu "hạn chế gần sông suối" nếu tình huống đã có thể ngập vào nhà.
+
+GỢI Ý CẤU TRÚC:
+- Câu 1: hiện trạng + dự báo 4h
+- Câu 2: đánh giá theo báo động / nguy hiểm
+- Câu 3: so với đỉnh lũ 2025 nếu được phép
+- Câu 4: khu vực ảnh hưởng trực tiếp
+- Câu 5: lưu lượng xả
+- Câu 6-7: hành động người dân cần làm
+`.trim(),
+
+    social: `
+Bạn đang viết cho kênh MẠNG XÃ HỘI.
+
+MỤC TIÊU:
+- Viết bài đăng mạng xã hội ngắn gọn nhưng vẫn đầy đủ ý, dễ chia sẻ, người dân đọc là hiểu ngay tình huống.
+- Phải thể hiện:
+  1. mực nước dự báo 4 giờ tới,
+  2. mức độ nguy hiểm,
+  3. khu vực cần đặc biệt lưu ý,
+  4. so với đỉnh lũ 2025 nếu đủ điều kiện,
+  5. hành động nên làm ngay nếu tình huống nguy hiểm.
+
+YÊU CẦU VĂN PHONG:
+- Viết 3 đến 5 câu.
+- Rõ, mạnh, dễ đọc.
+- Không quá khô như bản tin nội bộ.
+- Không quá ngắn đến mức mất ý.
+- Có thể dùng icon hợp lý: 🚨 ⚠️ 📍 📊 🏘️ 💧 🛑
+
+QUY TẮC NGHIỆP VỤ RIÊNG CHO SOCIAL:
+- Nếu nhắc khu vực ảnh hưởng, phải viết theo kiểu:
+  - "Theo diễn biến tại trạm Hội Khách, cần lưu ý..."
+  - hoặc "Khu vực cần đặc biệt lưu ý gồm..."
+- Nếu show_impact_zones = true, phải nêu đúng xã ảnh hưởng theo từng trạm.
+- Nếu show_2025_reference = true, phải nêu rõ còn cách đỉnh lũ 2025 bao nhiêu mét hoặc đang rất gần mốc đó.
+- Nếu severity = danger và dữ liệu rất cao, phải thể hiện được tính khẩn cấp thật sự.
+- Trong tình huống nghiêm trọng, có thể dùng các cụm:
+  - "cảnh báo ngập hạ du"
+  - "ngập sâu"
+  - "ưu tiên an toàn tính mạng"
+  - "đưa người và tài sản thiết yếu lên cao"
+  - "sẵn sàng sơ tán"
+- CẤM dùng:
+  - "hạn chế gần sông suối"
+  - "chú ý đi lại"
+  trong tình huống đã rất nặng.
+- CẤM gọi Hội Khách hoặc Ái Nghĩa là địa phương.
+
+MẪU DIỄN ĐẠT TỐT:
+- "🚨 Cảnh báo ngập hạ du..."
+- "Trong 4 giờ tới, mực nước tại Hội Khách dự báo..."
+- "Khu vực cần đặc biệt lưu ý gồm..."
+- "Ái Nghĩa còn thấp hơn đỉnh lũ 2025 khoảng..."
+- "Người dân tại nơi đã ngập vào nhà cần ưu tiên đưa người và tài sản thiết yếu lên cao..."
+
+GỢI Ý CẤU TRÚC:
+- Câu 1: hiện trạng / dự báo ngắn gọn
+- Câu 2: nhận định nguy hiểm + đỉnh lũ 2025 nếu có
+- Câu 3: khu vực ảnh hưởng
+- Câu 4: hành động cần làm ngay
+- Câu 5: theo dõi thông báo tiếp theo
+`.trim(),
+  };
+
+  const channelInstruction = channelInstructions[channel] || channelInstructions.dashboard;
+
+  const user = `
+KÊNH:
+${channel}
+
+YÊU CẦU KÊNH:
+${channelInstruction}
+
+RULE_BASED_DRAFT:
+${ruleBrief?.message || ""}
+
+SNAPSHOT JSON:
+${JSON.stringify(snapshot)}
+
+HÃY TRẢ VỀ DUY NHẤT 1 JSON OBJECT HỢP LỆ:
+{
+  "title": "string",
+  "message": "string",
+  "severity": "normal|watch|warning|danger"
+}
+
+Lưu ý lần cuối:
+- Không bịa.
+- Không thêm xã nếu rule không cho phép.
+- Không thêm đỉnh lũ 2025 nếu rule không cho phép.
+- Không gọi trạm là địa phương.
+- Nếu tình huống nguy hiểm cao, phải viết đúng mức độ nguy hiểm thực tế.
+`.trim();
 
   return { system, user };
 }
@@ -1409,6 +1600,7 @@ async function handleLatestBriefs(req, res) {
     });
   }
 }
+
 async function handleDebugConfig(req, res) {
   try {
     const impactsRaw = await supabaseSelect(
@@ -1444,6 +1636,7 @@ async function handleDebugConfig(req, res) {
     });
   }
 }
+
 /* ======================================================
    ENTRY
 ====================================================== */
