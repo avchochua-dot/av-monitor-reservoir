@@ -248,6 +248,62 @@ function buildPlantOperationsFromDashboardInput(input) {
   };
 }
 
+function buildModelCurrentFromDashboardInput(dashboardInput) {
+  const hkCm = num(dashboardInput?.Hoi_Khach_cm);
+  const anCm = num(dashboardInput?.Ai_Nghia_cm);
+
+  return {
+    hoi_khach: {
+      current_cm: hkCm,
+      current_m: hkCm !== null ? round(hkCm / 100, 2) : null,
+      source: "dashboard_input",
+    },
+    ai_nghia: {
+      current_cm: anCm,
+      current_m: anCm !== null ? round(anCm / 100, 2) : null,
+      source: "dashboard_input",
+    },
+  };
+}
+
+function detectBriefContextMode(dashboardInput, observedLatest) {
+  const hkInputM = num(dashboardInput?.Hoi_Khach_cm) !== null
+    ? round(num(dashboardInput.Hoi_Khach_cm) / 100, 2)
+    : null;
+  const anInputM = num(dashboardInput?.Ai_Nghia_cm) !== null
+    ? round(num(dashboardInput.Ai_Nghia_cm) / 100, 2)
+    : null;
+
+  const hkObsM = num(observedLatest?.hoi_khach?.current_m);
+  const anObsM = num(observedLatest?.ai_nghia?.current_m);
+
+  const hkGap = hkInputM !== null && hkObsM !== null ? Math.abs(hkInputM - hkObsM) : 0;
+  const anGap = anInputM !== null && anObsM !== null ? Math.abs(anInputM - anObsM) : 0;
+
+  if (hkGap >= 0.3 || anGap >= 0.3) return "scenario";
+  return "live";
+}
+
+function getBriefCurrentContext(snapshot) {
+  const mode = snapshot?.context_mode || "live";
+
+  if (mode === "scenario") {
+    return {
+      mode,
+      hoi_khach: snapshot?.model_current?.hoi_khach || snapshot?.observed?.hoi_khach || {},
+      ai_nghia: snapshot?.model_current?.ai_nghia || snapshot?.observed?.ai_nghia || {},
+      label: "input mô hình",
+    };
+  }
+
+  return {
+    mode: "live",
+    hoi_khach: snapshot?.observed?.hoi_khach || {},
+    ai_nghia: snapshot?.observed?.ai_nghia || {},
+    label: "quan trắc",
+  };
+}
+
 /* ======================================================
    CONFIG LOADERS
 ====================================================== */
@@ -544,8 +600,10 @@ function deltaToPeak(peak, value) {
 }
 
 function evaluateRules(snapshot, dashboardInput) {
-  const hkCurrent = snapshot.observed.hoi_khach.current_m;
-  const anCurrent = snapshot.observed.ai_nghia.current_m;
+  const currentCtx = getBriefCurrentContext(snapshot);
+
+  const hkCurrent = num(currentCtx.hoi_khach?.current_m);
+  const anCurrent = num(currentCtx.ai_nghia?.current_m);
 
   const hk4 = snapshot.forecast.hoi_khach.h4_m;
   const hk6 = snapshot.forecast.hoi_khach.h6_m;
@@ -677,9 +735,12 @@ async function buildSnapshot(req) {
   ]);
 
   const operations = buildPlantOperationsFromDashboardInput(dashboardInput);
+  const modelCurrent = buildModelCurrentFromDashboardInput(dashboardInput);
+  const contextMode = detectBriefContextMode(dashboardInput, observedLatest);
 
   const snapshot = {
     snapshot_time: dashboardInput.time || new Date().toISOString(),
+    context_mode: contextMode,
     dashboard_input: dashboardInput,
     observed: {
       obs_hour: observedLatest.obs_hour,
@@ -688,6 +749,7 @@ async function buildSnapshot(req) {
       history_hours: hours,
       history_count: observedHistory.length,
     },
+    model_current: modelCurrent,
     forecast,
     operations,
     impact_zones: impactZones,
@@ -698,8 +760,10 @@ async function buildSnapshot(req) {
 
   return {
     snapshot_time: snapshot.snapshot_time,
+    context_mode: snapshot.context_mode,
     dashboard_input: snapshot.dashboard_input,
     observed: snapshot.observed,
+    model_current: snapshot.model_current,
     forecast: snapshot.forecast,
     operations: snapshot.operations,
     impact_zones: snapshot.impact_zones,
@@ -751,17 +815,22 @@ function stationPeak2025Sentence(snapshot, stationKey) {
 }
 
 function generateRuleBasedBrief(channel, snapshot) {
-  const hkObs = snapshot.observed.hoi_khach.current_m;
-  const anObs = snapshot.observed.ai_nghia.current_m;
-  const hk4 = snapshot.forecast.hoi_khach.h4_m;
-  const hk6 = snapshot.forecast.hoi_khach.h6_m;
-  const hk12 = snapshot.forecast.hoi_khach.h12_m;
-  const an4 = snapshot.forecast.ai_nghia.h4_m;
-  const an6 = snapshot.forecast.ai_nghia.h6_m;
-  const an12 = snapshot.forecast.ai_nghia.h12_m;
-  const overall = snapshot.rules.system.overall_severity;
-  const maxPlant = snapshot.rules.system.max_discharge_plant;
-  const maxQ = snapshot.rules.system.max_discharge_m3s;
+  const currentCtx = getBriefCurrentContext(snapshot);
+  const isScenario = currentCtx.mode === "scenario";
+
+  const hkObs = num(currentCtx.hoi_khach?.current_m);
+  const anObs = num(currentCtx.ai_nghia?.current_m);
+
+  const hk4 = snapshot?.forecast?.hoi_khach?.h4_m;
+  const hk6 = snapshot?.forecast?.hoi_khach?.h6_m;
+  const hk12 = snapshot?.forecast?.hoi_khach?.h12_m;
+  const an4 = snapshot?.forecast?.ai_nghia?.h4_m;
+  const an6 = snapshot?.forecast?.ai_nghia?.h6_m;
+  const an12 = snapshot?.forecast?.ai_nghia?.h12_m;
+
+  const overall = snapshot?.rules?.system?.overall_severity || "normal";
+  const maxPlant = snapshot?.rules?.system?.max_discharge_plant;
+  const maxQ = snapshot?.rules?.system?.max_discharge_m3s;
 
   const hkArea = stationAreaSentence(snapshot, "hoi_khach");
   const anArea = stationAreaSentence(snapshot, "ai_nghia");
@@ -769,12 +838,19 @@ function generateRuleBasedBrief(channel, snapshot) {
   const anPeak = stationPeak2025Sentence(snapshot, "ai_nghia");
 
   if (channel === "dashboard") {
-    const parts = [
-      `HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
-      `Rủi ro: ${overall}.`,
-    ];
+    const parts = isScenario
+      ? [
+          `Theo kịch bản hiện tại: HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
+          `Rủi ro: ${overall}.`,
+        ]
+      : [
+          `Quan trắc hiện tại: HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
+          `Rủi ro: ${overall}.`,
+        ];
+
     if (hkArea || anArea) parts.push([hkArea, anArea].filter(Boolean).join(" "));
     if (hkPeak || anPeak) parts.push([hkPeak, anPeak].filter(Boolean).join(" "));
+
     return {
       title: "Dashboard",
       message: parts.join(" "),
@@ -783,17 +859,27 @@ function generateRuleBasedBrief(channel, snapshot) {
   }
 
   if (channel === "internal") {
-    const parts = [
-      `Hội Khách hiện ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
-      `Ái Nghĩa hiện ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
+    const parts = isScenario
+      ? [
+          `Theo kịch bản đầu vào mô hình, Hội Khách ở mức ${hkObs ?? "-"} m và dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
+          `Ái Nghĩa ở mức ${anObs ?? "-"} m và dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
+        ]
+      : [
+          `Hội Khách hiện quan trắc ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
+          `Ái Nghĩa hiện quan trắc ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
+        ];
+
+    parts.push(
       `Nhà máy xả lớn nhất là ${maxPlant || "N/A"} khoảng ${maxQ ?? 0} m3/s.`,
-      `Tổng Q xả 4 nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s.`,
-      `Mức rủi ro tổng thể ${overall}.`,
-    ];
+      `Tổng Q xả 4 nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
+      `Mức rủi ro tổng thể ${overall}.`
+    );
+
     if (hkArea) parts.push(hkArea);
     if (anArea) parts.push(anArea);
     if (hkPeak) parts.push(hkPeak);
     if (anPeak) parts.push(anPeak);
+
     return {
       title: "Nội bộ vận hành",
       message: parts.join(" "),
@@ -802,16 +888,29 @@ function generateRuleBasedBrief(channel, snapshot) {
   }
 
   if (channel === "public") {
-    const parts = [
-      `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m.`,
-      `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
-      `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
-    ];
+    const parts = isScenario
+      ? [
+          `Theo kịch bản mô phỏng hiện tại, mực nước đầu vào tại Hội Khách khoảng ${hkObs ?? "-"} m và Ái Nghĩa khoảng ${anObs ?? "-"} m.`,
+          `Trong 4 giờ tới, mô hình dự báo Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
+          `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
+        ]
+      : [
+          `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m.`,
+          `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
+          `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
+        ];
+
     if (hkArea) parts.push(hkArea);
     if (anArea) parts.push(anArea);
     if (hkPeak) parts.push(hkPeak);
     if (anPeak) parts.push(anPeak);
-    parts.push(`Người dân cần theo dõi thông báo tiếp theo và hạn chế hoạt động gần sông suối khi không cần thiết.`);
+
+    if (overall === "danger") {
+      parts.push(`Người dân tại khu vực thấp trũng cần ưu tiên đưa người và tài sản thiết yếu lên cao, sẵn sàng phương án sơ tán khi có thông báo.`);
+    } else {
+      parts.push(`Người dân cần theo dõi thông báo tiếp theo để chủ động ứng phó.`);
+    }
+
     return {
       title: "Công khai / cảnh báo",
       message: parts.join(" "),
@@ -820,16 +919,29 @@ function generateRuleBasedBrief(channel, snapshot) {
   }
 
   if (channel === "social") {
-    const parts = [
-      `[Cập nhật hạ du] Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
-      `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
-      `Tổng lưu lượng xả các nhà máy khoảng ${snapshot.rules.system.all4_qra_m3s ?? 0} m3/s.`,
-    ];
+    const parts = isScenario
+      ? [
+          `🚨 Kịch bản hạ du hiện tại: Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
+          `Mô hình dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
+          `Tổng lưu lượng xả các nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
+        ]
+      : [
+          `🚨 Cập nhật hạ du: Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
+          `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
+          `Tổng lưu lượng xả các nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
+        ];
+
     if (hkArea) parts.push(hkArea);
     if (anArea) parts.push(anArea);
     if (hkPeak) parts.push(hkPeak);
     if (anPeak) parts.push(anPeak);
-    parts.push(`Đề nghị người dân chú ý theo dõi thông báo tiếp theo.`);
+
+    if (overall === "danger") {
+      parts.push(`🛑 Khu vực có nguy cơ ngập sâu cần ưu tiên an toàn tính mạng, đưa người và tài sản thiết yếu lên cao.`);
+    } else {
+      parts.push(`📢 Tiếp tục theo dõi thông báo cập nhật.`);
+    }
+
     return {
       title: "Mạng xã hội",
       message: parts.join(" "),
@@ -849,6 +961,29 @@ function generateRuleBasedBrief(channel, snapshot) {
 ====================================================== */
 
 function buildOpenAiPrompt(channel, snapshot, ruleBrief) {
+  const contextMode = snapshot?.context_mode || "live";
+  const modeGuide =
+    contextMode === "scenario"
+      ? `
+CHẾ ĐỘ DỮ LIỆU HIỆN TẠI:
+- Đây là chế độ SCENARIO / MÔ PHỎNG.
+- "Hiện tại" trong bản tin phải hiểu là GIÁ TRỊ ĐẦU VÀO MÔ HÌNH từ snapshot.model_current hoặc dashboard_input.
+- Không được gọi đây là "mực nước quan trắc thực đo hiện tại".
+- Nên dùng cách diễn đạt như:
+  - "Theo kịch bản hiện tại..."
+  - "Theo kịch bản đầu vào mô hình..."
+  - "Mực nước đầu vào mô hình tại Hội Khách..."
+`
+      : `
+CHẾ ĐỘ DỮ LIỆU HIỆN TẠI:
+- Đây là chế độ LIVE / QUAN TRẮC.
+- "Hiện tại" trong bản tin phải hiểu là mực nước quan trắc thực đo từ snapshot.observed.
+- Có thể dùng cách diễn đạt như:
+  - "Hiện tại..."
+  - "Quan trắc hiện tại..."
+  - "Theo số liệu quan trắc..."
+`;
+
   const system = `
 Bạn là trợ lý AI cảnh báo hạ du thủy điện.
 
@@ -865,10 +1000,7 @@ NGUYÊN TẮC BẮT BUỘC:
   - hoặc snapshot.rules.ai_nghia.show_2025_reference = true
 - Nếu show_impact_zones = false thì không được tự thêm tên xã.
 - Nếu show_2025_reference = false thì không được tự thêm so sánh với đỉnh lũ 2025.
-- Không dùng câu sai ngữ nghĩa như:
-  - "Hai địa phương Hội Khách, Ái Nghĩa..."
-  - "các xã Ái Nghĩa..."
-- Trong tình huống nghiêm trọng, không dùng câu sáo rỗng hoặc quá nhẹ như:
+- Trong tình huống nghiêm trọng, không dùng câu quá nhẹ như:
   - "hạn chế gần sông suối"
   - "chú ý đi lại"
   nếu dữ liệu cho thấy nguy cơ ngập sâu, vượt BĐ III hoặc gần đỉnh lũ 2025.
@@ -881,12 +1013,8 @@ NGUYÊN TẮC BẮT BUỘC:
 - Không đưa tọa độ, số điện thoại, mã mốc AVC vào bản tin.
 - Có thể dùng icon phù hợp như: 🚨 ⚠️ 📍 📊 🏘️ 💧 🛑
 - Nếu có RULE_BASED_DRAFT thì dùng làm nền, nhưng viết lại tự nhiên hơn, đúng nghiệp vụ hơn.
-- Ưu tiên final message rõ, đúng tình huống, hữu ích cho người dân/vận hành hơn là ngắn một cách máy móc.
 
-QUY TẮC ĐÁNH GIÁ MỨC ĐỘ:
-- Nếu severity = normal: văn phong trung tính, theo dõi.
-- Nếu severity = watch hoặc warning: văn phong cảnh giác cao, nêu khu vực ảnh hưởng nếu được phép.
-- Nếu severity = danger: văn phong mạnh, rõ, thực tế; nếu dữ liệu rất cao thì phải nhấn mạnh nguy cơ ngập sâu và hành động cần làm.
+${modeGuide}
 
 TRẢ VỀ:
 Trả về đúng JSON object:
@@ -900,160 +1028,48 @@ Trả về đúng JSON object:
   const channelInstructions = {
     dashboard: `
 Bạn đang viết cho kênh DASHBOARD.
-
-MỤC TIÊU:
-- Tóm tắt nhanh trên màn hình dashboard cho người vận hành/lãnh đạo nhìn lướt.
-- Nêu được:
-  1. mức rủi ro hiện tại,
-  2. mực nước dự báo 4 giờ tới tại Hội Khách và Ái Nghĩa,
-  3. khu vực ảnh hưởng trực tiếp nếu đủ điều kiện,
-  4. so với đỉnh lũ 2025 nếu đủ điều kiện.
-
-YÊU CẦU VĂN PHONG:
 - Viết 2 đến 4 câu.
-- Độ dài khoảng 220 đến 420 ký tự là tốt.
-- Súc tích nhưng không được cụt ý.
-- Nếu tình huống nguy hiểm, phải hiện rõ mức độ.
-- Có thể dùng icon đầu câu.
-
-MẪU DIỄN ĐẠT TỐT:
-- "🚨 Mực nước hạ du dự báo rất cao..."
-- "Hội Khách dự báo ... m trong 4 giờ tới..."
-- "Khu vực cần lưu ý gồm..."
-- "Ái Nghĩa còn thấp hơn đỉnh lũ 2025 khoảng ... m"
-
-CẤM:
-- Không dùng câu quá dài, nhiều mệnh đề.
-- Không gọi trạm là địa phương.
+- Tóm tắt nhanh, rõ ràng.
+- Phải nêu:
+  1. mức rủi ro,
+  2. current theo đúng context mode,
+  3. dự báo +4h,
+  4. khu vực ảnh hưởng nếu đủ điều kiện,
+  5. đỉnh lũ 2025 nếu đủ điều kiện.
 `.trim(),
 
     internal: `
 Bạn đang viết cho kênh NỘI BỘ VẬN HÀNH.
-
-MỤC TIÊU:
-- Viết bản tin nội bộ kỹ thuật cho trực vận hành, lãnh đạo ca, theo dõi điều tiết.
-- Phải phản ánh:
-  1. hiện trạng mực nước tại Hội Khách và Ái Nghĩa,
+- Viết 1 tiêu đề + 1 đoạn 5 đến 9 câu.
+- Phải nêu:
+  1. current theo đúng context mode,
   2. dự báo 4h / 6h / 12h,
-  3. mức vượt/ngưỡng báo động,
+  3. mức báo động,
   4. so với đỉnh lũ 2025 nếu đủ điều kiện,
-  5. khu vực bị ảnh hưởng trực tiếp theo từng trạm,
-  6. lưu lượng xả và nhà máy nổi bật,
-  7. nhận định rủi ro tổng thể,
-  8. khuyến nghị vận hành/cảnh giác.
-
-YÊU CẦU VĂN PHONG:
-- Viết 1 tiêu đề + 1 đoạn nội dung từ 5 đến 9 câu.
-- Rõ ràng, kỹ thuật nhưng dễ hiểu.
-- Ưu tiên đầy đủ ý hơn là ngắn.
-- Có thể dùng icon hợp lý.
-
-GỢI Ý CẤU TRÚC:
-- Câu 1: hiện trạng
-- Câu 2: dự báo 4h / 6h / 12h
-- Câu 3: đánh giá theo BĐ I / II / III
-- Câu 4: so với đỉnh lũ 2025 nếu được phép
-- Câu 5: lưu lượng xả và nhà máy nổi bật
-- Câu 6: khu vực ảnh hưởng theo từng trạm
-- Câu 7: rủi ro tổng thể
-- Câu 8: khuyến nghị vận hành
-
-LƯU Ý QUAN TRỌNG:
-- Nếu dữ liệu cho thấy rất nghiêm trọng thì phải dùng từ như "nguy hiểm", "cảnh báo mức cao", "cần theo dõi chặt", "sẵn sàng phương án ứng phó".
-- Không dùng khuyến nghị quá nhẹ khi tình huống đã nặng.
+  5. lưu lượng xả,
+  6. khu vực ảnh hưởng,
+  7. nhận định rủi ro và khuyến nghị.
 `.trim(),
 
     public: `
 Bạn đang viết cho kênh CÔNG KHAI / CẢNH BÁO.
-
-MỤC TIÊU:
-- Viết bản tin công khai dễ hiểu cho người dân và chính quyền địa phương.
-- Người đọc cần hiểu:
-  1. mực nước hiện tại,
-  2. dự báo 4 giờ tới,
-  3. mức độ nguy hiểm theo số liệu,
-  4. khu vực chịu ảnh hưởng trực tiếp nếu đủ điều kiện,
-  5. so với đỉnh lũ 2025 nếu đủ điều kiện,
-  6. hành động phù hợp với nguy cơ thực tế.
-
-YÊU CẦU VĂN PHONG:
-- Viết 1 đoạn từ 4 đến 8 câu.
-- Dễ hiểu, không quá kỹ thuật.
-- Có số liệu chính quan trọng.
-- Có thể dùng icon hợp lý.
-- Không giật gân, nhưng không được làm nhẹ tình hình nếu dữ liệu đang nguy hiểm.
-
-QUY TẮC HÀNH ĐỘNG:
-- Nếu mới ở mức theo dõi: có thể dùng từ "theo dõi", "lưu ý".
-- Nếu rất cao / vượt BĐ III / gần đỉnh lũ 2025:
-  - phải chuyển sang kiểu cảnh báo mạnh hơn:
-    - "cảnh báo ngập sâu"
-    - "nguy hiểm"
-    - "cần chuẩn bị sơ tán"
-    - "ưu tiên an toàn tính mạng"
-    - "đưa người và tài sản thiết yếu lên cao"
-- Không dùng câu kiểu "hạn chế gần sông suối" nếu tình huống đã có thể ngập vào nhà.
-
-GỢI Ý CẤU TRÚC:
-- Câu 1: hiện trạng + dự báo 4h
-- Câu 2: đánh giá theo báo động / nguy hiểm
-- Câu 3: so với đỉnh lũ 2025 nếu được phép
-- Câu 4: khu vực ảnh hưởng trực tiếp
-- Câu 5: lưu lượng xả
-- Câu 6-7: hành động người dân cần làm
+- Viết 1 đoạn 4 đến 8 câu.
+- Dễ hiểu cho người dân.
+- Nếu context mode là scenario, phải nói rõ đây là kịch bản mô phỏng hoặc kịch bản đầu vào mô hình.
+- Nếu context mode là live, có thể nói là số liệu hiện tại / quan trắc hiện tại.
 `.trim(),
 
     social: `
 Bạn đang viết cho kênh MẠNG XÃ HỘI.
-
-MỤC TIÊU:
-- Viết bài đăng mạng xã hội ngắn gọn nhưng vẫn đầy đủ ý, dễ chia sẻ, người dân đọc là hiểu ngay tình huống.
-- Phải thể hiện:
-  1. mực nước dự báo 4 giờ tới,
-  2. mức độ nguy hiểm,
-  3. khu vực cần đặc biệt lưu ý,
-  4. so với đỉnh lũ 2025 nếu đủ điều kiện,
-  5. hành động nên làm ngay nếu tình huống nguy hiểm.
-
-YÊU CẦU VĂN PHONG:
 - Viết 3 đến 5 câu.
-- Rõ, mạnh, dễ đọc.
-- Không quá khô như bản tin nội bộ.
-- Không quá ngắn đến mức mất ý.
-- Có thể dùng icon hợp lý: 🚨 ⚠️ 📍 📊 🏘️ 💧 🛑
-
-QUY TẮC NGHIỆP VỤ RIÊNG CHO SOCIAL:
-- Nếu nhắc khu vực ảnh hưởng, phải viết theo kiểu:
-  - "Theo diễn biến tại trạm Hội Khách, cần lưu ý..."
-  - hoặc "Khu vực cần đặc biệt lưu ý gồm..."
-- Nếu show_impact_zones = true, phải nêu đúng xã ảnh hưởng theo từng trạm.
-- Nếu show_2025_reference = true, phải nêu rõ còn cách đỉnh lũ 2025 bao nhiêu mét hoặc đang rất gần mốc đó.
-- Nếu severity = danger và dữ liệu rất cao, phải thể hiện được tính khẩn cấp thật sự.
-- Trong tình huống nghiêm trọng, có thể dùng các cụm:
-  - "cảnh báo ngập hạ du"
-  - "ngập sâu"
-  - "ưu tiên an toàn tính mạng"
-  - "đưa người và tài sản thiết yếu lên cao"
-  - "sẵn sàng sơ tán"
-- CẤM dùng:
-  - "hạn chế gần sông suối"
-  - "chú ý đi lại"
-  trong tình huống đã rất nặng.
-- CẤM gọi Hội Khách hoặc Ái Nghĩa là địa phương.
-
-MẪU DIỄN ĐẠT TỐT:
-- "🚨 Cảnh báo ngập hạ du..."
-- "Trong 4 giờ tới, mực nước tại Hội Khách dự báo..."
-- "Khu vực cần đặc biệt lưu ý gồm..."
-- "Ái Nghĩa còn thấp hơn đỉnh lũ 2025 khoảng..."
-- "Người dân tại nơi đã ngập vào nhà cần ưu tiên đưa người và tài sản thiết yếu lên cao..."
-
-GỢI Ý CẤU TRÚC:
-- Câu 1: hiện trạng / dự báo ngắn gọn
-- Câu 2: nhận định nguy hiểm + đỉnh lũ 2025 nếu có
-- Câu 3: khu vực ảnh hưởng
-- Câu 4: hành động cần làm ngay
-- Câu 5: theo dõi thông báo tiếp theo
+- Rõ, mạnh, dễ đọc, đủ ý.
+- Nếu context mode là scenario, phải dùng ngôn ngữ kiểu:
+  - "Theo kịch bản hiện tại..."
+  - "Mô hình dự báo..."
+- Nếu context mode là live, có thể dùng:
+  - "Cập nhật hạ du..."
+  - "Theo số liệu hiện tại..."
+- Nếu severity = danger, phải thể hiện rõ mức nguy hiểm và hành động nên làm ngay.
 `.trim(),
   };
 
@@ -1078,13 +1094,6 @@ HÃY TRẢ VỀ DUY NHẤT 1 JSON OBJECT HỢP LỆ:
   "message": "string",
   "severity": "normal|watch|warning|danger"
 }
-
-Lưu ý lần cuối:
-- Không bịa.
-- Không thêm xã nếu rule không cho phép.
-- Không thêm đỉnh lũ 2025 nếu rule không cho phép.
-- Không gọi trạm là địa phương.
-- Nếu tình huống nguy hiểm cao, phải viết đúng mức độ nguy hiểm thực tế.
 `.trim();
 
   return { system, user };
@@ -1192,7 +1201,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       severity: ai.severity || ruleBrief.severity,
       meta: {
         model_name: OPENAI_MODEL,
-        prompt_version: "v3-areas-2025-thresholded",
+        prompt_version: "v4-context-live-scenario",
       },
     };
   } catch (err) {
@@ -1203,7 +1212,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       meta: {
         error: err.message,
         model_name: OPENAI_MODEL,
-        prompt_version: "v3-areas-2025-thresholded",
+        prompt_version: "v4-context-live-scenario",
       },
     };
   }
@@ -1249,6 +1258,8 @@ async function saveSnapshot(snapshot, note = null) {
     operations_payload: snapshot.operations,
     rules_payload: {
       ...snapshot.rules,
+      context_mode: snapshot.context_mode,
+      model_current: snapshot.model_current,
       dashboard_input: snapshot.dashboard_input,
       references: snapshot.references,
       impact_zones: snapshot.impact_zones,
@@ -1299,7 +1310,7 @@ async function handleSnapshot(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "snapshot",
-      code_version: "downstream-brief-areas-2025-v2",
+      code_version: "downstream-brief-live-scenario-v1",
       ...snapshot,
     });
   } catch (err) {
@@ -1391,7 +1402,7 @@ async function handleSave(req, res) {
 
   try {
     snapshot = await buildSnapshot(req);
-    debug.push({ stage: "buildSnapshot", ok: true });
+    debug.push({ stage: "buildSnapshot", ok: true, context_mode: snapshot.context_mode });
   } catch (err) {
     return json(res, 500, {
       ok: false,
@@ -1497,6 +1508,7 @@ async function handleSave(req, res) {
       const saved = await saveBriefV2(savedSnapshot.id, channel, merged, {
         channel,
         snapshot_time: snapshot.snapshot_time,
+        context_mode: snapshot.context_mode,
         use_ai: useAi,
       });
 
@@ -1617,7 +1629,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "debug-config",
-      code_version: "downstream-brief-areas-2025-v2",
+      code_version: "downstream-brief-live-scenario-v1",
       supabase_url: SUPABASE_URL,
       impacts_raw_count: Array.isArray(impactsRaw) ? impactsRaw.length : null,
       peaks_raw_count: Array.isArray(peaksRaw) ? peaksRaw.length : null,
@@ -1630,7 +1642,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 500, {
       ok: false,
       mode: "debug-config",
-      code_version: "downstream-brief-areas-2025-v2",
+      code_version: "downstream-brief-live-scenario-v1",
       error: err.message,
       supabase_url: SUPABASE_URL
     });
