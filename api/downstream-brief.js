@@ -653,15 +653,9 @@ function describeHorizonStatus(valueM, ref) {
   const bd2 = num(ref?.bd2_m);
   const bd3 = num(ref?.bd3_m);
 
-  if (bd3 !== null && v >= bd3) {
-    return { status_code: "over_bd3", short_label: "trên BĐ III" };
-  }
-  if (bd2 !== null && v >= bd2) {
-    return { status_code: "over_bd2", short_label: "trên BĐ II" };
-  }
-  if (bd1 !== null && v >= bd1) {
-    return { status_code: "over_bd1", short_label: "trên BĐ I" };
-  }
+  if (bd3 !== null && v >= bd3) return { status_code: "over_bd3", short_label: "trên BĐ III" };
+  if (bd2 !== null && v >= bd2) return { status_code: "over_bd2", short_label: "trên BĐ II" };
+  if (bd1 !== null && v >= bd1) return { status_code: "over_bd1", short_label: "trên BĐ I" };
   return { status_code: "below_bd1", short_label: "dưới BĐ I" };
 }
 
@@ -883,7 +877,7 @@ function evaluateRules(snapshot, dashboardInput) {
       vugia_3ho_qra_m3s: num(dashboardInput.VuGia_3ho_Qra, 0),
       q_vugia_delta_1h: num(dashboardInput.Q_VuGia_Delta_1h, 0),
       q_vugia_delta_3h: num(dashboardInput.Q_VuGia_Delta_3h, 0),
-      discharge_summary,
+      discharge_summary: dischargeSummary,
     },
   };
 }
@@ -972,9 +966,9 @@ function stationPeak2025Sentence(snapshot, stationKey) {
 }
 
 function buildDischargeSentence(snapshot) {
-  const d = snapshot?.rules?.system?.discharge_summary;
-  if (!d) return "";
-  return `Lưu lượng xả hiện tại: ${d.summary_text} Hồ xả lớn nhất là ${d.max_discharge_plant_name || d.max_discharge_plant || "N/A"} khoảng ${d.max_discharge_m3s ?? 0} m3/s.`;
+  const dischargeSummary = snapshot?.rules?.system?.discharge_summary || null;
+  if (!dischargeSummary) return "";
+  return `Lưu lượng xả hiện tại: ${dischargeSummary.summary_text} Hồ xả lớn nhất là ${dischargeSummary.max_discharge_plant_name || dischargeSummary.max_discharge_plant || "N/A"} khoảng ${dischargeSummary.max_discharge_m3s ?? 0} m3/s.`;
 }
 
 function buildTrendSentence(stationName, stationRule, h4, h6, h12) {
@@ -1475,7 +1469,7 @@ async function handleSnapshot(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "snapshot",
-      code_version: "downstream-brief-full-v2",
+      code_version: "downstream-brief-full-v2-fixed",
       ...snapshot,
     });
   } catch (err) {
@@ -1794,7 +1788,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "debug-config",
-      code_version: "downstream-brief-full-v2",
+      code_version: "downstream-brief-full-v2-fixed",
       supabase_url: SUPABASE_URL,
       impacts_raw_count: Array.isArray(impactsRaw) ? impactsRaw.length : null,
       peaks_raw_count: Array.isArray(peaksRaw) ? peaksRaw.length : null,
@@ -1807,7 +1801,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 500, {
       ok: false,
       mode: "debug-config",
-      code_version: "downstream-brief-full-v2",
+      code_version: "downstream-brief-full-v2-fixed",
       error: err.message,
       supabase_url: SUPABASE_URL
     });
