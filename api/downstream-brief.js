@@ -32,7 +32,7 @@ function round(value, digits = 2) {
   return Math.round(n * p) / p;
 }
 
-function truncate(str, max = 1200) {
+function truncate(str, max = 1600) {
   const s = text(str, "");
   return s.length > max ? `${s.slice(0, max).trim()}...` : s;
 }
@@ -69,7 +69,7 @@ function normalizeStationKey(code) {
   return raw.toLowerCase();
 }
 
-async function fetchJson(url, timeoutMs = 20000, method = "GET", body = null) {
+async function fetchJson(url, timeoutMs = 25000, method = "GET", body = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -87,13 +87,13 @@ async function fetchJson(url, timeoutMs = 20000, method = "GET", body = null) {
     const raw = await response.text();
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${raw.slice(0, 800)}`);
+      throw new Error(`HTTP ${response.status}: ${raw.slice(0, 1200)}`);
     }
 
     try {
       return JSON.parse(raw);
     } catch {
-      throw new Error(`Response is not JSON: ${raw.slice(0, 800)}`);
+      throw new Error(`Response is not JSON: ${raw.slice(0, 1200)}`);
     }
   } finally {
     clearTimeout(timer);
@@ -123,7 +123,7 @@ async function supabaseSelect(path) {
   try {
     return JSON.parse(raw);
   } catch {
-    throw new Error(`Supabase SELECT response is not JSON: ${raw.slice(0, 500)}`);
+    throw new Error(`Supabase SELECT response is not JSON: ${raw.slice(0, 1000)}`);
   }
 }
 
@@ -152,7 +152,7 @@ async function supabaseInsert(path, payload, prefer = "return=representation") {
   try {
     return JSON.parse(raw);
   } catch {
-    throw new Error(`Supabase INSERT response is not JSON: ${raw.slice(0, 500)}`);
+    throw new Error(`Supabase INSERT response is not JSON: ${raw.slice(0, 1000)}`);
   }
 }
 
@@ -313,10 +313,7 @@ async function loadStationImpacts() {
     "downstream_station_impacts?select=station_code,station_name,impact_level,affected_areas,note,updated_at&order=station_code.asc"
   );
 
-  const out = {
-    hoi_khach: null,
-    ai_nghia: null,
-  };
+  const out = { hoi_khach: null, ai_nghia: null };
 
   for (const row of rows || []) {
     const key = normalizeStationKey(row.station_code);
@@ -376,10 +373,7 @@ async function loadPeakReferences() {
     "downstream_peak_references?select=station_code,station_name,peak_2025_m,peak_2025_time,bd1_m,bd2_m,bd3_m,note,updated_at&order=station_code.asc"
   );
 
-  const out = {
-    hoi_khach: null,
-    ai_nghia: null,
-  };
+  const out = { hoi_khach: null, ai_nghia: null };
 
   for (const row of rows || []) {
     const key = normalizeStationKey(row.station_code);
@@ -553,7 +547,7 @@ async function loadForecastNow(req, dashboardInput) {
 }
 
 /* ======================================================
-   RULE ENGINE
+   RULE ENGINE HELPERS
 ====================================================== */
 
 function getTrend(delta4h) {
@@ -569,7 +563,9 @@ function getSeverityByForecast({ h4_m, h6_m, thresholds, delta4h }) {
   const max46 = Math.max(h4_m ?? Number.NEGATIVE_INFINITY, h6_m ?? Number.NEGATIVE_INFINITY);
   const bd1 = thresholds?.bd1_cm != null ? Number(thresholds.bd1_cm) / 100 : null;
   const bd2 = thresholds?.bd2_cm != null ? Number(thresholds.bd2_cm) / 100 : null;
+  const bd3 = thresholds?.bd3_cm != null ? Number(thresholds.bd3_cm) / 100 : null;
 
+  if (bd3 !== null && max46 >= bd3) return "danger";
   if (bd2 !== null && max46 >= bd2) return "danger";
   if (bd1 !== null && max46 >= bd1) return "warning";
   if (delta4h !== null && delta4h >= 0.2) return "warning";
@@ -599,43 +595,152 @@ function deltaToPeak(peak, value) {
   return round(num(value) - num(peak), 2);
 }
 
+function describeLevelAgainstThresholds(currentM, ref) {
+  const cur = num(currentM);
+  if (cur === null) {
+    return {
+      status_code: "unknown",
+      short_label: "chưa có dữ liệu",
+      detail: "Chưa xác định được mực nước hiện tại.",
+    };
+  }
+
+  const bd1 = num(ref?.bd1_m);
+  const bd2 = num(ref?.bd2_m);
+  const bd3 = num(ref?.bd3_m);
+
+  if (bd3 !== null && cur >= bd3) {
+    return {
+      status_code: "over_bd3",
+      short_label: "trên BĐ III",
+      detail: `Hiện tại ở mức ${round(cur, 2)} m, cao hơn báo động III.`,
+    };
+  }
+
+  if (bd2 !== null && cur >= bd2) {
+    return {
+      status_code: "over_bd2",
+      short_label: "trên BĐ II",
+      detail: `Hiện tại ở mức ${round(cur, 2)} m, cao hơn báo động II nhưng chưa vượt báo động III.`,
+    };
+  }
+
+  if (bd1 !== null && cur >= bd1) {
+    return {
+      status_code: "over_bd1",
+      short_label: "trên BĐ I",
+      detail: `Hiện tại ở mức ${round(cur, 2)} m, cao hơn báo động I nhưng chưa vượt báo động II.`,
+    };
+  }
+
+  return {
+    status_code: "below_bd1",
+    short_label: "dưới BĐ I",
+    detail: `Hiện tại ở mức ${round(cur, 2)} m, dưới báo động I.`,
+  };
+}
+
+function describeHorizonStatus(valueM, ref) {
+  const v = num(valueM);
+  if (v === null) {
+    return {
+      status_code: "unknown",
+      short_label: "chưa có dữ liệu",
+    };
+  }
+
+  const bd1 = num(ref?.bd1_m);
+  const bd2 = num(ref?.bd2_m);
+  const bd3 = num(ref?.bd3_m);
+
+  if (bd3 !== null && v >= bd3) {
+    return { status_code: "over_bd3", short_label: "trên BĐ III" };
+  }
+  if (bd2 !== null && v >= bd2) {
+    return { status_code: "over_bd2", short_label: "trên BĐ II" };
+  }
+  if (bd1 !== null && v >= bd1) {
+    return { status_code: "over_bd1", short_label: "trên BĐ I" };
+  }
+  return { status_code: "below_bd1", short_label: "dưới BĐ I" };
+}
+
+function describeTrendPath(currentM, h4, h6, h12) {
+  const cur = num(currentM);
+  const v4 = num(h4);
+  const v6 = num(h6);
+  const v12 = num(h12);
+
+  const d4 = cur !== null && v4 !== null ? round(v4 - cur, 2) : null;
+  const d6 = cur !== null && v6 !== null ? round(v6 - cur, 2) : null;
+  const d12 = cur !== null && v12 !== null ? round(v12 - cur, 2) : null;
+
+  const arr = [d4, d6, d12].filter((x) => x !== null);
+  const maxRise = arr.length ? Math.max(...arr) : null;
+  const minFall = arr.length ? Math.min(...arr) : null;
+
+  let trend = "stable";
+  let summary = "Diễn biến ít thay đổi.";
+
+  if (maxRise !== null && maxRise >= 0.3) {
+    trend = "rising_fast";
+    summary = `Có xu hướng tăng mạnh từ hiện tại đến các mốc 4h/6h/12h.`;
+  } else if (maxRise !== null && maxRise >= 0.1) {
+    trend = "rising";
+    summary = `Có xu hướng tăng so với hiện tại.`;
+  } else if (minFall !== null && minFall <= -0.3) {
+    trend = "falling_fast";
+    summary = `Có xu hướng giảm rõ so với hiện tại.`;
+  } else if (minFall !== null && minFall <= -0.1) {
+    trend = "falling";
+    summary = `Có xu hướng giảm nhẹ so với hiện tại.`;
+  }
+
+  return {
+    trend,
+    summary,
+    delta_4h_m: d4,
+    delta_6h_m: d6,
+    delta_12h_m: d12,
+  };
+}
+
+/* ======================================================
+   RULE ENGINE
+====================================================== */
+
 function evaluateRules(snapshot, dashboardInput) {
   const currentCtx = getBriefCurrentContext(snapshot);
 
   const hkCurrent = num(currentCtx.hoi_khach?.current_m);
   const anCurrent = num(currentCtx.ai_nghia?.current_m);
 
-  const hk4 = snapshot.forecast.hoi_khach.h4_m;
-  const hk6 = snapshot.forecast.hoi_khach.h6_m;
-  const hk12 = snapshot.forecast.hoi_khach.h12_m;
+  const hk4 = num(snapshot?.forecast?.hoi_khach?.h4_m);
+  const hk6 = num(snapshot?.forecast?.hoi_khach?.h6_m);
+  const hk12 = num(snapshot?.forecast?.hoi_khach?.h12_m);
 
-  const an4 = snapshot.forecast.ai_nghia.h4_m;
-  const an6 = snapshot.forecast.ai_nghia.h6_m;
-  const an12 = snapshot.forecast.ai_nghia.h12_m;
+  const an4 = num(snapshot?.forecast?.ai_nghia?.h4_m);
+  const an6 = num(snapshot?.forecast?.ai_nghia?.h6_m);
+  const an12 = num(snapshot?.forecast?.ai_nghia?.h12_m);
 
   const hkRef = snapshot.references?.hoi_khach || null;
   const anRef = snapshot.references?.ai_nghia || null;
 
-  const hkDelta4 = hkCurrent != null && hk4 != null ? round(hk4 - hkCurrent, 2) : null;
-  const hkDelta6 = hkCurrent != null && hk6 != null ? round(hk6 - hkCurrent, 2) : null;
-  const hkDelta12 = hkCurrent != null && hk12 != null ? round(hk12 - hkCurrent, 2) : null;
-
-  const anDelta4 = anCurrent != null && an4 != null ? round(an4 - anCurrent, 2) : null;
-  const anDelta6 = anCurrent != null && an6 != null ? round(an6 - anCurrent, 2) : null;
-  const anDelta12 = anCurrent != null && an12 != null ? round(an12 - anCurrent, 2) : null;
+  const hkTrendInfo = describeTrendPath(hkCurrent, hk4, hk6, hk12);
+  const anTrendInfo = describeTrendPath(anCurrent, an4, an6, an12);
 
   const hkSeverity = getSeverityByForecast({
     h4_m: hk4,
     h6_m: hk6,
     thresholds: snapshot.forecast.hoi_khach.thresholds,
-    delta4h: hkDelta4,
+    delta4h: hkTrendInfo.delta_4h_m,
   });
 
   const anSeverity = getSeverityByForecast({
     h4_m: an4,
     h6_m: an6,
     thresholds: snapshot.forecast.ai_nghia.thresholds,
-    delta4h: anDelta4,
+    delta4h: anTrendInfo.delta_4h_m,
   });
 
   const plants = snapshot.operations.plants || [];
@@ -653,53 +758,122 @@ function evaluateRules(snapshot, dashboardInput) {
   const show2025ReferenceHk = shouldShow2025Reference(hkCurrent, hk4, hk6, hk12, hkRef);
   const show2025ReferenceAn = shouldShow2025Reference(anCurrent, an4, an6, an12, anRef);
 
+  const hkCurrentStatus = describeLevelAgainstThresholds(hkCurrent, hkRef);
+  const anCurrentStatus = describeLevelAgainstThresholds(anCurrent, anRef);
+
+  const hkH4Status = describeHorizonStatus(hk4, hkRef);
+  const hkH6Status = describeHorizonStatus(hk6, hkRef);
+  const hkH12Status = describeHorizonStatus(hk12, hkRef);
+
+  const anH4Status = describeHorizonStatus(an4, anRef);
+  const anH6Status = describeHorizonStatus(an6, anRef);
+  const anH12Status = describeHorizonStatus(an12, anRef);
+
+  const hkDeltaCurrentPeak = deltaToPeak(hkRef?.peak_2025_m, hkCurrent);
+  const hkDeltaH4Peak = deltaToPeak(hkRef?.peak_2025_m, hk4);
+  const hkDeltaH6Peak = deltaToPeak(hkRef?.peak_2025_m, hk6);
+  const hkDeltaH12Peak = deltaToPeak(hkRef?.peak_2025_m, hk12);
+
+  const anDeltaCurrentPeak = deltaToPeak(anRef?.peak_2025_m, anCurrent);
+  const anDeltaH4Peak = deltaToPeak(anRef?.peak_2025_m, an4);
+  const anDeltaH6Peak = deltaToPeak(anRef?.peak_2025_m, an6);
+  const anDeltaH12Peak = deltaToPeak(anRef?.peak_2025_m, an12);
+
+  const buildPeakSummary = (stationName, currentDelta, h4Delta, peakValue) => {
+    if (num(peakValue) === null) return null;
+    if (currentDelta === null && h4Delta === null) return null;
+
+    const refDelta = h4Delta !== null ? h4Delta : currentDelta;
+    if (refDelta === null) return null;
+
+    if (refDelta > 0) {
+      return `${stationName} đã cao hơn đỉnh lũ 2025 khoảng ${round(Math.abs(refDelta), 2)} m.`;
+    }
+    if (Math.abs(refDelta) <= 0.3) {
+      return `${stationName} đang rất gần đỉnh lũ 2025, chỉ còn cách khoảng ${round(Math.abs(refDelta), 2)} m.`;
+    }
+    return `${stationName} vẫn thấp hơn đỉnh lũ 2025 khoảng ${round(Math.abs(refDelta), 2)} m.`;
+  };
+
+  const dischargeSummary = {
+    plants: plants.map((p) => ({
+      plant_code: p.plant_code,
+      plant_name: p.plant_name,
+      discharge_m3s: num(p.discharge_m3s, 0),
+      status: p.status || "unknown",
+    })),
+    total_discharge_m3s: num(snapshot?.operations?.all4_total_discharge_m3s, 0),
+    max_discharge_plant: maxPlant?.plant_code || null,
+    max_discharge_plant_name: maxPlant?.plant_name || null,
+    max_discharge_m3s: num(maxPlant?.discharge_m3s, 0),
+    summary_text: `A Vương ${num(dashboardInput.A_Vuong_Qra, 0)} m3/s, Đắk Mi 4 ${num(dashboardInput.DakMi4_Qra, 0)} m3/s, Sông Bung 4 ${num(dashboardInput.SongBung4_Qra, 0)} m3/s, Sông Tranh 2 ${num(dashboardInput.SongTranh2_Qra, 0)} m3/s; tổng xả ${num(dashboardInput.All4_Qra, 0)} m3/s.`,
+  };
+
   return {
     hoi_khach: {
-      delta_4h_m: hkDelta4,
-      delta_6h_m: hkDelta6,
-      delta_12h_m: hkDelta12,
-      trend: getTrend(hkDelta4),
+      delta_4h_m: hkTrendInfo.delta_4h_m,
+      delta_6h_m: hkTrendInfo.delta_6h_m,
+      delta_12h_m: hkTrendInfo.delta_12h_m,
+      trend: hkTrendInfo.trend,
+      trend_summary: hkTrendInfo.summary,
       severity: hkSeverity,
       reason_code:
-        hkSeverity === "danger"
+        hkH4Status.status_code === "over_bd3" || hkH6Status.status_code === "over_bd3"
+          ? "HK_FORECAST_BD3"
+          : hkSeverity === "danger"
           ? "HK_FORECAST_BD2"
           : hkSeverity === "warning"
           ? "HK_FORECAST_BD1_OR_FAST_RISE"
           : hkSeverity === "watch"
           ? "HK_RISING"
           : "HK_NORMAL",
+      current_status: hkCurrentStatus,
+      h4_status: hkH4Status,
+      h6_status: hkH6Status,
+      h12_status: hkH12Status,
       show_impact_zones: showImpactZonesHk,
       show_2025_reference: show2025ReferenceHk,
       peak_2025_m: hkRef?.peak_2025_m ?? null,
       peak_2025_time: hkRef?.peak_2025_time ?? null,
-      delta_current_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hkCurrent),
-      delta_h4_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk4),
-      delta_h6_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk6),
-      delta_h12_to_peak_2025_m: deltaToPeak(hkRef?.peak_2025_m, hk12),
+      delta_current_to_peak_2025_m: hkDeltaCurrentPeak,
+      delta_h4_to_peak_2025_m: hkDeltaH4Peak,
+      delta_h6_to_peak_2025_m: hkDeltaH6Peak,
+      delta_h12_to_peak_2025_m: hkDeltaH12Peak,
+      peak_2025_summary: buildPeakSummary("Hội Khách", hkDeltaCurrentPeak, hkDeltaH4Peak, hkRef?.peak_2025_m),
     },
+
     ai_nghia: {
-      delta_4h_m: anDelta4,
-      delta_6h_m: anDelta6,
-      delta_12h_m: anDelta12,
-      trend: getTrend(anDelta4),
+      delta_4h_m: anTrendInfo.delta_4h_m,
+      delta_6h_m: anTrendInfo.delta_6h_m,
+      delta_12h_m: anTrendInfo.delta_12h_m,
+      trend: anTrendInfo.trend,
+      trend_summary: anTrendInfo.summary,
       severity: anSeverity,
       reason_code:
-        anSeverity === "danger"
+        anH4Status.status_code === "over_bd3" || anH6Status.status_code === "over_bd3"
+          ? "AN_FORECAST_BD3"
+          : anSeverity === "danger"
           ? "AN_FORECAST_BD2"
           : anSeverity === "warning"
           ? "AN_FORECAST_BD1_OR_FAST_RISE"
           : anSeverity === "watch"
           ? "AN_RISING"
           : "AN_NORMAL",
+      current_status: anCurrentStatus,
+      h4_status: anH4Status,
+      h6_status: anH6Status,
+      h12_status: anH12Status,
       show_impact_zones: showImpactZonesAn,
       show_2025_reference: show2025ReferenceAn,
       peak_2025_m: anRef?.peak_2025_m ?? null,
       peak_2025_time: anRef?.peak_2025_time ?? null,
-      delta_current_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, anCurrent),
-      delta_h4_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an4),
-      delta_h6_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an6),
-      delta_h12_to_peak_2025_m: deltaToPeak(anRef?.peak_2025_m, an12),
+      delta_current_to_peak_2025_m: anDeltaCurrentPeak,
+      delta_h4_to_peak_2025_m: anDeltaH4Peak,
+      delta_h6_to_peak_2025_m: anDeltaH6Peak,
+      delta_h12_to_peak_2025_m: anDeltaH12Peak,
+      peak_2025_summary: buildPeakSummary("Ái Nghĩa", anDeltaCurrentPeak, anDeltaH4Peak, anRef?.peak_2025_m),
     },
+
     system: {
       max_discharge_plant: maxPlant?.plant_code || null,
       max_discharge_m3s: num(maxPlant?.discharge_m3s, 0),
@@ -709,6 +883,7 @@ function evaluateRules(snapshot, dashboardInput) {
       vugia_3ho_qra_m3s: num(dashboardInput.VuGia_3ho_Qra, 0),
       q_vugia_delta_1h: num(dashboardInput.Q_VuGia_Delta_1h, 0),
       q_vugia_delta_3h: num(dashboardInput.Q_VuGia_Delta_3h, 0),
+      discharge_summary,
     },
   };
 }
@@ -785,41 +960,34 @@ function stationAreaSentence(snapshot, stationKey) {
   const areasText = formatAreasVi(impact.affected_areas, partial);
 
   if (stationKey === "hoi_khach") {
-    return `Diễn biến tại trạm Hội Khách cần lưu ý cho ${areasText}.`;
+    return `Theo diễn biến tại trạm Hội Khách, cần đặc biệt lưu ý ${areasText}.`;
   }
-  return `Diễn biến tại trạm Ái Nghĩa cần lưu ý cho ${areasText}.`;
+  return `Theo diễn biến tại trạm Ái Nghĩa, cần đặc biệt lưu ý ${areasText}.`;
 }
 
 function stationPeak2025Sentence(snapshot, stationKey) {
   const rule = snapshot.rules?.[stationKey];
-  const ref = snapshot.references?.[stationKey];
-  if (!rule?.show_2025_reference || num(ref?.peak_2025_m) === null) return "";
+  if (!rule?.show_2025_reference) return "";
+  return rule?.peak_2025_summary || "";
+}
 
-  const target =
-    num(rule.delta_h4_to_peak_2025_m) !== null
-      ? rule.delta_h4_to_peak_2025_m
-      : rule.delta_current_to_peak_2025_m;
+function buildDischargeSentence(snapshot) {
+  const d = snapshot?.rules?.system?.discharge_summary;
+  if (!d) return "";
+  return `Lưu lượng xả hiện tại: ${d.summary_text} Hồ xả lớn nhất là ${d.max_discharge_plant_name || d.max_discharge_plant || "N/A"} khoảng ${d.max_discharge_m3s ?? 0} m3/s.`;
+}
 
-  if (target === null) return "";
-
-  const absVal = Math.abs(target);
-  const stationName = ref.station_name || (stationKey === "hoi_khach" ? "Hội Khách" : "Ái Nghĩa");
-
-  if (target < 0) {
-    return `${stationName} vẫn thấp hơn đỉnh lũ năm 2025 khoảng ${round(absVal, 2)} m.`;
-  }
-  if (target > 0) {
-    return `${stationName} đã vượt mốc đỉnh lũ năm 2025 khoảng ${round(absVal, 2)} m.`;
-  }
-  return `${stationName} đang xấp xỉ mốc đỉnh lũ năm 2025.`;
+function buildTrendSentence(stationName, stationRule, h4, h6, h12) {
+  if (!stationRule) return "";
+  return `${stationName} hiện ${stationRule.current_status?.short_label || "chưa xác định"}, xu hướng ${stationRule.trend_summary || "chưa xác định"} Dự báo +4h ${h4 ?? "-"} m (${stationRule.h4_status?.short_label || "chưa rõ"}), +6h ${h6 ?? "-"} m (${stationRule.h6_status?.short_label || "chưa rõ"}), +12h ${h12 ?? "-"} m (${stationRule.h12_status?.short_label || "chưa rõ"}).`;
 }
 
 function generateRuleBasedBrief(channel, snapshot) {
   const currentCtx = getBriefCurrentContext(snapshot);
   const isScenario = currentCtx.mode === "scenario";
 
-  const hkObs = num(currentCtx.hoi_khach?.current_m);
-  const anObs = num(currentCtx.ai_nghia?.current_m);
+  const hkCur = num(currentCtx.hoi_khach?.current_m);
+  const anCur = num(currentCtx.ai_nghia?.current_m);
 
   const hk4 = snapshot?.forecast?.hoi_khach?.h4_m;
   const hk6 = snapshot?.forecast?.hoi_khach?.h6_m;
@@ -828,53 +996,39 @@ function generateRuleBasedBrief(channel, snapshot) {
   const an6 = snapshot?.forecast?.ai_nghia?.h6_m;
   const an12 = snapshot?.forecast?.ai_nghia?.h12_m;
 
+  const hkRule = snapshot?.rules?.hoi_khach;
+  const anRule = snapshot?.rules?.ai_nghia;
   const overall = snapshot?.rules?.system?.overall_severity || "normal";
-  const maxPlant = snapshot?.rules?.system?.max_discharge_plant;
-  const maxQ = snapshot?.rules?.system?.max_discharge_m3s;
 
   const hkArea = stationAreaSentence(snapshot, "hoi_khach");
   const anArea = stationAreaSentence(snapshot, "ai_nghia");
   const hkPeak = stationPeak2025Sentence(snapshot, "hoi_khach");
   const anPeak = stationPeak2025Sentence(snapshot, "ai_nghia");
+  const discharge = buildDischargeSentence(snapshot);
+
+  const currentPrefix = isScenario
+    ? "Theo kịch bản đầu vào mô hình"
+    : "Theo số liệu hiện tại";
 
   if (channel === "dashboard") {
-    const parts = isScenario
-      ? [
-          `Theo kịch bản hiện tại: HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
-          `Rủi ro: ${overall}.`,
-        ]
-      : [
-          `Quan trắc hiện tại: HK ${hkObs ?? "-"} m → ${hk4 ?? "-"} m/4h, AN ${anObs ?? "-"} m → ${an4 ?? "-"} m/4h.`,
-          `Rủi ro: ${overall}.`,
-        ];
-
+    const parts = [
+      `${currentPrefix}, Hội Khách ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
+      `Dự báo +4h: HK ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}), AN ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
+      `Rủi ro tổng thể ${overall}.`,
+    ];
     if (hkArea || anArea) parts.push([hkArea, anArea].filter(Boolean).join(" "));
     if (hkPeak || anPeak) parts.push([hkPeak, anPeak].filter(Boolean).join(" "));
-
-    return {
-      title: "Dashboard",
-      message: parts.join(" "),
-      severity: overall,
-    };
+    return { title: "Dashboard", message: parts.join(" "), severity: overall };
   }
 
   if (channel === "internal") {
-    const parts = isScenario
-      ? [
-          `Theo kịch bản đầu vào mô hình, Hội Khách ở mức ${hkObs ?? "-"} m và dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
-          `Ái Nghĩa ở mức ${anObs ?? "-"} m và dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
-        ]
-      : [
-          `Hội Khách hiện quan trắc ${hkObs ?? "-"} m, dự báo ${hk4 ?? "-"} m sau 4h, ${hk6 ?? "-"} m sau 6h, ${hk12 ?? "-"} m sau 12h.`,
-          `Ái Nghĩa hiện quan trắc ${anObs ?? "-"} m, dự báo ${an4 ?? "-"} m sau 4h, ${an6 ?? "-"} m sau 6h, ${an12 ?? "-"} m sau 12h.`,
-        ];
-
-    parts.push(
-      `Nhà máy xả lớn nhất là ${maxPlant || "N/A"} khoảng ${maxQ ?? 0} m3/s.`,
-      `Tổng Q xả 4 nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
-      `Mức rủi ro tổng thể ${overall}.`
-    );
-
+    const parts = [
+      `${currentPrefix}, Hội Khách ở mức ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ở mức ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
+      buildTrendSentence("Hội Khách", hkRule, hk4, hk6, hk12),
+      buildTrendSentence("Ái Nghĩa", anRule, an4, an6, an12),
+      discharge,
+      `Mức rủi ro tổng thể ${overall}.`,
+    ];
     if (hkArea) parts.push(hkArea);
     if (anArea) parts.push(anArea);
     if (hkPeak) parts.push(hkPeak);
@@ -882,69 +1036,56 @@ function generateRuleBasedBrief(channel, snapshot) {
 
     return {
       title: "Nội bộ vận hành",
-      message: parts.join(" "),
+      message: parts.filter(Boolean).join(" "),
       severity: overall,
     };
   }
 
   if (channel === "public") {
-    const parts = isScenario
-      ? [
-          `Theo kịch bản mô phỏng hiện tại, mực nước đầu vào tại Hội Khách khoảng ${hkObs ?? "-"} m và Ái Nghĩa khoảng ${anObs ?? "-"} m.`,
-          `Trong 4 giờ tới, mô hình dự báo Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
-          `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
-        ]
-      : [
-          `Cập nhật mực nước hạ du: Hội Khách hiện ${hkObs ?? "-"} m, Ái Nghĩa hiện ${anObs ?? "-"} m.`,
-          `Trong 4 giờ tới, mực nước dự báo tại Hội Khách khoảng ${hk4 ?? "-"} m và Ái Nghĩa khoảng ${an4 ?? "-"} m.`,
-          `Một số hồ thủy điện trên lưu vực đang vận hành xả nước.`,
-        ];
-
+    const parts = [
+      `${currentPrefix}, mực nước tại Hội Khách khoảng ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), tại Ái Nghĩa khoảng ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
+      `Trong 4 giờ tới, dự báo Hội Khách khoảng ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}) và Ái Nghĩa khoảng ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
+      `Xu hướng từ hiện tại đến 4h/6h/12h: Hội Khách ${hkRule?.trend_summary || "chưa rõ"} Ái Nghĩa ${anRule?.trend_summary || "chưa rõ"}`,
+      discharge,
+    ];
     if (hkArea) parts.push(hkArea);
     if (anArea) parts.push(anArea);
     if (hkPeak) parts.push(hkPeak);
     if (anPeak) parts.push(anPeak);
 
     if (overall === "danger") {
-      parts.push(`Người dân tại khu vực thấp trũng cần ưu tiên đưa người và tài sản thiết yếu lên cao, sẵn sàng phương án sơ tán khi có thông báo.`);
+      parts.push(`Người dân tại khu vực thấp trũng, nơi nước đã vào nhà hoặc có nguy cơ ngập sâu cần ưu tiên đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán khi có thông báo.`);
     } else {
-      parts.push(`Người dân cần theo dõi thông báo tiếp theo để chủ động ứng phó.`);
+      parts.push(`Người dân cần tiếp tục theo dõi thông tin cập nhật để chủ động ứng phó.`);
     }
 
     return {
       title: "Công khai / cảnh báo",
-      message: parts.join(" "),
+      message: parts.filter(Boolean).join(" "),
       severity: overall,
     };
   }
 
   if (channel === "social") {
-    const parts = isScenario
-      ? [
-          `🚨 Kịch bản hạ du hiện tại: Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
-          `Mô hình dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
-          `Tổng lưu lượng xả các nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
-        ]
-      : [
-          `🚨 Cập nhật hạ du: Hội Khách ${hkObs ?? "-"} m, Ái Nghĩa ${anObs ?? "-"} m.`,
-          `Dự báo 4h tới: HK ${hk4 ?? "-"} m, AN ${an4 ?? "-"} m.`,
-          `Tổng lưu lượng xả các nhà máy khoảng ${snapshot?.rules?.system?.all4_qra_m3s ?? 0} m3/s.`,
-        ];
-
-    if (hkArea) parts.push(hkArea);
-    if (anArea) parts.push(anArea);
-    if (hkPeak) parts.push(hkPeak);
-    if (anPeak) parts.push(anPeak);
+    const parts = [
+      `🚨 ${currentPrefix}, Hội Khách ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
+      `📈 Dự báo 4h tới: HK ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}), AN ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
+      `💧 ${discharge}`,
+    ];
+    if (hkArea) parts.push(`📍 ${hkArea}`);
+    if (anArea) parts.push(`📍 ${anArea}`);
+    if (hkPeak) parts.push(`📊 ${hkPeak}`);
+    if (anPeak) parts.push(`📊 ${anPeak}`);
 
     if (overall === "danger") {
-      parts.push(`🛑 Khu vực có nguy cơ ngập sâu cần ưu tiên an toàn tính mạng, đưa người và tài sản thiết yếu lên cao.`);
+      parts.push(`🛑 Khu vực có nguy cơ ngập sâu cần ưu tiên an toàn tính mạng, đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán.`);
     } else {
-      parts.push(`📢 Tiếp tục theo dõi thông báo cập nhật.`);
+      parts.push(`📢 Tiếp tục theo dõi thông báo mới nhất.`);
     }
 
     return {
       title: "Mạng xã hội",
-      message: parts.join(" "),
+      message: parts.filter(Boolean).join(" "),
       severity: overall,
     };
   }
@@ -962,62 +1103,75 @@ function generateRuleBasedBrief(channel, snapshot) {
 
 function buildOpenAiPrompt(channel, snapshot, ruleBrief) {
   const contextMode = snapshot?.context_mode || "live";
+
   const modeGuide =
     contextMode === "scenario"
       ? `
-CHẾ ĐỘ DỮ LIỆU HIỆN TẠI:
+CHẾ ĐỘ DỮ LIỆU:
 - Đây là chế độ SCENARIO / MÔ PHỎNG.
-- "Hiện tại" trong bản tin phải hiểu là GIÁ TRỊ ĐẦU VÀO MÔ HÌNH từ snapshot.model_current hoặc dashboard_input.
-- Không được gọi đây là "mực nước quan trắc thực đo hiện tại".
-- Nên dùng cách diễn đạt như:
+- "Hiện tại" trong bản tin phải hiểu là GIÁ TRỊ ĐẦU VÀO MÔ HÌNH từ snapshot.model_current.
+- Không được gọi đó là số liệu quan trắc thực đo.
+- Nên dùng các cụm:
   - "Theo kịch bản hiện tại..."
   - "Theo kịch bản đầu vào mô hình..."
-  - "Mực nước đầu vào mô hình tại Hội Khách..."
+  - "Mực nước đầu vào mô hình tại..."
 `
       : `
-CHẾ ĐỘ DỮ LIỆU HIỆN TẠI:
+CHẾ ĐỘ DỮ LIỆU:
 - Đây là chế độ LIVE / QUAN TRẮC.
-- "Hiện tại" trong bản tin phải hiểu là mực nước quan trắc thực đo từ snapshot.observed.
-- Có thể dùng cách diễn đạt như:
+- "Hiện tại" trong bản tin phải hiểu là số liệu quan trắc thực đo từ snapshot.observed.
+- Có thể dùng các cụm:
   - "Hiện tại..."
-  - "Quan trắc hiện tại..."
   - "Theo số liệu quan trắc..."
+  - "Quan trắc hiện tại..."
 `;
 
   const system = `
 Bạn là trợ lý AI cảnh báo hạ du thủy điện.
 
 NGUYÊN TẮC BẮT BUỘC:
-- Chỉ được dùng dữ liệu có trong SNAPSHOT JSON.
-- Không bịa số liệu, không bịa ngưỡng, không bịa địa danh, không bịa mức ngập.
-- Không gọi Hội Khách hoặc Ái Nghĩa là địa phương; đây là tên trạm quan trắc.
-- Phải tách rõ: trạm quan trắc và khu vực/xã chịu ảnh hưởng.
-- Chỉ được nhắc khu vực/xã ảnh hưởng khi:
-  - snapshot.rules.hoi_khach.show_impact_zones = true
-  - hoặc snapshot.rules.ai_nghia.show_impact_zones = true
-- Chỉ được nhắc đỉnh lũ 2025 khi:
-  - snapshot.rules.hoi_khach.show_2025_reference = true
-  - hoặc snapshot.rules.ai_nghia.show_2025_reference = true
-- Nếu show_impact_zones = false thì không được tự thêm tên xã.
-- Nếu show_2025_reference = false thì không được tự thêm so sánh với đỉnh lũ 2025.
-- Trong tình huống nghiêm trọng, không dùng câu quá nhẹ như:
-  - "hạn chế gần sông suối"
-  - "chú ý đi lại"
-  nếu dữ liệu cho thấy nguy cơ ngập sâu, vượt BĐ III hoặc gần đỉnh lũ 2025.
-- Nếu tình huống vượt BĐ III hoặc gần đỉnh lũ 2025, phải dùng ngôn ngữ phù hợp thực tế:
-  - "cảnh báo ngập sâu"
-  - "nguy hiểm"
-  - "ưu tiên an toàn tính mạng"
-  - "đưa người và tài sản thiết yếu lên cao"
-  - "sẵn sàng sơ tán"
-- Không đưa tọa độ, số điện thoại, mã mốc AVC vào bản tin.
-- Có thể dùng icon phù hợp như: 🚨 ⚠️ 📍 📊 🏘️ 💧 🛑
-- Nếu có RULE_BASED_DRAFT thì dùng làm nền, nhưng viết lại tự nhiên hơn, đúng nghiệp vụ hơn.
+- Chỉ dùng dữ liệu có trong SNAPSHOT JSON.
+- Không bịa số liệu, không bịa địa danh, không bịa ngưỡng.
+- Không gọi Hội Khách hoặc Ái Nghĩa là địa phương; đây là trạm quan trắc.
+- Phải nói đúng:
+  1. mực nước hiện tại đang ở mức nào so với BĐ I / II / III,
+  2. xu hướng từ hiện tại đến +4h, +6h, +12h là tăng hay giảm,
+  3. dự báo tại từng mốc đang ở mức nào so với BĐ I / II / III,
+  4. nếu có show_2025_reference = true thì phải so sánh với đỉnh lũ 2025,
+  5. nếu có show_impact_zones = true thì phải nêu khu vực ảnh hưởng,
+  6. phải nêu cụ thể lưu lượng xả từng hồ và tổng lưu lượng xả khi phù hợp với kênh.
+- Không dùng câu chung chung, mơ hồ.
+- Không được viết kiểu quá nhẹ nếu dữ liệu đang nguy hiểm.
+- Nếu đang trên BĐ III hoặc gần đỉnh lũ 2025 thì phải dùng ngôn ngữ mạnh, rõ, thực tế.
+- Không dùng câu sai kiểu:
+  - "Hai địa phương Hội Khách, Ái Nghĩa"
+  - "các xã Ái Nghĩa"
 
 ${modeGuide}
 
-TRẢ VỀ:
-Trả về đúng JSON object:
+YÊU CẦU NỘI DUNG BẮT BUỘC:
+- Phải nêu rõ hiện tại:
+  - Hội Khách: current_m + current_status.short_label
+  - Ái Nghĩa: current_m + current_status.short_label
+- Phải nêu xu hướng:
+  - delta_4h_m, delta_6h_m, delta_12h_m
+  - trend_summary
+- Phải nêu forecast status:
+  - h4_status.short_label
+  - h6_status.short_label
+  - h12_status.short_label
+- Nếu show_2025_reference = true:
+  - phải nêu peak_2025_summary hoặc khoảng cách tới đỉnh lũ 2025
+- Phải nêu xả:
+  - discharge_summary.summary_text
+  - hồ xả lớn nhất
+- Với social/public: nếu severity = danger thì phải ưu tiên:
+  - an toàn tính mạng
+  - đưa người/tài sản thiết yếu lên cao
+  - sẵn sàng sơ tán
+- Không chỉ nói "theo dõi thông báo" nếu tình huống đã nặng.
+
+TRẢ VỀ DUY NHẤT JSON:
 {
   "title": "string",
   "message": "string",
@@ -1029,47 +1183,52 @@ Trả về đúng JSON object:
     dashboard: `
 Bạn đang viết cho kênh DASHBOARD.
 - Viết 2 đến 4 câu.
-- Tóm tắt nhanh, rõ ràng.
-- Phải nêu:
-  1. mức rủi ro,
-  2. current theo đúng context mode,
-  3. dự báo +4h,
-  4. khu vực ảnh hưởng nếu đủ điều kiện,
-  5. đỉnh lũ 2025 nếu đủ điều kiện.
+- Tóm tắt rất rõ.
+- Phải có:
+  - current so với BĐ
+  - xu hướng đến +4h
+  - khu vực ảnh hưởng nếu có
+  - đỉnh lũ 2025 nếu có
 `.trim(),
 
     internal: `
 Bạn đang viết cho kênh NỘI BỘ VẬN HÀNH.
-- Viết 1 tiêu đề + 1 đoạn 5 đến 9 câu.
-- Phải nêu:
-  1. current theo đúng context mode,
-  2. dự báo 4h / 6h / 12h,
-  3. mức báo động,
-  4. so với đỉnh lũ 2025 nếu đủ điều kiện,
-  5. lưu lượng xả,
-  6. khu vực ảnh hưởng,
-  7. nhận định rủi ro và khuyến nghị.
+- Viết 1 tiêu đề + 1 đoạn 6 đến 10 câu.
+- Bắt buộc có:
+  - hiện tại so với BĐ
+  - 4h / 6h / 12h tăng hay giảm bao nhiêu
+  - forecast ở từng mốc đang trên mức báo động nào
+  - so với đỉnh lũ 2025
+  - khu vực ảnh hưởng
+  - lưu lượng xả từng hồ và tổng xả
+  - nhận định điều hành
 `.trim(),
 
     public: `
 Bạn đang viết cho kênh CÔNG KHAI / CẢNH BÁO.
-- Viết 1 đoạn 4 đến 8 câu.
-- Dễ hiểu cho người dân.
-- Nếu context mode là scenario, phải nói rõ đây là kịch bản mô phỏng hoặc kịch bản đầu vào mô hình.
-- Nếu context mode là live, có thể nói là số liệu hiện tại / quan trắc hiện tại.
+- Viết 1 đoạn 5 đến 8 câu.
+- Dễ hiểu, nhưng đủ dữ liệu chính.
+- Bắt buộc có:
+  - hiện tại ở mức nào
+  - 4h tới dự báo ra sao
+  - mức báo động
+  - khu vực ảnh hưởng
+  - hành động phù hợp thực tế
+- Không quá kỹ thuật nhưng không được làm nhẹ tình hình.
 `.trim(),
 
     social: `
 Bạn đang viết cho kênh MẠNG XÃ HỘI.
-- Viết 3 đến 5 câu.
-- Rõ, mạnh, dễ đọc, đủ ý.
-- Nếu context mode là scenario, phải dùng ngôn ngữ kiểu:
-  - "Theo kịch bản hiện tại..."
-  - "Mô hình dự báo..."
-- Nếu context mode là live, có thể dùng:
-  - "Cập nhật hạ du..."
-  - "Theo số liệu hiện tại..."
-- Nếu severity = danger, phải thể hiện rõ mức nguy hiểm và hành động nên làm ngay.
+- Viết 4 đến 6 câu.
+- Rõ, mạnh, dễ đọc, chia sẻ được.
+- Bắt buộc có:
+  - current
+  - dự báo 4h tới
+  - mức báo động
+  - khu vực ảnh hưởng
+  - xả lớn / tổng xả
+  - hành động nên làm ngay
+- Có thể dùng icon: 🚨 ⚠️ 📍 💧 🏘️ 🛑
 `.trim(),
   };
 
@@ -1088,7 +1247,13 @@ ${ruleBrief?.message || ""}
 SNAPSHOT JSON:
 ${JSON.stringify(snapshot)}
 
-HÃY TRẢ VỀ DUY NHẤT 1 JSON OBJECT HỢP LỆ:
+Nhắc lại:
+- Phải nói rõ hiện tại đang trên/dưới mức báo động nào.
+- Phải nói rõ xu hướng từ hiện tại đến 4h, 6h, 12h.
+- Phải nói rõ mức xả từng hồ và tổng xả khi phù hợp.
+- Nếu severity = danger thì lời văn phải đủ mạnh, thực tế.
+
+TRẢ VỀ DUY NHẤT 1 JSON OBJECT HỢP LỆ:
 {
   "title": "string",
   "message": "string",
@@ -1144,14 +1309,14 @@ async function callOpenAiJson({ system, user, timeoutMs = 30000 }) {
     const rawBody = await response.text();
 
     if (!response.ok) {
-      throw new Error(`OpenAI HTTP ${response.status}: ${rawBody.slice(0, 1000)}`);
+      throw new Error(`OpenAI HTTP ${response.status}: ${rawBody.slice(0, 1200)}`);
     }
 
     let data;
     try {
       data = JSON.parse(rawBody);
     } catch {
-      throw new Error(`OpenAI response không phải JSON: ${rawBody.slice(0, 1000)}`);
+      throw new Error(`OpenAI response không phải JSON: ${rawBody.slice(0, 1200)}`);
     }
 
     let rawText = "";
@@ -1177,12 +1342,12 @@ async function callOpenAiJson({ system, user, timeoutMs = 30000 }) {
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      throw new Error(`Không parse được JSON từ OpenAI: ${rawText.slice(0, 1000)}`);
+      throw new Error(`Không parse được JSON từ OpenAI: ${rawText.slice(0, 1200)}`);
     }
 
     return {
       title: text(parsed.title, null),
-      message: truncate(text(parsed.message, ""), 1200),
+      message: truncate(text(parsed.message, ""), 1600),
       severity: text(parsed.severity, "normal"),
     };
   } finally {
@@ -1201,7 +1366,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       severity: ai.severity || ruleBrief.severity,
       meta: {
         model_name: OPENAI_MODEL,
-        prompt_version: "v4-context-live-scenario",
+        prompt_version: "v5-level-trend-discharge",
       },
     };
   } catch (err) {
@@ -1212,7 +1377,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       meta: {
         error: err.message,
         model_name: OPENAI_MODEL,
-        prompt_version: "v4-context-live-scenario",
+        prompt_version: "v5-level-trend-discharge",
       },
     };
   }
@@ -1310,7 +1475,7 @@ async function handleSnapshot(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "snapshot",
-      code_version: "downstream-brief-live-scenario-v1",
+      code_version: "downstream-brief-full-v2",
       ...snapshot,
     });
   } catch (err) {
@@ -1629,7 +1794,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "debug-config",
-      code_version: "downstream-brief-live-scenario-v1",
+      code_version: "downstream-brief-full-v2",
       supabase_url: SUPABASE_URL,
       impacts_raw_count: Array.isArray(impactsRaw) ? impactsRaw.length : null,
       peaks_raw_count: Array.isArray(peaksRaw) ? peaksRaw.length : null,
@@ -1642,7 +1807,7 @@ async function handleDebugConfig(req, res) {
     return json(res, 500, {
       ok: false,
       mode: "debug-config",
-      code_version: "downstream-brief-live-scenario-v1",
+      code_version: "downstream-brief-full-v2",
       error: err.message,
       supabase_url: SUPABASE_URL
     });
