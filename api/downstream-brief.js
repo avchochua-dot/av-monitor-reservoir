@@ -55,7 +55,11 @@ function getAppBaseUrl(req) {
 }
 
 function formatAreasVi(areas = [], partial = false) {
-  const arr = (areas || []).filter(Boolean).map((x) => String(x).trim()).filter(Boolean);
+  const arr = (areas || [])
+    .filter(Boolean)
+    .map((x) => String(x).trim())
+    .filter(Boolean);
+
   if (!arr.length) return "";
   const joined = arr.join(", ");
   return partial ? `một phần ${joined}` : joined;
@@ -267,12 +271,14 @@ function buildModelCurrentFromDashboardInput(dashboardInput) {
 }
 
 function detectBriefContextMode(dashboardInput, observedLatest) {
-  const hkInputM = num(dashboardInput?.Hoi_Khach_cm) !== null
-    ? round(num(dashboardInput.Hoi_Khach_cm) / 100, 2)
-    : null;
-  const anInputM = num(dashboardInput?.Ai_Nghia_cm) !== null
-    ? round(num(dashboardInput.Ai_Nghia_cm) / 100, 2)
-    : null;
+  const hkInputM =
+    num(dashboardInput?.Hoi_Khach_cm) !== null
+      ? round(num(dashboardInput.Hoi_Khach_cm) / 100, 2)
+      : null;
+  const anInputM =
+    num(dashboardInput?.Ai_Nghia_cm) !== null
+      ? round(num(dashboardInput.Ai_Nghia_cm) / 100, 2)
+      : null;
 
   const hkObsM = num(observedLatest?.hoi_khach?.current_m);
   const anObsM = num(observedLatest?.ai_nghia?.current_m);
@@ -468,7 +474,9 @@ async function loadObservedLatest(req) {
 
 async function loadObservedHistory(req, hours = 72) {
   const baseUrl = getAppBaseUrl(req);
-  const url = `${baseUrl}/api/downstream-forecast?mode=observed-history&hours=${encodeURIComponent(hours)}`;
+  const url = `${baseUrl}/api/downstream-forecast?mode=observed-history&hours=${encodeURIComponent(
+    hours
+  )}`;
   const data = await fetchJson(url);
 
   if (!data?.ok || !Array.isArray(data?.data)) {
@@ -550,15 +558,6 @@ async function loadForecastNow(req, dashboardInput) {
    RULE ENGINE HELPERS
 ====================================================== */
 
-function getTrend(delta4h) {
-  if (delta4h === null || delta4h === undefined) return "unknown";
-  if (delta4h <= -0.05) return "falling";
-  if (Math.abs(delta4h) < 0.05) return "stable";
-  if (delta4h < 0.1) return "rising_light";
-  if (delta4h < 0.2) return "rising";
-  return "rising_fast";
-}
-
 function getSeverityByForecast({ h4_m, h6_m, thresholds, delta4h }) {
   const max46 = Math.max(h4_m ?? Number.NEGATIVE_INFINITY, h6_m ?? Number.NEGATIVE_INFINITY);
   const bd1 = thresholds?.bd1_cm != null ? Number(thresholds.bd1_cm) / 100 : null;
@@ -621,7 +620,10 @@ function describeLevelAgainstThresholds(currentM, ref) {
     return {
       status_code: "over_bd2",
       short_label: "trên BĐ II",
-      detail: `Hiện tại ở mức ${round(cur, 2)} m, cao hơn báo động II nhưng chưa vượt báo động III.`,
+      detail: `Hiện tại ở mức ${round(
+        cur,
+        2
+      )} m, cao hơn báo động II nhưng chưa vượt báo động III.`,
     };
   }
 
@@ -629,7 +631,10 @@ function describeLevelAgainstThresholds(currentM, ref) {
     return {
       status_code: "over_bd1",
       short_label: "trên BĐ I",
-      detail: `Hiện tại ở mức ${round(cur, 2)} m, cao hơn báo động I nhưng chưa vượt báo động II.`,
+      detail: `Hiện tại ở mức ${round(
+        cur,
+        2
+      )} m, cao hơn báo động I nhưng chưa vượt báo động II.`,
     };
   }
 
@@ -678,16 +683,16 @@ function describeTrendPath(currentM, h4, h6, h12) {
 
   if (maxRise !== null && maxRise >= 0.3) {
     trend = "rising_fast";
-    summary = `Có xu hướng tăng mạnh từ hiện tại đến các mốc 4h/6h/12h.`;
+    summary = "Có xu hướng tăng mạnh từ hiện tại đến các mốc 4h/6h/12h.";
   } else if (maxRise !== null && maxRise >= 0.1) {
     trend = "rising";
-    summary = `Có xu hướng tăng so với hiện tại.`;
+    summary = "Có xu hướng tăng so với hiện tại.";
   } else if (minFall !== null && minFall <= -0.3) {
     trend = "falling_fast";
-    summary = `Có xu hướng giảm rõ so với hiện tại.`;
+    summary = "Có xu hướng giảm rõ so với hiện tại.";
   } else if (minFall !== null && minFall <= -0.1) {
     trend = "falling";
-    summary = `Có xu hướng giảm nhẹ so với hiện tại.`;
+    summary = "Có xu hướng giảm nhẹ so với hiện tại.";
   }
 
   return {
@@ -697,6 +702,58 @@ function describeTrendPath(currentM, h4, h6, h12) {
     delta_6h_m: d6,
     delta_12h_m: d12,
   };
+}
+
+function buildAlertLabelFromStatus(statusCode) {
+  switch (statusCode) {
+    case "over_bd3":
+      return "BĐ III";
+    case "over_bd2":
+      return "BĐ II";
+    case "over_bd1":
+      return "BĐ I";
+    case "below_bd1":
+      return "Dưới BĐ I";
+    default:
+      return "Chưa rõ";
+  }
+}
+
+function buildForecastRiskLabel(h4Status, h6Status, h12Status) {
+  const codes = [h4Status?.status_code, h6Status?.status_code, h12Status?.status_code];
+
+  if (codes.includes("over_bd3")) return "Nguy cơ BĐ III";
+  if (codes.includes("over_bd2")) return "Nguy cơ BĐ II";
+  if (codes.includes("over_bd1")) return "Nguy cơ BĐ I";
+  return "Dưới BĐ I";
+}
+
+function buildForecastRiskMessage(currentStatus, h4Status, h6Status, h12Status) {
+  const codes = [h4Status?.status_code, h6Status?.status_code, h12Status?.status_code];
+  const currentCode = currentStatus?.status_code || "unknown";
+
+  if (currentCode === "over_bd3") {
+    return "Hiện đang trên BĐ III; các mốc 4-6-12h tới vẫn ở mức rất cao hoặc giảm chậm.";
+  }
+  if (currentCode === "over_bd2" && codes.includes("over_bd3")) {
+    return "Hiện đang trên BĐ II và có khả năng lên trên BĐ III trong các mốc tới.";
+  }
+  if (currentCode === "over_bd2") {
+    return "Hiện đang trên BĐ II; các mốc tới tiếp tục duy trì mức nguy hiểm cao.";
+  }
+  if (currentCode === "over_bd1" && codes.includes("over_bd2")) {
+    return "Hiện đang trên BĐ I và có khả năng vượt BĐ II trong các mốc tới.";
+  }
+  if (codes.includes("over_bd3")) {
+    return "Dự báo có khả năng vượt BĐ III trong các mốc 4-6-12h tới.";
+  }
+  if (codes.includes("over_bd2")) {
+    return "Dự báo có khả năng vượt BĐ II trong các mốc 4-6-12h tới.";
+  }
+  if (codes.includes("over_bd1")) {
+    return "Dự báo có khả năng vượt BĐ I trong các mốc 4-6-12h tới.";
+  }
+  return "Dự báo các mốc tới vẫn dưới BĐ I.";
 }
 
 /* ======================================================
@@ -784,7 +841,10 @@ function evaluateRules(snapshot, dashboardInput) {
       return `${stationName} đã cao hơn đỉnh lũ 2025 khoảng ${round(Math.abs(refDelta), 2)} m.`;
     }
     if (Math.abs(refDelta) <= 0.3) {
-      return `${stationName} đang rất gần đỉnh lũ 2025, chỉ còn cách khoảng ${round(Math.abs(refDelta), 2)} m.`;
+      return `${stationName} đang rất gần đỉnh lũ 2025, chỉ còn cách khoảng ${round(
+        Math.abs(refDelta),
+        2
+      )} m.`;
     }
     return `${stationName} vẫn thấp hơn đỉnh lũ 2025 khoảng ${round(Math.abs(refDelta), 2)} m.`;
   };
@@ -800,7 +860,13 @@ function evaluateRules(snapshot, dashboardInput) {
     max_discharge_plant: maxPlant?.plant_code || null,
     max_discharge_plant_name: maxPlant?.plant_name || null,
     max_discharge_m3s: num(maxPlant?.discharge_m3s, 0),
-    summary_text: `A Vương ${num(dashboardInput.A_Vuong_Qra, 0)} m3/s, Đắk Mi 4 ${num(dashboardInput.DakMi4_Qra, 0)} m3/s, Sông Bung 4 ${num(dashboardInput.SongBung4_Qra, 0)} m3/s, Sông Tranh 2 ${num(dashboardInput.SongTranh2_Qra, 0)} m3/s; tổng xả ${num(dashboardInput.All4_Qra, 0)} m3/s.`,
+    summary_text: `A Vương ${num(dashboardInput.A_Vuong_Qra, 0)} m3/s, Đắk Mi 4 ${num(
+      dashboardInput.DakMi4_Qra,
+      0
+    )} m3/s, Sông Bung 4 ${num(dashboardInput.SongBung4_Qra, 0)} m3/s, Sông Tranh 2 ${num(
+      dashboardInput.SongTranh2_Qra,
+      0
+    )} m3/s; tổng xả ${num(dashboardInput.All4_Qra, 0)} m3/s.`,
   };
 
   return {
@@ -825,6 +891,14 @@ function evaluateRules(snapshot, dashboardInput) {
       h4_status: hkH4Status,
       h6_status: hkH6Status,
       h12_status: hkH12Status,
+      current_alert_label: buildAlertLabelFromStatus(hkCurrentStatus.status_code),
+      forecast_risk_label: buildForecastRiskLabel(hkH4Status, hkH6Status, hkH12Status),
+      forecast_risk_message: buildForecastRiskMessage(
+        hkCurrentStatus,
+        hkH4Status,
+        hkH6Status,
+        hkH12Status
+      ),
       show_impact_zones: showImpactZonesHk,
       show_2025_reference: show2025ReferenceHk,
       peak_2025_m: hkRef?.peak_2025_m ?? null,
@@ -833,7 +907,12 @@ function evaluateRules(snapshot, dashboardInput) {
       delta_h4_to_peak_2025_m: hkDeltaH4Peak,
       delta_h6_to_peak_2025_m: hkDeltaH6Peak,
       delta_h12_to_peak_2025_m: hkDeltaH12Peak,
-      peak_2025_summary: buildPeakSummary("Hội Khách", hkDeltaCurrentPeak, hkDeltaH4Peak, hkRef?.peak_2025_m),
+      peak_2025_summary: buildPeakSummary(
+        "Hội Khách",
+        hkDeltaCurrentPeak,
+        hkDeltaH4Peak,
+        hkRef?.peak_2025_m
+      ),
     },
 
     ai_nghia: {
@@ -857,6 +936,14 @@ function evaluateRules(snapshot, dashboardInput) {
       h4_status: anH4Status,
       h6_status: anH6Status,
       h12_status: anH12Status,
+      current_alert_label: buildAlertLabelFromStatus(anCurrentStatus.status_code),
+      forecast_risk_label: buildForecastRiskLabel(anH4Status, anH6Status, anH12Status),
+      forecast_risk_message: buildForecastRiskMessage(
+        anCurrentStatus,
+        anH4Status,
+        anH6Status,
+        anH12Status
+      ),
       show_impact_zones: showImpactZonesAn,
       show_2025_reference: show2025ReferenceAn,
       peak_2025_m: anRef?.peak_2025_m ?? null,
@@ -865,7 +952,12 @@ function evaluateRules(snapshot, dashboardInput) {
       delta_h4_to_peak_2025_m: anDeltaH4Peak,
       delta_h6_to_peak_2025_m: anDeltaH6Peak,
       delta_h12_to_peak_2025_m: anDeltaH12Peak,
-      peak_2025_summary: buildPeakSummary("Ái Nghĩa", anDeltaCurrentPeak, anDeltaH4Peak, anRef?.peak_2025_m),
+      peak_2025_summary: buildPeakSummary(
+        "Ái Nghĩa",
+        anDeltaCurrentPeak,
+        anDeltaH4Peak,
+        anRef?.peak_2025_m
+      ),
     },
 
     system: {
@@ -968,12 +1060,20 @@ function stationPeak2025Sentence(snapshot, stationKey) {
 function buildDischargeSentence(snapshot) {
   const dischargeSummary = snapshot?.rules?.system?.discharge_summary || null;
   if (!dischargeSummary) return "";
-  return `Lưu lượng xả hiện tại: ${dischargeSummary.summary_text} Hồ xả lớn nhất là ${dischargeSummary.max_discharge_plant_name || dischargeSummary.max_discharge_plant || "N/A"} khoảng ${dischargeSummary.max_discharge_m3s ?? 0} m3/s.`;
+  return `Lưu lượng xả hiện tại: ${dischargeSummary.summary_text} Hồ xả lớn nhất là ${
+    dischargeSummary.max_discharge_plant_name || dischargeSummary.max_discharge_plant || "N/A"
+  } khoảng ${dischargeSummary.max_discharge_m3s ?? 0} m3/s.`;
 }
 
 function buildTrendSentence(stationName, stationRule, h4, h6, h12) {
   if (!stationRule) return "";
-  return `${stationName} hiện ${stationRule.current_status?.short_label || "chưa xác định"}, xu hướng ${stationRule.trend_summary || "chưa xác định"} Dự báo +4h ${h4 ?? "-"} m (${stationRule.h4_status?.short_label || "chưa rõ"}), +6h ${h6 ?? "-"} m (${stationRule.h6_status?.short_label || "chưa rõ"}), +12h ${h12 ?? "-"} m (${stationRule.h12_status?.short_label || "chưa rõ"}).`;
+  return `${stationName} hiện ${stationRule.current_status?.short_label || "chưa xác định"}, xu hướng ${
+    stationRule.trend_summary || "chưa xác định"
+  } Dự báo +4h ${h4 ?? "-"} m (${stationRule.h4_status?.short_label || "chưa rõ"}), +6h ${
+    h6 ?? "-"
+  } m (${stationRule.h6_status?.short_label || "chưa rõ"}), +12h ${h12 ?? "-"} m (${
+    stationRule.h12_status?.short_label || "chưa rõ"
+  }).`;
 }
 
 function generateRuleBasedBrief(channel, snapshot) {
@@ -1000,14 +1100,23 @@ function generateRuleBasedBrief(channel, snapshot) {
   const anPeak = stationPeak2025Sentence(snapshot, "ai_nghia");
   const discharge = buildDischargeSentence(snapshot);
 
-  const currentPrefix = isScenario
-    ? "Theo kịch bản đầu vào mô hình"
-    : "Theo số liệu hiện tại";
+  const currentPrefix = isScenario ? "Theo kịch bản đầu vào mô hình" : "Theo số liệu hiện tại";
+
+  const hkNowLine = `Hội Khách hiện ${hkCur ?? "-"} m, ${
+    hkRule?.current_status?.short_label || "chưa rõ"
+  }. ${hkRule?.forecast_risk_message || ""}`;
+
+  const anNowLine = `Ái Nghĩa hiện ${anCur ?? "-"} m, ${
+    anRule?.current_status?.short_label || "chưa rõ"
+  }. ${anRule?.forecast_risk_message || ""}`;
 
   if (channel === "dashboard") {
     const parts = [
-      `${currentPrefix}, Hội Khách ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
-      `Dự báo +4h: HK ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}), AN ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
+      `${currentPrefix}, ${hkNowLine}`,
+      `${anNowLine}`,
+      `Dự báo +4h: HK ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}), AN ${
+        an4 ?? "-"
+      } m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
       `Rủi ro tổng thể ${overall}.`,
     ];
     if (hkArea || anArea) parts.push([hkArea, anArea].filter(Boolean).join(" "));
@@ -1017,9 +1126,10 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "internal") {
     const parts = [
-      `${currentPrefix}, Hội Khách ở mức ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ở mức ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
+      `${currentPrefix}, Hội Khách ở mức ${hkCur ?? "-"} m (${hkRule?.current_alert_label || "chưa rõ"}), Ái Nghĩa ở mức ${anCur ?? "-"} m (${anRule?.current_alert_label || "chưa rõ"}).`,
       buildTrendSentence("Hội Khách", hkRule, hk4, hk6, hk12),
       buildTrendSentence("Ái Nghĩa", anRule, an4, an6, an12),
+      `Nguy cơ forecast: Hội Khách ${hkRule?.forecast_risk_label || "chưa rõ"}; Ái Nghĩa ${anRule?.forecast_risk_label || "chưa rõ"}.`,
       discharge,
       `Mức rủi ro tổng thể ${overall}.`,
     ];
@@ -1037,9 +1147,11 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "public") {
     const parts = [
-      `${currentPrefix}, mực nước tại Hội Khách khoảng ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), tại Ái Nghĩa khoảng ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
-      `Trong 4 giờ tới, dự báo Hội Khách khoảng ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}) và Ái Nghĩa khoảng ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
-      `Xu hướng từ hiện tại đến 4h/6h/12h: Hội Khách ${hkRule?.trend_summary || "chưa rõ"} Ái Nghĩa ${anRule?.trend_summary || "chưa rõ"}`,
+      `${currentPrefix}, ${hkNowLine}`,
+      `${anNowLine}`,
+      `Các mốc dự báo: Hội Khách +4h ${hk4 ?? "-"} m, +6h ${hk6 ?? "-"} m, +12h ${
+        hk12 ?? "-"
+      } m; Ái Nghĩa +4h ${an4 ?? "-"} m, +6h ${an6 ?? "-"} m, +12h ${an12 ?? "-"} m.`,
       discharge,
     ];
     if (hkArea) parts.push(hkArea);
@@ -1048,9 +1160,11 @@ function generateRuleBasedBrief(channel, snapshot) {
     if (anPeak) parts.push(anPeak);
 
     if (overall === "danger") {
-      parts.push(`Người dân tại khu vực thấp trũng, nơi nước đã vào nhà hoặc có nguy cơ ngập sâu cần ưu tiên đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán khi có thông báo.`);
+      parts.push(
+        "Người dân tại khu vực thấp trũng, nơi nước đã vào nhà hoặc có nguy cơ ngập sâu cần ưu tiên đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán khi có thông báo."
+      );
     } else {
-      parts.push(`Người dân cần tiếp tục theo dõi thông tin cập nhật để chủ động ứng phó.`);
+      parts.push("Người dân cần tiếp tục theo dõi thông tin cập nhật để chủ động ứng phó.");
     }
 
     return {
@@ -1062,8 +1176,11 @@ function generateRuleBasedBrief(channel, snapshot) {
 
   if (channel === "social") {
     const parts = [
-      `🚨 ${currentPrefix}, Hội Khách ${hkCur ?? "-"} m (${hkRule?.current_status?.short_label || "chưa rõ"}), Ái Nghĩa ${anCur ?? "-"} m (${anRule?.current_status?.short_label || "chưa rõ"}).`,
-      `📈 Dự báo 4h tới: HK ${hk4 ?? "-"} m (${hkRule?.h4_status?.short_label || "chưa rõ"}), AN ${an4 ?? "-"} m (${anRule?.h4_status?.short_label || "chưa rõ"}).`,
+      `🚨 ${currentPrefix}, Hội Khách ${hkCur ?? "-"} m (${hkRule?.current_alert_label || "chưa rõ"}), Ái Nghĩa ${anCur ?? "-"} m (${anRule?.current_alert_label || "chưa rõ"}).`,
+      `📈 Nguy cơ dự báo: Hội Khách ${hkRule?.forecast_risk_label || "chưa rõ"}, Ái Nghĩa ${anRule?.forecast_risk_label || "chưa rõ"}.`,
+      `⏱️ Mốc tới: HK +4h ${hk4 ?? "-"} m, +6h ${hk6 ?? "-"} m, +12h ${hk12 ?? "-"} m; AN +4h ${
+        an4 ?? "-"
+      } m, +6h ${an6 ?? "-"} m, +12h ${an12 ?? "-"} m.`,
       `💧 ${discharge}`,
     ];
     if (hkArea) parts.push(`📍 ${hkArea}`);
@@ -1072,9 +1189,11 @@ function generateRuleBasedBrief(channel, snapshot) {
     if (anPeak) parts.push(`📊 ${anPeak}`);
 
     if (overall === "danger") {
-      parts.push(`🛑 Khu vực có nguy cơ ngập sâu cần ưu tiên an toàn tính mạng, đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán.`);
+      parts.push(
+        "🛑 Khu vực có nguy cơ ngập sâu cần ưu tiên an toàn tính mạng, đưa người và tài sản thiết yếu lên cao, sẵn sàng sơ tán."
+      );
     } else {
-      parts.push(`📢 Tiếp tục theo dõi thông báo mới nhất.`);
+      parts.push("📢 Tiếp tục theo dõi thông báo mới nhất.");
     }
 
     return {
@@ -1140,6 +1259,11 @@ NGUYÊN TẮC BẮT BUỘC:
 - Không dùng câu sai kiểu:
   - "Hai địa phương Hội Khách, Ái Nghĩa"
   - "các xã Ái Nghĩa"
+- Phải phân biệt rõ:
+  1. current_alert_label = trạng thái hiện tại
+  2. forecast_risk_label / forecast_risk_message = nguy cơ các mốc tới
+- Nếu current đã trên BĐ II/BĐ III thì tuyệt đối không viết "sẽ vượt" cho chính mức đó nữa.
+- Khi current đã vượt ngưỡng, phải viết "đang trên ..." hoặc "đang vượt ...".
 
 ${modeGuide}
 
@@ -1147,6 +1271,8 @@ YÊU CẦU NỘI DUNG BẮT BUỘC:
 - Phải nêu rõ hiện tại:
   - Hội Khách: current_m + current_status.short_label
   - Ái Nghĩa: current_m + current_status.short_label
+- Phải nêu current_alert_label của từng trạm
+- Phải nêu forecast_risk_label hoặc forecast_risk_message của từng trạm
 - Phải nêu xu hướng:
   - delta_4h_m, delta_6h_m, delta_12h_m
   - trend_summary
@@ -1180,6 +1306,7 @@ Bạn đang viết cho kênh DASHBOARD.
 - Tóm tắt rất rõ.
 - Phải có:
   - current so với BĐ
+  - forecast risk
   - xu hướng đến +4h
   - khu vực ảnh hưởng nếu có
   - đỉnh lũ 2025 nếu có
@@ -1190,6 +1317,8 @@ Bạn đang viết cho kênh NỘI BỘ VẬN HÀNH.
 - Viết 1 tiêu đề + 1 đoạn 6 đến 10 câu.
 - Bắt buộc có:
   - hiện tại so với BĐ
+  - current alert label
+  - forecast risk label
   - 4h / 6h / 12h tăng hay giảm bao nhiêu
   - forecast ở từng mốc đang trên mức báo động nào
   - so với đỉnh lũ 2025
@@ -1204,6 +1333,7 @@ Bạn đang viết cho kênh CÔNG KHAI / CẢNH BÁO.
 - Dễ hiểu, nhưng đủ dữ liệu chính.
 - Bắt buộc có:
   - hiện tại ở mức nào
+  - forecast risk là gì
   - 4h tới dự báo ra sao
   - mức báo động
   - khu vực ảnh hưởng
@@ -1217,6 +1347,8 @@ Bạn đang viết cho kênh MẠNG XÃ HỘI.
 - Rõ, mạnh, dễ đọc, chia sẻ được.
 - Bắt buộc có:
   - current
+  - current alert
+  - forecast risk
   - dự báo 4h tới
   - mức báo động
   - khu vực ảnh hưởng
@@ -1243,6 +1375,7 @@ ${JSON.stringify(snapshot)}
 
 Nhắc lại:
 - Phải nói rõ hiện tại đang trên/dưới mức báo động nào.
+- Phải phân biệt current alert với forecast risk.
 - Phải nói rõ xu hướng từ hiện tại đến 4h, 6h, 12h.
 - Phải nói rõ mức xả từng hồ và tổng xả khi phù hợp.
 - Nếu severity = danger thì lời văn phải đủ mạnh, thực tế.
@@ -1360,7 +1493,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       severity: ai.severity || ruleBrief.severity,
       meta: {
         model_name: OPENAI_MODEL,
-        prompt_version: "v5-level-trend-discharge",
+        prompt_version: "v6-current-vs-forecast-risk",
       },
     };
   } catch (err) {
@@ -1371,7 +1504,7 @@ async function generateAiEnhancedBrief(channel, snapshot, ruleBrief) {
       meta: {
         error: err.message,
         model_name: OPENAI_MODEL,
-        prompt_version: "v5-level-trend-discharge",
+        prompt_version: "v6-current-vs-forecast-risk",
       },
     };
   }
@@ -1389,13 +1522,8 @@ function chooseFinalBrief(ruleBrief, aiBrief, aiMeta = {}) {
     ai_title: aiBrief?.title || null,
     ai_message: aiBrief?.message || null,
 
-    final_title: aiOk
-      ? (aiBrief?.title || ruleBrief?.title || null)
-      : (ruleBrief?.title || null),
-
-    final_message: aiOk
-      ? aiBrief.message
-      : (ruleBrief?.message || ""),
+    final_title: aiOk ? aiBrief?.title || ruleBrief?.title || null : ruleBrief?.title || null,
+    final_message: aiOk ? aiBrief.message : ruleBrief?.message || "",
 
     generation_mode: aiOk ? "ai_enhanced" : "rule_based",
     is_ai_success: aiOk,
@@ -1469,7 +1597,7 @@ async function handleSnapshot(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "snapshot",
-      code_version: "downstream-brief-full-v2-fixed",
+      code_version: "downstream-brief-v3-current-forecast-split",
       ...snapshot,
     });
   } catch (err) {
@@ -1483,9 +1611,10 @@ async function handleSnapshot(req, res) {
 
 async function handleGenerate(req, res) {
   const body = readBody(req);
-  const channels = Array.isArray(body.channels) && body.channels.length
-    ? body.channels
-    : ["dashboard", "internal", "public", "social"];
+  const channels =
+    Array.isArray(body.channels) && body.channels.length
+      ? body.channels
+      : ["dashboard", "internal", "public", "social"];
   const useAi = String(req.query.use_ai || body.use_ai || "0") === "1";
 
   try {
@@ -1550,9 +1679,10 @@ async function handleGenerate(req, res) {
 
 async function handleSave(req, res) {
   const body = readBody(req);
-  const channels = Array.isArray(body.channels) && body.channels.length
-    ? body.channels
-    : ["dashboard", "internal", "public", "social"];
+  const channels =
+    Array.isArray(body.channels) && body.channels.length
+      ? body.channels
+      : ["dashboard", "internal", "public", "social"];
   const useAi = String(req.query.use_ai || body.use_ai || "0") === "1";
 
   const debug = [];
@@ -1788,22 +1918,22 @@ async function handleDebugConfig(req, res) {
     return json(res, 200, {
       ok: true,
       mode: "debug-config",
-      code_version: "downstream-brief-full-v2-fixed",
+      code_version: "downstream-brief-v3-current-forecast-split",
       supabase_url: SUPABASE_URL,
       impacts_raw_count: Array.isArray(impactsRaw) ? impactsRaw.length : null,
       peaks_raw_count: Array.isArray(peaksRaw) ? peaksRaw.length : null,
       impacts_raw: impactsRaw,
       peaks_raw: peaksRaw,
       impacts_mapped: impactsMapped,
-      peaks_mapped: peaksMapped
+      peaks_mapped: peaksMapped,
     });
   } catch (err) {
     return json(res, 500, {
       ok: false,
       mode: "debug-config",
-      code_version: "downstream-brief-full-v2-fixed",
+      code_version: "downstream-brief-v3-current-forecast-split",
       error: err.message,
-      supabase_url: SUPABASE_URL
+      supabase_url: SUPABASE_URL,
     });
   }
 }
