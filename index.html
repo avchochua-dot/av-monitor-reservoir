@@ -6264,6 +6264,108 @@ body.slideshow-frame-mode section{
   list-style:none;
 }
 .ai-chat-quick-group summary::-webkit-details-marker{display:none}
+
+.ai-chat-quick-group{
+  --group-color:#2563eb;
+  --group-soft:rgba(37,99,235,.08);
+  --group-border:rgba(37,99,235,.18);
+}
+
+.ai-chat-quick-group summary{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:44px;
+  padding:11px 42px 11px 13px;
+  background:linear-gradient(90deg,var(--group-soft),#fff);
+  border-left:5px solid var(--group-color);
+  color:#172033;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+}
+
+.ai-chat-quick-group summary::before{
+  content:attr(data-icon);
+  width:26px;
+  height:26px;
+  flex:0 0 26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+  background:var(--group-soft);
+  color:var(--group-color);
+  font-size:15px;
+}
+
+.ai-chat-quick-group summary::after{
+  content:"›";
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform:translateY(-50%) rotate(0deg);
+  color:var(--group-color);
+  font-size:23px;
+  font-weight:900;
+  transition:transform .18s ease;
+}
+
+.ai-chat-quick-group[open]{
+  border-color:var(--group-border);
+  box-shadow:0 12px 26px rgba(15,23,42,.06);
+}
+
+.ai-chat-quick-group[open] summary{
+  color:var(--group-color);
+  background:linear-gradient(90deg,var(--group-soft),rgba(255,255,255,.96));
+  border-bottom:1px solid var(--group-border);
+}
+
+.ai-chat-quick-group[open] summary::after{
+  transform:translateY(-50%) rotate(90deg);
+}
+
+.ai-chat-quick-group.pre-flood{
+  --group-color:#2563eb;
+  --group-soft:rgba(37,99,235,.10);
+  --group-border:rgba(37,99,235,.22);
+}
+.ai-chat-quick-group.flood-start{
+  --group-color:#0ea5e9;
+  --group-soft:rgba(14,165,233,.10);
+  --group-border:rgba(14,165,233,.22);
+}
+.ai-chat-quick-group.cut-flood{
+  --group-color:#dc2626;
+  --group-soft:rgba(220,38,38,.09);
+  --group-border:rgba(220,38,38,.20);
+}
+.ai-chat-quick-group.maintain{
+  --group-color:#d97706;
+  --group-soft:rgba(217,119,6,.10);
+  --group-border:rgba(217,119,6,.22);
+}
+.ai-chat-quick-group.post-flood{
+  --group-color:#16a34a;
+  --group-soft:rgba(22,163,74,.10);
+  --group-border:rgba(22,163,74,.22);
+}
+.ai-chat-quick-group.dry-season{
+  --group-color:#7c3aed;
+  --group-soft:rgba(124,58,237,.10);
+  --group-border:rgba(124,58,237,.22);
+}
+.ai-chat-quick-group.lookup{
+  --group-color:#0891b2;
+  --group-soft:rgba(8,145,178,.10);
+  --group-border:rgba(8,145,178,.22);
+}
+.ai-chat-quick-group.abnormal{
+  --group-color:#be185d;
+  --group-soft:rgba(190,24,93,.09);
+  --group-border:rgba(190,24,93,.21);
+}
+
 .ai-chat-quick-list{
   display:grid;
   gap:7px;
@@ -6282,10 +6384,34 @@ body.slideshow-frame-mode section{
   font-weight:850!important;
   box-shadow:none!important;
 }
+.ai-chat-quick-btn{
+  position:relative;
+  padding-left:13px!important;
+}
+
+.ai-chat-quick-btn::before{
+  content:"";
+  position:absolute;
+  left:5px;
+  top:50%;
+  width:3px;
+  height:18px;
+  border-radius:999px;
+  background:var(--group-color);
+  opacity:.42;
+  transform:translateY(-50%);
+}
+
 .ai-chat-quick-btn:hover{
-  background:#eef4ff!important;
-  border-color:rgba(37,99,235,.18)!important;
-  color:#1d4ed8!important;
+  background:var(--group-soft)!important;
+  border-color:var(--group-border)!important;
+  color:var(--group-color)!important;
+  transform:translateX(2px);
+}
+
+.ai-chat-quick-btn:focus-visible{
+  outline:3px solid var(--group-soft);
+  border-color:var(--group-color)!important;
 }
 .ai-chat-settings{
   padding:12px 14px 14px;
@@ -9714,51 +9840,97 @@ body.slideshow-frame-mode section{
             </div>
 
             <div class="ai-chat-quick-wrap">
-              <details class="ai-chat-quick-group" open>
-                <summary>Sau lũ</summary>
+              <details class="ai-chat-quick-group pre-flood" open>
+                <summary data-icon="🌧️">Trước lũ – chuẩn bị đón lũ</summary>
                 <div class="ai-chat-quick-list">
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Tình huống mới: Ngày 12/10, quá trình giảm lũ đã kết thúc, MNH 380m, HAN 7,6m, HHK 15m, Q về 700m3/s, không còn dự báo mưa lũ mới. Có hạ không?">Tình huống sau lũ, Q về cao</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về đã giảm còn 350m3/s.">Q về giảm còn 350</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="MNH đã hạ từ 380m về 377m.">MNH hạ về 377m</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="HAN tăng lên 8,6m.">HAN vượt ngưỡng</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về tăng lên lại 700m3/s.">Q về tăng trở lại</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 05/9, MNH 379m, HAN 6,2m, HHK 14m, Q về 300m3/s, có dự báo một đợt mưa lũ mới. Hồ cần chuẩn bị vận hành thế nào?">Có dự báo lũ, MNH đang cao</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 08/9, MNH 375m, HAN 6m, HHK 14m, Q về 350m3/s, có dự báo mưa lũ mới. Có cần tiếp tục hạ MNH không?">MNH dưới mức trước lũ</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 20/11, MNH 380m, HAN 7m, HHK 15m, Q về 400m3/s, có dự báo mưa lớn. Cao trình mục tiêu trước lũ là bao nhiêu?">Trước lũ thời kỳ 16/11–15/12</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 376m, chưa có dự báo mưa lũ mới. Có cần hạ về 370m không?">Phân biệt mức trước lũ và đón lũ</button>
                 </div>
               </details>
 
-              <details class="ai-chat-quick-group">
-                <summary>Cắt, giảm lũ</summary>
+              <details class="ai-chat-quick-group flood-start">
+                <summary data-icon="🌊">Lũ xuất hiện – lũ đang lên</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 376m, HAN 7m, HHK 15m, Q về tăng lên 470m3/s, có dự báo mưa lớn. Hồ đang thuộc nhánh nào?">Q về bắt đầu vượt 450</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về tăng nhanh từ 450 lên 580m3/s, HAN 8,2m, HHK 15,7m. Có cần duy trì MNH hiện tại không?">Q về trong vùng 450–600</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Mực nước Ái Nghĩa đang tăng nhưng vẫn dưới 8,5m, Hội Khách dưới 16m, Q về 550m3/s. Đối chiếu chế độ vận hành nào?">Hạ du tăng nhưng chưa vượt ngưỡng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về đang tăng liên tục và có cảnh báo lũ mới nhưng chưa có lệnh vận hành. Cần bổ sung thông tin gì trước khi kết luận?">Thiếu lệnh khi lũ đang lên</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group cut-flood">
+                <summary data-icon="🚨">Cắt, giảm lũ</summary>
                 <div class="ai-chat-quick-list">
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 376m, HAN 8,6m, HHK 15,8m, Q về 650m3/s, có dự báo mưa lũ mới. Hồ thuộc nhánh vận hành nào?">HAN và Q về vượt ngưỡng</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 375m, HAN 8,2m, HHK 15,7m, Q về 500m3/s, chưa có lệnh vận hành. Nên duy trì hay hạ tiếp?">Vùng duy trì trung gian</button>
-                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 374m, HAN 7,5m, HHK 15m, Q về 420m3/s, có dự báo mưa lũ mới. Có được hạ tiếp không?">Có dự báo mưa lũ mới</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 376m, HAN 8,2m, HHK 16,2m, Q về 580m3/s. Có chuyển sang cắt, giảm lũ không?">HHK vượt 16m</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về tăng lên 720m3/s, HAN 8,7m, HHK 16,1m, hạ du đang ngập. Cần ưu tiên điều kiện nào?">Nhiều ngưỡng cùng vượt</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Đang cắt, giảm lũ, Q về giảm còn 590m3/s nhưng HAN vẫn 8,7m. Có được chuyển chế độ chưa?">Q giảm nhưng HAN còn cao</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Đang cắt, giảm lũ, HAN giảm dưới 8,5m nhưng HHK vẫn 16,2m và Q về 620m3/s. Có dừng cắt lũ không?">HHK và Q còn vượt ngưỡng</button>
                 </div>
               </details>
 
-              <details class="ai-chat-quick-group">
-                <summary>Tra cứu quy trình</summary>
+              <details class="ai-chat-quick-group maintain">
+                <summary data-icon="⏸️">Duy trì – chuyển tiếp</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 375m, HAN 8,2m, HHK 15,7m, Q về 500m3/s, chưa có lệnh vận hành. Nên duy trì hay hạ tiếp?">Vùng duy trì trung gian</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="HAN 8,3m, HHK 15,8m, Q về 590m3/s, không có thay đổi lớn trong 3 giờ. Có nên giữ MNH hiện tại không?">Các chỉ số sát ngưỡng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về đã giảm dưới 600m3/s nhưng vẫn còn dự báo một đợt lũ mới. Có chuyển sang hạ MNH không?">Q giảm nhưng còn dự báo lũ</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Các ngưỡng HAN, HHK và Q về đều đã giảm nhưng chưa có xác nhận kết thúc giảm lũ. Có được chuyển chế độ không?">Thiếu xác nhận kết thúc giảm lũ</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group post-flood">
+                <summary data-icon="✅">Sau lũ – khôi phục MNH</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Tình huống mới: Ngày 12/10, quá trình giảm lũ đã kết thúc, MNH 380m, HAN 7,6m, HHK 15m, Q về 700m3/s, không còn dự báo mưa lũ mới. Có hạ không?">Sau lũ nhưng Q về còn cao</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về đã giảm còn 350m3/s.">Cập nhật Q về còn 350</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="MNH đã hạ từ 380m về 377m.">Cập nhật MNH hạ về 377m</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="HAN tăng lên 8,6m.">Cập nhật HAN vượt ngưỡng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về tăng lên lại 700m3/s.">Cập nhật Q về tăng trở lại</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Quá trình giảm lũ đã kết thúc, MNH hiện 376m, HAN 7m, HHK 15m, Q về 350m3/s và không còn dự báo mưa lũ mới. Có cần hạ tiếp không?">MNH đã đạt mục tiêu 376m</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 20/11, quá trình giảm lũ đã kết thúc, MNH 380m, HAN 7m, HHK 15m, Q về 350m3/s, không còn dự báo mưa lũ mới. Hạ về bao nhiêu?">Sau lũ thời kỳ 16/11–15/12</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group dry-season">
+                <summary data-icon="☀️">Mùa cạn – cấp nước, phát điện</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 20/3 thuộc thời kỳ mùa cạn nào và lưu lượng xả trung bình ngày cần đối chiếu ra sao?">Mùa cạn ngày 20/3</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 15/5, MNH nằm trong khoảng mực nước quy định. Tổng lưu lượng xả trung bình ngày cần duy trì bao nhiêu?">Thời kỳ III, MNH trong khoảng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 20/7, MNH thấp hơn khoảng mực nước quy định. Lưu lượng xả trung bình ngày cần đối chiếu thế nào?">Thời kỳ IV, MNH dưới khoảng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Trong mùa cạn, thời gian xả liên tục tối thiểu trong ngày là bao nhiêu giờ và bắt đầu, kết thúc vào thời điểm nào?">Thời gian xả liên tục</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Mùa cạn nhưng xuất hiện một đợt lũ bất thường, có tiếp tục áp dụng chế độ xả mùa cạn không?">Lũ bất thường trong mùa cạn</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group lookup">
+                <summary data-icon="📘">Tra cứu quy trình</summary>
                 <div class="ai-chat-quick-list">
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Mực nước đón lũ hồ A Vương từ 01/9 đến 15/11 là bao nhiêu?">Mực nước đón lũ 01/9–15/11</button>
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Mực nước đón lũ hồ A Vương từ 16/11 đến 15/12 là bao nhiêu?">Mực nước đón lũ 16/11–15/12</button>
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngưỡng HAN, HHK và Q về để chuyển sang cắt, giảm lũ là bao nhiêu?">Ngưỡng cắt, giảm lũ</button>
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Sau khi kết thúc giảm lũ, hồ A Vương phải đưa MNH về cao trình nào?">Mục tiêu MNH sau lũ</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Phân biệt mực nước đón lũ thấp nhất và mực nước cao nhất trước lũ của hồ A Vương.">Phân biệt các cao trình mùa lũ</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Điều kiện nào phải đồng thời thỏa mãn trước khi chuyển từ cắt, giảm lũ sang khôi phục MNH?">Điều kiện chuyển chế độ sau lũ</button>
                 </div>
               </details>
 
-              <details class="ai-chat-quick-group">
-                <summary>Bất thường</summary>
+              <details class="ai-chat-quick-group abnormal">
+                <summary data-icon="⚠️">Bất thường – an toàn công trình</summary>
                 <div class="ai-chat-quick-list">
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Các trường hợp nào được xem là vận hành trong tình huống bất thường?">Các tình huống bất thường</button>
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Mất hoàn toàn liên lạc với cơ quan điều hành thì cần ưu tiên xử lý thế nào?">Mất liên lạc</button>
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Hạ du đang ngập và có nguy cơ mất an toàn công trình, hệ thống phải ưu tiên nhánh nào?">Ngập hạ du, nguy cơ an toàn</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Hệ thống quan trắc HAN hoặc HHK bị mất dữ liệu trong lúc lũ đang lên. Có thể kết luận vận hành không?">Mất dữ liệu quan trắc</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Số liệu Q về thay đổi bất thường từ 400 lên 5000m3/s trong vài phút. AI cần xử lý dữ liệu này thế nào?">Phát hiện số liệu bất thường</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Có hai giá trị HAN khác nhau trong cùng báo cáo: 8,6m và 7,2m. Cần dùng giá trị nào?">Mâu thuẫn dữ liệu HAN</button>
                 </div>
               </details>
-            </div>
+            </div></div>
 
-            <div class="ai-chat-settings">
-              <label for="aiChatEndpoint">URL Web App AI</label>
-              <input id="aiChatEndpoint" type="hidden" value="">
-              
-            </div>
+            <input id="aiChatEndpoint" type="hidden" value="">
           </aside>
 
           <section class="ai-chat-main">
