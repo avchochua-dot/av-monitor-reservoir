@@ -6166,8 +6166,434 @@ body.slideshow-frame-mode section{
   .ds-observed-combined-wrap canvas{height:272px!important}
 }
 
+
+/* =========================================================
+   TAB CHATBOX AI VẬN HÀNH HỒ A VƯƠNG
+   ========================================================= */
+.nav-link[data-tab="aichat"]{
+  --nav-accent:#db2777;
+  --nav-soft:rgba(219,39,119,.13);
+  padding-right:66px!important;
+}
+.nav-link[data-tab="aichat"]::after{
+  content:"AI" !important;
+  right:10px !important;
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg,#ec4899,#7c3aed) !important;
+  color:#fff !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  transform:translateY(-50%) !important;
+  box-shadow:0 10px 18px rgba(219,39,119,.18);
+}
+
+.ai-chat-shell{
+  height:calc(100vh - var(--header-h) - 44px);
+  min-height:620px;
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr);
+  gap:14px;
+}
+.ai-chat-side,
+.ai-chat-main{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+}
+.ai-chat-side{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.ai-chat-side-head{
+  padding:18px;
+  border-bottom:1px solid var(--line-soft);
+  background:
+    radial-gradient(220px 140px at 0% 0%,rgba(219,39,119,.10),transparent 70%),
+    linear-gradient(180deg,#fff,#fbf7ff);
+}
+.ai-chat-side-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#172033;
+  font-size:16px;
+  font-weight:1000;
+}
+.ai-chat-side-title::before{
+  content:"✦";
+  width:38px;
+  height:38px;
+  border-radius:15px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  background:linear-gradient(135deg,#7c3aed,#ec4899);
+  box-shadow:0 12px 24px rgba(124,58,237,.22);
+}
+.ai-chat-side-sub{
+  margin-top:9px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:750;
+  line-height:1.45;
+}
+.ai-chat-quick-wrap{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:14px;
+}
+.ai-chat-quick-group{
+  margin-bottom:12px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:16px;
+  background:#fff;
+  overflow:hidden;
+}
+.ai-chat-quick-group summary{
+  padding:11px 12px;
+  cursor:pointer;
+  color:#334155;
+  font-size:12px;
+  font-weight:1000;
+  list-style:none;
+}
+.ai-chat-quick-group summary::-webkit-details-marker{display:none}
+.ai-chat-quick-list{
+  display:grid;
+  gap:7px;
+  padding:0 9px 10px;
+}
+.ai-chat-quick-btn{
+  width:100%!important;
+  min-height:38px!important;
+  padding:8px 10px!important;
+  border-radius:12px!important;
+  text-align:left!important;
+  color:#334155!important;
+  background:#f8fafc!important;
+  border:1px solid rgba(15,23,42,.075)!important;
+  font-size:11.5px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+.ai-chat-quick-btn:hover{
+  background:#eef4ff!important;
+  border-color:rgba(37,99,235,.18)!important;
+  color:#1d4ed8!important;
+}
+.ai-chat-settings{
+  padding:12px 14px 14px;
+  border-top:1px solid var(--line-soft);
+  background:#f8fafc;
+}
+.ai-chat-settings label{
+  display:block;
+  margin-bottom:6px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+}
+.ai-chat-endpoint{
+  width:100%;
+  min-height:38px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  color:#172033;
+  background:#fff;
+  font-size:11px;
+  outline:none;
+}
+.ai-chat-endpoint-note{
+  margin-top:6px;
+  color:#64748b;
+  font-size:10px;
+  line-height:1.35;
+}
+
+.ai-chat-main{
+  min-width:0;
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+}
+.ai-chat-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:15px 18px;
+  border-bottom:1px solid var(--line-soft);
+  background:#fff;
+}
+.ai-chat-head-title{
+  font-size:15px;
+  font-weight:1000;
+  color:#172033;
+}
+.ai-chat-head-sub{
+  margin-top:3px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:750;
+}
+.ai-chat-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:999px;
+  color:#059669;
+  background:#ecfdf5;
+  border:1px solid rgba(16,185,129,.18);
+  font-size:10px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.ai-chat-status::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#22c55e;
+}
+.ai-chat-log{
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:18px;
+  background:
+    radial-gradient(700px 360px at 100% 0%,rgba(37,99,235,.055),transparent 65%),
+    #f8fafc;
+}
+.ai-chat-row{
+  display:flex;
+  margin-bottom:14px;
+}
+.ai-chat-row.user{justify-content:flex-end}
+.ai-chat-row.assistant{justify-content:flex-start}
+.ai-chat-bubble{
+  max-width:min(780px,88%);
+  padding:13px 15px;
+  border-radius:17px;
+  line-height:1.62;
+  word-break:break-word;
+}
+.ai-chat-row.user .ai-chat-bubble{
+  color:#fff;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  border-bottom-right-radius:5px;
+  box-shadow:0 12px 26px rgba(37,99,235,.16);
+}
+.ai-chat-row.assistant .ai-chat-bubble{
+  color:#172033;
+  background:#fff;
+  border:1px solid var(--line);
+  border-bottom-left-radius:5px;
+  box-shadow:0 10px 24px rgba(15,23,42,.055);
+}
+.ai-chat-label{
+  margin-bottom:5px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.ai-chat-row.user .ai-chat-label{color:rgba(255,255,255,.75)}
+.ai-chat-answer{
+  font-size:14px;
+}
+.ai-chat-meta{
+  margin-top:9px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:750;
+}
+.ai-chat-note{
+  margin-top:10px;
+  padding:10px 11px;
+  border-left:4px solid #f59e0b;
+  border-radius:10px;
+  color:#92400e;
+  background:#fffbeb;
+  font-size:11.5px;
+  line-height:1.45;
+}
+.ai-chat-freshness{
+  margin-top:10px;
+  padding:10px;
+  border:1px solid #bfdbfe;
+  border-radius:12px;
+  background:#eff6ff;
+}
+.ai-chat-freshness-title{
+  margin-bottom:7px;
+  color:#1d4ed8;
+  font-size:11px;
+  font-weight:1000;
+}
+.ai-chat-freshness-grid{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.ai-chat-freshness-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+}
+.ai-chat-freshness-chip.fresh{
+  color:#047857;
+  background:#d1fae5;
+}
+.ai-chat-freshness-chip.stale{
+  color:#b45309;
+  background:#fef3c7;
+}
+.ai-chat-compose{
+  padding:12px;
+  border-top:1px solid var(--line-soft);
+  background:#fff;
+}
+.ai-chat-compose-box{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:end;
+  padding:8px 8px 8px 12px;
+  border:1px solid #bfdbfe;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.05);
+}
+.ai-chat-input{
+  width:100%;
+  min-height:44px;
+  max-height:130px;
+  resize:none;
+  overflow-y:auto;
+  border:0;
+  outline:0;
+  padding:10px 2px;
+  color:#172033;
+  background:transparent;
+  font-family:var(--font-sans);
+  font-size:14px;
+  line-height:1.45;
+}
+.ai-chat-send,
+.ai-chat-clear{
+  width:auto!important;
+  min-width:96px!important;
+  min-height:44px!important;
+  border-radius:13px!important;
+  font-size:12px!important;
+  font-weight:1000!important;
+}
+.ai-chat-send{
+  color:#fff!important;
+  border:0!important;
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  box-shadow:0 12px 26px rgba(37,99,235,.18)!important;
+}
+.ai-chat-clear{
+  min-width:76px!important;
+  color:#dc2626!important;
+  background:#fff1f2!important;
+  border:1px solid rgba(239,68,68,.18)!important;
+  box-shadow:none!important;
+}
+.ai-chat-actions{
+  display:flex;
+  gap:8px;
+}
+.ai-chat-hint{
+  margin:7px 3px 0;
+  color:#64748b;
+  font-size:10px;
+}
+.ai-chat-typing{
+  display:inline-flex;
+  gap:4px;
+  padding:4px 0;
+}
+.ai-chat-typing span{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#94a3b8;
+  animation:aiChatBounce 1.05s infinite ease-in-out;
+}
+.ai-chat-typing span:nth-child(2){animation-delay:.15s}
+.ai-chat-typing span:nth-child(3){animation-delay:.3s}
+@keyframes aiChatBounce{
+  0%,60%,100%{transform:translateY(0)}
+  30%{transform:translateY(-5px)}
+}
+
+/* Màu nhấn mạnh nhận từ Rule Engine */
+.ai-answer-highlight{
+  font-weight:800;
+  padding:1px 4px;
+  border-radius:5px;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
+}
+.ai-answer-highlight--danger{color:#be185d;background:#fdf2f8}
+.ai-answer-highlight--action{color:#1d4ed8;background:#eff6ff}
+.ai-answer-highlight--success{color:#047857;background:#ecfdf5}
+.ai-answer-highlight--warning{color:#b45309;background:#fffbeb}
+
+@media(max-width:1180px){
+  .ai-chat-shell{
+    grid-template-columns:260px minmax(0,1fr);
+  }
+}
+@media(max-width:980px){
+  .ai-chat-shell{
+    height:auto;
+    min-height:780px;
+    grid-template-columns:1fr;
+  }
+  .ai-chat-side{
+    max-height:360px;
+  }
+  .ai-chat-main{
+    min-height:650px;
+  }
+}
+@media(max-width:640px){
+  .ai-chat-head{align-items:flex-start;flex-direction:column}
+  .ai-chat-compose-box{grid-template-columns:1fr}
+  .ai-chat-actions{width:100%}
+  .ai-chat-send,.ai-chat-clear{flex:1}
+  .ai-chat-bubble{max-width:94%}
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+  /*
+   * URL WEB APP AI
+   * Chỉ thay đường dẫn ở dòng bên dưới khi triển khai Web App mới.
+   * Không hiển thị URL này trên giao diện.
+   */
+  window.AVUONG_AI_WEBAPP_URL =
+    "https://script.google.com/macros/s/AKfycbyNuZZLLTtl_cZJ8ZPimC7veepHFv_jQkkAX05F9dvXU3ARp0SMmtOmtozPu7_q1N4g/exec";
+</script>
+
 </head>
 <body>
 
@@ -6309,6 +6735,11 @@ body.slideshow-frame-mode section{
           <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04c.39-.39.39-1.02 0-1.41l-2.51-2.51a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 2-1.66zM20 19H9v2h11v-2z"/></svg>
           Nhập hạ du
         </a>
+        <a class="nav-link" data-tab="aichat">
+          <svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8v3a3 3 0 0 0 3 3h1v-6H6a6 6 0 1 1 12 0h-2v6h1a3 3 0 0 0 3-3v-3a8 8 0 0 0-8-8zm-4 9h2v5H8v-5zm6 0h2v5h-2v-5zm-5 7h6v2H9v-2z"/></svg>
+          Chatbox AI
+        </a>
+
 
       </div>
     </aside>
@@ -9270,7 +9701,91 @@ body.slideshow-frame-mode section{
         </section>
       </div>
 
-    </main>
+    
+      <!-- TAB: Chatbox AI vận hành hồ A Vương -->
+      <div id="tab-aichat" class="tab-pane">
+        <section class="ai-chat-shell">
+          <aside class="ai-chat-side">
+            <div class="ai-chat-side-head">
+              <div class="ai-chat-side-title">Chatbox AI vận hành</div>
+              <div class="ai-chat-side-sub">
+                Đối chiếu tình huống hồ A Vương, ghi nhớ ngữ cảnh và làm nổi bật điều kiện quan trọng.
+              </div>
+            </div>
+
+            <div class="ai-chat-quick-wrap">
+              <details class="ai-chat-quick-group" open>
+                <summary>Sau lũ</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Tình huống mới: Ngày 12/10, quá trình giảm lũ đã kết thúc, MNH 380m, HAN 7,6m, HHK 15m, Q về 700m3/s, không còn dự báo mưa lũ mới. Có hạ không?">Tình huống sau lũ, Q về cao</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về đã giảm còn 350m3/s.">Q về giảm còn 350</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="MNH đã hạ từ 380m về 377m.">MNH hạ về 377m</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="HAN tăng lên 8,6m.">HAN vượt ngưỡng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Q về tăng lên lại 700m3/s.">Q về tăng trở lại</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group">
+                <summary>Cắt, giảm lũ</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 376m, HAN 8,6m, HHK 15,8m, Q về 650m3/s, có dự báo mưa lũ mới. Hồ thuộc nhánh vận hành nào?">HAN và Q về vượt ngưỡng</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 375m, HAN 8,2m, HHK 15,7m, Q về 500m3/s, chưa có lệnh vận hành. Nên duy trì hay hạ tiếp?">Vùng duy trì trung gian</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngày 10/10, MNH 374m, HAN 7,5m, HHK 15m, Q về 420m3/s, có dự báo mưa lũ mới. Có được hạ tiếp không?">Có dự báo mưa lũ mới</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group">
+                <summary>Tra cứu quy trình</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Mực nước đón lũ hồ A Vương từ 01/9 đến 15/11 là bao nhiêu?">Mực nước đón lũ 01/9–15/11</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Mực nước đón lũ hồ A Vương từ 16/11 đến 15/12 là bao nhiêu?">Mực nước đón lũ 16/11–15/12</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Ngưỡng HAN, HHK và Q về để chuyển sang cắt, giảm lũ là bao nhiêu?">Ngưỡng cắt, giảm lũ</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Sau khi kết thúc giảm lũ, hồ A Vương phải đưa MNH về cao trình nào?">Mục tiêu MNH sau lũ</button>
+                </div>
+              </details>
+
+              <details class="ai-chat-quick-group">
+                <summary>Bất thường</summary>
+                <div class="ai-chat-quick-list">
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Các trường hợp nào được xem là vận hành trong tình huống bất thường?">Các tình huống bất thường</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Mất hoàn toàn liên lạc với cơ quan điều hành thì cần ưu tiên xử lý thế nào?">Mất liên lạc</button>
+                  <button class="ai-chat-quick-btn" type="button" data-ai-question="Hạ du đang ngập và có nguy cơ mất an toàn công trình, hệ thống phải ưu tiên nhánh nào?">Ngập hạ du, nguy cơ an toàn</button>
+                </div>
+              </details>
+            </div>
+
+            <div class="ai-chat-settings">
+              <label for="aiChatEndpoint">URL Web App AI</label>
+              <input id="aiChatEndpoint" type="hidden" value="">
+              
+            </div>
+          </aside>
+
+          <section class="ai-chat-main">
+            <header class="ai-chat-head">
+              <div>
+                <div class="ai-chat-head-title">Trợ lý AI vận hành hồ A Vương</div>
+                <div class="ai-chat-head-sub">Enter để gửi • Shift + Enter để xuống dòng</div>
+              </div>
+              <div id="aiChatStatus" class="ai-chat-status">Sẵn sàng</div>
+            </header>
+
+            <div id="aiChatLog" class="ai-chat-log" aria-live="polite"></div>
+
+            <footer class="ai-chat-compose">
+              <div class="ai-chat-compose-box">
+                <textarea id="aiChatInput" class="ai-chat-input" rows="1" maxlength="4000" placeholder="Nhập tình huống hoặc câu hỏi vận hành..."></textarea>
+                <div class="ai-chat-actions">
+                  <button id="aiChatClear" class="ai-chat-clear" type="button">Xóa</button>
+                  <button id="aiChatSend" class="ai-chat-send" type="button">Gửi</button>
+                </div>
+              </div>
+              <div class="ai-chat-hint">Nội dung AI chỉ dùng để hỗ trợ đối chiếu; quyết định vận hành phải theo lệnh có thẩm quyền.</div>
+            </footer>
+          </section>
+        </section>
+      </div>
+</main>
   </div>
 </div>
 
@@ -16076,5 +16591,528 @@ function renderAllPctt(){
 })();
 </script>
 
+
+<script>
+(function(){
+  "use strict";
+
+  const AI_CHAT_STORAGE_KEY = "avuong_dashboard_ai_chat_v1";
+  const AI_CHAT_ENDPOINT_KEY = "avuong_ai_webapp_url";
+
+  const aiState = {
+    sessionId: "",
+    history: [],
+    messages: [],
+    sending: false
+  };
+
+  function aiEl(id){
+    return document.getElementById(id);
+  }
+
+  function aiCreateSessionId(){
+    if(window.crypto && typeof window.crypto.randomUUID === "function"){
+      return window.crypto.randomUUID();
+    }
+    return "ai_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  }
+
+  function aiEscapeHtml(value){
+    return String(value || "")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
+
+  function aiPlainToHtml(value){
+    return aiEscapeHtml(value).replace(/\r?\n/g,"<br>");
+  }
+
+  function aiSafeAnswerHtml(answerHtml, fallback){
+    if(typeof answerHtml !== "string" || !answerHtml.trim()){
+      return aiPlainToHtml(fallback || "");
+    }
+
+    const template = document.createElement("template");
+    template.innerHTML = answerHtml;
+
+    const allowedClasses = [
+      "ai-answer-highlight",
+      "ai-answer-highlight--danger",
+      "ai-answer-highlight--action",
+      "ai-answer-highlight--success",
+      "ai-answer-highlight--warning"
+    ];
+
+    const walker = document.createTreeWalker(
+      template.content,
+      NodeFilter.SHOW_ELEMENT
+    );
+
+    const invalid = [];
+    let node;
+
+    while((node = walker.nextNode())){
+      const tag = node.tagName.toLowerCase();
+
+      if(tag !== "span" && tag !== "br"){
+        invalid.push(node);
+        continue;
+      }
+
+      if(tag === "span"){
+        Array.from(node.attributes).forEach(attr=>{
+          if(attr.name !== "class") node.removeAttribute(attr.name);
+        });
+
+        const valid = Array.from(node.classList).every(
+          className => allowedClasses.includes(className)
+        );
+
+        if(!valid) invalid.push(node);
+      }
+    }
+
+    invalid.forEach(item=>{
+      item.replaceWith(document.createTextNode(item.textContent || ""));
+    });
+
+    return template.innerHTML;
+  }
+
+  function aiSaveState(){
+    try{
+      localStorage.setItem(
+        AI_CHAT_STORAGE_KEY,
+        JSON.stringify({
+          sessionId: aiState.sessionId,
+          history: aiState.history.slice(-12),
+          messages: aiState.messages.slice(-40)
+        })
+      );
+    }catch(_){}
+  }
+
+  function aiLoadState(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(AI_CHAT_STORAGE_KEY) || "{}");
+      aiState.sessionId = saved.sessionId || aiCreateSessionId();
+      aiState.history = Array.isArray(saved.history) ? saved.history.slice(-12) : [];
+      aiState.messages = Array.isArray(saved.messages) ? saved.messages : [];
+    }catch(_){
+      aiState.sessionId = aiCreateSessionId();
+      aiState.history = [];
+      aiState.messages = [];
+    }
+  }
+
+  function aiScrollBottom(){
+    const log = aiEl("aiChatLog");
+    if(!log) return;
+    requestAnimationFrame(()=>{
+      log.scrollTop = log.scrollHeight;
+    });
+  }
+
+  function aiRenderFreshness(container, dataFreshness){
+    if(!container || !dataFreshness || !Array.isArray(dataFreshness.items)) return;
+
+    const box = document.createElement("div");
+    box.className = "ai-chat-freshness";
+
+    const title = document.createElement("div");
+    title.className = "ai-chat-freshness-title";
+    title.textContent = "Dữ liệu AI đang sử dụng • " + (dataFreshness.label || "");
+    box.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.className = "ai-chat-freshness-grid";
+
+    dataFreshness.items.forEach(item=>{
+      const chip = document.createElement("span");
+      chip.className = "ai-chat-freshness-chip " + (item.fresh ? "fresh" : "stale");
+      chip.textContent =
+        (item.fresh ? "✓ " : "⚠ ") +
+        item.label + ": " + item.value;
+      grid.appendChild(chip);
+    });
+
+    box.appendChild(grid);
+    container.appendChild(box);
+  }
+
+  function aiAppendMessage(message){
+    const log = aiEl("aiChatLog");
+    if(!log) return;
+
+    const row = document.createElement("div");
+    row.className = "ai-chat-row " + (message.role === "user" ? "user" : "assistant");
+
+    const bubble = document.createElement("article");
+    bubble.className = "ai-chat-bubble";
+
+    const label = document.createElement("div");
+    label.className = "ai-chat-label";
+    label.textContent = message.role === "user" ? "Bạn" : "Trợ lý AI";
+
+    const answer = document.createElement("div");
+    answer.className = "ai-chat-answer";
+
+    if(message.role === "user"){
+      answer.textContent = message.text || "";
+    }else{
+      answer.innerHTML = aiSafeAnswerHtml(message.html, message.text);
+    }
+
+    bubble.appendChild(label);
+    bubble.appendChild(answer);
+
+    if(message.executionNote){
+      const note = document.createElement("div");
+      note.className = "ai-chat-note";
+      note.textContent = message.executionNote;
+      bubble.appendChild(note);
+    }
+
+    if(message.dataFreshness){
+      aiRenderFreshness(bubble, message.dataFreshness);
+    }
+
+    if(message.meta){
+      const meta = document.createElement("div");
+      meta.className = "ai-chat-meta";
+      meta.textContent = message.meta;
+      bubble.appendChild(meta);
+    }
+
+    row.appendChild(bubble);
+    log.appendChild(row);
+    aiScrollBottom();
+  }
+
+  function aiRenderSaved(){
+    const log = aiEl("aiChatLog");
+    if(!log) return;
+    log.innerHTML = "";
+
+    if(!aiState.messages.length){
+      aiAppendMessage({
+        role:"assistant",
+        text:"Chào bạn. Hãy nhập ngày vận hành, MNH, Q về, HAN, HHK và dự báo mưa lũ để tôi đối chiếu tình huống."
+      });
+      return;
+    }
+
+    aiState.messages.forEach(aiAppendMessage);
+  }
+
+  function aiSetStatus(text, busy){
+    const status = aiEl("aiChatStatus");
+    if(status) status.textContent = text || "Sẵn sàng";
+
+    const send = aiEl("aiChatSend");
+    const input = aiEl("aiChatInput");
+
+    aiState.sending = Boolean(busy);
+    if(send){
+      send.disabled = aiState.sending;
+      send.textContent = aiState.sending ? "Đang xử lý..." : "Gửi";
+    }
+    if(input) input.disabled = aiState.sending;
+  }
+
+  function aiAddTyping(){
+    const log = aiEl("aiChatLog");
+    if(!log) return;
+
+    const row = document.createElement("div");
+    row.className = "ai-chat-row assistant";
+    row.id = "aiChatTyping";
+    row.innerHTML =
+      '<article class="ai-chat-bubble">' +
+      '<div class="ai-chat-label">Trợ lý AI</div>' +
+      '<div class="ai-chat-typing"><span></span><span></span><span></span></div>' +
+      '</article>';
+
+    log.appendChild(row);
+    aiScrollBottom();
+  }
+
+  function aiRemoveTyping(){
+    const node = aiEl("aiChatTyping");
+    if(node) node.remove();
+  }
+
+  function aiResizeInput(){
+    const input = aiEl("aiChatInput");
+    if(!input) return;
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight,130) + "px";
+  }
+
+  function aiMeta(result){
+    const parts = [];
+    if(result && result.confidence && result.confidence.label){
+      parts.push(result.confidence.label);
+    }
+    if(result && result.ruleCode){
+      parts.push("Mã nhánh: " + result.ruleCode);
+    }
+    if(result && result.scenarioVersion !== undefined){
+      parts.push("Phiên bản tình huống: " + result.scenarioVersion);
+    }
+    return parts.join(" • ");
+  }
+
+  function aiHandleResult(result, question){
+    aiRemoveTyping();
+    aiSetStatus("Sẵn sàng", false);
+
+    if(!result || result.success === false){
+      const err = result && (result.error || result.answer)
+        ? (result.error || result.answer)
+        : "Không nhận được phản hồi hợp lệ.";
+      aiHandleError(err);
+      return;
+    }
+
+    const message = {
+      role:"assistant",
+      text:result.answer || "",
+      html:result.answerHtml || "",
+      executionNote:result.executionNote || "",
+      dataFreshness:result.dataFreshness || null,
+      meta:aiMeta(result)
+    };
+
+    aiState.messages.push(message);
+    aiState.history.push({role:"user",text:question});
+    aiState.history.push({role:"assistant",text:result.answer || ""});
+    aiState.history = aiState.history.slice(-12);
+
+    aiAppendMessage(message);
+    aiSaveState();
+
+    const input = aiEl("aiChatInput");
+    if(input) input.focus();
+  }
+
+  function aiHandleError(error){
+    aiRemoveTyping();
+    aiSetStatus("Lỗi kết nối JSONP", false);
+
+    const message = error && error.message ? error.message : String(error || "Không thể xử lý câu hỏi.");
+    const item = {
+      role:"assistant",
+      text:"Không thể kết nối AI: " + message
+    };
+
+    aiState.messages.push(item);
+    aiAppendMessage(item);
+    aiSaveState();
+  }
+
+  async function aiCallExternal(payload){
+    const endpoint =
+      String(
+        window.AVUONG_AI_WEBAPP_URL || ""
+      ).trim();
+
+    if(!endpoint){
+      throw new Error(
+        "Chưa cấu hình URL Web App AI trong mã nguồn."
+      );
+    }
+
+    const callbackName =
+      "__avuongAiJsonp_" +
+      Date.now() +
+      "_" +
+      Math.random()
+        .toString(36)
+        .slice(2);
+
+    return new Promise(function(resolve,reject){
+      const script =
+        document.createElement("script");
+
+      const timeout =
+        window.setTimeout(function(){
+          cleanup();
+
+          reject(
+            new Error(
+              "Quá thời gian chờ phản hồi AI."
+            )
+          );
+        },45000);
+
+      function cleanup(){
+        window.clearTimeout(timeout);
+
+        if(script.parentNode){
+          script.parentNode.removeChild(script);
+        }
+
+        try{
+          delete window[callbackName];
+        }catch(error){
+          window[callbackName] = undefined;
+        }
+      }
+
+      window[callbackName] =
+        function(result){
+          cleanup();
+          resolve(result);
+        };
+
+      script.onerror =
+        function(){
+          cleanup();
+
+          reject(
+            new Error(
+              "Không tải được API AI. Hãy kiểm tra quyền triển khai Web App và phiên bản Code.gs."
+            )
+          );
+        };
+
+      const separator =
+        endpoint.indexOf("?") === -1
+          ? "?"
+          : "&";
+
+      script.src =
+        endpoint +
+        separator +
+        "api=chat" +
+        "&callback=" +
+        encodeURIComponent(callbackName) +
+        "&payload=" +
+        encodeURIComponent(
+          JSON.stringify(payload)
+        ) +
+        "&_=" +
+        Date.now();
+
+      document.head.appendChild(script);
+    });
+  }
+
+  function aiSend(){
+    if(aiState.sending) return;
+
+    const input = aiEl("aiChatInput");
+    if(!input) return;
+
+    const question = input.value.trim();
+    if(!question){
+      input.focus();
+      return;
+    }
+
+    const userMessage = {role:"user",text:question};
+    aiState.messages.push(userMessage);
+    aiAppendMessage(userMessage);
+
+    input.value = "";
+    aiResizeInput();
+    aiSetStatus("Đang phân tích", true);
+    aiAddTyping();
+    aiSaveState();
+
+    const payload = {
+      question:question,
+      sessionId:aiState.sessionId,
+      history:aiState.history
+    };
+
+    if(
+      window.google &&
+      google.script &&
+      google.script.run
+    ){
+      google.script.run
+        .withSuccessHandler(result=>aiHandleResult(result,question))
+        .withFailureHandler(aiHandleError)
+        .askReservoirAssistant(payload);
+      return;
+    }
+
+    aiCallExternal(payload)
+      .then(result=>aiHandleResult(result,question))
+      .catch(aiHandleError);
+  }
+
+  function aiClear(){
+    if(!window.confirm("Xóa toàn bộ dữ liệu hội thoại AI hiện tại?")) return;
+
+    aiState.sessionId = aiCreateSessionId();
+    aiState.history = [];
+    aiState.messages = [];
+    localStorage.removeItem(AI_CHAT_STORAGE_KEY);
+    aiRenderSaved();
+    aiSaveState();
+
+    const input = aiEl("aiChatInput");
+    if(input){
+      input.value = "";
+      aiResizeInput();
+      input.focus();
+    }
+  }
+
+  function aiInit(){
+    const endpoint = aiEl("aiChatEndpoint");
+    if(endpoint){
+      endpoint.value =
+        window.AVUONG_AI_WEBAPP_URL ||
+        "";
+
+      localStorage.setItem(
+        AI_CHAT_ENDPOINT_KEY,
+        endpoint.value.trim()
+      );
+
+      
+    }
+
+    const input = aiEl("aiChatInput");
+    const send = aiEl("aiChatSend");
+    const clear = aiEl("aiChatClear");
+
+    if(input){
+      input.addEventListener("input",aiResizeInput);
+      input.addEventListener("keydown",event=>{
+        if(event.key === "Enter" && !event.shiftKey){
+          event.preventDefault();
+          aiSend();
+        }
+      });
+    }
+
+    if(send) send.addEventListener("click",aiSend);
+    if(clear) clear.addEventListener("click",aiClear);
+
+    document.querySelectorAll("[data-ai-question]").forEach(button=>{
+      button.addEventListener("click",()=>{
+        if(!input) return;
+        input.value = button.getAttribute("data-ai-question") || "";
+        aiResizeInput();
+        input.focus();
+      });
+    });
+
+    aiLoadState();
+    aiRenderSaved();
+    aiResizeInput();
+  }
+
+  window.addEventListener("load",aiInit);
+})();
+</script>
 </body>
 </html>
