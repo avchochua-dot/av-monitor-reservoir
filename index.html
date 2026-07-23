@@ -6193,7 +6193,21 @@ body.slideshow-frame-mode section{
   min-height:620px;
   display:grid;
   grid-template-columns:300px minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr);
   gap:14px;
+  align-items:stretch;
+}
+
+.ai-chat-side,
+.ai-chat-main{
+  min-width:0;
+  min-height:0;
+  height:100%;
+}
+
+.ai-chat-main{
+  display:flex;
+  flex-direction:column;
 }
 .ai-chat-side,
 .ai-chat-main{
@@ -9928,7 +9942,7 @@ body.slideshow-frame-mode section{
                   <button class="ai-chat-quick-btn" type="button" data-ai-question="Có hai giá trị HAN khác nhau trong cùng báo cáo: 8,6m và 7,2m. Cần dùng giá trị nào?">Mâu thuẫn dữ liệu HAN</button>
                 </div>
               </details>
-            </div></div>
+            </div>
 
             <input id="aiChatEndpoint" type="hidden" value="">
           </aside>
