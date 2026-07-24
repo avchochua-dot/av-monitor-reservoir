@@ -6859,8 +6859,67 @@ body.slideshow-frame-mode section{
   }
 }
 
+
+/* =========================================================
+   TAB TÍNH TOÁN XẢ TRÀN
+   ========================================================= */
+.spill-page{display:grid;gap:14px}
+.spill-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:18px 20px;background:linear-gradient(135deg,#fff,#eff6ff);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-card)}
+.spill-hero h2{margin:0 0 6px;font-size:21px;letter-spacing:-.4px}
+.spill-hero p{margin:0;color:#64748b;font-weight:700;line-height:1.55;max-width:850px}
+.spill-badge{flex:0 0 auto;padding:8px 12px;border-radius:999px;background:#ecfdf5;color:#047857;border:1px solid rgba(16,185,129,.22);font-size:11px;font-weight:1000}
+.spill-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:start}
+.spill-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-card);padding:16px;min-width:0}
+.spill-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.spill-card-head b{font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:.8px}
+.spill-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.spill-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.spill-field.span2{grid-column:span 2}.spill-field.span3{grid-column:span 3}
+.spill-field label{font-size:11px;color:#475569;font-weight:950}
+.spill-field small{font-size:10px;color:#64748b;line-height:1.35}
+.spill-input,.spill-select,.spill-textarea{width:100%;border:1px solid rgba(15,23,42,.12);border-radius:13px;background:#fff;padding:10px 11px;color:#172033;font-weight:800;outline:none;box-shadow:0 6px 14px rgba(15,23,42,.035)}
+.spill-input:focus,.spill-select:focus,.spill-textarea:focus{border-color:rgba(37,99,235,.38);box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+.spill-textarea{min-height:70px;resize:vertical}
+.spill-mode-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.spill-mode{position:relative}
+.spill-mode input{position:absolute;opacity:0;pointer-events:none}
+.spill-mode label{display:block;height:100%;padding:12px;border-radius:15px;border:1px solid var(--line);background:#f8fafc;cursor:pointer;font-size:11px;font-weight:900;color:#475569;line-height:1.4}
+.spill-mode input:checked+label{background:#eaf1ff;border-color:rgba(37,99,235,.35);color:#1d4ed8;box-shadow:0 8px 18px rgba(37,99,235,.08)}
+.spill-mode-panel{display:none}.spill-mode-panel.active{display:block}
+.spill-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.spill-btn{width:auto!important;min-width:145px;border:none!important;border-radius:13px!important;padding:10px 14px!important;font-size:12px!important;font-weight:1000!important;box-shadow:0 8px 18px rgba(15,23,42,.08)!important}
+.spill-btn.primary{background:linear-gradient(90deg,#2563eb,#1d4ed8)!important;color:#fff!important}
+.spill-btn.green{background:#ecfdf5!important;color:#047857!important;border:1px solid rgba(16,185,129,.22)!important}
+.spill-btn.amber{background:#fff7ed!important;color:#b45309!important;border:1px solid rgba(245,158,11,.24)!important}
+.spill-btn.ghost{background:#f8fafc!important;color:#475569!important;border:1px solid var(--line)!important}
+.spill-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.spill-kpi{padding:13px;border:1px solid var(--line);border-radius:16px;background:#fff;min-height:92px}
+.spill-kpi span{display:block;color:#64748b;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.45px;margin-bottom:7px}
+.spill-kpi b{display:block;font-family:var(--font-mono);font-size:18px;color:#172033}
+.spill-kpi small{display:block;margin-top:5px;color:#64748b;font-size:10px;font-weight:750}
+.spill-kpi.ok{background:#f0fdf4;border-color:rgba(34,197,94,.2)}.spill-kpi.warn{background:#fffbeb;border-color:rgba(245,158,11,.22)}.spill-kpi.bad{background:#fef2f2;border-color:rgba(239,68,68,.22)}
+.spill-status{padding:13px 14px;border-radius:15px;background:#f8fafc;border:1px solid var(--line);font-weight:850;color:#475569;line-height:1.55}
+.spill-status.ok{background:#ecfdf5;color:#047857;border-color:rgba(16,185,129,.22)}
+.spill-status.warn{background:#fff7ed;color:#b45309;border-color:rgba(245,158,11,.24)}
+.spill-status.bad{background:#fef2f2;color:#b91c1c;border-color:rgba(239,68,68,.22)}
+.spill-table-wrap{max-height:570px;overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff}
+.spill-table{min-width:1450px}
+.spill-table th{position:sticky;top:0;z-index:3}
+.spill-table td:first-child{position:static!important;width:auto!important;text-align:center!important;padding-left:6px!important}
+.spill-row-start td{background:#eff6ff!important}.spill-row-near td{background:#fffbeb!important}.spill-row-target td{background:#f5f3ff!important}.spill-row-over td{background:#fef2f2!important}
+.spill-chip{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:1000;white-space:nowrap}
+.spill-chip.ok{background:#dcfce7;color:#166534}.spill-chip.warn{background:#fef3c7;color:#92400e}.spill-chip.bad{background:#fee2e2;color:#991b1b}.spill-chip.info{background:#dbeafe;color:#1d4ed8}
+.spill-chart-box{height:390px;border:1px solid var(--line);border-radius:18px;padding:12px;background:#fff}
+#spillPlanChart{height:360px!important}
+.spill-ai-box{min-height:120px;border:1px solid rgba(37,99,235,.18);border-radius:16px;background:#eff6ff;padding:16px;color:#334155;font-size:14px;line-height:1.68;white-space:pre-wrap}
+.spill-note{padding:12px 14px;border-left:4px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-size:11px;font-weight:750;line-height:1.5}
+.spill-hidden{display:none!important}
+@media(max-width:1200px){.spill-grid{grid-template-columns:1fr}.spill-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.spill-field.span3{grid-column:span 2}.spill-kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.spill-form-grid,.spill-mode-row,.spill-kpis{grid-template-columns:1fr}.spill-field.span2,.spill-field.span3{grid-column:span 1}.spill-hero{display:block}.spill-badge{display:inline-flex;margin-top:12px}.spill-btn{width:100%!important}}
+
 </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
   /*
@@ -6871,6 +6930,137 @@ body.slideshow-frame-mode section{
   window.AVUONG_AI_WEBAPP_URL =
     "https://script.google.com/macros/s/AKfycbyNuZZLLTtl_cZJ8ZPimC7veepHFv_jQkkAX05F9dvXU3ARp0SMmtOmtozPu7_q1N4g/exec";
 </script>
+
+
+<style>
+/* =========================================================
+   SPILLWAY CALCULATOR UI ENHANCEMENT
+   ========================================================= */
+#tab-spillcalc .spill-grid{
+  grid-template-columns:minmax(0,1.15fr) minmax(420px,.85fr)!important;
+  align-items:start!important;
+}
+.spill-input-groups{display:grid;gap:14px}
+.spill-subcard{
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:18px;
+  padding:14px;
+  background:#fff;
+}
+.spill-subcard.blue{background:linear-gradient(180deg,#f8fbff,#eff6ff)}
+.spill-subcard.green{background:linear-gradient(180deg,#fbfffd,#ecfdf5)}
+.spill-subcard.orange{background:linear-gradient(180deg,#fffdf9,#fff7ed)}
+.spill-subcard.violet{background:linear-gradient(180deg,#fdfcff,#f5f3ff)}
+.spill-subhead{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(15,23,42,.07)
+}
+.spill-subtitle{display:flex;gap:10px;align-items:flex-start}
+.spill-subicon{
+  width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.86);border:1px solid rgba(15,23,42,.08);font-size:17px;flex:0 0 auto
+}
+.spill-subhead b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.55px;color:#334155}
+.spill-subhead small{display:block;margin-top:3px;color:#64748b;font-size:10.5px;line-height:1.35}
+.spill-required{color:#dc2626;margin-left:2px}
+.spill-field label{display:flex;align-items:center;gap:4px}
+.spill-input-wrap{position:relative}
+.spill-input-wrap .spill-input{padding-right:58px!important}
+.spill-unit{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  color:#64748b;font-size:11px;font-weight:900;pointer-events:none
+}
+.spill-readonly{
+  background:#f8fafc!important;color:#334155!important;border-style:dashed!important
+}
+.spill-level-bridge{
+  display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end
+}
+.spill-level-arrow{
+  width:34px;height:46px;display:flex;align-items:center;justify-content:center;
+  color:#2563eb;font-size:20px;font-weight:1000
+}
+.spill-level-delta{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:8px 10px;border-radius:12px;background:rgba(37,99,235,.08);color:#1d4ed8;
+  font-size:11px;font-weight:900
+}
+.spill-advanced summary{
+  list-style:none;cursor:pointer;font-size:12px;font-weight:900;color:#475569;
+  display:flex;align-items:center;justify-content:space-between
+}
+.spill-advanced summary::-webkit-details-marker{display:none}
+.spill-advanced summary:after{content:"▾";color:#7c3aed}
+.spill-advanced[open] summary:after{content:"▴"}
+.spill-advanced-body{margin-top:12px}
+
+.spill-mode-row.enhanced{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important
+}
+.spill-mode-card{
+  position:relative;border:1px solid rgba(15,23,42,.10);border-radius:16px;background:#fff;
+  min-height:150px;padding:14px;cursor:pointer;transition:.18s ease;display:flex;flex-direction:column;gap:8px
+}
+.spill-mode-card:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.28);box-shadow:0 10px 26px rgba(37,99,235,.08)}
+.spill-mode-card.active{
+  background:linear-gradient(180deg,#f8fbff,#eef4ff);
+  border-color:rgba(37,99,235,.42);box-shadow:0 12px 28px rgba(37,99,235,.12)
+}
+.spill-mode-card input{position:absolute;opacity:0;pointer-events:none}
+.spill-mode-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.spill-mode-icon{font-size:22px}
+.spill-mode-check{
+  display:none;width:23px;height:23px;border-radius:999px;background:#2563eb;color:#fff;
+  align-items:center;justify-content:center;font-size:13px;font-weight:1000
+}
+.spill-mode-card.active .spill-mode-check{display:flex}
+.spill-mode-card h4{margin:0;color:#172033;font-size:13px;line-height:1.35}
+.spill-mode-card.active h4{color:#1d4ed8}
+.spill-mode-card p{margin:0;color:#64748b;font-size:10.5px;line-height:1.45}
+.spill-mode-tag{
+  align-self:flex-start;margin-top:auto;padding:4px 8px;border-radius:999px;background:#ecfdf5;color:#047857;
+  font-size:9.5px;font-weight:1000
+}
+.spill-mode-config{
+  margin-top:14px;border:1px solid rgba(37,99,235,.13);border-radius:17px;padding:14px;
+  background:linear-gradient(180deg,#fff,#f8fbff)
+}
+.spill-mode-config-title{font-size:11px;text-transform:uppercase;letter-spacing:.55px;color:#1d4ed8;font-weight:1000;margin-bottom:10px}
+.spill-input-preview{
+  margin-top:14px;padding:12px 13px;border-radius:15px;background:#f8fafc;border:1px solid rgba(15,23,42,.08)
+}
+.spill-input-preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;font-weight:1000;margin-bottom:8px}
+.spill-preview-chips{display:flex;flex-wrap:wrap;gap:7px}
+.spill-preview-chip{
+  padding:6px 9px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);
+  color:#334155;font-size:10.5px;font-weight:850
+}
+.spill-preview-chip.strong{background:#eff6ff;color:#1d4ed8;border-color:rgba(37,99,235,.18)}
+.spill-preview-chip.warn{background:#fff7ed;color:#b45309;border-color:rgba(245,158,11,.22)}
+.spill-actions.pro{display:grid;grid-template-columns:1.45fr .8fr;gap:10px;margin-top:14px}
+.spill-actions.pro .spill-btn{min-height:44px}
+
+.spill-ai-toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.spill-ai-status{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;
+  background:#f1f5f9;color:#475569;font-size:10.5px;font-weight:900
+}
+.spill-ai-status.online{background:#ecfdf5;color:#047857}
+.spill-ai-status.fallback{background:#fff7ed;color:#b45309}
+.spill-copy-btn{min-width:auto!important;width:auto!important;padding:8px 12px!important}
+.spill-copy-btn.copied{background:#ecfdf5!important;color:#047857!important;border-color:rgba(16,185,129,.24)!important}
+
+@media(max-width:1180px){
+  #tab-spillcalc .spill-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  .spill-mode-row.enhanced{grid-template-columns:1fr!important}
+  .spill-level-bridge{grid-template-columns:1fr}
+  .spill-level-arrow{display:none}
+  .spill-level-delta{grid-column:1}
+  .spill-actions.pro{grid-template-columns:1fr}
+}
+</style>
 
 </head>
 <body>
@@ -7012,6 +7202,10 @@ body.slideshow-frame-mode section{
         <a class="nav-link" data-tab="downstreammanual">
           <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04c.39-.39.39-1.02 0-1.41l-2.51-2.51a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 2-1.66zM20 19H9v2h11v-2z"/></svg>
           Nhập hạ du
+        </a>
+        <a class="nav-link" data-tab="spillcalc">
+          <svg viewBox="0 0 24 24"><path d="M4 3h16v4H4V3zm1 6h14v12H5V9zm3 2v2h3v-2H8zm5 0v2h3v-2h-3zm-5 4v2h3v-2H8zm5 0v2h3v-2h-3z"/></svg>
+          Tính toán xả tràn
         </a>
         <a class="nav-link" data-tab="aichat">
           <svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8v3a3 3 0 0 0 3 3h1v-6H6a6 6 0 1 1 12 0h-2v6h1a3 3 0 0 0 3-3v-3a8 8 0 0 0-8-8zm-4 9h2v5H8v-5zm6 0h2v5h-2v-5zm-5 7h6v2H9v-2z"/></svg>
@@ -10031,6 +10225,266 @@ body.slideshow-frame-mode section{
       </div>
 
     
+
+      <!-- TAB: Tính toán xả tràn -->
+      <div id="tab-spillcalc" class="tab-pane">
+        <section class="spill-page" id="spillReportRoot">
+          <div class="spill-hero">
+            <div>
+              <h2>Tính toán phương án xả tràn</h2>
+              <p>Lập quỹ đạo hạ mực nước theo từng giờ, kiểm tra tổng Q xả qua máy và tràn không vượt giới hạn văn bản điều hành, sau đó xuất Excel, PDF hoặc nhờ AI tóm tắt.</p>
+            </div>
+            <span class="spill-badge" id="spillCurveStatus">Chưa tải đường cong MNH – dung tích</span>
+          </div>
+
+          <div class="spill-grid">
+            <div class="spill-card">
+              <div class="spill-card-head">
+                <b>Thông tin đầu vào và lệnh vận hành</b>
+                <span class="chip">Hồ A Vương</span>
+              </div>
+
+              <div class="spill-input-groups">
+                <section class="spill-subcard blue">
+                  <div class="spill-subhead">
+                    <div class="spill-subtitle">
+                      <span class="spill-subicon">📄</span>
+                      <div>
+                        <b>Lệnh vận hành và người lập</b>
+                        <small>Thông tin dùng trong tóm tắt AI, Excel và PDF.</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="spill-form-grid">
+                    <div class="spill-field span2">
+                      <label>Nội dung/Số văn bản điều hành <span class="spill-required">*</span></label>
+                      <input id="spillOrderNo" class="spill-input" placeholder="Ví dụ: Công điện số ... / Ban Chỉ huy PTDS TP Đà Nẵng">
+                    </div>
+                    <div class="spill-field">
+                      <label>Người lập phương án <span class="spill-required">*</span></label>
+                      <input id="spillPreparedBy" class="spill-input" placeholder="Họ và tên">
+                    </div>
+                    <div class="spill-field">
+                      <label>Thời gian bắt đầu <span class="spill-required">*</span></label>
+                      <input id="spillStartTime" class="spill-input" type="datetime-local">
+                    </div>
+                    <div class="spill-field span2">
+                      <label>Thời điểm phải đạt MNH mục tiêu <span class="spill-required">*</span></label>
+                      <input id="spillEndTime" class="spill-input" type="datetime-local">
+                    </div>
+                  </div>
+                </section>
+
+                <section class="spill-subcard green">
+                  <div class="spill-subhead">
+                    <div class="spill-subtitle">
+                      <span class="spill-subicon">💧</span>
+                      <div>
+                        <b>Thông số hồ và dòng chảy</b>
+                        <small>MNH được tra theo đường cong dung tích của hồ A Vương.</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="spill-level-bridge">
+                    <div class="spill-field">
+                      <label>MNH hiện tại <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillLevelStart" class="spill-input" type="number" min="340" max="380" step="0.01" value="372.00"><span class="spill-unit">m</span></div>
+                    </div>
+                    <div class="spill-level-arrow">→</div>
+                    <div class="spill-field">
+                      <label>MNH mục tiêu <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillLevelTarget" class="spill-input" type="number" min="340" max="380" step="0.01" value="370.00"><span class="spill-unit">m</span></div>
+                    </div>
+                    <div class="spill-level-delta" id="spillLevelDelta">Cần hạ: 2,00 m</div>
+                  </div>
+                  <div class="spill-form-grid" style="margin-top:12px">
+                    <div class="spill-field">
+                      <label>Q về hồ ước lượng <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQIn" class="spill-input" type="number" min="0" step="0.1" value="100"><span class="spill-unit">m³/s</span></div>
+                    </div>
+                    <div class="spill-field">
+                      <label>Q máy</label>
+                      <div class="spill-input-wrap"><input id="spillQMachine" class="spill-input" type="number" min="0" step="0.1" value="78"><span class="spill-unit">m³/s</span></div>
+                      <small>Mặc định chạy máy full khi xả tràn.</small>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="spill-subcard orange">
+                  <div class="spill-subhead">
+                    <div class="spill-subtitle">
+                      <span class="spill-subicon">⚠️</span>
+                      <div>
+                        <b>Giới hạn vận hành theo văn bản</b>
+                        <small>Ràng buộc cứng: Tổng Q xả = Q máy + Q tràn.</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="spill-form-grid">
+                    <div class="spill-field">
+                      <label>Q tràn tối thiểu khi mở</label>
+                      <div class="spill-input-wrap"><input id="spillQMin" class="spill-input" type="number" min="0" step="0.1" value="0"><span class="spill-unit">m³/s</span></div>
+                    </div>
+                    <div class="spill-field">
+                      <label>Tổng Q xả tối đa theo văn bản <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQMaxTotal" class="spill-input" type="number" min="0" step="0.1" value="350"><span class="spill-unit">m³/s</span></div>
+                    </div>
+                    <div class="spill-field">
+                      <label>Q tràn tối đa còn lại</label>
+                      <div class="spill-input-wrap"><input id="spillQSpillAvailable" class="spill-input spill-readonly" type="text" readonly value="272,0"><span class="spill-unit">m³/s</span></div>
+                    </div>
+                  </div>
+                </section>
+
+                <details class="spill-subcard violet spill-advanced">
+                  <summary>
+                    <span>🛡️ Thiết lập vận hành êm và thông số nâng cao</span>
+                    <small>Mở để điều chỉnh</small>
+                  </summary>
+                  <div class="spill-advanced-body">
+                    <div class="spill-form-grid">
+                      <div class="spill-field">
+                        <label>Mức hạ giờ đầu</label>
+                        <div class="spill-input-wrap"><input id="spillFirstHourCm" class="spill-input" type="number" min="0" max="20" step="0.1" value="2"><span class="spill-unit">cm</span></div>
+                        <small>Mặc định mở êm để hạn chế sốc hạ du.</small>
+                      </div>
+                      <div class="spill-field">
+                        <label>Tăng tổng Q tối đa mỗi giờ</label>
+                        <div class="spill-input-wrap"><input id="spillRampUp" class="spill-input" type="number" min="0" step="1" value="100"><span class="spill-unit">m³/s/h</span></div>
+                      </div>
+                      <div class="spill-field">
+                        <label>Ngưỡng giảm dần trước mục tiêu</label>
+                        <div class="spill-input-wrap"><input id="spillTaperCm" class="spill-input" type="number" min="0" step="1" value="10"><span class="spill-unit">cm</span></div>
+                      </div>
+                      <div class="spill-field"><label>Giờ bắt đầu ban ngày <small>(mặc định 06:00)</small></label><input id="spillDayStart" class="spill-input" type="time" value="06:00"></div>
+                      <div class="spill-field"><label>Giờ kết thúc ban ngày <small>(mặc định 18:00)</small></label><input id="spillDayEnd" class="spill-input" type="time" value="18:00"></div>
+                      <div class="spill-field span3"><label>Ghi chú</label><textarea id="spillNotes" class="spill-textarea" placeholder="Điều kiện hạ du, yêu cầu phối hợp, thông tin cửa van..."></textarea></div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="spill-card">
+              <div class="spill-card-head">
+                <b>Chọn cách lập phương án</b>
+                <span class="chip">3 chế độ</span>
+              </div>
+
+              <div class="spill-mode-row enhanced">
+                <label class="spill-mode-card active" for="spillModeAuto">
+                  <input id="spillModeAuto" name="spillMode" type="radio" value="AUTO" checked>
+                  <div class="spill-mode-top"><span class="spill-mode-icon">🎯</span><span class="spill-mode-check">✓</span></div>
+                  <h4>Tự tính Q ngày/đêm</h4>
+                  <p>Hệ thống tự xác định Q tràn phù hợp để đạt MNH mục tiêu đúng hạn.</p>
+                  <span class="spill-mode-tag">Khuyến nghị</span>
+                </label>
+                <label class="spill-mode-card" for="spillModeFlow">
+                  <input id="spillModeFlow" name="spillMode" type="radio" value="FLOW">
+                  <div class="spill-mode-top"><span class="spill-mode-icon">🌊</span><span class="spill-mode-check">✓</span></div>
+                  <h4>Nhập Q tràn ngày/đêm</h4>
+                  <p>Kiểm tra phương án lưu lượng do người dùng đề xuất và tính diễn biến MNH.</p>
+                </label>
+                <label class="spill-mode-card" for="spillModeLevel">
+                  <input id="spillModeLevel" name="spillMode" type="radio" value="LEVEL">
+                  <div class="spill-mode-top"><span class="spill-mode-icon">📉</span><span class="spill-mode-check">✓</span></div>
+                  <h4>Nhập mức hạ MNH</h4>
+                  <p>Nhập tốc độ hạ ngày/đêm, hệ thống tính Q tràn cần thiết theo từng giờ.</p>
+                </label>
+              </div>
+
+              <div class="spill-mode-config">
+                <div class="spill-mode-config-title" id="spillModeConfigTitle">Thông số chế độ: Tự tính Q ngày/đêm</div>
+
+                <div id="spillPanelAuto" class="spill-mode-panel active">
+                  <div class="spill-form-grid">
+                    <div class="spill-field">
+                      <label>Tỷ lệ Q tràn đêm/ngày</label>
+                      <input id="spillNightRatio" class="spill-input" type="number" min="0.1" max="1" step="0.05" value="0.70">
+                    </div>
+                    <div class="spill-field span2">
+                      <label>Nguyên tắc</label>
+                      <div class="spill-status">Giờ đầu hạ theo mức nhập; thời gian còn lại tự giải Q tràn ngày và đêm, đồng thời khống chế theo tổng Q max.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="spillPanelFlow" class="spill-mode-panel">
+                  <div class="spill-form-grid">
+                    <div class="spill-field"><label>Q tràn ban ngày</label><div class="spill-input-wrap"><input id="spillQDay" class="spill-input" type="number" min="0" step="0.1" value="250"><span class="spill-unit">m³/s</span></div></div>
+                    <div class="spill-field"><label>Q tràn ban đêm</label><div class="spill-input-wrap"><input id="spillQNight" class="spill-input" type="number" min="0" step="0.1" value="150"><span class="spill-unit">m³/s</span></div></div>
+                  </div>
+                </div>
+
+                <div id="spillPanelLevel" class="spill-mode-panel">
+                  <div class="spill-form-grid">
+                    <div class="spill-field"><label>Mức hạ ban ngày</label><div class="spill-input-wrap"><input id="spillCmDay" class="spill-input" type="number" min="0" step="0.1" value="7"><span class="spill-unit">cm/h</span></div></div>
+                    <div class="spill-field"><label>Mức hạ ban đêm</label><div class="spill-input-wrap"><input id="spillCmNight" class="spill-input" type="number" min="0" step="0.1" value="3"><span class="spill-unit">cm/h</span></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="spill-input-preview">
+                <div class="spill-input-preview-title">Kiểm tra nhanh trước khi tính</div>
+                <div id="spillInputPreview" class="spill-preview-chips"></div>
+              </div>
+
+              <div class="spill-note">Kết quả là phương án hỗ trợ tính toán. Chỉ triển khai khi có lệnh vận hành hợp lệ, đã đối chiếu số liệu thực tế và được người có thẩm quyền phê duyệt.</div>
+              <div class="spill-actions pro">
+                <button id="spillCalcBtn" class="spill-btn primary" type="button">🧮 Tính phương án</button>
+                <button id="spillResetBtn" class="spill-btn ghost" type="button">↺ Đặt lại</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="spill-card">
+            <div class="spill-card-head">
+              <b>Kết quả tổng hợp</b>
+              <div class="spill-actions" style="margin:0">
+                <button id="spillAiBtn" class="spill-btn amber" type="button" disabled>AI tóm tắt</button>
+                <button id="spillExcelBtn" class="spill-btn green" type="button" disabled>Xuất Excel</button>
+                <button id="spillPdfBtn" class="spill-btn ghost" type="button" disabled>Tải PDF</button>
+              </div>
+            </div>
+            <div id="spillSummaryStatus" class="spill-status">Nhập dữ liệu và bấm “Tính phương án”.</div>
+            <div class="spill-kpis" id="spillKpis" style="margin-top:12px"></div>
+          </div>
+
+          <div class="spill-card">
+            <div class="spill-card-head"><b>Biểu đồ diễn biến phương án</b><span class="chip">MNH và lưu lượng theo giờ</span></div>
+            <div class="spill-chart-box"><canvas id="spillPlanChart"></canvas></div>
+          </div>
+
+          <div class="spill-card">
+            <div class="spill-card-head"><b>Bảng phương án theo giờ</b><span class="chip" id="spillRowCount">0 dòng</span></div>
+            <div class="spill-table-wrap">
+              <table class="spill-table">
+                <thead><tr>
+                  <th>STT</th><th>Ngày</th><th>Khoảng giờ</th><th>MNH đầu</th><th>Mức hạ yêu cầu</th><th>MNH cuối</th>
+                  <th>Q về</th><th>Q máy</th><th>Q tràn yêu cầu</th><th>Q tràn áp dụng</th><th>Tổng Q xả</th>
+                  <th>Q max văn bản</th><th>Chênh Q max</th><th>Q ròng</th><th>Thời lượng</th><th>Trạng thái</th>
+                </tr></thead>
+                <tbody id="spillTableBody"><tr><td colspan="16">Chưa có dữ liệu tính toán.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="spill-card" id="spillAiSection">
+            <div class="spill-card-head">
+              <div>
+                <b>AI tóm tắt phương án</b>
+                <div id="spillAiStatus" class="spill-ai-status fallback" style="margin-top:7px">Chưa tạo nội dung</div>
+              </div>
+              <div class="spill-ai-toolbar">
+                <span class="chip">Văn phong nói / văn bản</span>
+                <button id="spillCopyBtn" class="spill-btn ghost spill-copy-btn" type="button" disabled>📋 Sao chép</button>
+              </div>
+            </div>
+            <div id="spillAiSummary" class="spill-ai-box">Chưa tạo nội dung tóm tắt.</div>
+          </div>
+        </section>
+      </div>
+
       <!-- TAB: Chatbox AI vận hành hồ A Vương -->
       <div id="tab-aichat" class="tab-pane">
         <section class="ai-chat-shell">
@@ -10169,6 +10623,10 @@ body.slideshow-frame-mode section{
 <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
 
 <script>
   // --- HELPERS ---
@@ -17664,6 +18122,2453 @@ function renderAllPctt(){
 
   document.addEventListener("fullscreenchange", onFullscreenChange);
   document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+})();
+</script>
+
+
+<script>
+(function(){
+  "use strict";
+
+  const RESERVOIR_ID = "5c78601c-017e-4f85-b423-245a00abe795";
+  const state = {curve:[], plan:null, chart:null};
+
+  const el = id => document.getElementById(id);
+  const num = (id, fallback=0) => {
+    const v = Number(el(id)?.value);
+    return Number.isFinite(v) ? v : fallback;
+  };
+  const fmt = (v,d=2) => Number(v).toLocaleString("vi-VN",{minimumFractionDigits:d,maximumFractionDigits:d});
+  const pad = n => String(n).padStart(2,"0");
+  const localInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const dateVN = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+  const timeVN = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const cloneDate = d => new Date(d.getTime());
+
+  function setDefaultTimes(){
+    const start = new Date();
+    start.setMinutes(0,0,0);
+    start.setHours(start.getHours()+1);
+    const end = new Date(start.getTime()+24*3600000);
+    if(el("spillStartTime")) el("spillStartTime").value = localInput(start);
+    if(el("spillEndTime")) el("spillEndTime").value = localInput(end);
+  }
+
+  function selectedMode(){
+    return document.querySelector('input[name="spillMode"]:checked')?.value || "AUTO";
+  }
+
+  function showMode(){
+    const mode = selectedMode();
+    ["Auto","Flow","Level"].forEach(x=>el("spillPanel"+x)?.classList.remove("active"));
+    el("spillPanel"+(mode==="AUTO"?"Auto":mode==="FLOW"?"Flow":"Level"))?.classList.add("active");
+    document.querySelectorAll(".spill-mode-card").forEach(card=>card.classList.remove("active"));
+    document.querySelector(`.spill-mode-card[for="${mode==="AUTO"?"spillModeAuto":mode==="FLOW"?"spillModeFlow":"spillModeLevel"}"]`)?.classList.add("active");
+    const titles={
+      AUTO:"Thông số chế độ: Tự tính Q ngày/đêm",
+      FLOW:"Thông số chế độ: Nhập Q tràn ngày/đêm",
+      LEVEL:"Thông số chế độ: Nhập mức hạ MNH ngày/đêm"
+    };
+    if(el("spillModeConfigTitle")) el("spillModeConfigTitle").textContent=titles[mode];
+    updateInputPreview();
+  }
+
+  async function loadCurve(){
+    const badge = el("spillCurveStatus");
+    if(badge) badge.textContent = "Đang tải đường cong MNH – dung tích...";
+    try{
+      if(!window.sb && typeof sb === "undefined") throw new Error("Supabase chưa khởi tạo");
+      const client = (typeof sb !== "undefined" && sb) ? sb : window.sb;
+      if(!client) throw new Error("Không tìm thấy Supabase client");
+      const {data,error} = await client
+        .from("water_level_capacity")
+        .select("water_level,storage_volume")
+        .eq("reservoir_id",RESERVOIR_ID)
+        .order("water_level",{ascending:true});
+      if(error) throw error;
+      const rows=(data||[]).map(r=>({h:Number(r.water_level),v:Number(r.storage_volume)}))
+        .filter(r=>Number.isFinite(r.h)&&Number.isFinite(r.v))
+        .sort((a,b)=>a.h-b.h);
+      if(rows.length<2) throw new Error("Bảng không đủ dữ liệu");
+      state.curve=rows;
+      if(badge){badge.textContent=`Đã tải ${rows.length} điểm (${fmt(rows[0].h,2)}–${fmt(rows.at(-1).h,2)} m)`;badge.style.background="#ecfdf5";badge.style.color="#047857";}
+      return true;
+    }catch(err){
+      console.error("Load water_level_capacity:",err);
+      state.curve = [
+        {h:340,v:77.07},{h:369.5,v:254.94},{h:370,v:258.72},{h:371,v:266.90},
+        {h:372,v:275.08},{h:373,v:283.27},{h:374,v:291.45},{h:375,v:299.63},
+        {h:376,v:308.41},{h:377,v:317.20},{h:378,v:325.98},{h:379,v:334.77},{h:380,v:343.55}
+      ];
+      if(badge){badge.textContent="Đang dùng đường cong dự phòng – cần kiểm tra kết nối Supabase";badge.style.background="#fff7ed";badge.style.color="#b45309";}
+      return false;
+    }
+  }
+
+  function interpolateVolume(level){
+    const c=state.curve;
+    if(!c.length) throw new Error("Chưa có đường cong MNH – dung tích");
+    if(level<c[0].h-1e-9 || level>c[c.length-1].h+1e-9) throw new Error(`MNH ${level} m nằm ngoài miền ${c[0].h}–${c[c.length-1].h} m`);
+    if(level<=c[0].h) return c[0].v;
+    if(level>=c[c.length-1].h) return c[c.length-1].v;
+    let lo=0,hi=c.length-1;
+    while(hi-lo>1){const mid=(lo+hi)>>1;if(c[mid].h<=level)lo=mid;else hi=mid;}
+    const a=c[lo],b=c[hi],t=(level-a.h)/(b.h-a.h);
+    return a.v+t*(b.v-a.v);
+  }
+
+  function interpolateLevel(volume){
+    const c=state.curve;
+    if(volume<=c[0].v) return c[0].h;
+    if(volume>=c[c.length-1].v) return c[c.length-1].h;
+    let lo=0,hi=c.length-1;
+    while(hi-lo>1){const mid=(lo+hi)>>1;if(c[mid].v<=volume)lo=mid;else hi=mid;}
+    const a=c[lo],b=c[hi],t=(volume-a.v)/(b.v-a.v);
+    return a.h+t*(b.h-a.h);
+  }
+
+  function minutesOfDay(d){return d.getHours()*60+d.getMinutes();}
+  function parseHm(s){const [h,m]=(s||"0:0").split(":").map(Number);return h*60+m;}
+  function isDay(d,start,end){
+    const x=minutesOfDay(d),a=parseHm(start),b=parseHm(end);
+    return a<b ? x>=a&&x<b : x>=a||x<b;
+  }
+
+  /*
+    Chia chính xác một khoảng thời gian thành phần ban ngày và ban đêm.
+    Không dùng giờ bắt đầu để đại diện cho cả khoảng vì sẽ sai khi khoảng
+    cắt qua 06:00 hoặc 18:00, đặc biệt khi phương án kéo dài sang ngày sau.
+  */
+  function splitDayNightHours(start,end,dayStart,dayEnd){
+    let cursor=new Date(start);
+    let dayHours=0;
+    let nightHours=0;
+
+    while(cursor<end){
+      const next=new Date(
+        Math.min(
+          cursor.getTime()+60000,
+          end.getTime()
+        )
+      );
+
+      const middle=new Date(
+        (
+          cursor.getTime()+
+          next.getTime()
+        )/2
+      );
+
+      const hours=
+        (
+          next.getTime()-
+          cursor.getTime()
+        )/3600000;
+
+      if(isDay(middle,dayStart,dayEnd)){
+        dayHours+=hours;
+      }else{
+        nightHours+=hours;
+      }
+
+      cursor=next;
+    }
+
+    return {
+      dayHours,
+      nightHours,
+      totalHours:dayHours+nightHours,
+      type:
+        dayHours>0&&nightHours>0
+          ?"MIXED"
+          :dayHours>0
+            ?"DAY"
+            :"NIGHT"
+    };
+  }
+
+  function intervals(start,end){
+    const rows=[]; let t=cloneDate(start);
+    while(t<end && rows.length<2000){
+      const n=new Date(Math.min(t.getTime()+3600000,end.getTime()));
+      rows.push({start:cloneDate(t),end:cloneDate(n),hours:(n-t)/3600000});
+      t=n;
+    }
+    return rows;
+  }
+
+  function updateInputPreview(){
+    const h0=num("spillLevelStart"),h1=num("spillLevelTarget",370);
+    const qIn=num("spillQIn"),qM=num("spillQMachine",78),qMax=num("spillQMaxTotal",350);
+    const start=el("spillStartTime")?.value?new Date(el("spillStartTime").value):null;
+    const end=el("spillEndTime")?.value?new Date(el("spillEndTime").value):null;
+    const spillAvailable=Math.max(0,qMax-qM);
+
+    if(el("spillQSpillAvailable")) el("spillQSpillAvailable").value=fmt(spillAvailable,1);
+    if(el("spillLevelDelta")){
+      const d=h0-h1;
+      el("spillLevelDelta").textContent=d>0?`Cần hạ: ${fmt(d,2)} m`:"MNH mục tiêu phải thấp hơn MNH hiện tại";
+      el("spillLevelDelta").style.color=d>0?"#1d4ed8":"#dc2626";
+    }
+
+    const preview=el("spillInputPreview");
+    if(!preview) return;
+    const parts=[
+      {t:`${fmt(h0,2)} m → ${fmt(h1,2)} m`,c:"strong"},
+      {t:start&&Number.isFinite(start.getTime())?`${timeVN(start)} ${dateVN(start)}`:"Chưa chọn giờ bắt đầu",c:""},
+      {t:end&&Number.isFinite(end.getTime())?`Hạn ${timeVN(end)} ${dateVN(end)}`:"Chưa chọn hạn",c:""},
+      {t:`Q về ${fmt(qIn,1)} m³/s`,c:""},
+      {t:`Q máy ${fmt(qM,1)} m³/s`,c:""},
+      {t:`Q max ${fmt(qMax,1)} m³/s`,c:"warn"},
+      {t:`Q tràn còn lại ${fmt(spillAvailable,1)} m³/s`,c:""}
+    ];
+    preview.innerHTML=parts.map(p=>`<span class="spill-preview-chip ${p.c}">${p.t}</span>`).join("");
+  }
+
+  function readInputs(){
+    const start=new Date(el("spillStartTime").value);
+    const end=new Date(el("spillEndTime").value);
+    return {
+      orderNo:el("spillOrderNo").value.trim(),
+      preparedBy:el("spillPreparedBy").value.trim(),
+      notes:el("spillNotes").value.trim(),
+      hStart:num("spillLevelStart"),hTarget:num("spillLevelTarget",370),
+      qIn:num("spillQIn"),qMachine:num("spillQMachine",78),qMin:num("spillQMin"),
+      qMaxTotal:num("spillQMaxTotal",350),firstCm:num("spillFirstHourCm",2),
+      rampUp:num("spillRampUp",100),taperCm:num("spillTaperCm",10),
+      dayStart:el("spillDayStart").value||"06:00",dayEnd:el("spillDayEnd").value||"18:00",
+      start,end,mode:selectedMode(),nightRatio:num("spillNightRatio",.7),
+      qDay:num("spillQDay"),qNight:num("spillQNight"),cmDay:num("spillCmDay"),cmNight:num("spillCmNight")
+    };
+  }
+
+  function validate(x){
+    const errors=[];
+    if(!Number.isFinite(x.start.getTime())||!Number.isFinite(x.end.getTime())) errors.push("Thời gian bắt đầu/kết thúc không hợp lệ.");
+    if(x.end<=x.start) errors.push("Thời điểm hoàn thành phải sau thời gian bắt đầu.");
+    if(x.hStart<=x.hTarget) errors.push("MNH hiện tại phải cao hơn MNH mục tiêu.");
+    if(x.qMaxTotal<=0) errors.push("Tổng Q xả tối đa theo văn bản phải lớn hơn 0.");
+    if(x.qMachine>x.qMaxTotal) errors.push("Q máy đang lớn hơn tổng Q max theo văn bản.");
+    [x.qIn,x.qMachine,x.qMin,x.firstCm,x.rampUp].forEach(v=>{if(v<0)errors.push("Các thông số lưu lượng và mức hạ không được âm.");});
+    try{interpolateVolume(x.hStart);interpolateVolume(x.hTarget);}catch(e){errors.push(e.message);}
+    return [...new Set(errors)];
+  }
+
+  function exactRequiredTotalQ(h0,h1,qIn,hours){
+    const v0=interpolateVolume(h0),v1=interpolateVolume(h1);
+    return qIn + ((v0-v1)*1e6)/(hours*3600);
+  }
+
+  function solveAuto(x,ints){
+    const first=ints[0];
+    const firstTarget=Math.max(x.hTarget,x.hStart-x.firstCm/100);
+    const firstTotal=exactRequiredTotalQ(x.hStart,firstTarget,x.qIn,first.hours);
+    const firstSpill=Math.max(0,firstTotal-x.qMachine);
+    const vAfterFirst=interpolateVolume(firstTarget);
+    const vTarget=interpolateVolume(x.hTarget);
+    const remainingM3=Math.max(0,(vAfterFirst-vTarget)*1e6);
+    let dayH=0,nightH=0;
+
+    ints.slice(1).forEach(it=>{
+      const split=splitDayNightHours(
+        it.start,
+        it.end,
+        x.dayStart,
+        x.dayEnd
+      );
+
+      dayH+=split.dayHours;
+      nightH+=split.nightHours;
+    });
+
+    const denom=dayH+x.nightRatio*nightH;
+    let qDay=0;
+    if(denom>0){
+      qDay=(remainingM3/3600 + (x.qIn-x.qMachine)*(dayH+nightH))/denom;
+      qDay=Math.max(0,qDay);
+    }
+    return {firstSpill,qDay,qNight:qDay*x.nightRatio};
+  }
+
+  function calculate(){
+    const x=readInputs(),errors=validate(x);
+    if(errors.length){
+      renderError(errors.join(" "));
+      return;
+    }
+
+    const ints=intervals(x.start,x.end);
+    if(!ints.length){
+      renderError("Khoảng thời gian không có dữ liệu.");
+      return;
+    }
+
+    const auto=x.mode==="AUTO"
+      ?solveAuto(x,ints)
+      :null;
+
+    const qSpillMax=Math.max(
+      0,
+      x.qMaxTotal-x.qMachine
+    );
+
+    const targetVol=interpolateVolume(
+      x.hTarget
+    );
+
+    let h=x.hStart;
+    let vol=interpolateVolume(h);
+    let prevTotal=x.qMachine;
+
+    const rows=[];
+    const warnings=[];
+
+    let reached=false;
+    let finishTime=null;
+    let maintenancePossible=true;
+    let maintenanceWarningAdded=false;
+
+    function appendRow({
+      start,
+      end,
+      hStart,
+      hEnd,
+      desiredDropCm,
+      qSpillRequested,
+      qSpillApplied,
+      qTotal,
+      net,
+      method,
+      flags,
+      status
+    }){
+      const split=splitDayNightHours(
+        start,
+        end,
+        x.dayStart,
+        x.dayEnd
+      );
+
+      const hours=
+        (
+          end.getTime()-
+          start.getTime()
+        )/3600000;
+
+      rows.push({
+        index:rows.length+1,
+        date:dateVN(start),
+        period:
+          `${timeVN(start)}–${timeVN(end)}`,
+        start,
+        end,
+        hStart,
+        hEnd,
+        desiredDropCm,
+        actualDropCm:
+          (hStart-hEnd)*100,
+        qIn:x.qIn,
+        qMachine:x.qMachine,
+        qSpillRequested,
+        qSpillApplied,
+        qTotal,
+        qMax:x.qMaxTotal,
+        margin:
+          x.qMaxTotal-qTotal,
+        net,
+        hours,
+        minutes:
+          Math.round(hours*60),
+        day:
+          split.type==="DAY",
+        dayHours:
+          split.dayHours,
+        nightHours:
+          split.nightHours,
+        periodType:
+          split.type,
+        method,
+        flags,
+        status
+      });
+    }
+
+    function appendMaintenance(
+      start,
+      end
+    ){
+      const hours=
+        (
+          end.getTime()-
+          start.getTime()
+        )/3600000;
+
+      if(hours<=1e-8){
+        return;
+      }
+
+      const hStart=h;
+      const flags=[];
+
+      /*
+        Muốn giữ MNH không đổi thì tổng Q ra phải bằng Q về.
+        Với Q máy cố định:
+        Q tràn duy trì = max(0, Q về - Q máy).
+      */
+      const requestedSpill=Math.max(
+        0,
+        x.qIn-x.qMachine
+      );
+
+      const requestedTotal=
+        x.qMachine+
+        requestedSpill;
+
+      let appliedTotal=Math.min(
+        requestedTotal,
+        x.qMaxTotal
+      );
+
+      let appliedSpill=Math.max(
+        0,
+        appliedTotal-x.qMachine
+      );
+
+      let status=
+        "DUY TRÌ MỤC TIÊU";
+
+      if(
+        x.qMachine>x.qIn+1e-6
+      ){
+        maintenancePossible=false;
+        status="KHÔNG THỂ DUY TRÌ";
+        flags.push(
+          "Q máy lớn hơn Q về; hồ tiếp tục giảm dù Q tràn bằng 0"
+        );
+      }
+
+      if(
+        x.qIn>x.qMaxTotal+1e-6
+      ){
+        maintenancePossible=false;
+        status="KHÔNG THỂ DUY TRÌ";
+        flags.push(
+          "Q về lớn hơn tổng Q max; hồ có xu hướng tăng trở lại"
+        );
+      }
+
+      if(
+        appliedSpill>0&&
+        appliedSpill<x.qMin-1e-6
+      ){
+        /*
+          Không tự nâng lên Q min trong giai đoạn duy trì vì làm như vậy
+          có thể khiến hồ xuống dưới MNH mục tiêu. Chỉ cảnh báo để người
+          vận hành xem xét giới hạn thiết bị/thực tế.
+        */
+        flags.push(
+          "Q tràn duy trì nhỏ hơn Q tràn tối thiểu đã nhập"
+        );
+      }
+
+      const net=
+        appliedTotal-x.qIn;
+
+      const newVol=
+        vol-
+        (
+          net*
+          hours*
+          3600
+        )/1e6;
+
+      const hEnd=
+        Math.abs(net)<=1e-8
+          ?x.hTarget
+          :interpolateLevel(newVol);
+
+      if(
+        Math.abs(hEnd-x.hTarget)>0.0005
+      ){
+        maintenancePossible=false;
+        status="KHÔNG THỂ DUY TRÌ";
+      }
+
+      appendRow({
+        start,
+        end,
+        hStart,
+        hEnd,
+        desiredDropCm:0,
+        qSpillRequested:
+          requestedSpill,
+        qSpillApplied:
+          appliedSpill,
+        qTotal:
+          appliedTotal,
+        net,
+        method:
+          "Duy trì MNH mục tiêu",
+        flags,
+        status
+      });
+
+      h=hEnd;
+      vol=newVol;
+      prevTotal=appliedTotal;
+
+      if(
+        !maintenancePossible&&
+        !maintenanceWarningAdded
+      ){
+        warnings.push(
+          "Sau khi đạt mục tiêu, điều kiện Q về/Q máy/Q max hiện tại không cho phép duy trì chính xác MNH mục tiêu đến hết thời hạn."
+        );
+
+        maintenanceWarningAdded=true;
+      }
+    }
+
+    for(
+      let i=0;
+      i<ints.length;
+      i++
+    ){
+      const it=ints[i];
+
+      /*
+        Sau khi đạt mục tiêu, không dừng vòng lặp.
+        Tiếp tục mô phỏng chế độ duy trì đến đúng hạn người dùng nhập.
+      */
+      if(reached){
+        appendMaintenance(
+          it.start,
+          it.end
+        );
+
+        continue;
+      }
+
+      const split=splitDayNightHours(
+        it.start,
+        it.end,
+        x.dayStart,
+        x.dayEnd
+      );
+
+      const remainingCm=Math.max(
+        0,
+        (h-x.hTarget)*100
+      );
+
+      let desiredDropCm=0;
+      let requestedSpill=0;
+      let method="";
+
+      if(
+        i===0&&
+        x.firstCm>0
+      ){
+        desiredDropCm=Math.min(
+          x.firstCm,
+          remainingCm
+        );
+
+        const desiredH=Math.max(
+          x.hTarget,
+          h-desiredDropCm/100
+        );
+
+        requestedSpill=Math.max(
+          0,
+          exactRequiredTotalQ(
+            h,
+            desiredH,
+            x.qIn,
+            it.hours
+          )-x.qMachine
+        );
+
+        method="Khởi động êm";
+      }else if(
+        x.mode==="LEVEL"
+      ){
+        const weightedDrop=
+          x.cmDay*
+          split.dayHours+
+          x.cmNight*
+          split.nightHours;
+
+        desiredDropCm=Math.min(
+          weightedDrop,
+          remainingCm
+        );
+
+        if(
+          remainingCm<=x.taperCm
+        ){
+          desiredDropCm=Math.min(
+            desiredDropCm,
+            remainingCm
+          );
+        }
+
+        const desiredH=Math.max(
+          x.hTarget,
+          h-desiredDropCm/100
+        );
+
+        requestedSpill=Math.max(
+          0,
+          exactRequiredTotalQ(
+            h,
+            desiredH,
+            x.qIn,
+            it.hours
+          )-x.qMachine
+        );
+
+        method=
+          split.type==="MIXED"
+            ?"Hạ MNH chuyển tiếp ngày/đêm"
+            :split.type==="DAY"
+              ?"Hạ MNH ban ngày"
+              :"Hạ MNH ban đêm";
+      }else if(
+        x.mode==="FLOW"
+      ){
+        requestedSpill=
+          split.totalHours>0
+            ?(
+                x.qDay*
+                split.dayHours+
+                x.qNight*
+                split.nightHours
+              )/
+              split.totalHours
+            :0;
+
+        method=
+          split.type==="MIXED"
+            ?"Q tràn chuyển tiếp ngày/đêm"
+            :split.type==="DAY"
+              ?"Q tràn ban ngày"
+              :"Q tràn ban đêm";
+      }else{
+        requestedSpill=
+          i===0
+            ?auto.firstSpill
+            :split.totalHours>0
+              ?(
+                  auto.qDay*
+                  split.dayHours+
+                  auto.qNight*
+                  split.nightHours
+                )/
+                split.totalHours
+              :0;
+
+        method=
+          i===0
+            ?"Khởi động êm"
+            :split.type==="MIXED"
+              ?"Tự tính chuyển tiếp ngày/đêm"
+              :split.type==="DAY"
+                ?"Tự tính ban ngày"
+                :"Tự tính ban đêm";
+      }
+
+      const requestedTotal=
+        x.qMachine+
+        requestedSpill;
+
+      let appliedTotal=Math.min(
+        requestedTotal,
+        x.qMaxTotal
+      );
+
+      if(
+        x.rampUp>0
+      ){
+        appliedTotal=Math.min(
+          appliedTotal,
+          prevTotal+x.rampUp
+        );
+      }
+
+      let appliedSpill=Math.max(
+        0,
+        appliedTotal-x.qMachine
+      );
+
+      const flags=[];
+
+      if(
+        requestedTotal>
+        x.qMaxTotal+1e-6
+      ){
+        flags.push(
+          `Nhu cầu vượt Q max ${
+            fmt(
+              requestedTotal-
+              x.qMaxTotal,
+              1
+            )
+          } m³/s`
+        );
+      }
+
+      if(
+        appliedTotal<
+        requestedTotal-1e-6&&
+        x.rampUp>0&&
+        !(
+          appliedTotal>=
+          x.qMaxTotal-1e-6
+        )
+      ){
+        flags.push(
+          "Đã khống chế tốc độ tăng Q"
+        );
+      }
+
+      if(
+        appliedSpill>0&&
+        appliedSpill<
+        x.qMin-1e-6
+      ){
+        appliedSpill=x.qMin;
+        appliedTotal=
+          x.qMachine+
+          appliedSpill;
+
+        if(
+          appliedTotal>
+          x.qMaxTotal
+        ){
+          appliedTotal=
+            x.qMaxTotal;
+
+          appliedSpill=
+            qSpillMax;
+        }
+
+        flags.push(
+          "Q tràn yêu cầu thấp hơn Q min"
+        );
+      }
+
+      const net=
+        appliedTotal-
+        x.qIn;
+
+      let newVol=
+        vol-
+        (
+          net*
+          it.hours*
+          3600
+        )/1e6;
+
+      /*
+        Khi khoảng này chạm mục tiêu, chia thành:
+        1) phần hạ MNH đến đúng mục tiêu;
+        2) phần còn lại của khoảng dùng để duy trì mục tiêu.
+      */
+      if(
+        net>0&&
+        newVol<=targetVol
+      ){
+        const needM3=
+          Math.max(
+            0,
+            (vol-targetVol)*1e6
+          );
+
+        const activeHours=
+          needM3/
+          (
+            net*
+            3600
+          );
+
+        const reachEnd=
+          new Date(
+            it.start.getTime()+
+            activeHours*
+            3600000
+          );
+
+        finishTime=
+          reachEnd;
+
+        reached=true;
+
+        const hStart=h;
+
+        flags.push(
+          "Đạt MNH mục tiêu"
+        );
+
+        if(
+          activeHours>1e-8
+        ){
+          appendRow({
+            start:
+              it.start,
+            end:
+              reachEnd,
+            hStart,
+            hEnd:
+              x.hTarget,
+            desiredDropCm,
+            qSpillRequested:
+              requestedSpill,
+            qSpillApplied:
+              appliedSpill,
+            qTotal:
+              appliedTotal,
+            net,
+            method,
+            flags,
+            status:
+              "ĐẠT MỤC TIÊU"
+          });
+        }
+
+        h=x.hTarget;
+        vol=targetVol;
+        prevTotal=
+          appliedTotal;
+
+        if(
+          reachEnd<
+          it.end
+        ){
+          appendMaintenance(
+            reachEnd,
+            it.end
+          );
+        }
+
+        continue;
+      }
+
+      const hEnd=
+        interpolateLevel(
+          newVol
+        );
+
+      const margin=
+        x.qMaxTotal-
+        appliedTotal;
+
+      const status=
+        flags.some(
+          flag=>
+            flag.includes("vượt")
+        )
+          ?"CẢNH BÁO"
+          :margin<=
+            x.qMaxTotal*.1
+            ?"CẬN GIỚI HẠN"
+            :"HỢP LỆ";
+
+      appendRow({
+        start:
+          it.start,
+        end:
+          it.end,
+        hStart:
+          h,
+        hEnd,
+        desiredDropCm,
+        qSpillRequested:
+          requestedSpill,
+        qSpillApplied:
+          appliedSpill,
+        qTotal:
+          appliedTotal,
+        net,
+        method,
+        flags,
+        status
+      });
+
+      h=hEnd;
+      vol=newVol;
+      prevTotal=
+        appliedTotal;
+    }
+
+    const maintainedToDeadline=
+      reached&&
+      maintenancePossible&&
+      Math.abs(
+        h-x.hTarget
+      )<=0.0005;
+
+    const feasible=
+      reached&&
+      finishTime<=x.end&&
+      maintainedToDeadline;
+
+    if(!reached){
+      warnings.push(
+        `Đến thời hạn, MNH dự kiến còn ${
+          fmt(h,2)
+        } m, cao hơn mục tiêu ${
+          fmt(
+            (h-x.hTarget)*100,
+            1
+          )
+        } cm.`
+      );
+    }
+
+    const exceedHours=
+      rows.filter(
+        row=>
+          row.qSpillRequested+
+          row.qMachine>
+          x.qMaxTotal+1e-6
+      ).length;
+
+    const nearHours=
+      rows.filter(
+        row=>
+          row.margin>=-1e-6&&
+          row.margin<=
+          x.qMaxTotal*.1
+      ).length;
+
+    if(exceedHours){
+      warnings.push(
+        `${exceedHours} khoảng giờ có nhu cầu tính toán vượt tổng Q max theo văn bản.`
+      );
+    }
+
+    const maxReq=Math.max(
+      ...rows.map(
+        row=>
+          row.qSpillRequested+
+          row.qMachine
+      ),
+      0
+    );
+
+    const maxApplied=Math.max(
+      ...rows.map(
+        row=>
+          row.qTotal
+      ),
+      0
+    );
+
+    const totalDayHours=
+      rows.reduce(
+        (sum,row)=>
+          sum+
+          (
+            row.dayHours||
+            0
+          ),
+        0
+      );
+
+    const totalNightHours=
+      rows.reduce(
+        (sum,row)=>
+          sum+
+          (
+            row.nightHours||
+            0
+          ),
+        0
+      );
+
+    const avgDay=
+      totalDayHours>0
+        ?rows.reduce(
+            (sum,row)=>
+              sum+
+              row.qSpillApplied*
+              (
+                row.dayHours||
+                0
+              ),
+            0
+          )/
+          totalDayHours
+        :0;
+
+    const avgNight=
+      totalNightHours>0
+        ?rows.reduce(
+            (sum,row)=>
+              sum+
+              row.qSpillApplied*
+              (
+                row.nightHours||
+                0
+              ),
+            0
+          )/
+          totalNightHours
+        :0;
+
+    const maintenanceRows=
+      rows.filter(
+        row=>
+          row.method===
+          "Duy trì MNH mục tiêu"
+      );
+
+    const maintenanceSpill=
+      maintenanceRows.length
+        ?maintenanceRows.reduce(
+            (sum,row)=>
+              sum+
+              row.qSpillApplied*
+              row.hours,
+            0
+          )/
+          maintenanceRows.reduce(
+            (sum,row)=>
+              sum+
+              row.hours,
+            0
+          )
+        :0;
+
+    state.plan={
+      input:x,
+      rows,
+      feasible,
+      reached,
+      finishTime,
+      finalLevel:h,
+      warnings,
+      exceedHours,
+      nearHours,
+      maxReq,
+      maxApplied,
+      avgDay,
+      avgNight,
+      maintainedToDeadline,
+      maintenancePossible,
+      maintenanceSpill,
+      maintenanceHours:
+        maintenanceRows.reduce(
+          (sum,row)=>
+            sum+
+            row.hours,
+          0
+        ),
+      startVol:
+        interpolateVolume(
+          x.hStart
+        ),
+      targetVol:
+        interpolateVolume(
+          x.hTarget
+        ),
+      volumeToLower:
+        interpolateVolume(
+          x.hStart
+        )-
+        interpolateVolume(
+          x.hTarget
+        ),
+      auto
+    };
+
+    renderPlan();
+  }
+
+  function avg(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0;}
+
+  function renderError(message){
+    const s=el("spillSummaryStatus");s.className="spill-status bad";s.textContent=message;
+    ["spillAiBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>el(id).disabled=true);
+  }
+
+  function renderPlan(){
+    const p=state.plan,x=p.input;
+    const status=el("spillSummaryStatus");
+    status.className="spill-status "+(p.feasible&&p.exceedHours===0?"ok":p.reached?"warn":"bad");
+    status.textContent=p.feasible
+      ? `Phương án đạt MNH ${fmt(x.hTarget,2)} m lúc ${dateVN(p.finishTime)} ${timeVN(p.finishTime)}.${p.exceedHours?` Tuy nhiên có ${p.exceedHours} giờ nhu cầu vượt Q max và đã bị khống chế.`:" Tổng Q áp dụng không vượt giới hạn văn bản."}`
+      : `Phương án chưa đạt mục tiêu đúng hạn. MNH cuối kỳ dự kiến ${fmt(p.finalLevel,2)} m. ${p.warnings.join(" ")}`;
+
+    const kpis=[
+      ["Thể tích cần hạ",fmt(p.volumeToLower,2),"triệu m³",""],
+      ["Thời gian lệnh",fmt((x.end-x.start)/3600000,1),"giờ",""],
+      ["Q tràn TB ngày",fmt(p.avgDay,1),"m³/s",""],
+      ["Q tràn TB đêm",fmt(p.avgNight,1),"m³/s",""],
+      ["Tổng Q lớn nhất áp dụng",fmt(p.maxApplied,1),`/ ${fmt(x.qMaxTotal,1)} m³/s`,p.maxApplied>x.qMaxTotal?"bad":p.maxApplied>=x.qMaxTotal*.9?"warn":"ok"],
+      ["Q tràn tối đa còn lại",fmt(Math.max(0,x.qMaxTotal-x.qMachine),1),"m³/s",""],
+      ["Thời điểm đạt mục tiêu",p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt","",p.finishTime?"ok":"bad"],
+      ["Kết luận",p.feasible?"ĐẠT":"CHƯA ĐẠT","theo thời hạn đã nhập",p.feasible?"ok":"bad"]
+    ];
+    el("spillKpis").innerHTML=kpis.map(k=>`<div class="spill-kpi ${k[3]}"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join("");
+
+    el("spillTableBody").innerHTML=p.rows.map(r=>{
+      const cls=r.status==="ĐẠT MỤC TIÊU"?"spill-row-target":r.flags.some(f=>f.includes("vượt"))?"spill-row-over":r.index===1?"spill-row-start":r.margin<=r.qMax*.1?"spill-row-near":"";
+      const chip=r.status==="ĐẠT MỤC TIÊU"?"info":r.flags.some(f=>f.includes("vượt"))?"bad":r.margin<=r.qMax*.1?"warn":"ok";
+      return `<tr class="${cls}">
+        <td>${r.index}</td><td>${r.date}</td><td>${r.period}</td><td>${fmt(r.hStart,2)}</td>
+        <td>${r.desiredDropCm?fmt(r.desiredDropCm,1)+" cm":"—"}</td><td>${fmt(r.hEnd,2)}</td>
+        <td>${fmt(r.qIn,1)}</td><td>${fmt(r.qMachine,1)}</td><td>${fmt(r.qSpillRequested,1)}</td>
+        <td>${fmt(r.qSpillApplied,1)}</td><td>${fmt(r.qTotal,1)}</td><td>${fmt(r.qMax,1)}</td>
+        <td>${fmt(r.margin,1)}</td><td>${fmt(r.net,1)}</td><td>${r.minutes} phút</td>
+        <td><span class="spill-chip ${chip}" title="${r.flags.join("; ")}">${r.status}</span></td></tr>`;
+    }).join("");
+    el("spillRowCount").textContent=`${p.rows.length} dòng`;
+    ["spillAiBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>el(id).disabled=false); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
+    renderChart();
+  }
+
+  function renderChart(){
+    const p=state.plan;
+    if(state.chart) state.chart.destroy();
+    const ctx=el("spillPlanChart");
+    state.chart=new Chart(ctx,{
+      type:"line",
+      data:{
+        labels:p.rows.map(r=>`${r.date} ${r.period.split("–")[1]}`),
+        datasets:[
+          {label:"MNH cuối giờ (m)",data:p.rows.map(r=>r.hEnd),yAxisID:"y",borderWidth:3,tension:.25,pointRadius:2},
+          {label:"Tổng Q xả (m³/s)",data:p.rows.map(r=>r.qTotal),yAxisID:"y1",borderWidth:2,tension:.2,pointRadius:1},
+          {label:"Q max văn bản",data:p.rows.map(r=>r.qMax),yAxisID:"y1",borderWidth:2,borderDash:[7,5],pointRadius:0}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+        scales:{y:{position:"left",title:{display:true,text:"MNH (m)"}},y1:{position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"Lưu lượng (m³/s)"}}},
+        plugins:{legend:{position:"top"}}
+      }
+    });
+  }
+
+  function buildLocalSummary(){
+    const p=state.plan,x=p.input;
+    const mode=x.mode==="AUTO"?"tự tính Q ngày/đêm theo thời hạn":x.mode==="FLOW"?"nhập Q tràn ngày/đêm":"nhập mức hạ MNH ngày/đêm";
+    const finish=p.finishTime?`${timeVN(p.finishTime)} ngày ${dateVN(p.finishTime)}`:"chưa đạt trong thời hạn";
+    const deadline=`${timeVN(x.end)} ngày ${dateVN(x.end)}`;
+    const maintainText=p.reached
+      ?p.maintainedToDeadline
+        ?`Sau khi đạt mục tiêu, phương án chuyển sang duy trì MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}, với Q tràn duy trì trung bình khoảng ${fmt(p.maintenanceSpill,1)} m³/s.`
+        :`Sau khi đạt mục tiêu, điều kiện Q về/Q máy/Q max hiện tại chưa cho phép duy trì chính xác MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}.`
+      :"";
+    return `TÓM TẮT PHƯƠNG ÁN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
+  }
+
+  function jsonpAi(payload){
+    return new Promise((resolve,reject)=>{
+      const endpoint=String(window.AVUONG_AI_WEBAPP_URL||"").trim();
+      if(!endpoint) return reject(new Error("Chưa cấu hình Web App AI"));
+      const cb="__spillAi_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+      const script=document.createElement("script");
+      const timer=setTimeout(()=>{cleanup();reject(new Error("Quá thời gian chờ AI"));},45000);
+      function cleanup(){clearTimeout(timer);delete window[cb];script.remove();}
+      window[cb]=data=>{cleanup();resolve(data);};
+      script.onerror=()=>{cleanup();reject(new Error("Không kết nối được AI"));};
+      script.src=endpoint+(endpoint.includes("?")?"&":"?")+"api=chat&callback="+encodeURIComponent(cb)+"&payload="+encodeURIComponent(JSON.stringify(payload))+"&_="+Date.now();
+      document.head.appendChild(script);
+    });
+  }
+
+  async function aiSummary(){
+    if(!state.plan)return;
+    const box=el("spillAiSummary");
+    const status=el("spillAiStatus");
+    const btn=el("spillAiBtn");
+    box.textContent="AI đang tóm tắt phương án...";
+    if(status){status.className="spill-ai-status";status.textContent="Đang kết nối AI...";}
+    if(btn) btn.disabled=true;
+
+    const p=state.plan,x=p.input;
+    const compact=p.rows.map(r=>({
+      time:`${r.date} ${r.period}`,
+      h0:+r.hStart.toFixed(2),h1:+r.hEnd.toFixed(2),
+      qIn:+r.qIn.toFixed(1),qMachine:+r.qMachine.toFixed(1),
+      qSpill:+r.qSpillApplied.toFixed(1),qTotal:+r.qTotal.toFixed(1),
+      qMax:+r.qMax.toFixed(1),status:r.status
+    }));
+
+    const prompt=`Bạn là trợ lý kỹ thuật hồ A Vương. Hãy diễn giải KẾT QUẢ ĐÃ ĐƯỢC ENGINE TÍNH TOÁN thành đúng 2 phần có tiêu đề:
+1. VĂN PHONG NÓI DÙNG TRONG GIAO BAN
+2. VĂN BẢN PHƯƠNG ÁN
+Không tự tính lại, không thay đổi bất kỳ số liệu nào, không phát lệnh vận hành. Nhấn mạnh: căn cứ văn bản điều hành; giờ đầu mở êm; phân bổ ngày/đêm; tổng Q xả tối đa gồm Q máy + Q tràn; thời điểm đạt mục tiêu; cảnh báo và điều kiện chỉ thực hiện khi có lệnh hợp lệ.
+DỮ LIỆU:
+${JSON.stringify({
+  input:{
+    orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hStart,hTarget:x.hTarget,
+    start:x.start,end:x.end,qIn:x.qIn,qMachine:x.qMachine,qMaxTotal:x.qMaxTotal,
+    firstHourCm:x.firstCm,notes:x.notes,mode:x.mode
+  },
+  result:{
+    volumeToLower:p.volumeToLower,avgDay:p.avgDay,avgNight:p.avgNight,
+    maxApplied:p.maxApplied,maxReq:p.maxReq,finishTime:p.finishTime,
+    feasible:p.feasible,warnings:p.warnings,finalLevel:p.finalLevel
+  },
+  hourly:compact
+},null,2)}`;
+
+    try{
+      const result=await jsonpAi({
+        question:prompt,
+        sessionId:"spill-plan-"+Date.now(),
+        history:[]
+      });
+      if(!result || result.success===false || !result.answer){
+        throw new Error(result?.error||"AI không trả về nội dung hợp lệ");
+      }
+      box.textContent=result.answer;
+      if(status){status.className="spill-ai-status online";status.textContent="● Đã tạo bằng AI";}
+    }catch(e){
+      console.warn("Spill AI fallback:",e);
+      box.textContent=buildLocalSummary()+"\n\n(Ghi chú: Không kết nối được AI; đang hiển thị bản tóm tắt tự động của hệ thống.)";
+      if(status){status.className="spill-ai-status fallback";status.textContent="● Bản tóm tắt dự phòng";}
+    }finally{
+      if(btn) btn.disabled=false;
+      if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
+    }
+  }
+
+  async function copySummary(){
+    const content=el("spillAiSummary")?.textContent?.trim();
+    if(!content){alert("Chưa có nội dung để sao chép.");return;}
+    const btn=el("spillCopyBtn");
+    try{
+      await navigator.clipboard.writeText(content);
+    }catch(error){
+      const ta=document.createElement("textarea");
+      ta.value=content;ta.style.position="fixed";ta.style.opacity="0";
+      document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+    }
+    if(btn){
+      const old=btn.textContent;btn.textContent="✓ Đã sao chép";btn.classList.add("copied");
+      setTimeout(()=>{btn.textContent=old;btn.classList.remove("copied");},1800);
+    }
+  }
+
+  async function exportExcel(){
+    const p=state.plan;
+    if(!p){alert("Chưa có phương án để xuất.");return;}
+    if(!window.ExcelJS || !window.saveAs){
+      alert("Chưa tải được thư viện Excel chuyên nghiệp. Hãy kiểm tra kết nối Internet.");
+      return;
+    }
+
+    const x=p.input;
+    const wb=new ExcelJS.Workbook();
+    wb.creator="Hệ thống Dashboard AI hồ A Vương";
+    wb.created=new Date();
+    wb.modified=new Date();
+
+    const navy="17365D", blue="2563EB", paleBlue="EAF2FF", paleGreen="ECFDF5",
+      paleOrange="FFF7ED", paleRed="FEE2E2", palePurple="F5F3FF",
+      gray="64748B", dark="172033", white="FFFFFF", border="CBD5E1";
+
+    const thin={style:"thin",color:{argb:border}};
+    const allBorder={top:thin,left:thin,bottom:thin,right:thin};
+    const titleFont={name:"Arial",size:18,bold:true,color:{argb:navy}};
+    const sectionFont={name:"Arial",size:11,bold:true,color:{argb:white}};
+
+    function styleTitle(ws,title,sub){
+      ws.mergeCells("A1:J1");
+      ws.getCell("A1").value=title;
+      ws.getCell("A1").font=titleFont;
+      ws.getCell("A1").alignment={horizontal:"center",vertical:"middle"};
+      ws.getRow(1).height=28;
+      ws.mergeCells("A2:J2");
+      ws.getCell("A2").value=sub;
+      ws.getCell("A2").font={name:"Arial",size:10,color:{argb:gray},italic:true};
+      ws.getCell("A2").alignment={horizontal:"center"};
+    }
+    function section(ws,row,title){
+      ws.mergeCells(row,1,row,10);
+      const c=ws.getCell(row,1);c.value=title;c.fill={type:"pattern",pattern:"solid",fgColor:{argb:navy}};
+      c.font=sectionFont;c.alignment={vertical:"middle"};ws.getRow(row).height=22;
+    }
+    function statusFill(status){
+      const s=String(status||"").toLowerCase();
+      if(s.includes("vượt")||s.includes("không")) return paleRed;
+      if(s.includes("cận")||s.includes("chạm")) return paleOrange;
+      if(s.includes("đạt mục tiêu")) return palePurple;
+      return paleGreen;
+    }
+
+    // Sheet tổng quan
+    const ws=wb.addWorksheet("Tổng quan phương án",{views:[{showGridLines:false}]});
+    styleTitle(ws,"PHƯƠNG ÁN TÍNH TOÁN XẢ TRÀN HỒ A VƯƠNG",
+      `Lập lúc ${new Date().toLocaleString("vi-VN")} • Người tính toán: ${x.preparedBy||"—"}`);
+
+    section(ws,4,"I. TÓM TẮT PHƯƠNG ÁN");
+    ws.mergeCells("A5:J11");
+    ws.getCell("A5").value=el("spillAiSummary")?.textContent||buildLocalSummary();
+    ws.getCell("A5").alignment={wrapText:true,vertical:"top"};
+    ws.getCell("A5").font={name:"Arial",size:10,color:{argb:dark}};
+    ws.getCell("A5").fill={type:"pattern",pattern:"solid",fgColor:{argb:paleBlue}};
+    ws.getCell("A5").border=allBorder;
+    for(let r=5;r<=11;r++) ws.getRow(r).height=24;
+
+    section(ws,13,"II. THÔNG SỐ CHÍNH");
+    const summaryRows=[
+      ["MNH hiện tại",x.hStart,"m","MNH mục tiêu",x.hTarget,"m"],
+      ["Thể tích cần hạ",p.volumeToLower,"triệu m³","Q về ước lượng",x.qIn,"m³/s"],
+      ["Q máy",x.qMachine,"m³/s","Tổng Q max theo văn bản",x.qMaxTotal,"m³/s"],
+      ["Q tràn TB ban ngày",p.avgDay,"m³/s","Q tràn TB ban đêm",p.avgNight,"m³/s"],
+      ["Tổng Q lớn nhất áp dụng",p.maxApplied,"m³/s","Kết luận",p.feasible?"ĐẠT":"CHƯA ĐẠT",""]
+    ];
+    let rr=14;
+    summaryRows.forEach(row=>{
+      const vals=[row[0],row[1],row[2],row[3],row[4],row[5]];
+      ws.getCell(rr,1).value=vals[0];ws.getCell(rr,2).value=vals[1];ws.getCell(rr,3).value=vals[2];
+      ws.getCell(rr,5).value=vals[3];ws.getCell(rr,6).value=vals[4];ws.getCell(rr,7).value=vals[5];
+      [1,2,3,5,6,7].forEach(c=>{
+        const cell=ws.getCell(rr,c);cell.border=allBorder;cell.alignment={vertical:"middle"};
+        if(c===1||c===5){cell.font={bold:true,color:{argb:navy}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"F8FAFC"}}}
+        else cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:white}};
+      });
+      rr++;
+    });
+
+    section(ws,20,"III. BIỂU ĐỒ DIỄN BIẾN");
+    try{
+      const canvas=el("spillPlanChart");
+      const dataUrl=canvas.toDataURL("image/png",1);
+      const imageId=wb.addImage({base64:dataUrl,extension:"png"});
+      ws.addImage(imageId,{tl:{col:0,row:20},ext:{width:900,height:360}});
+      for(let r=21;r<=38;r++) ws.getRow(r).height=20;
+    }catch(e){
+      ws.getCell("A21").value="Không tạo được ảnh biểu đồ.";
+    }
+
+    section(ws,40,"IV. XÁC NHẬN");
+    ws.mergeCells("A41:C44");ws.mergeCells("D41:F44");ws.mergeCells("G41:J44");ws.mergeCells("A45:C45");
+    ["A41","D41","G41"].forEach((addr,i)=>{
+      const c=ws.getCell(addr);
+      c.value=["NGƯỜI TÍNH TOÁN\n(Ký, ghi rõ họ tên)","NGƯỜI KIỂM TRA\n(Ký, ghi rõ họ tên)","NGƯỜI PHÊ DUYỆT\n(Ký, ghi rõ họ tên)"][i];
+      c.alignment={horizontal:"center",vertical:"top",wrapText:true};
+      c.font={bold:true,size:10,color:{argb:navy}};
+      c.border=allBorder;
+    });
+    ws.getCell("A45").value=x.preparedBy||"";
+    ws.getCell("A45").alignment={horizontal:"center"};
+    ws.getCell("A45").font={bold:true};
+
+    ws.columns=[
+      {width:21},{width:15},{width:12},{width:3},{width:24},{width:15},{width:12},{width:12},{width:12},{width:12}
+    ];
+    ws.pageSetup={paperSize:9,orientation:"portrait",fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.3,right:.3,top:.45,bottom:.45,header:.2,footer:.2}};
+    ws.headerFooter.oddFooter="Hồ A Vương • Phương án tính toán xả tràn • Trang &P / &N";
+
+    // Sheet dữ liệu đầu vào
+    const inWs=wb.addWorksheet("Dữ liệu đầu vào",{views:[{showGridLines:false}]});
+    styleTitle(inWs,"DỮ LIỆU ĐẦU VÀO","Các thông số phục vụ lập phương án");
+    const inputs=[
+      ["Nội dung/Số văn bản",x.orderNo],["Người tính toán",x.preparedBy],
+      ["MNH hiện tại (m)",x.hStart],["MNH mục tiêu (m)",x.hTarget],
+      ["Thời gian bắt đầu",x.start],["Thời điểm phải đạt",x.end],
+      ["Q về ước lượng (m³/s)",x.qIn],["Q máy (m³/s)",x.qMachine],
+      ["Q tràn tối thiểu (m³/s)",x.qMin],["Tổng Q max theo văn bản (m³/s)",x.qMaxTotal],
+      ["Q tràn tối đa còn lại (m³/s)",Math.max(0,x.qMaxTotal-x.qMachine)],
+      ["Mức hạ giờ đầu (cm)",x.firstCm],["Ghi chú",x.notes]
+    ];
+    inWs.addRow([]);
+    inWs.addRow(["Thông số","Giá trị"]);
+    inWs.getRow(4).eachCell(c=>{c.fill={type:"pattern",pattern:"solid",fgColor:{argb:navy}};c.font=sectionFont;c.border=allBorder});
+    inputs.forEach(v=>{
+      const row=inWs.addRow(v);
+      row.eachCell((c,idx)=>{c.border=allBorder;c.alignment={vertical:"top",wrapText:true};c.fill={type:"pattern",pattern:"solid",fgColor:{argb:idx===1?"FFF7ED":"F8FAFC"}}});
+    });
+    inWs.columns=[{width:40},{width:72}];
+    inWs.views=[{state:"frozen",ySplit:4,showGridLines:false}];
+
+    // Sheet phương án theo giờ
+    const planWs=wb.addWorksheet("Phương án theo giờ",{views:[{state:"frozen",ySplit:4,showGridLines:false}]});
+    planWs.mergeCells("A1:Q1");planWs.getCell("A1").value="BẢNG PHƯƠNG ÁN TÍNH TOÁN THEO GIỜ";
+    planWs.getCell("A1").font=titleFont;planWs.getCell("A1").alignment={horizontal:"center"};planWs.getRow(1).height=28;
+    planWs.mergeCells("A2:Q2");planWs.getCell("A2").value=`MNH ${fmt(x.hStart,2)} m → ${fmt(x.hTarget,2)} m • Tổng Q max ${fmt(x.qMaxTotal,1)} m³/s`;
+    planWs.getCell("A2").alignment={horizontal:"center"};planWs.getCell("A2").font={italic:true,color:{argb:gray}};
+    const headers=["STT","Ngày","Khoảng giờ","MNH đầu","Hạ yêu cầu","MNH cuối","Q về","Q máy","Q tràn yêu cầu","Q tràn áp dụng","Tổng Q xả","Q max","Chênh Q max","Q ròng","Thời lượng","Trạng thái","Cảnh báo"];
+    planWs.addRow([]);
+    planWs.addRow(headers);
+    planWs.getRow(4).eachCell(c=>{c.fill={type:"pattern",pattern:"solid",fgColor:{argb:navy}};c.font=sectionFont;c.border=allBorder;c.alignment={horizontal:"center",vertical:"middle",wrapText:true}});
+    p.rows.forEach(r=>{
+      const row=planWs.addRow([
+        r.index,r.date,r.period,+r.hStart.toFixed(2),r.desiredDropCm===null?"":+r.desiredDropCm.toFixed(1),
+        +r.hEnd.toFixed(2),+r.qIn.toFixed(1),+r.qMachine.toFixed(1),+r.qSpillRequested.toFixed(1),
+        +r.qSpillApplied.toFixed(1),+r.qTotal.toFixed(1),+r.qMax.toFixed(1),+r.margin.toFixed(1),
+        +r.net.toFixed(1),r.minutes,r.status,r.flags.join("; ")
+      ]);
+      const fill=statusFill(r.status+" "+r.flags.join(" "));
+      row.eachCell(c=>{c.border=allBorder;c.fill={type:"pattern",pattern:"solid",fgColor:{argb:fill}};c.alignment={vertical:"middle",wrapText:true}});
+    });
+    planWs.autoFilter={from:"A4",to:"Q4"};
+    planWs.columns=[
+      7,12,18,11,12,11,10,10,15,15,12,11,13,11,11,18,36
+    ].map(width=>({width}));
+    [4,5,6,7,8,9,10,11,12,13,14].forEach(c=>planWs.getColumn(c).numFmt='0.00');
+    planWs.pageSetup={paperSize:9,orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:"4:4",margins:{left:.25,right:.25,top:.45,bottom:.45,header:.2,footer:.2}};
+    planWs.headerFooter.oddFooter="Hồ A Vương • Bảng phương án theo giờ • Trang &P / &N";
+
+    // Sheet cảnh báo
+    const warnWs=wb.addWorksheet("Cảnh báo",{views:[{showGridLines:false}]});
+    styleTitle(warnWs,"CẢNH BÁO VÀ KẾT LUẬN","Đối chiếu giới hạn theo văn bản điều hành");
+    const warningRows=[
+      ["Khả năng đạt mục tiêu",p.feasible?"Đạt":"Chưa đạt"],
+      ["MNH cuối kỳ",`${fmt(p.finalLevel,2)} m`],
+      ["Số giờ nhu cầu vượt Q max",p.exceedHours],
+      ["Tổng Q lớn nhất yêu cầu",`${fmt(p.maxReq,1)} m³/s`],
+      ["Tổng Q lớn nhất áp dụng",`${fmt(p.maxApplied,1)} m³/s`],
+      ["Cảnh báo tổng hợp",p.warnings.join(" ")||"Không có cảnh báo đặc biệt."]
+    ];
+    warnWs.addRow([]);warnWs.addRow(["Nội dung","Kết quả"]);
+    warnWs.getRow(4).eachCell(c=>{c.fill={type:"pattern",pattern:"solid",fgColor:{argb:navy}};c.font=sectionFont;c.border=allBorder});
+    warningRows.forEach(v=>{const row=warnWs.addRow(v);row.eachCell(c=>{c.border=allBorder;c.alignment={wrapText:true,vertical:"top"}})});
+    warnWs.columns=[{width:38},{width:90}];
+
+    // Sheet AI
+    const aiWs=wb.addWorksheet("AI tóm tắt",{views:[{showGridLines:false}]});
+    styleTitle(aiWs,"AI TÓM TẮT PHƯƠNG ÁN","Nội dung hỗ trợ diễn giải, không thay thế lệnh vận hành");
+    aiWs.mergeCells("A4:J30");
+    aiWs.getCell("A4").value=el("spillAiSummary")?.textContent||buildLocalSummary();
+    aiWs.getCell("A4").alignment={wrapText:true,vertical:"top"};
+    aiWs.getCell("A4").fill={type:"pattern",pattern:"solid",fgColor:{argb:paleBlue}};
+    aiWs.getCell("A4").border=allBorder;
+    aiWs.columns=Array.from({length:10},()=>({width:12}));
+
+    const buffer=await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),
+      `Phuong_an_xa_tran_${dateVN(x.start).replaceAll("/","-")}.xlsx`);
+  }
+
+  async function exportPdf(){
+    const p=state.plan;
+
+    const JsPdfConstructor=
+      window.jspdf?.jsPDF||
+      window.jsPDF;
+
+    if(!p||!window.html2canvas||!JsPdfConstructor){
+      alert(
+        "Chưa tải được thư viện tạo PDF. "+
+        "Vui lòng kiểm tra kết nối mạng rồi tải lại trang."
+      );
+      return;
+    }
+
+    const x=p.input;
+    const summary=el("spillAiSummary")?.textContent||buildLocalSummary();
+    const exportTime=new Date();
+    const planCode=`PA-XT-${Date.now().toString().slice(-8)}`;
+    const exportHour=String(exportTime.getHours()).padStart(2,"0");
+    const exportMinute=String(exportTime.getMinutes()).padStart(2,"0");
+    const exportTimeSuffix=`${exportHour}-${exportMinute}`;
+
+    let chartImage="";
+    try{
+      chartImage=el("spillPlanChart").toDataURL("image/png",1);
+    }catch(error){
+      console.warn("Không tạo được ảnh biểu đồ PDF:",error);
+    }
+
+    const logo="https://ycthhachfxczwkburnfa.supabase.co/storage/v1/object/public/Image/Logo%20AVC.png";
+    const wrapper=document.createElement("div");
+
+    wrapper.className="spill-pdf-report";
+
+    wrapper.innerHTML=`
+      <style>
+        .spill-pdf-report{
+          width:1120px;
+          min-width:1120px;
+          max-width:1120px;
+          margin:0;
+          padding:0;
+          overflow:visible;
+          background:#fff;
+          color:#111827;
+          font-family:Arial,sans-serif;
+          font-size:10.2px;
+          line-height:1.45;
+          box-sizing:border-box;
+          break-before:auto!important;
+          page-break-before:auto!important;
+        }
+
+        .spill-pdf-report *,
+        .spill-pdf-report *::before,
+        .spill-pdf-report *::after{
+          box-sizing:border-box;
+        }
+
+        /* Tiêu ngữ hành chính */
+        .pdf-official-head{
+          display:grid;
+          grid-template-columns:190px minmax(330px,1fr) minmax(430px,1.25fr);
+          align-items:start;
+          column-gap:18px;
+          min-height:84px;
+          padding:2px 4px 10px;
+          font-family:"Times New Roman",serif;
+          color:#111;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-official-logo{
+          display:flex;
+          justify-content:flex-start;
+          align-items:flex-start;
+          padding-top:2px;
+        }
+
+        .pdf-official-logo img{
+          display:block;
+          width:168px;
+          height:68px;
+          object-fit:contain;
+        }
+
+        .pdf-official-unit,
+        .pdf-official-state{
+          text-align:center;
+          padding-top:4px;
+        }
+
+        .pdf-unit-main,
+        .pdf-state-main{
+          font-size:13.2px;
+          line-height:1.25;
+          font-weight:700;
+          white-space:nowrap;
+        }
+
+        .pdf-unit-sub{
+          margin-top:7px;
+          font-size:13px;
+          line-height:1.2;
+          font-weight:400;
+        }
+
+        .pdf-state-sub{
+          margin-top:7px;
+          font-size:13px;
+          line-height:1.2;
+          font-weight:700;
+        }
+
+        .pdf-short-line{
+          width:172px;
+          height:1px;
+          margin:4px auto 0;
+          background:#111;
+        }
+
+        .pdf-title{
+          margin:13px 0 11px;
+          text-align:center;
+          font-family:"Times New Roman",serif;
+          color:#111;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-title h1{
+          margin:0;
+          font-size:21px;
+          line-height:1.25;
+          font-weight:700;
+          letter-spacing:.1px;
+        }
+
+        .pdf-title h2{
+          margin:5px 0 0;
+          font-size:14px;
+          line-height:1.25;
+          font-weight:700;
+        }
+
+        .pdf-document-meta{
+          display:flex;
+          justify-content:center;
+          gap:22px;
+          margin:0 0 11px;
+          color:#475569;
+          font-size:9px;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-meta{
+          display:grid;
+          grid-template-columns:1fr 1fr 1fr;
+          gap:8px;
+          margin-bottom:12px;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-meta div{
+          min-height:48px;
+          padding:7px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:7px;
+          background:#f8fafc;
+        }
+
+        .pdf-section{
+          margin-top:11px;
+        }
+
+        .pdf-section-title{
+          margin-bottom:7px;
+          padding:6px 9px;
+          border-radius:5px;
+          background:#17365d;
+          color:#fff;
+          font-weight:700;
+          break-after:avoid;
+          page-break-after:avoid;
+        }
+
+        .pdf-summary{
+          padding:12px 13px;
+          border:1px solid #bfdbfe;
+          border-radius:8px;
+          background:#eff6ff;
+          font-size:11.5px;
+          line-height:1.62;
+          letter-spacing:.05px;
+          white-space:pre-wrap;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-inputs{
+          width:100%;
+          border-collapse:collapse;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-inputs td{
+          padding:5px 7px;
+          border:1px solid #cbd5e1;
+          vertical-align:middle;
+        }
+
+        .pdf-inputs td:nth-child(odd){
+          width:18%;
+          background:#f8fafc;
+          font-weight:700;
+        }
+
+        .pdf-chart{
+          display:block;
+          width:100%;
+          height:335px;
+          max-height:335px;
+          padding:5px;
+          border:1px solid #cbd5e1;
+          border-radius:8px;
+          background:#fff;
+          object-fit:fill;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-page-break{
+          display:block;
+          height:0;
+          margin:0;
+          padding:0;
+          break-before:page;
+          page-break-before:always;
+        }
+
+        .pdf-table{
+          width:100%;
+          border-collapse:collapse;
+          font-size:7.3px;
+        }
+
+        .pdf-table thead{
+          display:table-header-group;
+        }
+
+        .pdf-table th{
+          padding:5px 3px;
+          border:1px solid #0f2742!important;
+          background:#123a63!important;
+          background-color:#123a63!important;
+          color:#ffffff!important;
+          font-weight:700!important;
+          text-align:center;
+          vertical-align:middle;
+          text-shadow:0 1px 0 rgba(0,0,0,.16);
+          -webkit-print-color-adjust:exact!important;
+          print-color-adjust:exact!important;
+        }
+
+        .pdf-table thead tr,
+        .pdf-table thead th{
+          background:#123a63!important;
+          background-color:#123a63!important;
+          color:#ffffff!important;
+          -webkit-print-color-adjust:exact!important;
+          print-color-adjust:exact!important;
+        }
+
+        .pdf-table td{
+          padding:3px;
+          border:1px solid #cbd5e1;
+          text-align:center;
+          vertical-align:middle;
+        }
+
+        .pdf-table tr{
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-note{
+          margin-top:10px;
+          padding:8px;
+          border-left:4px solid #f59e0b;
+          background:#fffbeb;
+          color:#92400e;
+        }
+
+        .pdf-sign{
+          display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:18px;
+          margin-top:20px;
+          break-inside:avoid;
+          page-break-inside:avoid;
+        }
+
+        .pdf-sign-box{
+          min-height:112px;
+          text-align:center;
+          font-family:"Times New Roman",serif;
+        }
+
+        .pdf-sign-box b{
+          display:block;
+          color:#111;
+          font-size:11px;
+        }
+
+        .pdf-sign-box span{
+          display:block;
+          margin-top:3px;
+          font-style:italic;
+        }
+
+        .pdf-sign-name{
+          margin-top:68px;
+          font-weight:700;
+          font-style:normal;
+        }
+
+        .pdf-footer{
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          margin-top:12px;
+          padding-top:6px;
+          border-top:1px solid #94a3b8;
+          color:#64748b;
+          font-size:8px;
+        }
+      </style>
+
+      <div class="pdf-official-head">
+        <div class="pdf-official-logo">
+          <img src="${logo}" crossorigin="anonymous" alt="Logo EVNGENCO2">
+        </div>
+
+        <div class="pdf-official-unit">
+          <div class="pdf-unit-main">CÔNG TY CP THỦY ĐIỆN A VƯƠNG</div>
+          <div class="pdf-unit-sub">PHÂN XƯỞNG VẬN HÀNH</div>
+          <div class="pdf-short-line"></div>
+        </div>
+
+        <div class="pdf-official-state">
+          <div class="pdf-state-main">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+          <div class="pdf-state-sub">Độc lập - Tự do - Hạnh phúc</div>
+          <div class="pdf-short-line"></div>
+        </div>
+      </div>
+
+      <div class="pdf-title">
+        <h1>PHƯƠNG ÁN TÍNH TOÁN XẢ TRÀN</h1>
+        <h2>HỒ THỦY ĐIỆN A VƯƠNG</h2>
+      </div>
+
+      <div class="pdf-document-meta">
+        <span>Mã phương án: ${planCode}</span>
+        <span>Ngày xuất: ${exportTime.toLocaleDateString("vi-VN")}</span>
+      </div>
+
+      <div class="pdf-meta">
+        <div><b>Văn bản điều hành</b><br>${escapeHtml(x.orderNo||"—")}</div>
+        <div><b>Người tính toán</b><br>${escapeHtml(x.preparedBy||"—")}</div>
+        <div><b>Thời gian lập</b><br>${exportTime.toLocaleString("vi-VN")}</div>
+      </div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-title">I. TÓM TẮT PHƯƠNG ÁN</div>
+        <div class="pdf-summary">${escapeHtml(summary)}</div>
+      </div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-title">II. THÔNG SỐ ĐẦU VÀO</div>
+
+        <table class="pdf-inputs">
+          <tr>
+            <td>MNH hiện tại</td>
+            <td>${fmt(x.hStart,2)} m</td>
+            <td>MNH mục tiêu</td>
+            <td>${fmt(x.hTarget,2)} m</td>
+          </tr>
+
+          <tr>
+            <td>Thời gian bắt đầu</td>
+            <td>${dateVN(x.start)} ${timeVN(x.start)}</td>
+            <td>Hạn đạt mục tiêu</td>
+            <td>${dateVN(x.end)} ${timeVN(x.end)}</td>
+          </tr>
+
+          <tr>
+            <td>Q về ước lượng</td>
+            <td>${fmt(x.qIn,1)} m³/s</td>
+            <td>Q máy</td>
+            <td>${fmt(x.qMachine,1)} m³/s</td>
+          </tr>
+
+          <tr>
+            <td>Tổng Q max theo văn bản</td>
+            <td>${fmt(x.qMaxTotal,1)} m³/s</td>
+            <td>Q tràn tối đa còn lại</td>
+            <td>${fmt(Math.max(0,x.qMaxTotal-x.qMachine),1)} m³/s</td>
+          </tr>
+
+          <tr>
+            <td>Thể tích cần hạ</td>
+            <td>${fmt(p.volumeToLower,2)} triệu m³</td>
+            <td>Kết luận</td>
+            <td><b>${p.feasible?"ĐẠT":"CHƯA ĐẠT"}</b></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-title">III. BIỂU ĐỒ DIỄN BIẾN PHƯƠNG ÁN</div>
+        ${
+          chartImage
+            ? `<img class="pdf-chart" src="${chartImage}" alt="Biểu đồ phương án">`
+            : "<div>Không tạo được ảnh biểu đồ.</div>"
+        }
+      </div>
+
+      <div class="pdf-page-break"></div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-title">IV. BẢNG KẾT QUẢ TÍNH TOÁN THEO GIỜ</div>
+
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              ${
+                [
+                  "STT",
+                  "Ngày",
+                  "Giờ",
+                  "MNH đầu",
+                  "Hạ cm",
+                  "MNH cuối",
+                  "Q về",
+                  "Q máy",
+                  "Q tràn",
+                  "Tổng Q",
+                  "Q max",
+                  "Trạng thái"
+                ]
+                .map(header=>`<th>${header}</th>`)
+                .join("")
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            ${
+              p.rows.map(row=>`
+                <tr>
+                  <td>${row.index}</td>
+                  <td>${row.date}</td>
+                  <td>${row.period}</td>
+                  <td>${fmt(row.hStart,2)}</td>
+                  <td>${row.desiredDropCm==null?"—":fmt(row.desiredDropCm,1)}</td>
+                  <td>${fmt(row.hEnd,2)}</td>
+                  <td>${fmt(row.qIn,1)}</td>
+                  <td>${fmt(row.qMachine,1)}</td>
+                  <td>${fmt(row.qSpillApplied,1)}</td>
+                  <td>${fmt(row.qTotal,1)}</td>
+                  <td>${fmt(row.qMax,1)}</td>
+                  <td>${escapeHtml(row.status)}</td>
+                </tr>
+              `).join("")
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-title">V. KẾT LUẬN VÀ ĐIỀU KIỆN ÁP DỤNG</div>
+
+        <div>
+          <b>Kết luận:</b>
+          ${
+            p.feasible
+              ? "Phương án dự kiến đạt MNH mục tiêu trong thời hạn đã chọn."
+              : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
+          }
+        </div>
+
+        <div style="margin-top:5px">
+          <b>Cảnh báo:</b>
+          ${escapeHtml(p.warnings.join(" ")||"Không có cảnh báo đặc biệt.")}
+        </div>
+
+        <div class="pdf-note">
+          <b>Lưu ý:</b>
+          Đây là kết quả hỗ trợ tính toán. Vận hành thực tế phải căn cứ lệnh hợp lệ,
+          số liệu cập nhật, tình trạng công trình và phê duyệt của người có thẩm quyền.
+        </div>
+      </div>
+
+      <div class="pdf-sign">
+        <div class="pdf-sign-box">
+          <b>NGƯỜI TÍNH TOÁN</b>
+          <span>(Ký, ghi rõ họ tên)</span>
+          <div class="pdf-sign-name">${escapeHtml(x.preparedBy||"")}</div>
+        </div>
+
+        <div class="pdf-sign-box">
+          <b>NGƯỜI KIỂM TRA</b>
+          <span>(Ký, ghi rõ họ tên)</span>
+        </div>
+
+        <div class="pdf-sign-box">
+          <b>NGƯỜI PHÊ DUYỆT</b>
+          <span>(Ký, ghi rõ họ tên)</span>
+        </div>
+      </div>
+
+      <div class="pdf-footer">
+        <span>Mã phương án: ${planCode}</span>
+        <span>Ngày xuất: ${exportTime.toLocaleString("vi-VN")}</span>
+        <span>Phương án hỗ trợ tính toán – không thay thế lệnh vận hành</span>
+      </div>
+    `;
+
+    /* Gắn vào DOM trước khi html2canvas chụp để tránh trang trắng đầu tiên. */
+    /*
+      Render thật khối PDF tại tọa độ 0,0 để html2pdf/html2canvas chụp chính xác.
+      Không dùng display:none, visibility:hidden, opacity:0, z-index âm
+      hoặc đẩy phần tử ra ngoài màn hình vì các cách đó có thể tạo PDF trắng.
+    */
+    wrapper.style.position="absolute";
+    wrapper.style.left="0";
+    wrapper.style.top="0";
+    wrapper.style.width="1120px";
+    wrapper.style.opacity="1";
+    wrapper.style.visibility="visible";
+    wrapper.style.zIndex="2147483646";
+    wrapper.style.pointerEvents="none";
+    wrapper.style.background="#ffffff";
+
+    const pdfOverlay=document.createElement("div");
+    pdfOverlay.id="spillPdfExportOverlay";
+    pdfOverlay.setAttribute(
+      "data-html2canvas-ignore",
+      "true"
+    );
+    pdfOverlay.style.position="fixed";
+    pdfOverlay.style.inset="0";
+    pdfOverlay.style.zIndex="2147483647";
+    pdfOverlay.style.display="flex";
+    pdfOverlay.style.alignItems="center";
+    pdfOverlay.style.justifyContent="center";
+    pdfOverlay.style.background="rgba(248,250,252,.96)";
+    pdfOverlay.style.backdropFilter="blur(3px)";
+    pdfOverlay.style.color="#0f172a";
+    pdfOverlay.style.fontFamily="Arial,sans-serif";
+    pdfOverlay.style.fontSize="15px";
+    pdfOverlay.style.fontWeight="700";
+    pdfOverlay.innerHTML=`
+      <div style="
+        min-width:280px;
+        padding:22px 26px;
+        border:1px solid rgba(15,23,42,.10);
+        border-radius:16px;
+        background:#fff;
+        box-shadow:0 18px 50px rgba(15,23,42,.16);
+        text-align:center;
+      ">
+        <div style="font-size:28px;margin-bottom:10px">📄</div>
+        <div>Đang tạo file PDF...</div>
+        <div style="
+          margin-top:7px;
+          color:#64748b;
+          font-size:12px;
+          font-weight:600;
+        ">
+          Vui lòng chờ trong giây lát
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(wrapper);
+    document.body.appendChild(pdfOverlay);
+
+    const previousScrollX=window.scrollX;
+    const previousScrollY=window.scrollY;
+    window.scrollTo(0,0);
+
+    try{
+      const images=Array.from(wrapper.querySelectorAll("img"));
+
+      await Promise.all(
+        images.map(image=>{
+          if(image.complete){
+            return Promise.resolve();
+          }
+
+          return new Promise(resolve=>{
+            const finish=()=>resolve();
+            image.addEventListener("load",finish,{once:true});
+            image.addEventListener("error",finish,{once:true});
+            window.setTimeout(finish,5000);
+          });
+        })
+      );
+
+      /* Cho trình duyệt hoàn tất layout trước khi tạo canvas. */
+      await new Promise(resolve=>{
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(resolve);
+        });
+      });
+
+      if(wrapper.scrollWidth<100||wrapper.scrollHeight<100){
+        throw new Error(
+          "Khối PDF không có kích thước hợp lệ: "+
+          wrapper.scrollWidth+"x"+wrapper.scrollHeight
+        );
+      }
+
+      /*
+        Chụp trực tiếp đúng phần tử báo cáo.
+        Không dùng html2pdf().from(wrapper) vì lớp trung gian của html2pdf
+        từng tạo canvas rỗng trong file dashboard này.
+      */
+      const reportCanvas=await window.html2canvas(
+        wrapper,
+        {
+          scale:1.5,
+          useCORS:true,
+          allowTaint:false,
+          logging:false,
+          backgroundColor:"#ffffff",
+          scrollX:0,
+          scrollY:0,
+          windowWidth:1120,
+          windowHeight:Math.max(
+            wrapper.scrollHeight,
+            800
+          ),
+          imageTimeout:8000,
+          removeContainer:true
+        }
+      );
+
+      if(
+        !reportCanvas||
+        reportCanvas.width<100||
+        reportCanvas.height<100
+      ){
+        throw new Error(
+          "Canvas báo cáo không hợp lệ: "+
+          (reportCanvas?.width||0)+"x"+
+          (reportCanvas?.height||0)
+        );
+      }
+
+      /*
+        Kiểm tra nhanh canvas có thật sự chứa chữ/màu hay chỉ là nền trắng.
+        Chỉ lấy mẫu theo bước để tránh đọc toàn bộ hàng triệu điểm ảnh.
+      */
+      const reportContext=
+        reportCanvas.getContext(
+          "2d",
+          {willReadFrequently:true}
+        );
+
+      const sampleStep=Math.max(
+        8,
+        Math.floor(
+          Math.min(
+            reportCanvas.width,
+            reportCanvas.height
+          )/160
+        )
+      );
+
+      let sampledPixels=0;
+      let nonWhitePixels=0;
+
+      for(
+        let sampleY=0;
+        sampleY<reportCanvas.height;
+        sampleY+=sampleStep
+      ){
+        for(
+          let sampleX=0;
+          sampleX<reportCanvas.width;
+          sampleX+=sampleStep
+        ){
+          const pixel=reportContext.getImageData(
+            sampleX,
+            sampleY,
+            1,
+            1
+          ).data;
+
+          sampledPixels++;
+
+          if(
+            pixel[3]>10&&
+            (
+              pixel[0]<245||
+              pixel[1]<245||
+              pixel[2]<245
+            )
+          ){
+            nonWhitePixels++;
+          }
+        }
+      }
+
+      const nonWhiteRatio=
+        sampledPixels>0
+          ? nonWhitePixels/sampledPixels
+          : 0;
+
+      if(nonWhitePixels<80||nonWhiteRatio<0.001){
+        throw new Error(
+          "Canvas báo cáo đang trắng. "+
+          "Tỷ lệ điểm ảnh có nội dung: "+
+          (nonWhiteRatio*100).toFixed(3)+"%"
+        );
+      }
+
+      /*
+        Tự phân trang bằng jsPDF.
+        Mỗi trang lấy một lát cắt của canvas nguồn nên không phụ thuộc
+        cơ chế phân trang nội bộ của html2pdf.
+      */
+      const pdf=new JsPdfConstructor({
+        orientation:"landscape",
+        unit:"mm",
+        format:"a4",
+        compress:true,
+        putOnlyUsedFonts:true
+      });
+
+      const pageWidth=
+        pdf.internal.pageSize.getWidth();
+
+      const pageHeight=
+        pdf.internal.pageSize.getHeight();
+
+      const marginLeft=8;
+      const marginRight=8;
+      const marginTop=7;
+      const marginBottom=11;
+
+      const contentWidth=
+        pageWidth-
+        marginLeft-
+        marginRight;
+
+      const contentHeight=
+        pageHeight-
+        marginTop-
+        marginBottom;
+
+      const pixelsPerMm=
+        reportCanvas.width/contentWidth;
+
+      const pageSliceHeight=Math.max(
+        1,
+        Math.floor(
+          contentHeight*pixelsPerMm
+        )
+      );
+
+      /*
+        Xác định chiều cao nội dung thực, bỏ phần nền trắng dư ở cuối.
+        Điều này tránh phát sinh thêm một trang PDF trắng.
+      */
+      let effectiveCanvasHeight=reportCanvas.height;
+      const trimContext=reportCanvas.getContext(
+        "2d",
+        {willReadFrequently:true}
+      );
+
+      const trimStepX=Math.max(
+        6,
+        Math.floor(reportCanvas.width/220)
+      );
+
+      const trimStepY=4;
+      let lastContentY=-1;
+
+      for(
+        let scanY=reportCanvas.height-1;
+        scanY>=0;
+        scanY-=trimStepY
+      ){
+        let rowHasContent=false;
+
+        for(
+          let scanX=0;
+          scanX<reportCanvas.width;
+          scanX+=trimStepX
+        ){
+          const px=trimContext.getImageData(
+            scanX,
+            scanY,
+            1,
+            1
+          ).data;
+
+          if(
+            px[3]>10&&
+            (
+              px[0]<247||
+              px[1]<247||
+              px[2]<247
+            )
+          ){
+            rowHasContent=true;
+            break;
+          }
+        }
+
+        if(rowHasContent){
+          lastContentY=scanY;
+          break;
+        }
+      }
+
+      if(lastContentY>=0){
+        effectiveCanvasHeight=Math.min(
+          reportCanvas.height,
+          lastContentY+28
+        );
+      }
+
+      const totalPages=Math.max(
+        1,
+        Math.ceil(
+          effectiveCanvasHeight/pageSliceHeight
+        )
+      );
+
+      for(
+        let pageIndex=0;
+        pageIndex<totalPages;
+        pageIndex++
+      ){
+        if(pageIndex>0){
+          pdf.addPage(
+            "a4",
+            "landscape"
+          );
+        }
+
+        const sourceY=
+          pageIndex*pageSliceHeight;
+
+        const sourceHeight=Math.min(
+          pageSliceHeight,
+          effectiveCanvasHeight-sourceY
+        );
+
+        const pageCanvas=
+          document.createElement("canvas");
+
+        pageCanvas.width=
+          reportCanvas.width;
+
+        pageCanvas.height=
+          sourceHeight;
+
+        const pageContext=
+          pageCanvas.getContext("2d");
+
+        pageContext.fillStyle="#ffffff";
+        pageContext.fillRect(
+          0,
+          0,
+          pageCanvas.width,
+          pageCanvas.height
+        );
+
+        pageContext.drawImage(
+          reportCanvas,
+          0,
+          sourceY,
+          reportCanvas.width,
+          sourceHeight,
+          0,
+          0,
+          reportCanvas.width,
+          sourceHeight
+        );
+
+        const pageImage=
+          pageCanvas.toDataURL(
+            "image/jpeg",
+            .94
+          );
+
+        const imageHeight=
+          sourceHeight/pixelsPerMm;
+
+        pdf.addImage(
+          pageImage,
+          "JPEG",
+          marginLeft,
+          marginTop,
+          contentWidth,
+          imageHeight,
+          undefined,
+          "FAST"
+        );
+
+        pdf.setFont(
+          "helvetica",
+          "normal"
+        );
+
+        pdf.setFontSize(8);
+        pdf.setTextColor(
+          100,
+          116,
+          139
+        );
+
+        pdf.text(
+          `Trang ${pageIndex+1}/${totalPages}`,
+          pageWidth-marginRight,
+          pageHeight-4.5,
+          {align:"right"}
+        );
+
+        pdf.text(
+          planCode,
+          marginLeft,
+          pageHeight-4.5
+        );
+
+        pageCanvas.width=1;
+        pageCanvas.height=1;
+      }
+
+      pdf.save(
+        `Phuong_an_xa_tran_${
+          dateVN(x.start).replaceAll("/","-")
+        }_${exportTimeSuffix}.pdf`
+      );
+
+      reportCanvas.width=1;
+      reportCanvas.height=1;
+    }catch(error){
+      console.error(
+        "Lỗi xuất PDF phương án xả tràn:",
+        error
+      );
+
+      alert(
+        "Không thể tạo file PDF.\n\n"+
+        "Chi tiết: "+
+        (
+          error?.message||
+          String(error)
+        )
+      );
+    }finally{
+      wrapper.remove();
+
+      const overlayToRemove=
+        document.getElementById(
+          "spillPdfExportOverlay"
+        );
+
+      if(overlayToRemove){
+        overlayToRemove.remove();
+      }
+
+      window.scrollTo(
+        previousScrollX,
+        previousScrollY
+      );
+    }
+  }
+
+  function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+
+  function reset(){
+    setDefaultTimes();
+    el("spillLevelStart").value="372.00";el("spillLevelTarget").value="370.00";el("spillQIn").value="100";
+    el("spillQMachine").value="78";el("spillQMin").value="0";el("spillQMaxTotal").value="350";el("spillFirstHourCm").value="2";
+    el("spillRampUp").value="100";el("spillTaperCm").value="10";el("spillModeAuto").checked=true;showMode();
+    state.plan=null;el("spillKpis").innerHTML="";el("spillTableBody").innerHTML='<tr><td colspan="16">Chưa có dữ liệu tính toán.</td></tr>';
+    el("spillSummaryStatus").className="spill-status";el("spillSummaryStatus").textContent="Nhập dữ liệu và bấm “Tính phương án”.";
+    el("spillAiSummary").textContent="Chưa tạo nội dung tóm tắt."; if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="Chưa tạo nội dung";} ["spillAiBtn","spillExcelBtn","spillPdfBtn","spillCopyBtn"].forEach(id=>{if(el(id))el(id).disabled=true;}); updateInputPreview();
+    if(state.chart){state.chart.destroy();state.chart=null;}
+  }
+
+  function init(){
+    if(!el("tab-spillcalc")) return;
+    setDefaultTimes();
+    document.querySelectorAll('input[name="spillMode"]').forEach(r=>r.addEventListener("change",showMode));
+    document.querySelectorAll("#tab-spillcalc input, #tab-spillcalc textarea").forEach(node=>{
+      node.addEventListener("input",updateInputPreview);
+      node.addEventListener("change",updateInputPreview);
+    });
+    el("spillCalcBtn").addEventListener("click",calculate);
+    el("spillResetBtn").addEventListener("click",reset);
+    el("spillAiBtn").addEventListener("click",aiSummary);
+    el("spillExcelBtn").addEventListener("click",exportExcel);
+    el("spillPdfBtn").addEventListener("click",exportPdf);
+    el("spillCopyBtn")?.addEventListener("click",copySummary);
+    showMode();
+    updateInputPreview();
+    loadCurve();
+  }
+
+  window.addEventListener("load",()=>setTimeout(init,250));
 })();
 </script>
 
