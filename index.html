@@ -6721,6 +6721,144 @@ body.slideshow-frame-mode section{
   .ai-chat-send,.ai-chat-clear{flex:1}
   .ai-chat-bubble{max-width:94%}
 }
+
+/* =========================================================
+   CHỈ BỔ SUNG NÚT TOÀN MÀN HÌNH CHO 4 BẢN ĐỒ
+   ========================================================= */
+.av-map-fullscreen-host{
+  position:relative!important;
+}
+
+.av-map-fullscreen-btn{
+  position:absolute!important;
+  top:10px!important;
+  right:10px!important;
+  z-index:1200!important;
+  width:auto!important;
+  min-width:96px!important;
+  height:31px!important;
+  padding:0 9px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  border:1px solid rgba(148,163,184,.22)!important;
+  border-radius:10px!important;
+  background:rgba(255,253,247,.94)!important;
+  color:#475569!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  box-shadow:0 6px 16px rgba(15,23,42,.08)!important;
+  backdrop-filter:blur(8px)!important;
+  cursor:pointer!important;
+  transition:
+    transform .16s ease,
+    background .16s ease,
+    border-color .16s ease,
+    color .16s ease,
+    box-shadow .16s ease!important;
+}
+
+.av-map-fullscreen-btn:hover{
+  transform:translateY(-1px)!important;
+  background:rgba(255,250,240,.98)!important;
+  border-color:rgba(37,99,235,.20)!important;
+  color:#1d4ed8!important;
+  box-shadow:0 8px 18px rgba(37,99,235,.10)!important;
+}
+
+.av-map-fullscreen-btn:active{
+  transform:translateY(0)!important;
+}
+
+.av-map-fullscreen-host:fullscreen,
+.av-map-fullscreen-host:-webkit-full-screen{
+  width:100vw!important;
+  height:100vh!important;
+  min-height:100vh!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#e2e8f0!important;
+  overflow:hidden!important;
+}
+
+/* Tổng quan: giữ tiêu đề nhỏ, bản đồ chiếm toàn bộ phần còn lại */
+.av-overview-map-host:fullscreen,
+.av-overview-map-host:-webkit-full-screen{
+  display:flex!important;
+  flex-direction:column!important;
+}
+
+.av-overview-map-host:fullscreen .v8-title,
+.av-overview-map-host:-webkit-full-screen .v8-title{
+  flex:0 0 54px!important;
+  display:flex!important;
+  align-items:center!important;
+  padding:0 18px!important;
+  background:#fff!important;
+}
+
+.av-overview-map-host:fullscreen #overviewProMap,
+.av-overview-map-host:-webkit-full-screen #overviewProMap{
+  flex:1 1 auto!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  border-radius:0!important;
+}
+
+/* Ba bản đồ dự báo mưa */
+.av-map-fullscreen-host:fullscreen > #rainMap,
+.av-map-fullscreen-host:fullscreen > #windyRainMap,
+.av-map-fullscreen-host:fullscreen > #openmeteoRainMap,
+.av-map-fullscreen-host:fullscreen > #openweatherRainMap,
+.av-map-fullscreen-host:-webkit-full-screen > #rainMap,
+.av-map-fullscreen-host:-webkit-full-screen > #windyRainMap,
+.av-map-fullscreen-host:-webkit-full-screen > #openmeteoRainMap,
+.av-map-fullscreen-host:-webkit-full-screen > #openweatherRainMap{
+  width:100%!important;
+  height:100%!important;
+  min-height:100vh!important;
+  border-radius:0!important;
+}
+
+.av-map-fullscreen-host:fullscreen .leaflet-container,
+.av-map-fullscreen-host:-webkit-full-screen .leaflet-container{
+  width:100%!important;
+  height:100%!important;
+  border-radius:0!important;
+}
+
+.av-map-fullscreen-host:fullscreen .av-map-fullscreen-btn,
+.av-map-fullscreen-host:-webkit-full-screen .av-map-fullscreen-btn{
+  top:14px!important;
+  right:14px!important;
+  min-width:108px!important;
+  height:32px!important;
+  background:rgba(255,253,247,.96)!important;
+  color:#b91c1c!important;
+  border-color:rgba(239,68,68,.20)!important;
+  box-shadow:0 8px 18px rgba(15,23,42,.12)!important;
+}
+
+@media(max-width:720px){
+  .av-map-fullscreen-btn{
+    min-width:31px!important;
+    width:31px!important;
+    height:31px!important;
+    padding:0!important;
+    border-radius:9px!important;
+  }
+  .av-map-fullscreen-btn span:last-child{
+    display:none!important;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -6938,9 +7076,18 @@ body.slideshow-frame-mode section{
           </div>
 
           <div class="v8-main">
-            <div class="v8-card v8-panel">
+            <div class="v8-card v8-panel av-map-fullscreen-host av-overview-map-host">
               <div class="v8-title">Bản đồ vị trí trạm</div>
               <div class="v8-map" id="overviewProMap"></div>
+              <button
+                class="av-map-fullscreen-btn"
+                type="button"
+                data-av-map-fullscreen="overviewProMap"
+                title="Mở bản đồ toàn màn hình"
+              >
+                <span>⛶</span>
+                <span>Toàn màn hình</span>
+              </button>
             </div>
 
             <div class="v8-card v8-panel">
@@ -7058,8 +7205,17 @@ body.slideshow-frame-mode section{
           </div>
 
           <div class="rain-dashboard-grid">
-            <div class="rain-map-wrap">
+            <div class="rain-map-wrap av-map-fullscreen-host">
               <div id="rainMap"></div>
+              <button
+                class="av-map-fullscreen-btn"
+                type="button"
+                data-av-map-fullscreen="rainMap"
+                title="Mở bản đồ số liệu mưa thực tế toàn màn hình"
+              >
+                <span>⛶</span>
+                <span>Toàn màn hình</span>
+              </button>
             </div>
 
             <div class="table-container">
@@ -7152,7 +7308,18 @@ body.slideshow-frame-mode section{
             <div class="windy-rain-card"><span>Trạm lớn nhất</span><b id="windyRainMaxStation">--</b></div>
           </div>
           <div class="windy-rain-grid">
-            <div class="windy-rain-map-wrap"><div id="windyRainMap"></div></div>
+            <div class="windy-rain-map-wrap av-map-fullscreen-host">
+              <div id="windyRainMap"></div>
+              <button
+                class="av-map-fullscreen-btn"
+                type="button"
+                data-av-map-fullscreen="windyRainMap"
+                title="Mở bản đồ Windy toàn màn hình"
+              >
+                <span>⛶</span>
+                <span>Toàn màn hình</span>
+              </button>
+            </div>
             <div class="table-container">
               <table>
                 <thead><tr><th>Trạm</th><th>24h</th><th>48h</th><th>72h</th><th>Cấp 24h</th></tr></thead>
@@ -7187,7 +7354,18 @@ body.slideshow-frame-mode section{
             <div class="openmeteo-rain-card"><span>Trạm lớn nhất</span><b id="openmeteoRainMaxStation">--</b></div>
           </div>
           <div class="openmeteo-rain-grid">
-            <div class="openmeteo-rain-map-wrap"><div id="openmeteoRainMap"></div></div>
+            <div class="openmeteo-rain-map-wrap av-map-fullscreen-host">
+              <div id="openmeteoRainMap"></div>
+              <button
+                class="av-map-fullscreen-btn"
+                type="button"
+                data-av-map-fullscreen="openmeteoRainMap"
+                title="Mở bản đồ Open-Meteo toàn màn hình"
+              >
+                <span>⛶</span>
+                <span>Toàn màn hình</span>
+              </button>
+            </div>
             <div class="table-container">
               <table>
                 <thead><tr><th>Trạm</th><th>24h</th><th>48h</th><th>72h</th><th>Cấp 24h</th></tr></thead>
@@ -7222,7 +7400,18 @@ body.slideshow-frame-mode section{
             <div class="openweather-rain-card"><span>Trạm lớn nhất</span><b id="openweatherRainMaxStation">--</b></div>
           </div>
           <div class="openweather-rain-grid">
-            <div class="openweather-rain-map-wrap"><div id="openweatherRainMap"></div></div>
+            <div class="openweather-rain-map-wrap av-map-fullscreen-host">
+              <div id="openweatherRainMap"></div>
+              <button
+                class="av-map-fullscreen-btn"
+                type="button"
+                data-av-map-fullscreen="openweatherRainMap"
+                title="Mở bản đồ OpenWeather toàn màn hình"
+              >
+                <span>⛶</span>
+                <span>Toàn màn hình</span>
+              </button>
+            </div>
             <div class="table-container">
               <table>
                 <thead><tr><th>Trạm</th><th>24h</th><th>48h</th><th>72h</th><th>Cấp 24h</th></tr></thead>
@@ -17300,5 +17489,183 @@ function renderAllPctt(){
   window.addEventListener("load",aiInit);
 })();
 </script>
+
+<script>
+(function(){
+  "use strict";
+
+  function fullscreenElement(){
+    return document.fullscreenElement ||
+           document.webkitFullscreenElement ||
+           null;
+  }
+
+  function requestFullscreen(element){
+    if(element.requestFullscreen){
+      return element.requestFullscreen();
+    }
+    if(element.webkitRequestFullscreen){
+      return element.webkitRequestFullscreen();
+    }
+    return Promise.reject(new Error("Fullscreen API không được hỗ trợ."));
+  }
+
+  function exitFullscreen(){
+    if(document.exitFullscreen){
+      return document.exitFullscreen();
+    }
+    if(document.webkitExitFullscreen){
+      return document.webkitExitFullscreen();
+    }
+    return Promise.resolve();
+  }
+
+  function findLeafletMap(containerId){
+    if(containerId === "rainMap" &&
+       typeof rainState !== "undefined"){
+      return rainState.map || null;
+    }
+
+    if(containerId === "windyRainMap" &&
+       typeof windyRainState !== "undefined"){
+      return windyRainState.map || null;
+    }
+
+    if(containerId === "openmeteoRainMap" &&
+       typeof openmeteoRainState !== "undefined"){
+      return openmeteoRainState.map || null;
+    }
+
+    if(containerId === "openweatherRainMap" &&
+       typeof openweatherRainState !== "undefined"){
+      return openweatherRainState.map || null;
+    }
+
+    /* Bản đồ Tổng quan không lưu instance công khai.
+       Tìm instance Leaflet từ các biến đã đăng ký trong DOM. */
+    if(containerId === "overviewProMap"){
+      const container = document.getElementById(containerId);
+
+      if(container && container._leaflet_id && window.L){
+        const candidates = [];
+
+        for(const key in window){
+          try{
+            const value = window[key];
+            if(value &&
+               typeof value.invalidateSize === "function" &&
+               value._container === container){
+              candidates.push(value);
+            }
+          }catch(error){}
+        }
+
+        if(candidates.length){
+          return candidates[0];
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function resizeMap(containerId){
+    window.setTimeout(function(){
+      const map = findLeafletMap(containerId);
+      if(map && typeof map.invalidateSize === "function"){
+        map.invalidateSize(true);
+      }
+
+      /* Phát sự kiện resize để các bản đồ khác tự cập nhật nếu có listener. */
+      window.dispatchEvent(new Event("resize"));
+    },180);
+
+    window.setTimeout(function(){
+      const map = findLeafletMap(containerId);
+      if(map && typeof map.invalidateSize === "function"){
+        map.invalidateSize(true);
+      }
+    },500);
+  }
+
+  function updateButton(){
+    const active = fullscreenElement();
+
+    document
+      .querySelectorAll("[data-av-map-fullscreen]")
+      .forEach(function(button){
+        const target = document.getElementById(
+          button.getAttribute("data-av-map-fullscreen")
+        );
+
+        const host = target
+          ? target.closest(".av-map-fullscreen-host")
+          : null;
+
+        const isActive = Boolean(active && host === active);
+        const parts = button.querySelectorAll("span");
+
+        if(parts[0]){
+          parts[0].textContent = isActive ? "✕" : "⛶";
+        }
+        if(parts[1]){
+          parts[1].textContent = isActive
+            ? "Thoát toàn màn hình"
+            : "Toàn màn hình";
+        }
+      });
+  }
+
+  document.addEventListener("click", async function(event){
+    const button = event.target.closest("[data-av-map-fullscreen]");
+    if(!button){
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const mapId = button.getAttribute("data-av-map-fullscreen");
+    const target = document.getElementById(mapId);
+    const host = target
+      ? target.closest(".av-map-fullscreen-host")
+      : null;
+
+    if(!host){
+      return;
+    }
+
+    try{
+      if(fullscreenElement() === host){
+        await exitFullscreen();
+      }else{
+        await requestFullscreen(host);
+      }
+    }catch(error){
+      console.error("Không mở được toàn màn hình:", error);
+      alert("Trình duyệt không mở được chế độ toàn màn hình.");
+    }
+
+    resizeMap(mapId);
+    updateButton();
+  });
+
+  function onFullscreenChange(){
+    updateButton();
+
+    [
+      "overviewProMap",
+      "rainMap",
+      "windyRainMap",
+      "openmeteoRainMap",
+      "openweatherRainMap"
+    ].forEach(resizeMap);
+  }
+
+  document.addEventListener("fullscreenchange", onFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+})();
+</script>
+
 </body>
 </html>
