@@ -19331,7 +19331,7 @@ function renderAllPctt(){
     if(!p){host.innerHTML="";return;}
     const finish=p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt";
     host.innerHTML=`
-      <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận engine</small><b>${p.feasible?"Đạt và duy trì":"Chưa đáp ứng đầy đủ"}</b></div>
+      <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận hệ thống tính toán</small><b>${p.feasible?"Đạt và duy trì":"Chưa đáp ứng đầy đủ"}</b></div>
       <div class="spill-ai-fact"><small>Thời điểm đạt mục tiêu</small><b>${finish}</b></div>
       <div class="spill-ai-fact ${p.maintainedToDeadline?"good":"warn"}"><small>Duy trì đến hạn</small><b>${p.maintainedToDeadline?"Có":"Chưa bảo đảm"}</b></div>
       <div class="spill-ai-fact ${p.exceedHours?"warn":"good"}"><small>Khoảng vượt nhu cầu Q max</small><b>${p.exceedHours||0} khoảng</b></div>`;
@@ -19347,7 +19347,7 @@ function renderAllPctt(){
       if(p.reached&&!p.maintainedToDeadline)items.push("Đã đạt mục tiêu nhưng chưa bảo đảm duy trì chính xác đến hết thời hạn.");
       if(!p.reached)items.push(`Đến hạn MNH còn ${fmt(p.finalLevel,2)} m, chưa đạt mục tiêu.`);
       if(x.qMachine>x.qIn)items.push("Q máy lớn hơn Q về; hồ có xu hướng tiếp tục giảm sau khi đạt mục tiêu.");
-      if(!items.length)items.push("Không phát hiện mâu thuẫn nổi bật trong dữ liệu engine.");
+      if(!items.length)items.push("Không phát hiện mâu thuẫn nổi bật trong dữ liệu tính toán.");
       return `KIỂM TRA RỦI RO VÀ ĐIỂM CẦN LƯU Ý\n\n${items.map((v,i)=>`${i+1}. ${v}`).join("\n")}\n\nTrước khi áp dụng phải đối chiếu văn bản điều hành, cập nhật MNH, Q về, Q máy, tình trạng cửa van và được người có thẩm quyền phê duyệt.`;
     }
     if(task==="REVIEW"){
@@ -19429,7 +19429,7 @@ function renderAllPctt(){
     const x=p.input;
 
     const taskNames={
-      SUMMARY:"TÓM TẮT GIAO BAN VÀ VĂN BẢN",
+      SUMMARY:"LẬP BÁO CÁO PHƯƠNG ÁN XẢ TRÀN",
       RISK:"KIỂM TRA RỦI RO VÀ ĐIỂM CẦN LƯU Ý",
       REVIEW:"RÀ SOÁT TÍNH HỢP LÝ PHƯƠNG ÁN",
       NOTICE:"SOẠN DỰ THẢO THÔNG BÁO VẬN HÀNH"
@@ -19448,7 +19448,7 @@ function renderAllPctt(){
         orderNo:x.orderNo||"",
         preparedBy:x.preparedBy||"",
         mode:x.mode,
-        modeName:modeNames[x.mode]||x.mode,
+        modeName:modeNames[x.mode]||"Không xác định",
         hStart:x.hStart,
         hTarget:x.hTarget,
         start:x.start,
@@ -19527,28 +19527,26 @@ KHÔNG ĐƯỢC LƯỢC BỎ:
 - Thời điểm đạt MNH mục tiêu.
 - Giai đoạn duy trì đến thời hạn.
 - Q tràn duy trì.
-- Cảnh báo và kết luận engine.`;
+- Cảnh báo và kết luận hệ thống tính toán.`;
     }
 
-    return `Bạn là trợ lý kỹ thuật hồ A Vương.
+    return `Bạn là trợ lý kỹ thuật hồ thủy điện A Vương.
 
-NHIỆM VỤ: ${taskNames[task]||taskNames.SUMMARY}
+YÊU CẦU: ${taskNames[task]||taskNames.SUMMARY}
 
-QUY TẮC:
-- Chỉ diễn giải kết quả engine.
-- Không tự tính lại hoặc thay đổi số liệu.
+NGUYÊN TẮC:
+- Chỉ diễn giải kết quả do hệ thống tính toán cung cấp.
+- Không tự tính lại hoặc thay đổi bất kỳ số liệu nào.
 - Không phát lệnh vận hành.
-- Phân biệt thời điểm đạt mục tiêu và giai đoạn duy trì đến hạn.
-- Tổng Q xả = Q máy + Q tràn.
-- Không bỏ sót trường có giá trị.
-- Không viết chung chung khi đã có số cụ thể.
-- Không dùng Markdown.
-- Chỉ dùng văn bản thuần, tiêu đề viết hoa, danh sách dùng dấu "-".
-- Luôn nhắc đối chiếu văn bản điều hành, số liệu thực tế và phê duyệt có thẩm quyền.
+- Không bỏ sót các thông số chính.
+- Không lặp lại cùng một thông tin.
+- Không liệt kê lại toàn bộ bảng kết quả theo giờ.
+- Không dùng mã HTML hoặc định dạng Markdown.
+- Viết hoàn toàn bằng tiếng Việt, rõ ràng và chuyên nghiệp.
 
 ${structure}
 
-DỮ LIỆU ENGINE:
+DỮ LIỆU TÍNH TOÁN:
 ${JSON.stringify(payload)}`;
   }
 
@@ -19778,7 +19776,7 @@ ${JSON.stringify(payload)}`;
 
       box.textContent=
         buildLocalAiContent(task)+
-        "\n\n(Ghi chú: Không kết nối được OpenAI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
+        "\n\n(Ghi chú: Không kết nối được OpenAI; đang hiển thị nội dung dự phòng từ kết quả tính toán.)";
 
       if(status){
         status.className=
