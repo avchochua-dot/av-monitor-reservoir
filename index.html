@@ -7130,6 +7130,15 @@ body.slideshow-frame-mode section{
   .spill-pdf-render-page .pdf-table td{
     box-sizing:border-box;
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:clip;
+  }
+
+  .spill-pdf-render-page .pdf-table th:last-child,
+  .spill-pdf-render-page .pdf-table td:last-child{
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:normal;
   }
 
   .spill-pdf-render-page .pdf-table-page{
@@ -20626,17 +20635,16 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
 
     const pageFits=page=>{
       /*
-       * Trang có chiều cao cố định 760 px.
-       * scrollHeight của trang rỗng cũng đã bằng 760 px,
-       * vì vậy không được so với 760 - khoảng an toàn.
+       * Phân trang chỉ dựa trên chiều cao.
+       * Không dùng scrollWidth vì chữ dài ở cột trạng thái có thể làm
+       * chiều rộng tăng vài pixel và bị hiểu nhầm là hàng quá cao.
        */
       const limit=
         page.clientHeight||
         PAGE_HEIGHT;
 
       return (
-        page.scrollHeight<=limit+1&&
-        page.scrollWidth<=page.clientWidth+1
+        page.scrollHeight<=limit+1
       );
     };
 
@@ -20760,7 +20768,7 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
 
       if(!pageFits(currentPage)){
         throw new Error(
-          "Một hàng bảng quá cao, không thể đặt vừa trong một trang PDF."
+          "Một hàng bảng có chiều cao vượt quá vùng nội dung của một trang PDF."
         );
       }
 
@@ -20841,6 +20849,24 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         "Không tạo được trang PDF."
       );
     }
+
+    /*
+     * Cảnh báo kỹ thuật nếu có tràn ngang, nhưng không chặn tạo PDF.
+     * Việc phân trang chỉ phụ thuộc chiều cao thực tế.
+     */
+    pages.forEach((page,pageIndex)=>{
+      if(
+        page.scrollWidth>
+        page.clientWidth+2
+      ){
+        console.warn(
+          "[Spill PDF] Trang có nội dung tràn ngang nhẹ:",
+          pageIndex+1,
+          page.scrollWidth,
+          page.clientWidth
+        );
+      }
+    });
 
     return pages;
   }
