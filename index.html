@@ -6911,7 +6911,18 @@ body.slideshow-frame-mode section{
 .spill-chip.ok{background:#dcfce7;color:#166534}.spill-chip.warn{background:#fef3c7;color:#92400e}.spill-chip.bad{background:#fee2e2;color:#991b1b}.spill-chip.info{background:#dbeafe;color:#1d4ed8}
 .spill-chart-box{height:390px;border:1px solid var(--line);border-radius:18px;padding:12px;background:#fff}
 #spillPlanChart{height:360px!important}
-.spill-ai-box{min-height:120px;border:1px solid rgba(37,99,235,.18);border-radius:16px;background:#eff6ff;padding:16px;color:#334155;font-size:14px;line-height:1.68;white-space:pre-wrap}
+.spill-ai-box{min-height:180px;border:1px solid rgba(37,99,235,.18);border-radius:16px;background:#eff6ff;padding:16px;color:#334155;font-size:14px;line-height:1.68;white-space:pre-wrap}
+.spill-ai-head-pro{align-items:flex-start!important;gap:14px;flex-wrap:wrap}
+.spill-ai-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.spill-ai-select{min-width:250px;height:40px;padding:0 36px 0 12px;border:1px solid rgba(15,23,42,.14);border-radius:11px;background:#fff;color:#0f172a;font-size:12px;font-weight:800}
+.spill-ai-disclaimer{margin:0 0 12px;padding:10px 12px;border-left:4px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#92400e;font-size:12px;line-height:1.5}
+.spill-ai-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.spill-ai-fact{padding:10px 11px;border:1px solid rgba(15,23,42,.08);border-radius:12px;background:#fff}
+.spill-ai-fact small{display:block;color:#64748b;font-size:10px;font-weight:800;text-transform:uppercase}
+.spill-ai-fact b{display:block;margin-top:4px;color:#0f172a;font-size:13px}
+.spill-ai-fact.good{background:#ecfdf5;border-color:#a7f3d0}.spill-ai-fact.warn{background:#fff7ed;border-color:#fed7aa}.spill-ai-fact.bad{background:#fef2f2;border-color:#fecaca}
+@media(max-width:980px){.spill-ai-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.spill-ai-facts{grid-template-columns:1fr}.spill-ai-select{width:100%;min-width:0}}
 .spill-note{padding:12px 14px;border-left:4px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-size:11px;font-weight:750;line-height:1.5}
 .spill-hidden{display:none!important}
 @media(max-width:1200px){.spill-grid{grid-template-columns:1fr}.spill-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.spill-field.span3{grid-column:span 2}.spill-kpis{grid-template-columns:repeat(2,1fr)}}
@@ -10470,17 +10481,25 @@ body.slideshow-frame-mode section{
           </div>
 
           <div class="spill-card" id="spillAiSection">
-            <div class="spill-card-head">
+            <div class="spill-card-head spill-ai-head-pro">
               <div>
-                <b>AI tóm tắt phương án</b>
+                <b>AI hỗ trợ phân tích phương án</b>
                 <div id="spillAiStatus" class="spill-ai-status fallback" style="margin-top:7px">Chưa tạo nội dung</div>
               </div>
               <div class="spill-ai-toolbar">
-                <span class="chip">Văn phong nói / văn bản</span>
+                <select id="spillAiTask" class="spill-ai-select" aria-label="Chọn nội dung AI">
+                  <option value="SUMMARY">Tóm tắt giao ban và văn bản</option>
+                  <option value="RISK">Kiểm tra rủi ro và điểm cần lưu ý</option>
+                  <option value="REVIEW">Rà soát tính hợp lý phương án</option>
+                  <option value="NOTICE">Soạn dự thảo thông báo vận hành</option>
+                </select>
+                <button id="spillAiBtn" class="spill-btn amber" type="button" disabled>✨ AI phân tích</button>
                 <button id="spillCopyBtn" class="spill-btn ghost spill-copy-btn" type="button" disabled>📋 Sao chép</button>
               </div>
             </div>
-            <div id="spillAiSummary" class="spill-ai-box">Chưa tạo nội dung tóm tắt.</div>
+            <div class="spill-ai-disclaimer">AI chỉ diễn giải và rà soát kết quả do bộ máy tính toán tạo ra; không tự thay đổi số liệu, không phát lệnh vận hành.</div>
+            <div id="spillAiQuickFacts" class="spill-ai-facts"></div>
+            <div id="spillAiSummary" class="spill-ai-box">Chưa tạo nội dung phân tích.</div>
           </div>
         </section>
       </div>
@@ -19226,6 +19245,9 @@ function renderAllPctt(){
     }).join("");
     el("spillRowCount").textContent=`${p.rows.length} dòng`;
     ["spillAiBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>el(id).disabled=false); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
+    renderAiQuickFacts();
+    el("spillAiSummary").textContent=buildLocalSummary();
+    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Tóm tắt tự động – có thể phân tích lại bằng AI";}
     renderChart();
   }
 
@@ -19248,6 +19270,50 @@ function renderAllPctt(){
         plugins:{legend:{position:"top"}}
       }
     });
+  }
+
+  function renderAiQuickFacts(){
+    const host=el("spillAiQuickFacts"),p=state.plan;
+    if(!host)return;
+    if(!p){host.innerHTML="";return;}
+    const finish=p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt";
+    host.innerHTML=`
+      <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận engine</small><b>${p.feasible?"Đạt và duy trì":"Chưa đáp ứng đầy đủ"}</b></div>
+      <div class="spill-ai-fact"><small>Thời điểm đạt mục tiêu</small><b>${finish}</b></div>
+      <div class="spill-ai-fact ${p.maintainedToDeadline?"good":"warn"}"><small>Duy trì đến hạn</small><b>${p.maintainedToDeadline?"Có":"Chưa bảo đảm"}</b></div>
+      <div class="spill-ai-fact ${p.exceedHours?"warn":"good"}"><small>Khoảng vượt nhu cầu Q max</small><b>${p.exceedHours||0} khoảng</b></div>`;
+  }
+
+  function buildLocalAiContent(task){
+    const p=state.plan,x=p.input;
+    if(task==="RISK"){
+      const items=[];
+      if(!x.orderNo)items.push("Chưa nhập văn bản điều hành.");
+      if(p.exceedHours)items.push(`${p.exceedHours} khoảng có nhu cầu vượt tổng Q max và đã bị khống chế.`);
+      if(p.nearHours)items.push(`${p.nearHours} khoảng vận hành gần giới hạn Q max.`);
+      if(p.reached&&!p.maintainedToDeadline)items.push("Đã đạt mục tiêu nhưng chưa bảo đảm duy trì chính xác đến hết thời hạn.");
+      if(!p.reached)items.push(`Đến hạn MNH còn ${fmt(p.finalLevel,2)} m, chưa đạt mục tiêu.`);
+      if(x.qMachine>x.qIn)items.push("Q máy lớn hơn Q về; hồ có xu hướng tiếp tục giảm sau khi đạt mục tiêu.");
+      if(!items.length)items.push("Không phát hiện mâu thuẫn nổi bật trong dữ liệu engine.");
+      return `KIỂM TRA RỦI RO VÀ ĐIỂM CẦN LƯU Ý\n\n${items.map((v,i)=>`${i+1}. ${v}`).join("\n")}\n\nTrước khi áp dụng phải đối chiếu văn bản điều hành, cập nhật MNH, Q về, Q máy, tình trạng cửa van và được người có thẩm quyền phê duyệt.`;
+    }
+    if(task==="REVIEW"){
+      return `RÀ SOÁT TÍNH HỢP LÝ PHƯƠNG ÁN\n\n- Khung ngày/đêm: ${x.dayStart}–${x.dayEnd}.\n- Tổng Q lớn nhất áp dụng: ${fmt(p.maxApplied,1)} / ${fmt(x.qMaxTotal,1)} m³/s.\n- Thời điểm đạt mục tiêu: ${p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt"}.\n- Duy trì đến hạn: ${p.maintainedToDeadline?"Có":"Chưa bảo đảm"}.\n- Cảnh báo: ${p.warnings.join(" ")||"Không có cảnh báo đặc biệt."}\n\nKết luận: ${p.feasible?"Phương án đáp ứng dữ liệu đầu vào hiện tại.":"Phương án chưa đáp ứng đầy đủ dữ liệu đầu vào hiện tại."} Đây là rà soát hỗ trợ, không thay thế lệnh vận hành.`;
+    }
+    if(task==="NOTICE"){
+      return `DỰ THẢO THÔNG BÁO PHƯƠNG ÁN XẢ TRÀN\n\nCăn cứ: ${x.orderNo||"[Bổ sung văn bản điều hành]"}.\nThời gian: từ ${timeVN(x.start)} ngày ${dateVN(x.start)} đến ${timeVN(x.end)} ngày ${dateVN(x.end)}.\nMNH ban đầu: ${fmt(x.hStart,2)} m; MNH mục tiêu: ${fmt(x.hTarget,2)} m.\nQ về giả thiết: ${fmt(x.qIn,1)} m³/s; Q máy: ${fmt(x.qMachine,1)} m³/s; tổng Q max: ${fmt(x.qMaxTotal,1)} m³/s.\nThời điểm dự kiến đạt mục tiêu: ${p.finishTime?`${timeVN(p.finishTime)} ngày ${dateVN(p.finishTime)}`:"chưa xác định"}.\n\nYêu cầu theo dõi liên tục MNH, Q về, Q máy, Q tràn và tình hình hạ du. Dự thảo này chỉ được phát hành sau khi kiểm tra và phê duyệt theo thẩm quyền.`;
+    }
+    return buildLocalSummary();
+  }
+
+  function buildAiPrompt(task){
+    const p=state.plan,x=p.input;
+    const compact=p.rows.map(r=>({time:`${r.date} ${r.period}`,h0:+r.hStart.toFixed(2),h1:+r.hEnd.toFixed(2),qIn:+r.qIn.toFixed(1),qMachine:+r.qMachine.toFixed(1),qSpill:+r.qSpillApplied.toFixed(1),qTotal:+r.qTotal.toFixed(1),qMax:+r.qMax.toFixed(1),method:r.method,status:r.status,flags:r.flags}));
+    const names={SUMMARY:"tóm tắt giao ban và văn bản",RISK:"kiểm tra rủi ro",REVIEW:"rà soát tính hợp lý",NOTICE:"soạn dự thảo thông báo"};
+    return `Bạn là trợ lý kỹ thuật hồ A Vương. Nhiệm vụ: ${names[task]||names.SUMMARY}.
+QUY TẮC: Chỉ diễn giải kết quả engine; không tự tính lại, không thay đổi số liệu, không phát lệnh vận hành. Phải phân biệt thời điểm đạt mục tiêu và giai đoạn duy trì đến hạn. Tổng Q xả = Q máy + Q tràn. Luôn nhắc đối chiếu văn bản, số liệu thực tế và phê duyệt có thẩm quyền.
+DỮ LIỆU:
+${JSON.stringify({input:{orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hStart,hTarget:x.hTarget,start:x.start,end:x.end,qIn:x.qIn,qMachine:x.qMachine,qMaxTotal:x.qMaxTotal,dayStart:x.dayStart,dayEnd:x.dayEnd,firstHourCm:x.firstCm,notes:x.notes,mode:x.mode},result:{volumeToLower:p.volumeToLower,avgDay:p.avgDay,avgNight:p.avgNight,maxApplied:p.maxApplied,maxReq:p.maxReq,finishTime:p.finishTime,feasible:p.feasible,reached:p.reached,maintainedToDeadline:p.maintainedToDeadline,maintenanceSpill:p.maintenanceSpill,warnings:p.warnings,finalLevel:p.finalLevel,exceedHours:p.exceedHours,nearHours:p.nearHours},hourly:compact},null,2)}`;
   }
 
   function buildLocalSummary(){
@@ -19280,61 +19346,27 @@ function renderAllPctt(){
 
   async function aiSummary(){
     if(!state.plan)return;
-    const box=el("spillAiSummary");
-    const status=el("spillAiStatus");
-    const btn=el("spillAiBtn");
-    box.textContent="AI đang tóm tắt phương án...";
+    const box=el("spillAiSummary"),status=el("spillAiStatus"),btn=el("spillAiBtn");
+    const task=el("spillAiTask")?.value||"SUMMARY";
+    const labels={SUMMARY:"tóm tắt phương án",RISK:"kiểm tra rủi ro",REVIEW:"rà soát phương án",NOTICE:"soạn dự thảo thông báo"};
+    box.textContent=`AI đang ${labels[task]}...`;
     if(status){status.className="spill-ai-status";status.textContent="Đang kết nối AI...";}
-    if(btn) btn.disabled=true;
-
-    const p=state.plan,x=p.input;
-    const compact=p.rows.map(r=>({
-      time:`${r.date} ${r.period}`,
-      h0:+r.hStart.toFixed(2),h1:+r.hEnd.toFixed(2),
-      qIn:+r.qIn.toFixed(1),qMachine:+r.qMachine.toFixed(1),
-      qSpill:+r.qSpillApplied.toFixed(1),qTotal:+r.qTotal.toFixed(1),
-      qMax:+r.qMax.toFixed(1),status:r.status
-    }));
-
-    const prompt=`Bạn là trợ lý kỹ thuật hồ A Vương. Hãy diễn giải KẾT QUẢ ĐÃ ĐƯỢC ENGINE TÍNH TOÁN thành đúng 2 phần có tiêu đề:
-1. VĂN PHONG NÓI DÙNG TRONG GIAO BAN
-2. VĂN BẢN PHƯƠNG ÁN
-Không tự tính lại, không thay đổi bất kỳ số liệu nào, không phát lệnh vận hành. Nhấn mạnh: căn cứ văn bản điều hành; giờ đầu mở êm; phân bổ ngày/đêm; tổng Q xả tối đa gồm Q máy + Q tràn; thời điểm đạt mục tiêu; cảnh báo và điều kiện chỉ thực hiện khi có lệnh hợp lệ.
-DỮ LIỆU:
-${JSON.stringify({
-  input:{
-    orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hStart,hTarget:x.hTarget,
-    start:x.start,end:x.end,qIn:x.qIn,qMachine:x.qMachine,qMaxTotal:x.qMaxTotal,
-    firstHourCm:x.firstCm,notes:x.notes,mode:x.mode
-  },
-  result:{
-    volumeToLower:p.volumeToLower,avgDay:p.avgDay,avgNight:p.avgNight,
-    maxApplied:p.maxApplied,maxReq:p.maxReq,finishTime:p.finishTime,
-    feasible:p.feasible,warnings:p.warnings,finalLevel:p.finalLevel
-  },
-  hourly:compact
-},null,2)}`;
-
+    if(btn){btn.disabled=true;btn.textContent="⏳ Đang xử lý";}
     try{
-      const result=await jsonpAi({
-        question:prompt,
-        sessionId:"spill-plan-"+Date.now(),
-        history:[]
-      });
-      if(!result || result.success===false || !result.answer){
-        throw new Error(result?.error||"AI không trả về nội dung hợp lệ");
-      }
+      const result=await jsonpAi({question:buildAiPrompt(task),sessionId:`spill-plan-${task.toLowerCase()}-${Date.now()}`,history:[]});
+      if(!result||result.success===false||!result.answer)throw new Error(result?.error||"AI không trả về nội dung hợp lệ");
       box.textContent=result.answer;
-      if(status){status.className="spill-ai-status online";status.textContent="● Đã tạo bằng AI";}
-    }catch(e){
-      console.warn("Spill AI fallback:",e);
-      box.textContent=buildLocalSummary()+"\n\n(Ghi chú: Không kết nối được AI; đang hiển thị bản tóm tắt tự động của hệ thống.)";
-      if(status){status.className="spill-ai-status fallback";status.textContent="● Bản tóm tắt dự phòng";}
+      if(status){status.className="spill-ai-status online";status.textContent=`● AI đã hoàn thành ${labels[task]}`;}
+    }catch(error){
+      console.warn("Spill AI fallback:",error);
+      box.textContent=buildLocalAiContent(task)+"\n\n(Ghi chú: Không kết nối được AI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
+      if(status){status.className="spill-ai-status fallback";status.textContent="● Nội dung dự phòng";}
     }finally{
-      if(btn) btn.disabled=false;
-      if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
+      if(btn){btn.disabled=false;btn.textContent="✨ AI phân tích";}
+      if(el("spillCopyBtn"))el("spillCopyBtn").disabled=false;
     }
   }
+
 
   async function copySummary(){
     const content=el("spillAiSummary")?.textContent?.trim();
@@ -20545,7 +20577,7 @@ ${JSON.stringify({
     el("spillRampUp").value="100";el("spillTaperCm").value="10";el("spillModeAuto").checked=true;showMode();
     state.plan=null;el("spillKpis").innerHTML="";el("spillTableBody").innerHTML='<tr><td colspan="16">Chưa có dữ liệu tính toán.</td></tr>';
     el("spillSummaryStatus").className="spill-status";el("spillSummaryStatus").textContent="Nhập dữ liệu và bấm “Tính phương án”.";
-    el("spillAiSummary").textContent="Chưa tạo nội dung tóm tắt."; if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="Chưa tạo nội dung";} ["spillAiBtn","spillExcelBtn","spillPdfBtn","spillCopyBtn"].forEach(id=>{if(el(id))el(id).disabled=true;}); updateInputPreview();
+    el("spillAiSummary").textContent="Chưa tạo nội dung phân tích."; if(el("spillAiQuickFacts"))el("spillAiQuickFacts").innerHTML=""; if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="Chưa tạo nội dung";} ["spillAiBtn","spillExcelBtn","spillPdfBtn","spillCopyBtn"].forEach(id=>{if(el(id))el(id).disabled=true;}); updateInputPreview();
     if(state.chart){state.chart.destroy();state.chart=null;}
   }
 
