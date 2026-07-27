@@ -7077,7 +7077,9 @@ body.slideshow-frame-mode section{
 <style id="spill-pdf-page-layout-fix">
   .spill-pdf-render-page{
     width:1120px;
+    height:760px;
     min-height:760px;
+    max-height:760px;
     box-sizing:border-box;
     background:#fff;
     padding:0;
@@ -7122,6 +7124,22 @@ body.slideshow-frame-mode section{
   .spill-pdf-render-page .pdf-table tr{
     break-inside:avoid;
     page-break-inside:avoid;
+  }
+
+  .spill-pdf-render-page .pdf-table th,
+  .spill-pdf-render-page .pdf-table td{
+    box-sizing:border-box;
+    white-space:nowrap;
+  }
+
+  .spill-pdf-render-page .pdf-table-page{
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .spill-pdf-render-page .pdf-final-block{
+    width:100%;
+    box-sizing:border-box;
   }
 </style>
 
@@ -20471,6 +20489,9 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
   }
 
   function prepareSpillPdfPages(wrapper){
+    const PAGE_HEIGHT=760;
+    const PAGE_SAFETY=8;
+
     const children=
       Array.from(
         wrapper.children
@@ -20537,18 +20558,42 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
       );
     }
 
-    const firstPageRowCount=
-      Math.min(
-        9,
-        sourceRows.length
+    const signNode=
+      wrapper.querySelector(
+        ".pdf-sign"
       );
 
+    const footerNode=
+      wrapper.querySelector(
+        ".pdf-footer"
+      );
+
+    const createPage=()=>{
+      const page=
+        document.createElement(
+          "div"
+        );
+
+      page.className=
+        "spill-pdf-render-page";
+
+      wrapper.appendChild(
+        page
+      );
+
+      return page;
+    };
+
     const buildTableSection=
-      (rows,startIndex)=>{
+      continued=>{
         const section=
           tableSection.cloneNode(
             true
           );
+
+        section.classList.add(
+          "pdf-table-page"
+        );
 
         const table=
           section.querySelector(
@@ -20560,12 +20605,6 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
 
         tbody.innerHTML="";
 
-        rows.forEach(row=>{
-          tbody.appendChild(
-            row.cloneNode(true)
-          );
-        });
-
         const title=
           section.querySelector(
             ".pdf-section-title"
@@ -20573,126 +20612,226 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
 
         if(
           title&&
-          startIndex>0
+          continued
         ){
           title.textContent=
             "IV. BẢNG KẾT QUẢ TÍNH TOÁN THEO GIỜ (TIẾP THEO)";
         }
 
-        return section;
-      };
+        return {
+          section,
+          tbody
+        };
+    };
 
-    const tablePartOne=
-      buildTableSection(
-        sourceRows.slice(
-          0,
-          firstPageRowCount
-        ),
-        0
-      );
+    const pageFits=page=>
+      page.scrollHeight<=
+      PAGE_HEIGHT-PAGE_SAFETY;
 
-    const tablePartTwo=
-      buildTableSection(
-        sourceRows.slice(
-          firstPageRowCount
-        ),
-        firstPageRowCount
-      );
+    /*
+     * Xóa nội dung cũ trước khi dựng lại từng trang.
+     * Mỗi trang luôn rộng 1120 px và cao 760 px,
+     * vì vậy jsPDF không phải thu nhỏ riêng từng trang.
+     */
+    wrapper.innerHTML="";
 
+    /*
+     * Trang đầu: toàn bộ nội dung trước phần biểu đồ.
+     */
     const chartIndex=
       children.indexOf(
         chartSection
       );
 
-    const pageOneNodes=
-      children.slice(
+    const pageOne=
+      createPage();
+
+    children
+      .slice(
         0,
         chartIndex
-      ).filter(node=>
+      )
+      .filter(node=>
         !node.classList.contains(
           "pdf-page-break"
         )
-      );
-
-    const signNode=
-      wrapper.querySelector(
-        ".pdf-sign"
-      );
-
-    const footerNode=
-      wrapper.querySelector(
-        ".pdf-footer"
-      );
-
-    const pageOne=
-      document.createElement(
-        "div"
-      );
-
-    const pageTwo=
-      document.createElement(
-        "div"
-      );
-
-    const pageThree=
-      document.createElement(
-        "div"
-      );
-
-    [pageOne,pageTwo,pageThree]
-      .forEach(page=>{
-        page.className=
-          "spill-pdf-render-page";
+      )
+      .forEach(node=>{
+        pageOne.appendChild(
+          node.cloneNode(true)
+        );
       });
 
-    pageOneNodes.forEach(node=>{
-      pageOne.appendChild(
-        node.cloneNode(true)
-      );
-    });
+    /*
+     * Trang tiếp theo bắt đầu bằng biểu đồ.
+     * Sau biểu đồ, hệ thống thử thêm bảng và tự xác định
+     * số hàng vừa với phần chiều cao còn lại.
+     */
+    let currentPage=
+      createPage();
 
-    pageTwo.appendChild(
+    currentPage.appendChild(
       chartSection.cloneNode(true)
     );
 
-    pageTwo.appendChild(
-      tablePartOne
+    let tablePart=
+      buildTableSection(
+        false
+      );
+
+    currentPage.appendChild(
+      tablePart.section
     );
 
-    pageThree.appendChild(
-      tablePartTwo
-    );
+    /*
+     * Nếu riêng biểu đồ + tiêu đề bảng đã vượt trang,
+     * chuyển bảng sang trang kế tiếp.
+     */
+    if(!pageFits(currentPage)){
+      currentPage.removeChild(
+        tablePart.section
+      );
 
-    pageThree.appendChild(
+      currentPage=
+        createPage();
+
+      tablePart=
+        buildTableSection(
+          false
+        );
+
+      currentPage.appendChild(
+        tablePart.section
+      );
+    }
+
+    let hasPlacedAnyRow=false;
+
+    sourceRows.forEach((sourceRow,rowIndex)=>{
+      const rowClone=
+        sourceRow.cloneNode(
+          true
+        );
+
+      tablePart.tbody.appendChild(
+        rowClone
+      );
+
+      if(pageFits(currentPage)){
+        hasPlacedAnyRow=true;
+        return;
+      }
+
+      /*
+       * Hàng vừa thêm không còn đủ chỗ:
+       * xóa khỏi trang hiện tại và đưa nguyên hàng sang trang mới.
+       */
+      tablePart.tbody.removeChild(
+        rowClone
+      );
+
+      currentPage=
+        createPage();
+
+      tablePart=
+        buildTableSection(
+          true
+        );
+
+      currentPage.appendChild(
+        tablePart.section
+      );
+
+      tablePart.tbody.appendChild(
+        rowClone
+      );
+
+      if(!pageFits(currentPage)){
+        throw new Error(
+          "Một hàng bảng quá cao, không thể đặt vừa trong một trang PDF."
+        );
+      }
+
+      hasPlacedAnyRow=true;
+    });
+
+    if(!hasPlacedAnyRow){
+      throw new Error(
+        "Không thể phân trang bảng kết quả."
+      );
+    }
+
+    /*
+     * Thử đặt kết luận, chữ ký và chân trang vào phần còn lại
+     * của trang bảng cuối. Nếu không đủ chỗ thì tự tạo trang mới.
+     */
+    const finalBlock=
+      document.createElement(
+        "div"
+      );
+
+    finalBlock.className=
+      "pdf-final-block";
+
+    finalBlock.appendChild(
       conclusionSection.cloneNode(true)
     );
 
     if(signNode){
-      pageThree.appendChild(
+      finalBlock.appendChild(
         signNode.cloneNode(true)
       );
     }
 
     if(footerNode){
-      pageThree.appendChild(
+      finalBlock.appendChild(
         footerNode.cloneNode(true)
       );
     }
 
-    wrapper.innerHTML="";
-    wrapper.append(
-      pageOne,
-      pageTwo,
-      pageThree
+    currentPage.appendChild(
+      finalBlock
     );
 
-    return [
-      pageOne,
-      pageTwo,
-      pageThree
-    ];
-  }
+    if(!pageFits(currentPage)){
+      currentPage.removeChild(
+        finalBlock
+      );
 
+      currentPage=
+        createPage();
+
+      currentPage.appendChild(
+        finalBlock
+      );
+
+      if(!pageFits(currentPage)){
+        throw new Error(
+          "Phần kết luận và chữ ký vượt quá chiều cao một trang PDF."
+        );
+      }
+    }
+
+    /*
+     * Loại bỏ trang rỗng nếu có.
+     */
+    const pages=
+      Array.from(
+        wrapper.querySelectorAll(
+          ":scope > .spill-pdf-render-page"
+        )
+      ).filter(page=>
+        page.children.length>0
+      );
+
+    if(!pages.length){
+      throw new Error(
+        "Không tạo được trang PDF."
+      );
+    }
+
+    return pages;
+  }
 
   async function exportPdf(){
     const p=state.plan;
@@ -21415,28 +21554,25 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
           pageCanvas.height/
           pageCanvas.width;
 
-        let imageHeight=
-          contentWidth*
-          imageRatio;
-
-        let imageWidth=
+        const imageWidth=
           contentWidth;
 
-        if(imageHeight>contentHeight){
-          imageHeight=
-            contentHeight;
+        const imageHeight=
+          imageWidth*
+          imageRatio;
 
-          imageWidth=
-            imageHeight/
-            imageRatio;
+        /*
+         * Các trang đã được phân chia theo chiều cao trước khi chụp.
+         * Không thu nhỏ riêng từng trang vì sẽ làm bảng đổi cỡ chữ.
+         */
+        if(imageHeight>contentHeight+0.5){
+          throw new Error(
+            "Trang PDF vượt chiều cao cho phép sau khi phân trang."
+          );
         }
 
         const imageX=
-          marginLeft+
-          (
-            contentWidth-
-            imageWidth
-          )/2;
+          marginLeft;
 
         const pageImage=
           pageCanvas.toDataURL(
