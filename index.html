@@ -6939,7 +6939,7 @@ body.slideshow-frame-mode section{
    * Không hiển thị URL này trên giao diện.
    */
   window.AVUONG_AI_WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbxbspaOqQcbwC6YDRwGUTD9gUi1tbO-JC_zkdNSy-fC9BgGJj-61gmu6V9DwvyKpzE/exec";
+    "https://script.google.com/macros/s/AKfycbyNuZZLLTtl_cZJ8ZPimC7veepHFv_jQkkAX05F9dvXU3ARp0SMmtOmtozPu7_q1N4g/exec";
 </script>
 
 
@@ -19300,7 +19300,7 @@ function renderAllPctt(){
     ["spillAiBtn","spillAiQuickBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>{if(el(id))el(id).disabled=false;}); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
     renderAiQuickFacts();
     el("spillAiSummary").textContent=buildLocalSummary();
-    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Nội dung engine – sẵn sàng phân tích bằng Gemini";}
+    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Nội dung engine – sẵn sàng phân tích bằng OpenAI";}
     renderChart();
   }
 
@@ -19565,131 +19565,132 @@ ${JSON.stringify(payload)}`;
     return `TÓM TẮT PHƯƠNG ÁN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
   }
 
-  function callSpillAi(payload){
-    if(
-      window.google&&
-      google.script&&
-      google.script.run
-    ){
-      return new Promise(
-        (resolve,reject)=>{
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(error=>{
-              reject(
-                new Error(
-                  error?.message||
-                  String(error)
-                )
-              );
-            })
-            .analyzeSpillPlan(payload);
-        }
-      );
-    }
+  async function callSpillAi(payload){
+    /*
+     * Khi chạy trên avuonghydro.com:
+     *   dùng đường dẫn cùng miền /api/monthly-ai-latest
+     *
+     * Khi mở file HTML trực tiếp:
+     *   gọi URL Production đầy đủ.
+     */
+    const endpoint=
+      location.protocol==="file:"
+        ?"https://avuonghydro.com/api/monthly-ai-latest"
+        :"/api/monthly-ai-latest";
 
-    return new Promise((resolve,reject)=>{
-      const endpoint=
-        String(
-          window.AVUONG_AI_WEBAPP_URL||
-          ""
-        ).trim();
+    const controller=
+      new AbortController();
 
-      if(!endpoint){
-        reject(
-          new Error(
-            "Chưa cấu hình Web App AI"
-          )
-        );
-        return;
-      }
-
-      const callbackName=
-        "__spillAi_"+
-        Date.now()+
-        "_"+
-        Math.random()
-          .toString(36)
-          .slice(2);
-
-      const script=
-        document.createElement(
-          "script"
-        );
-
-      const timer=setTimeout(
+    const timeout=
+      setTimeout(
         ()=>{
-          cleanup();
-          reject(
-            new Error(
-              "Quá thời gian chờ AI"
-            )
-          );
+          controller.abort();
         },
         60000
       );
 
-      function cleanup(){
-        clearTimeout(timer);
+    try{
+      console.info(
+        "[Spill AI] POST OpenAI:",
+        endpoint
+      );
 
-        try{
-          delete window[
-            callbackName
-          ];
-        }catch(error){
-          window[
-            callbackName
-          ]=undefined;
-        }
+      const response=
+        await fetch(
+          endpoint,
+          {
+            method:"POST",
 
-        script.remove();
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+                action:
+                  "spill-analysis",
+
+                question:
+                  String(
+                    payload?.question||
+                    ""
+                  ),
+
+                sessionId:
+                  String(
+                    payload?.sessionId||
+                    `spill-plan-${Date.now()}`
+                  ),
+
+                history:
+                  Array.isArray(
+                    payload?.history
+                  )
+                    ?payload.history
+                    :[]
+              }),
+
+            signal:
+              controller.signal
+          }
+        );
+
+      const responseText=
+        await response.text();
+
+      let result;
+
+      try{
+        result=
+          responseText
+            ?JSON.parse(
+                responseText
+              )
+            :{};
+      }catch(error){
+        throw new Error(
+          "API trả về dữ liệu không phải JSON. HTTP "+
+          response.status
+        );
       }
 
-      window[callbackName]=data=>{
-        cleanup();
-        resolve(data);
-      };
-
-      script.onerror=()=>{
-        cleanup();
-        reject(
-          new Error(
-            "Không tải được API AI"
-          )
+      if(!response.ok){
+        throw new Error(
+          result?.error||
+          "API AI lỗi HTTP "+
+          response.status
         );
-      };
+      }
 
-      const separator=
-        endpoint.includes("?")
-          ?"&"
-          :"?";
+      if(
+        !result||
+        result.success===false||
+        !result.answer
+      ){
+        throw new Error(
+          result?.error||
+          "OpenAI không trả về nội dung phân tích."
+        );
+      }
 
-      script.src=
-        endpoint+
-        separator+
-        "api=chat"+
-        "&callback="+
-        encodeURIComponent(
-          callbackName
-        )+
-        "&payload="+
-        encodeURIComponent(
-          JSON.stringify(payload)
-        )+
-        "&_="+
-        Date.now();
+      return result;
+    }catch(error){
+      if(
+        error&&
+        error.name==="AbortError"
+      ){
+        throw new Error(
+          "OpenAI xử lý quá thời gian cho phép."
+        );
+      }
 
-      console.info(
-        "[Spill AI] Gọi giống Chatbox:",
-        endpoint,
-        "Độ dài URL:",
-        script.src.length
+      throw error;
+    }finally{
+      clearTimeout(
+        timeout
       );
-
-      document.head.appendChild(
-        script
-      );
-    });
+    }
   }
 
   async function aiSummary(){
@@ -19711,14 +19712,14 @@ ${JSON.stringify(payload)}`;
     };
 
     box.textContent=
-      `AI Gemini đang ${labels[task]}...`;
+      `OpenAI đang ${labels[task]}...`;
 
     if(status){
       status.className=
         "spill-ai-status";
 
       status.textContent=
-        "Đang kết nối Gemini...";
+        "Đang kết nối OpenAI...";
     }
 
     [mainBtn,quickBtn].forEach(button=>{
@@ -19755,7 +19756,7 @@ ${JSON.stringify(payload)}`;
       ){
         throw new Error(
           result?.error||
-          "Gemini không trả về nội dung hợp lệ"
+          "OpenAI không trả về nội dung hợp lệ"
         );
       }
 
@@ -19767,24 +19768,24 @@ ${JSON.stringify(payload)}`;
           "spill-ai-status online";
 
         status.textContent=
-          `● Gemini đã hoàn thành ${labels[task]}${result.model?` • ${result.model}`:""}`;
+          `● OpenAI đã hoàn thành ${labels[task]}${result.model?` • ${result.model}`:""}`;
       }
     }catch(error){
       console.warn(
-        "Spill Gemini fallback:",
+        "Spill OpenAI fallback:",
         error
       );
 
       box.textContent=
         buildLocalAiContent(task)+
-        "\n\n(Ghi chú: Không kết nối được AI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
+        "\n\n(Ghi chú: Không kết nối được OpenAI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
 
       if(status){
         status.className=
           "spill-ai-status fallback";
 
         status.textContent=
-          "● Lỗi kết nối AI: "+
+          "● Lỗi OpenAI: "+
           (
             error?.message||
             "Không xác định"
