@@ -7073,6 +7073,58 @@ body.slideshow-frame-mode section{
 }
 </style>
 
+
+<style id="spill-pdf-page-layout-fix">
+  .spill-pdf-render-page{
+    width:1120px;
+    min-height:760px;
+    box-sizing:border-box;
+    background:#fff;
+    padding:0;
+    margin:0;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .spill-pdf-render-page .pdf-section{
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .spill-pdf-render-page .pdf-section-title{
+    break-after:avoid;
+    page-break-after:avoid;
+  }
+
+  .spill-pdf-render-page .pdf-chart{
+    display:block;
+    width:100%;
+    height:330px;
+    max-height:330px;
+    box-sizing:border-box;
+    object-fit:fill;
+  }
+
+  .spill-pdf-render-page .pdf-table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+  }
+
+  .spill-pdf-render-page .pdf-table thead{
+    display:table-header-group;
+  }
+
+  .spill-pdf-render-page .pdf-table tbody{
+    display:table-row-group;
+  }
+
+  .spill-pdf-render-page .pdf-table tr{
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+</style>
+
 </head>
 <body>
 
@@ -20418,6 +20470,230 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
       `Phuong_an_xa_tran_${dateVN(x.start).replaceAll("/","-")}.xlsx`);
   }
 
+  function prepareSpillPdfPages(wrapper){
+    const children=
+      Array.from(
+        wrapper.children
+      );
+
+    const findSectionByTitle=
+      titlePart=>
+        children.find(node=>{
+          const title=
+            node.querySelector?.(
+              ".pdf-section-title"
+            );
+
+          return Boolean(
+            title&&
+            title.textContent.includes(
+              titlePart
+            )
+          );
+        });
+
+    const chartSection=
+      findSectionByTitle(
+        "III. BIỂU ĐỒ DIỄN BIẾN PHƯƠNG ÁN"
+      );
+
+    const tableSection=
+      findSectionByTitle(
+        "IV. BẢNG KẾT QUẢ TÍNH TOÁN THEO GIỜ"
+      );
+
+    const conclusionSection=
+      findSectionByTitle(
+        "V. KẾT LUẬN VÀ ĐIỀU KIỆN ÁP DỤNG"
+      );
+
+    if(
+      !chartSection||
+      !tableSection||
+      !conclusionSection
+    ){
+      throw new Error(
+        "Không xác định được các phần biểu đồ, bảng số liệu hoặc kết luận."
+      );
+    }
+
+    const sourceTable=
+      tableSection.querySelector(
+        "table"
+      );
+
+    const sourceRows=
+      Array.from(
+        sourceTable?.tBodies?.[0]?.rows||
+        []
+      );
+
+    if(
+      !sourceTable||
+      !sourceRows.length
+    ){
+      throw new Error(
+        "Không tìm thấy bảng kết quả theo giờ."
+      );
+    }
+
+    const firstPageRowCount=
+      Math.min(
+        9,
+        sourceRows.length
+      );
+
+    const buildTableSection=
+      (rows,startIndex)=>{
+        const section=
+          tableSection.cloneNode(
+            true
+          );
+
+        const table=
+          section.querySelector(
+            "table"
+          );
+
+        const tbody=
+          table.tBodies[0];
+
+        tbody.innerHTML="";
+
+        rows.forEach(row=>{
+          tbody.appendChild(
+            row.cloneNode(true)
+          );
+        });
+
+        const title=
+          section.querySelector(
+            ".pdf-section-title"
+          );
+
+        if(
+          title&&
+          startIndex>0
+        ){
+          title.textContent=
+            "IV. BẢNG KẾT QUẢ TÍNH TOÁN THEO GIỜ (TIẾP THEO)";
+        }
+
+        return section;
+      };
+
+    const tablePartOne=
+      buildTableSection(
+        sourceRows.slice(
+          0,
+          firstPageRowCount
+        ),
+        0
+      );
+
+    const tablePartTwo=
+      buildTableSection(
+        sourceRows.slice(
+          firstPageRowCount
+        ),
+        firstPageRowCount
+      );
+
+    const chartIndex=
+      children.indexOf(
+        chartSection
+      );
+
+    const pageOneNodes=
+      children.slice(
+        0,
+        chartIndex
+      ).filter(node=>
+        !node.classList.contains(
+          "pdf-page-break"
+        )
+      );
+
+    const signNode=
+      wrapper.querySelector(
+        ".pdf-sign"
+      );
+
+    const footerNode=
+      wrapper.querySelector(
+        ".pdf-footer"
+      );
+
+    const pageOne=
+      document.createElement(
+        "div"
+      );
+
+    const pageTwo=
+      document.createElement(
+        "div"
+      );
+
+    const pageThree=
+      document.createElement(
+        "div"
+      );
+
+    [pageOne,pageTwo,pageThree]
+      .forEach(page=>{
+        page.className=
+          "spill-pdf-render-page";
+      });
+
+    pageOneNodes.forEach(node=>{
+      pageOne.appendChild(
+        node.cloneNode(true)
+      );
+    });
+
+    pageTwo.appendChild(
+      chartSection.cloneNode(true)
+    );
+
+    pageTwo.appendChild(
+      tablePartOne
+    );
+
+    pageThree.appendChild(
+      tablePartTwo
+    );
+
+    pageThree.appendChild(
+      conclusionSection.cloneNode(true)
+    );
+
+    if(signNode){
+      pageThree.appendChild(
+        signNode.cloneNode(true)
+      );
+    }
+
+    if(footerNode){
+      pageThree.appendChild(
+        footerNode.cloneNode(true)
+      );
+    }
+
+    wrapper.innerHTML="";
+    wrapper.append(
+      pageOne,
+      pageTwo,
+      pageThree
+    );
+
+    return [
+      pageOne,
+      pageTwo,
+      pageThree
+    ];
+  }
+
+
   async function exportPdf(){
     const p=state.plan;
 
@@ -21011,6 +21287,11 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
     document.body.appendChild(wrapper);
     document.body.appendChild(pdfOverlay);
 
+    const spillPdfPages=
+      prepareSpillPdfPages(
+        wrapper
+      );
+
     const previousScrollX=window.scrollX;
     const previousScrollY=window.scrollY;
     window.scrollTo(0,0);
@@ -21048,115 +21329,12 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
       }
 
       /*
-        Chụp trực tiếp đúng phần tử báo cáo.
-        Không dùng html2pdf().from(wrapper) vì lớp trung gian của html2pdf
-        từng tạo canvas rỗng trong file dashboard này.
-      */
-      const reportCanvas=await window.html2canvas(
-        wrapper,
-        {
-          scale:1.5,
-          useCORS:true,
-          allowTaint:false,
-          logging:false,
-          backgroundColor:"#ffffff",
-          scrollX:0,
-          scrollY:0,
-          windowWidth:1120,
-          windowHeight:Math.max(
-            wrapper.scrollHeight,
-            800
-          ),
-          imageTimeout:8000,
-          removeContainer:true
-        }
-      );
-
-      if(
-        !reportCanvas||
-        reportCanvas.width<100||
-        reportCanvas.height<100
-      ){
-        throw new Error(
-          "Canvas báo cáo không hợp lệ: "+
-          (reportCanvas?.width||0)+"x"+
-          (reportCanvas?.height||0)
-        );
-      }
-
-      /*
-        Kiểm tra nhanh canvas có thật sự chứa chữ/màu hay chỉ là nền trắng.
-        Chỉ lấy mẫu theo bước để tránh đọc toàn bộ hàng triệu điểm ảnh.
-      */
-      const reportContext=
-        reportCanvas.getContext(
-          "2d",
-          {willReadFrequently:true}
-        );
-
-      const sampleStep=Math.max(
-        8,
-        Math.floor(
-          Math.min(
-            reportCanvas.width,
-            reportCanvas.height
-          )/160
-        )
-      );
-
-      let sampledPixels=0;
-      let nonWhitePixels=0;
-
-      for(
-        let sampleY=0;
-        sampleY<reportCanvas.height;
-        sampleY+=sampleStep
-      ){
-        for(
-          let sampleX=0;
-          sampleX<reportCanvas.width;
-          sampleX+=sampleStep
-        ){
-          const pixel=reportContext.getImageData(
-            sampleX,
-            sampleY,
-            1,
-            1
-          ).data;
-
-          sampledPixels++;
-
-          if(
-            pixel[3]>10&&
-            (
-              pixel[0]<245||
-              pixel[1]<245||
-              pixel[2]<245
-            )
-          ){
-            nonWhitePixels++;
-          }
-        }
-      }
-
-      const nonWhiteRatio=
-        sampledPixels>0
-          ? nonWhitePixels/sampledPixels
-          : 0;
-
-      if(nonWhitePixels<80||nonWhiteRatio<0.001){
-        throw new Error(
-          "Canvas báo cáo đang trắng. "+
-          "Tỷ lệ điểm ảnh có nội dung: "+
-          (nonWhiteRatio*100).toFixed(3)+"%"
-        );
-      }
-
-      /*
-        Tự phân trang bằng jsPDF.
-        Mỗi trang lấy một lát cắt của canvas nguồn nên không phụ thuộc
-        cơ chế phân trang nội bộ của html2pdf.
-      */
+       * Chụp từng trang riêng biệt để:
+       * - không cắt ngang hàng bảng;
+       * - lặp lại THEAD trên trang tiếp theo;
+       * - giữ tiêu đề biểu đồ cùng biểu đồ;
+       * - không phát sinh trang trắng cuối.
+       */
       const pdf=new JsPdfConstructor({
         orientation:"landscape",
         unit:"mm",
@@ -21186,91 +21364,46 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         marginTop-
         marginBottom;
 
-      const pixelsPerMm=
-        reportCanvas.width/contentWidth;
-
-      const pageSliceHeight=Math.max(
-        1,
-        Math.floor(
-          contentHeight*pixelsPerMm
-        )
-      );
-
-      /*
-        Xác định chiều cao nội dung thực, bỏ phần nền trắng dư ở cuối.
-        Điều này tránh phát sinh thêm một trang PDF trắng.
-      */
-      let effectiveCanvasHeight=reportCanvas.height;
-      const trimContext=reportCanvas.getContext(
-        "2d",
-        {willReadFrequently:true}
-      );
-
-      const trimStepX=Math.max(
-        6,
-        Math.floor(reportCanvas.width/220)
-      );
-
-      const trimStepY=4;
-      let lastContentY=-1;
-
-      for(
-        let scanY=reportCanvas.height-1;
-        scanY>=0;
-        scanY-=trimStepY
-      ){
-        let rowHasContent=false;
-
-        for(
-          let scanX=0;
-          scanX<reportCanvas.width;
-          scanX+=trimStepX
-        ){
-          const px=trimContext.getImageData(
-            scanX,
-            scanY,
-            1,
-            1
-          ).data;
-
-          if(
-            px[3]>10&&
-            (
-              px[0]<247||
-              px[1]<247||
-              px[2]<247
-            )
-          ){
-            rowHasContent=true;
-            break;
-          }
-        }
-
-        if(rowHasContent){
-          lastContentY=scanY;
-          break;
-        }
-      }
-
-      if(lastContentY>=0){
-        effectiveCanvasHeight=Math.min(
-          reportCanvas.height,
-          lastContentY+28
-        );
-      }
-
-      const totalPages=Math.max(
-        1,
-        Math.ceil(
-          effectiveCanvasHeight/pageSliceHeight
-        )
-      );
-
       for(
         let pageIndex=0;
-        pageIndex<totalPages;
+        pageIndex<spillPdfPages.length;
         pageIndex++
       ){
+        const pageElement=
+          spillPdfPages[pageIndex];
+
+        const pageCanvas=
+          await window.html2canvas(
+            pageElement,
+            {
+              scale:1.5,
+              useCORS:true,
+              allowTaint:false,
+              logging:false,
+              backgroundColor:"#ffffff",
+              scrollX:0,
+              scrollY:0,
+              windowWidth:1120,
+              windowHeight:Math.max(
+                pageElement.scrollHeight,
+                760
+              ),
+              imageTimeout:8000,
+              removeContainer:true
+            }
+          );
+
+        if(
+          !pageCanvas||
+          pageCanvas.width<100||
+          pageCanvas.height<100
+        ){
+          throw new Error(
+            "Canvas trang PDF không hợp lệ tại trang "+
+            (pageIndex+1)
+          );
+        }
+
         if(pageIndex>0){
           pdf.addPage(
             "a4",
@@ -21278,61 +21411,45 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
           );
         }
 
-        const sourceY=
-          pageIndex*pageSliceHeight;
+        const imageRatio=
+          pageCanvas.height/
+          pageCanvas.width;
 
-        const sourceHeight=Math.min(
-          pageSliceHeight,
-          effectiveCanvasHeight-sourceY
-        );
+        let imageHeight=
+          contentWidth*
+          imageRatio;
 
-        const pageCanvas=
-          document.createElement("canvas");
+        let imageWidth=
+          contentWidth;
 
-        pageCanvas.width=
-          reportCanvas.width;
+        if(imageHeight>contentHeight){
+          imageHeight=
+            contentHeight;
 
-        pageCanvas.height=
-          sourceHeight;
+          imageWidth=
+            imageHeight/
+            imageRatio;
+        }
 
-        const pageContext=
-          pageCanvas.getContext("2d");
-
-        pageContext.fillStyle="#ffffff";
-        pageContext.fillRect(
-          0,
-          0,
-          pageCanvas.width,
-          pageCanvas.height
-        );
-
-        pageContext.drawImage(
-          reportCanvas,
-          0,
-          sourceY,
-          reportCanvas.width,
-          sourceHeight,
-          0,
-          0,
-          reportCanvas.width,
-          sourceHeight
-        );
+        const imageX=
+          marginLeft+
+          (
+            contentWidth-
+            imageWidth
+          )/2;
 
         const pageImage=
           pageCanvas.toDataURL(
             "image/jpeg",
-            .94
+            .95
           );
-
-        const imageHeight=
-          sourceHeight/pixelsPerMm;
 
         pdf.addImage(
           pageImage,
           "JPEG",
-          marginLeft,
+          imageX,
           marginTop,
-          contentWidth,
+          imageWidth,
           imageHeight,
           undefined,
           "FAST"
@@ -21351,7 +21468,7 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         );
 
         pdf.text(
-          `Trang ${pageIndex+1}/${totalPages}`,
+          `Trang ${pageIndex+1}/${spillPdfPages.length}`,
           pageWidth-marginRight,
           pageHeight-4.5,
           {align:"right"}
@@ -21373,8 +21490,6 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         }_${exportTimeSuffix}.pdf`
       );
 
-      reportCanvas.width=1;
-      reportCanvas.height=1;
     }catch(error){
       console.error(
         "Lỗi xuất PDF phương án xả tràn:",
