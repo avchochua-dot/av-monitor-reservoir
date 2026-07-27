@@ -10452,7 +10452,7 @@ body.slideshow-frame-mode section{
             <div class="spill-card-head">
               <b>Kết quả tổng hợp</b>
               <div class="spill-actions" style="margin:0">
-                <button id="spillAiBtn" class="spill-btn amber" type="button" disabled>AI tóm tắt</button>
+                <button id="spillAiQuickBtn" class="spill-btn amber" type="button" disabled>AI tóm tắt</button>
                 <button id="spillExcelBtn" class="spill-btn green" type="button" disabled>Xuất Excel</button>
                 <button id="spillPdfBtn" class="spill-btn ghost" type="button" disabled>Tải PDF</button>
               </div>
@@ -18150,6 +18150,7 @@ function renderAllPctt(){
   "use strict";
 
   const RESERVOIR_ID = "5c78601c-017e-4f85-b423-245a00abe795";
+  const LEVEL_TOLERANCE_M = 0.001; // 0,1 cm
   const state = {curve:[], plan:null, chart:null};
 
   const el = id => document.getElementById(id);
@@ -18607,7 +18608,8 @@ function renderAllPctt(){
           :interpolateLevel(newVol);
 
       if(
-        Math.abs(hEnd-x.hTarget)>0.0005
+        Math.abs(hEnd-x.hTarget)>
+        LEVEL_TOLERANCE_M
       ){
         maintenancePossible=false;
         status="KHÔNG THỂ DUY TRÌ";
@@ -18894,9 +18896,19 @@ function renderAllPctt(){
         1) phần hạ MNH đến đúng mục tiêu;
         2) phần còn lại của khoảng dùng để duy trì mục tiêu.
       */
+      const hEndRaw=
+        interpolateLevel(
+          newVol
+        );
+
       if(
         net>0&&
-        newVol<=targetVol
+        (
+          newVol<=targetVol||
+          hEndRaw<=
+          x.hTarget+
+          LEVEL_TOLERANCE_M
+        )
       ){
         const needM3=
           Math.max(
@@ -18974,9 +18986,7 @@ function renderAllPctt(){
       }
 
       const hEnd=
-        interpolateLevel(
-          newVol
-        );
+        hEndRaw;
 
       const margin=
         x.qMaxTotal-
@@ -19020,19 +19030,62 @@ function renderAllPctt(){
         appliedTotal;
     }
 
+    if(
+      !reached&&
+      Math.abs(
+        h-x.hTarget
+      )<=LEVEL_TOLERANCE_M
+    ){
+      reached=true;
+      finishTime=new Date(x.end);
+      h=x.hTarget;
+      vol=targetVol;
+
+      const lastRow=
+        rows[
+          rows.length-1
+        ];
+
+      if(lastRow){
+        lastRow.hEnd=
+          x.hTarget;
+
+        lastRow.actualDropCm=
+          (
+            lastRow.hStart-
+            x.hTarget
+          )*100;
+
+        lastRow.status=
+          "ĐẠT MỤC TIÊU";
+
+        lastRow.flags=[
+          ...(
+            lastRow.flags||
+            []
+          ),
+          "Đạt MNH mục tiêu trong dung sai 0,1 cm"
+        ];
+      }
+    }
+
     const maintainedToDeadline=
       reached&&
       maintenancePossible&&
       Math.abs(
         h-x.hTarget
-      )<=0.0005;
+      )<=LEVEL_TOLERANCE_M;
 
     const feasible=
       reached&&
       finishTime<=x.end&&
       maintainedToDeadline;
 
-    if(!reached){
+    if(
+      !reached&&
+      h-x.hTarget>
+      LEVEL_TOLERANCE_M
+    ){
       warnings.push(
         `Đến thời hạn, MNH dự kiến còn ${
           fmt(h,2)
@@ -19209,7 +19262,7 @@ function renderAllPctt(){
 
   function renderError(message){
     const s=el("spillSummaryStatus");s.className="spill-status bad";s.textContent=message;
-    ["spillAiBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>el(id).disabled=true);
+    ["spillAiBtn","spillAiQuickBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>{if(el(id))el(id).disabled=true;});
   }
 
   function renderPlan(){
@@ -19244,10 +19297,10 @@ function renderAllPctt(){
         <td><span class="spill-chip ${chip}" title="${r.flags.join("; ")}">${r.status}</span></td></tr>`;
     }).join("");
     el("spillRowCount").textContent=`${p.rows.length} dòng`;
-    ["spillAiBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>el(id).disabled=false); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
+    ["spillAiBtn","spillAiQuickBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>{if(el(id))el(id).disabled=false;}); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
     renderAiQuickFacts();
     el("spillAiSummary").textContent=buildLocalSummary();
-    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Tóm tắt tự động – có thể phân tích lại bằng AI";}
+    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Nội dung engine – sẵn sàng phân tích bằng Gemini";}
     renderChart();
   }
 
@@ -19307,13 +19360,144 @@ function renderAllPctt(){
   }
 
   function buildAiPrompt(task){
-    const p=state.plan,x=p.input;
-    const compact=p.rows.map(r=>({time:`${r.date} ${r.period}`,h0:+r.hStart.toFixed(2),h1:+r.hEnd.toFixed(2),qIn:+r.qIn.toFixed(1),qMachine:+r.qMachine.toFixed(1),qSpill:+r.qSpillApplied.toFixed(1),qTotal:+r.qTotal.toFixed(1),qMax:+r.qMax.toFixed(1),method:r.method,status:r.status,flags:r.flags}));
-    const names={SUMMARY:"tóm tắt giao ban và văn bản",RISK:"kiểm tra rủi ro",REVIEW:"rà soát tính hợp lý",NOTICE:"soạn dự thảo thông báo"};
-    return `Bạn là trợ lý kỹ thuật hồ A Vương. Nhiệm vụ: ${names[task]||names.SUMMARY}.
-QUY TẮC: Chỉ diễn giải kết quả engine; không tự tính lại, không thay đổi số liệu, không phát lệnh vận hành. Phải phân biệt thời điểm đạt mục tiêu và giai đoạn duy trì đến hạn. Tổng Q xả = Q máy + Q tràn. Luôn nhắc đối chiếu văn bản, số liệu thực tế và phê duyệt có thẩm quyền.
-DỮ LIỆU:
-${JSON.stringify({input:{orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hStart,hTarget:x.hTarget,start:x.start,end:x.end,qIn:x.qIn,qMachine:x.qMachine,qMaxTotal:x.qMaxTotal,dayStart:x.dayStart,dayEnd:x.dayEnd,firstHourCm:x.firstCm,notes:x.notes,mode:x.mode},result:{volumeToLower:p.volumeToLower,avgDay:p.avgDay,avgNight:p.avgNight,maxApplied:p.maxApplied,maxReq:p.maxReq,finishTime:p.finishTime,feasible:p.feasible,reached:p.reached,maintainedToDeadline:p.maintainedToDeadline,maintenanceSpill:p.maintenanceSpill,warnings:p.warnings,finalLevel:p.finalLevel,exceedHours:p.exceedHours,nearHours:p.nearHours},hourly:compact},null,2)}`;
+    const p=state.plan;
+    const x=p.input;
+
+    const compact=p.rows.map(row=>({
+      time:`${row.date} ${row.period}`,
+      hStart:+row.hStart.toFixed(2),
+      hEnd:+row.hEnd.toFixed(2),
+      dropCm:+row.actualDropCm.toFixed(2),
+      qIn:+row.qIn.toFixed(1),
+      qMachine:+row.qMachine.toFixed(1),
+      qSpill:+row.qSpillApplied.toFixed(1),
+      qTotal:+row.qTotal.toFixed(1),
+      qMax:+row.qMax.toFixed(1),
+      method:row.method,
+      status:row.status,
+      flags:row.flags||[]
+    }));
+
+    const taskNames={
+      SUMMARY:"TÓM TẮT GIAO BAN VÀ VĂN BẢN",
+      RISK:"KIỂM TRA RỦI RO VÀ ĐIỂM CẦN LƯU Ý",
+      REVIEW:"RÀ SOÁT TÍNH HỢP LÝ PHƯƠNG ÁN",
+      NOTICE:"SOẠN DỰ THẢO THÔNG BÁO VẬN HÀNH"
+    };
+
+    const modeNames={
+      AUTO:"Tự tính Q ngày/đêm theo thời hạn",
+      FLOW:"Nhập Q tràn ngày/đêm",
+      LEVEL:"Nhập mức hạ MNH ngày/đêm"
+    };
+
+    const payload={
+      task:task,
+      taskName:taskNames[task]||taskNames.SUMMARY,
+      input:{
+        orderNo:x.orderNo||"",
+        preparedBy:x.preparedBy||"",
+        mode:x.mode,
+        modeName:modeNames[x.mode]||x.mode,
+        hStart:x.hStart,
+        hTarget:x.hTarget,
+        start:x.start,
+        deadline:x.end,
+        qIn:x.qIn,
+        qMachine:x.qMachine,
+        qMaxTotal:x.qMaxTotal,
+        qMin:x.qMin,
+        firstHourCm:x.firstCm,
+        rampUp:x.rampUp,
+        taperCm:x.taperCm,
+        dayStart:x.dayStart,
+        dayEnd:x.dayEnd,
+        notes:x.notes||""
+      },
+      result:{
+        volumeToLower:p.volumeToLower,
+        avgDaySpill:p.avgDay,
+        avgNightSpill:p.avgNight,
+        maxRequiredTotalQ:p.maxReq,
+        maxAppliedTotalQ:p.maxApplied,
+        finishTime:p.finishTime,
+        finalLevel:p.finalLevel,
+        reached:p.reached,
+        feasible:p.feasible,
+        maintainedToDeadline:p.maintainedToDeadline,
+        maintenancePossible:p.maintenancePossible,
+        maintenanceSpill:p.maintenanceSpill,
+        maintenanceHours:p.maintenanceHours,
+        exceedHours:p.exceedHours,
+        nearHours:p.nearHours,
+        warnings:p.warnings||[]
+      },
+      hourly:compact
+    };
+
+    let requiredStructure="";
+
+    if(task==="RISK"){
+      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 4 PHẦN:
+1. KẾT LUẬN NHANH
+2. RỦI RO VÀ MÂU THUẪN CẦN KIỂM TRA
+3. CÁC MỐC GIỜ CẦN THEO DÕI
+4. ĐIỀU KIỆN TRƯỚC KHI ÁP DỤNG`;
+    }else if(task==="REVIEW"){
+      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 3 PHẦN:
+1. ĐIỂM PHÙ HỢP
+2. ĐIỂM CẦN KIỂM TRA LẠI
+3. KẾT LUẬN RÀ SOÁT`;
+    }else if(task==="NOTICE"){
+      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ CÁC PHẦN:
+1. CĂN CỨ
+2. THỜI GIAN THỰC HIỆN
+3. THÔNG SỐ CHÍNH
+4. TRÌNH TỰ THEO DÕI
+5. ĐIỀU KIỆN CHUYỂN SANG DUY TRÌ MNH
+6. LƯU Ý VÀ PHÊ DUYỆT`;
+    }else{
+      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 2 PHẦN:
+1. TÓM TẮT GIAO BAN
+2. VĂN BẢN PHƯƠNG ÁN
+
+KHÔNG ĐƯỢC LƯỢC BỎ CÁC TRƯỜNG CÓ GIÁ TRỊ SAU:
+- Chế độ tính toán.
+- Thời gian bắt đầu.
+- Thời hạn phải đạt mục tiêu.
+- MNH ban đầu và MNH mục tiêu.
+- Thể tích cần hạ.
+- Q về, Q máy và tổng Q max.
+- Khung giờ ban ngày và ban đêm.
+- Mức hạ hoặc chế độ mở êm giờ đầu.
+- Q tràn trung bình ban ngày.
+- Q tràn trung bình ban đêm.
+- Tổng Q lớn nhất áp dụng.
+- Thời điểm đạt MNH mục tiêu.
+- Giai đoạn duy trì đến thời hạn.
+- Q tràn duy trì.
+- Cảnh báo và kết luận của engine.`;
+    }
+
+    return `NHIỆM VỤ: ${taskNames[task]||taskNames.SUMMARY}
+
+QUY TẮC BẮT BUỘC:
+- Chỉ diễn giải kết quả do engine cung cấp.
+- Không tự tính lại và không thay đổi số liệu.
+- Không tự đề xuất lưu lượng khác như một mệnh lệnh.
+- Không phát lệnh vận hành.
+- Phân biệt rõ thời điểm đạt mục tiêu và giai đoạn duy trì đến thời hạn.
+- Tổng Q xả luôn bằng Q máy cộng Q tràn.
+- Không được bỏ qua bất kỳ trường nào có giá trị trong dữ liệu engine.
+- Không viết chung chung khi dữ liệu đã có số cụ thể.
+- Không dùng Markdown, không dùng ký hiệu ###, ** hoặc dấu * để tạo danh sách.
+- Chỉ dùng văn bản thuần; tiêu đề viết hoa và danh sách bắt đầu bằng dấu "-".
+- Luôn nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
+
+${requiredStructure}
+
+DỮ LIỆU ENGINE:
+${JSON.stringify(payload,null,2)}`;
   }
 
   function buildLocalSummary(){
@@ -19339,31 +19523,125 @@ ${JSON.stringify({input:{orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hSta
       function cleanup(){clearTimeout(timer);delete window[cb];script.remove();}
       window[cb]=data=>{cleanup();resolve(data);};
       script.onerror=()=>{cleanup();reject(new Error("Không kết nối được AI"));};
-      script.src=endpoint+(endpoint.includes("?")?"&":"?")+"api=chat&callback="+encodeURIComponent(cb)+"&payload="+encodeURIComponent(JSON.stringify(payload))+"&_="+Date.now();
+      script.src=endpoint+(endpoint.includes("?")?"&":"?")+"api=spill-analysis&callback="+encodeURIComponent(cb)+"&payload="+encodeURIComponent(JSON.stringify(payload))+"&_="+Date.now();
       document.head.appendChild(script);
     });
   }
 
   async function aiSummary(){
-    if(!state.plan)return;
-    const box=el("spillAiSummary"),status=el("spillAiStatus"),btn=el("spillAiBtn");
+    if(!state.plan){
+      return;
+    }
+
+    const box=el("spillAiSummary");
+    const status=el("spillAiStatus");
+    const mainBtn=el("spillAiBtn");
+    const quickBtn=el("spillAiQuickBtn");
     const task=el("spillAiTask")?.value||"SUMMARY";
-    const labels={SUMMARY:"tóm tắt phương án",RISK:"kiểm tra rủi ro",REVIEW:"rà soát phương án",NOTICE:"soạn dự thảo thông báo"};
-    box.textContent=`AI đang ${labels[task]}...`;
-    if(status){status.className="spill-ai-status";status.textContent="Đang kết nối AI...";}
-    if(btn){btn.disabled=true;btn.textContent="⏳ Đang xử lý";}
+
+    const labels={
+      SUMMARY:"tóm tắt phương án",
+      RISK:"kiểm tra rủi ro",
+      REVIEW:"rà soát phương án",
+      NOTICE:"soạn dự thảo thông báo"
+    };
+
+    box.textContent=
+      `AI Gemini đang ${labels[task]}...`;
+
+    if(status){
+      status.className=
+        "spill-ai-status";
+
+      status.textContent=
+        "Đang kết nối Gemini...";
+    }
+
+    [mainBtn,quickBtn].forEach(button=>{
+      if(button){
+        button.disabled=true;
+      }
+    });
+
+    if(mainBtn){
+      mainBtn.textContent=
+        "⏳ Đang phân tích";
+    }
+
+    if(quickBtn){
+      quickBtn.textContent=
+        "⏳ Đang tóm tắt";
+    }
+
     try{
-      const result=await jsonpAi({question:buildAiPrompt(task),sessionId:`spill-plan-${task.toLowerCase()}-${Date.now()}`,history:[]});
-      if(!result||result.success===false||!result.answer)throw new Error(result?.error||"AI không trả về nội dung hợp lệ");
-      box.textContent=result.answer;
-      if(status){status.className="spill-ai-status online";status.textContent=`● AI đã hoàn thành ${labels[task]}`;}
+      const result=await jsonpAi({
+        question:
+          buildAiPrompt(task),
+
+        sessionId:
+          `spill-plan-${task.toLowerCase()}-${Date.now()}`,
+
+        history:[]
+      });
+
+      if(
+        !result||
+        result.success===false||
+        !result.answer
+      ){
+        throw new Error(
+          result?.error||
+          "Gemini không trả về nội dung hợp lệ"
+        );
+      }
+
+      box.textContent=
+        String(result.answer).trim();
+
+      if(status){
+        status.className=
+          "spill-ai-status online";
+
+        status.textContent=
+          `● Gemini đã hoàn thành ${labels[task]}${result.model?` • ${result.model}`:""}`;
+      }
     }catch(error){
-      console.warn("Spill AI fallback:",error);
-      box.textContent=buildLocalAiContent(task)+"\n\n(Ghi chú: Không kết nối được AI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
-      if(status){status.className="spill-ai-status fallback";status.textContent="● Nội dung dự phòng";}
+      console.warn(
+        "Spill Gemini fallback:",
+        error
+      );
+
+      box.textContent=
+        buildLocalAiContent(task)+
+        "\n\n(Ghi chú: Không kết nối được Gemini; đang hiển thị nội dung dự phòng từ kết quả engine.)";
+
+      if(status){
+        status.className=
+          "spill-ai-status fallback";
+
+        status.textContent=
+          "● Nội dung dự phòng";
+      }
     }finally{
-      if(btn){btn.disabled=false;btn.textContent="✨ AI phân tích";}
-      if(el("spillCopyBtn"))el("spillCopyBtn").disabled=false;
+      [mainBtn,quickBtn].forEach(button=>{
+        if(button){
+          button.disabled=false;
+        }
+      });
+
+      if(mainBtn){
+        mainBtn.textContent=
+          "✨ AI phân tích";
+      }
+
+      if(quickBtn){
+        quickBtn.textContent=
+          "AI tóm tắt";
+      }
+
+      if(el("spillCopyBtn")){
+        el("spillCopyBtn").disabled=false;
+      }
     }
   }
 
@@ -20577,7 +20855,7 @@ ${JSON.stringify({input:{orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hSta
     el("spillRampUp").value="100";el("spillTaperCm").value="10";el("spillModeAuto").checked=true;showMode();
     state.plan=null;el("spillKpis").innerHTML="";el("spillTableBody").innerHTML='<tr><td colspan="16">Chưa có dữ liệu tính toán.</td></tr>';
     el("spillSummaryStatus").className="spill-status";el("spillSummaryStatus").textContent="Nhập dữ liệu và bấm “Tính phương án”.";
-    el("spillAiSummary").textContent="Chưa tạo nội dung phân tích."; if(el("spillAiQuickFacts"))el("spillAiQuickFacts").innerHTML=""; if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="Chưa tạo nội dung";} ["spillAiBtn","spillExcelBtn","spillPdfBtn","spillCopyBtn"].forEach(id=>{if(el(id))el(id).disabled=true;}); updateInputPreview();
+    el("spillAiSummary").textContent="Chưa tạo nội dung phân tích."; if(el("spillAiQuickFacts"))el("spillAiQuickFacts").innerHTML=""; if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="Chưa tạo nội dung";} ["spillAiBtn","spillAiQuickBtn","spillExcelBtn","spillPdfBtn","spillCopyBtn"].forEach(id=>{if(el(id))el(id).disabled=true;}); updateInputPreview();
     if(state.chart){state.chart.destroy();state.chart=null;}
   }
 
@@ -20591,7 +20869,8 @@ ${JSON.stringify({input:{orderNo:x.orderNo,preparedBy:x.preparedBy,hStart:x.hSta
     });
     el("spillCalcBtn").addEventListener("click",calculate);
     el("spillResetBtn").addEventListener("click",reset);
-    el("spillAiBtn").addEventListener("click",aiSummary);
+    el("spillAiBtn")?.addEventListener("click",aiSummary);
+    el("spillAiQuickBtn")?.addEventListener("click",aiSummary);
     el("spillExcelBtn").addEventListener("click",exportExcel);
     el("spillPdfBtn").addEventListener("click",exportPdf);
     el("spillCopyBtn")?.addEventListener("click",copySummary);
