@@ -19359,24 +19359,74 @@ function renderAllPctt(){
     return buildLocalSummary();
   }
 
+  function buildSpillAiKeyRows(rows,task){
+    const source=Array.isArray(rows)?rows:[];
+    const selected=[];
+    const importantStatuses=[
+      "ĐẠT MỤC TIÊU",
+      "DUY TRÌ MỤC TIÊU",
+      "KHÔNG THỂ DUY TRÌ",
+      "CẢNH BÁO",
+      "CẬN GIỚI HẠN"
+    ];
+
+    source.forEach((row,index)=>{
+      const previous=index>0?source[index-1]:null;
+      const isFirst=index===0;
+      const isLast=index===source.length-1;
+      const statusChanged=
+        previous&&
+        previous.status!==row.status;
+      const methodChanged=
+        previous&&
+        previous.method!==row.method;
+      const importantStatus=
+        importantStatuses.includes(row.status);
+
+      /*
+        Với SUMMARY và NOTICE chỉ lấy các mốc quan trọng.
+        Với RISK và REVIEW lấy thêm các dòng gần giới hạn/cảnh báo.
+      */
+      const include=
+        isFirst||
+        isLast||
+        statusChanged||
+        methodChanged||
+        importantStatus||
+        (
+          (task==="RISK"||task==="REVIEW")&&
+          (
+            row.margin<=row.qMax*.1||
+            (row.flags&&row.flags.length)
+          )
+        );
+
+      if(include){
+        selected.push({
+          time:`${row.date} ${row.period}`,
+          hStart:+row.hStart.toFixed(2),
+          hEnd:+row.hEnd.toFixed(2),
+          qSpill:+row.qSpillApplied.toFixed(1),
+          qTotal:+row.qTotal.toFixed(1),
+          qMax:+row.qMax.toFixed(1),
+          method:row.method,
+          status:row.status,
+          flags:(row.flags||[]).slice(0,3)
+        });
+      }
+    });
+
+    const limit=
+      task==="RISK"||task==="REVIEW"
+        ?28
+        :16;
+
+    return selected.slice(0,limit);
+  }
+
   function buildAiPrompt(task){
     const p=state.plan;
     const x=p.input;
-
-    const compact=p.rows.map(row=>({
-      time:`${row.date} ${row.period}`,
-      hStart:+row.hStart.toFixed(2),
-      hEnd:+row.hEnd.toFixed(2),
-      dropCm:+row.actualDropCm.toFixed(2),
-      qIn:+row.qIn.toFixed(1),
-      qMachine:+row.qMachine.toFixed(1),
-      qSpill:+row.qSpillApplied.toFixed(1),
-      qTotal:+row.qTotal.toFixed(1),
-      qMax:+row.qMax.toFixed(1),
-      method:row.method,
-      status:row.status,
-      flags:row.flags||[]
-    }));
 
     const taskNames={
       SUMMARY:"TÓM TẮT GIAO BAN VÀ VĂN BẢN",
@@ -19392,7 +19442,7 @@ function renderAllPctt(){
     };
 
     const payload={
-      task:task,
+      task,
       taskName:taskNames[task]||taskNames.SUMMARY,
       input:{
         orderNo:x.orderNo||"",
@@ -19432,24 +19482,27 @@ function renderAllPctt(){
         nearHours:p.nearHours,
         warnings:p.warnings||[]
       },
-      hourly:compact
+      keyRows:buildSpillAiKeyRows(
+        p.rows,
+        task
+      )
     };
 
-    let requiredStructure="";
+    let structure="";
 
     if(task==="RISK"){
-      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 4 PHẦN:
+      structure=`TRẢ VỀ ĐỦ 4 PHẦN:
 1. KẾT LUẬN NHANH
 2. RỦI RO VÀ MÂU THUẪN CẦN KIỂM TRA
 3. CÁC MỐC GIỜ CẦN THEO DÕI
 4. ĐIỀU KIỆN TRƯỚC KHI ÁP DỤNG`;
     }else if(task==="REVIEW"){
-      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 3 PHẦN:
+      structure=`TRẢ VỀ ĐỦ 3 PHẦN:
 1. ĐIỂM PHÙ HỢP
 2. ĐIỂM CẦN KIỂM TRA LẠI
 3. KẾT LUẬN RÀ SOÁT`;
     }else if(task==="NOTICE"){
-      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ CÁC PHẦN:
+      structure=`TRẢ VỀ ĐỦ CÁC PHẦN:
 1. CĂN CỨ
 2. THỜI GIAN THỰC HIỆN
 3. THÔNG SỐ CHÍNH
@@ -19457,47 +19510,46 @@ function renderAllPctt(){
 5. ĐIỀU KIỆN CHUYỂN SANG DUY TRÌ MNH
 6. LƯU Ý VÀ PHÊ DUYỆT`;
     }else{
-      requiredStructure=`BẮT BUỘC TRẢ VỀ ĐỦ 2 PHẦN:
+      structure=`TRẢ VỀ ĐỦ 2 PHẦN:
 1. TÓM TẮT GIAO BAN
 2. VĂN BẢN PHƯƠNG ÁN
 
-KHÔNG ĐƯỢC LƯỢC BỎ CÁC TRƯỜNG CÓ GIÁ TRỊ SAU:
+KHÔNG ĐƯỢC LƯỢC BỎ:
 - Chế độ tính toán.
-- Thời gian bắt đầu.
-- Thời hạn phải đạt mục tiêu.
+- Thời gian bắt đầu và thời hạn.
 - MNH ban đầu và MNH mục tiêu.
 - Thể tích cần hạ.
 - Q về, Q máy và tổng Q max.
 - Khung giờ ban ngày và ban đêm.
-- Mức hạ hoặc chế độ mở êm giờ đầu.
-- Q tràn trung bình ban ngày.
-- Q tràn trung bình ban đêm.
+- Mức hạ giờ đầu.
+- Q tràn trung bình ngày và đêm.
 - Tổng Q lớn nhất áp dụng.
 - Thời điểm đạt MNH mục tiêu.
 - Giai đoạn duy trì đến thời hạn.
 - Q tràn duy trì.
-- Cảnh báo và kết luận của engine.`;
+- Cảnh báo và kết luận engine.`;
     }
 
-    return `NHIỆM VỤ: ${taskNames[task]||taskNames.SUMMARY}
+    return `Bạn là trợ lý kỹ thuật hồ A Vương.
 
-QUY TẮC BẮT BUỘC:
-- Chỉ diễn giải kết quả do engine cung cấp.
-- Không tự tính lại và không thay đổi số liệu.
-- Không tự đề xuất lưu lượng khác như một mệnh lệnh.
+NHIỆM VỤ: ${taskNames[task]||taskNames.SUMMARY}
+
+QUY TẮC:
+- Chỉ diễn giải kết quả engine.
+- Không tự tính lại hoặc thay đổi số liệu.
 - Không phát lệnh vận hành.
-- Phân biệt rõ thời điểm đạt mục tiêu và giai đoạn duy trì đến thời hạn.
-- Tổng Q xả luôn bằng Q máy cộng Q tràn.
-- Không được bỏ qua bất kỳ trường nào có giá trị trong dữ liệu engine.
-- Không viết chung chung khi dữ liệu đã có số cụ thể.
-- Không dùng Markdown, không dùng ký hiệu ###, ** hoặc dấu * để tạo danh sách.
-- Chỉ dùng văn bản thuần; tiêu đề viết hoa và danh sách bắt đầu bằng dấu "-".
-- Luôn nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
+- Phân biệt thời điểm đạt mục tiêu và giai đoạn duy trì đến hạn.
+- Tổng Q xả = Q máy + Q tràn.
+- Không bỏ sót trường có giá trị.
+- Không viết chung chung khi đã có số cụ thể.
+- Không dùng Markdown.
+- Chỉ dùng văn bản thuần, tiêu đề viết hoa, danh sách dùng dấu "-".
+- Luôn nhắc đối chiếu văn bản điều hành, số liệu thực tế và phê duyệt có thẩm quyền.
 
-${requiredStructure}
+${structure}
 
 DỮ LIỆU ENGINE:
-${JSON.stringify(payload,null,2)}`;
+${JSON.stringify(payload)}`;
   }
 
   function buildLocalSummary(){
@@ -19513,44 +19565,130 @@ ${JSON.stringify(payload,null,2)}`;
     return `TÓM TẮT PHƯƠNG ÁN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
   }
 
-  function jsonpAi(payload){
+  function callSpillAi(payload){
+    if(
+      window.google&&
+      google.script&&
+      google.script.run
+    ){
+      return new Promise(
+        (resolve,reject)=>{
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(error=>{
+              reject(
+                new Error(
+                  error?.message||
+                  String(error)
+                )
+              );
+            })
+            .analyzeSpillPlan(payload);
+        }
+      );
+    }
+
     return new Promise((resolve,reject)=>{
-      const endpoint=String(window.AVUONG_AI_WEBAPP_URL||"").trim();
+      const endpoint=
+        String(
+          window.AVUONG_AI_WEBAPP_URL||
+          ""
+        ).trim();
 
       if(!endpoint){
-        return reject(
+        reject(
           new Error(
             "Chưa cấu hình Web App AI"
           )
         );
+        return;
       }
 
-      if(
-        !endpoint.startsWith(
-          "https://script.google.com/macros/s/"
-        )||
-        !endpoint.endsWith("/exec")
-      ){
-        return reject(
-          new Error(
-            "URL Web App AI không hợp lệ: "+
-            endpoint
-          )
+      const callbackName=
+        "__spillAi_"+
+        Date.now()+
+        "_"+
+        Math.random()
+          .toString(36)
+          .slice(2);
+
+      const script=
+        document.createElement(
+          "script"
         );
-      }
-      const cb="__spillAi_"+Date.now()+"_"+Math.random().toString(36).slice(2);
-      const script=document.createElement("script");
-      const timer=setTimeout(()=>{cleanup();reject(new Error("Quá thời gian chờ AI"));},45000);
-      function cleanup(){clearTimeout(timer);delete window[cb];script.remove();}
-      window[cb]=data=>{cleanup();resolve(data);};
-      script.onerror=()=>{cleanup();reject(new Error("Không kết nối được AI"));};
-      script.src=endpoint+(endpoint.includes("?")?"&":"?")+"api=spill-analysis&callback="+encodeURIComponent(cb)+"&payload="+encodeURIComponent(JSON.stringify(payload))+"&_="+Date.now();
-      console.info(
-        "[Spill AI] Gọi endpoint:",
-        endpoint
+
+      const timer=setTimeout(
+        ()=>{
+          cleanup();
+          reject(
+            new Error(
+              "Quá thời gian chờ AI"
+            )
+          );
+        },
+        60000
       );
 
-      document.head.appendChild(script);
+      function cleanup(){
+        clearTimeout(timer);
+
+        try{
+          delete window[
+            callbackName
+          ];
+        }catch(error){
+          window[
+            callbackName
+          ]=undefined;
+        }
+
+        script.remove();
+      }
+
+      window[callbackName]=data=>{
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror=()=>{
+        cleanup();
+        reject(
+          new Error(
+            "Không tải được API AI"
+          )
+        );
+      };
+
+      const separator=
+        endpoint.includes("?")
+          ?"&"
+          :"?";
+
+      script.src=
+        endpoint+
+        separator+
+        "api=chat"+
+        "&callback="+
+        encodeURIComponent(
+          callbackName
+        )+
+        "&payload="+
+        encodeURIComponent(
+          JSON.stringify(payload)
+        )+
+        "&_="+
+        Date.now();
+
+      console.info(
+        "[Spill AI] Gọi giống Chatbox:",
+        endpoint,
+        "Độ dài URL:",
+        script.src.length
+      );
+
+      document.head.appendChild(
+        script
+      );
     });
   }
 
@@ -19600,7 +19738,7 @@ ${JSON.stringify(payload,null,2)}`;
     }
 
     try{
-      const result=await jsonpAi({
+      const result=await callSpillAi({
         question:
           buildAiPrompt(task),
 
@@ -19639,14 +19777,14 @@ ${JSON.stringify(payload,null,2)}`;
 
       box.textContent=
         buildLocalAiContent(task)+
-        "\n\n(Ghi chú: Không kết nối được Gemini; đang hiển thị nội dung dự phòng từ kết quả engine.)";
+        "\n\n(Ghi chú: Không kết nối được AI; đang hiển thị nội dung dự phòng từ kết quả engine.)";
 
       if(status){
         status.className=
           "spill-ai-status fallback";
 
         status.textContent=
-          "● Lỗi Gemini: "+
+          "● Lỗi kết nối AI: "+
           (
             error?.message||
             "Không xác định"
