@@ -6683,7 +6683,7 @@ body.slideshow-frame-mode section{
   30%{transform:translateY(-5px)}
 }
 
-/* Màu nhấn mạnh nhận từ Rule Engine */
+/* Màu nhấn mạnh nhận từ Rule Hệ thống tính toán */
 .ai-answer-highlight{
   font-weight:800;
   padding:1px 4px;
@@ -10488,7 +10488,7 @@ body.slideshow-frame-mode section{
               </div>
               <div class="spill-ai-toolbar">
                 <select id="spillAiTask" class="spill-ai-select" aria-label="Chọn nội dung AI">
-                  <option value="SUMMARY">Tóm tắt giao ban và văn bản</option>
+                  <option value="SUMMARY">Báo cáo phương án xả tràn</option>
                   <option value="RISK">Kiểm tra rủi ro và điểm cần lưu ý</option>
                   <option value="REVIEW">Rà soát tính hợp lý phương án</option>
                   <option value="NOTICE">Soạn dự thảo thông báo vận hành</option>
@@ -19300,7 +19300,7 @@ function renderAllPctt(){
     ["spillAiBtn","spillAiQuickBtn","spillExcelBtn","spillPdfBtn"].forEach(id=>{if(el(id))el(id).disabled=false;}); if(el("spillCopyBtn")) el("spillCopyBtn").disabled=false;
     renderAiQuickFacts();
     el("spillAiSummary").textContent=buildLocalSummary();
-    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Nội dung engine – sẵn sàng phân tích bằng OpenAI";}
+    if(el("spillAiStatus")){el("spillAiStatus").className="spill-ai-status fallback";el("spillAiStatus").textContent="● Nội dung tính toán – sẵn sàng phân tích bằng OpenAI";}
     renderChart();
   }
 
@@ -19510,24 +19510,30 @@ function renderAllPctt(){
 5. ĐIỀU KIỆN CHUYỂN SANG DUY TRÌ MNH
 6. LƯU Ý VÀ PHÊ DUYỆT`;
     }else{
-      structure=`TRẢ VỀ ĐỦ 2 PHẦN:
-1. TÓM TẮT GIAO BAN
-2. VĂN BẢN PHƯƠNG ÁN
+      structure=`
+CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 
-KHÔNG ĐƯỢC LƯỢC BỎ:
-- Chế độ tính toán.
-- Thời gian bắt đầu và thời hạn.
-- MNH ban đầu và MNH mục tiêu.
-- Thể tích cần hạ.
-- Q về, Q máy và tổng Q max.
-- Khung giờ ban ngày và ban đêm.
-- Mức hạ giờ đầu.
-- Q tràn trung bình ngày và đêm.
-- Tổng Q lớn nhất áp dụng.
-- Thời điểm đạt MNH mục tiêu.
-- Giai đoạn duy trì đến thời hạn.
-- Q tràn duy trì.
-- Cảnh báo và kết luận hệ thống tính toán.`;
+YÊU CẦU:
+- Tiêu đề: BÁO CÁO PHƯƠNG ÁN XẢ TRÀN.
+- Nội dung tối đa 3 đoạn văn ngắn.
+- Tổng độ dài khoảng 180 đến 260 từ.
+- Không chia thành Tóm tắt giao ban, Văn bản phương án hoặc Điểm cần lưu ý.
+- Không dùng danh sách dài.
+- Không lặp lại cùng một số liệu.
+- Không liệt kê toàn bộ bảng kết quả theo giờ.
+- Chỉ nêu các thông số chính phục vụ đánh giá phương án.
+- Q về hồ phải được mô tả là giá trị giả định, ước tính hoặc giá trị đầu vào dùng cho tính toán.
+- Không được mô tả Q về hồ là lưu lượng ổn định thực tế.
+- Q máy phải gọi là lưu lượng qua máy, không được gọi là công suất máy phát.
+- Không sử dụng từ tiếng Anh "hệ thống tính toán"; phải dùng cụm "hệ thống tính toán".
+- Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
+- Phải nói rõ thời gian bắt đầu và thời hạn.
+- Phải lấy thời điểm đạt mục tiêu đúng từ result.finishTime.
+- Phải nói rõ khả năng duy trì mực nước hồ đến hết thời hạn.
+- Nếu Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
+- Kết luận cuối cùng phải xác định phương án đạt hay chưa đạt theo kết quả tính toán.
+- Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
+`;
     }
 
     return `Bạn là trợ lý kỹ thuật hồ thủy điện A Vương.
@@ -19541,6 +19547,14 @@ NGUYÊN TẮC:
 - Không bỏ sót các thông số chính.
 - Không lặp lại cùng một thông tin.
 - Không liệt kê lại toàn bộ bảng kết quả theo giờ.
+- Không sử dụng từ tiếng Anh "hệ thống tính toán"; phải dùng cụm "hệ thống tính toán".
+- Q về hồ phải được mô tả là giá trị giả định, ước tính hoặc giá trị đầu vào dùng cho tính toán.
+- Không được mô tả Q về hồ là lưu lượng ổn định thực tế.
+- Q máy phải gọi là lưu lượng qua máy, không được gọi là công suất máy phát.
+- Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
+- Thời hạn lấy đúng từ input.deadline.
+- Thời điểm đạt mục tiêu lấy đúng từ result.finishTime.
+- Không tự suy luận lại thời gian từ bảng kết quả theo giờ.
 - Không dùng mã HTML hoặc định dạng Markdown.
 - Viết hoàn toàn bằng tiếng Việt, rõ ràng và chuyên nghiệp.
 
@@ -19560,7 +19574,7 @@ ${JSON.stringify(payload)}`;
         ?`Sau khi đạt mục tiêu, phương án chuyển sang duy trì MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}, với Q tràn duy trì trung bình khoảng ${fmt(p.maintenanceSpill,1)} m³/s.`
         :`Sau khi đạt mục tiêu, điều kiện Q về/Q máy/Q max hiện tại chưa cho phép duy trì chính xác MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}.`
       :"";
-    return `TÓM TẮT PHƯƠNG ÁN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
+    return `BÁO CÁO PHƯƠNG ÁN XẢ TRÀN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
   }
 
   async function callSpillAi(payload){
@@ -19703,7 +19717,7 @@ ${JSON.stringify(payload)}`;
     const task=el("spillAiTask")?.value||"SUMMARY";
 
     const labels={
-      SUMMARY:"tóm tắt phương án",
+      SUMMARY:"lập báo cáo phương án",
       RISK:"kiểm tra rủi ro",
       REVIEW:"rà soát phương án",
       NOTICE:"soạn dự thảo thông báo"
@@ -19882,7 +19896,7 @@ ${JSON.stringify(payload)}`;
     styleTitle(ws,"PHƯƠNG ÁN TÍNH TOÁN XẢ TRÀN HỒ A VƯƠNG",
       `Lập lúc ${new Date().toLocaleString("vi-VN")} • Người tính toán: ${x.preparedBy||"—"}`);
 
-    section(ws,4,"I. TÓM TẮT PHƯƠNG ÁN");
+    section(ws,4,"I. BÁO CÁO PHƯƠNG ÁN XẢ TRÀN");
     ws.mergeCells("A5:J11");
     ws.getCell("A5").value=el("spillAiSummary")?.textContent||buildLocalSummary();
     ws.getCell("A5").alignment={wrapText:true,vertical:"top"};
@@ -20010,7 +20024,7 @@ ${JSON.stringify(payload)}`;
 
     // Sheet AI
     const aiWs=wb.addWorksheet("AI tóm tắt",{views:[{showGridLines:false}]});
-    styleTitle(aiWs,"AI TÓM TẮT PHƯƠNG ÁN","Nội dung hỗ trợ diễn giải, không thay thế lệnh vận hành");
+    styleTitle(aiWs,"AI BÁO CÁO PHƯƠNG ÁN XẢ TRÀN","Nội dung hỗ trợ diễn giải, không thay thế lệnh vận hành");
     aiWs.mergeCells("A4:J30");
     aiWs.getCell("A4").value=el("spillAiSummary")?.textContent||buildLocalSummary();
     aiWs.getCell("A4").alignment={wrapText:true,vertical:"top"};
@@ -20401,7 +20415,7 @@ ${JSON.stringify(payload)}`;
       </div>
 
       <div class="pdf-section">
-        <div class="pdf-section-title">I. TÓM TẮT PHƯƠNG ÁN</div>
+        <div class="pdf-section-title">I. BÁO CÁO PHƯƠNG ÁN XẢ TRÀN</div>
         <div class="pdf-summary">${escapeHtml(summary)}</div>
       </div>
 
