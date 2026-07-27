@@ -20624,9 +20624,21 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         };
     };
 
-    const pageFits=page=>
-      page.scrollHeight<=
-      PAGE_HEIGHT-PAGE_SAFETY;
+    const pageFits=page=>{
+      /*
+       * Trang có chiều cao cố định 760 px.
+       * scrollHeight của trang rỗng cũng đã bằng 760 px,
+       * vì vậy không được so với 760 - khoảng an toàn.
+       */
+      const limit=
+        page.clientHeight||
+        PAGE_HEIGHT;
+
+      return (
+        page.scrollHeight<=limit+1&&
+        page.scrollWidth<=page.clientWidth+1
+      );
+    };
 
     /*
      * Xóa nội dung cũ trước khi dựng lại từng trang.
@@ -21426,10 +21438,7 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
     document.body.appendChild(wrapper);
     document.body.appendChild(pdfOverlay);
 
-    const spillPdfPages=
-      prepareSpillPdfPages(
-        wrapper
-      );
+    let spillPdfPages=[];
 
     const previousScrollX=window.scrollX;
     const previousScrollY=window.scrollY;
@@ -21453,14 +21462,30 @@ ${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật
         })
       );
 
-      /* Cho trình duyệt hoàn tất layout trước khi tạo canvas. */
+      /* Cho trình duyệt hoàn tất layout trước khi phân trang. */
       await new Promise(resolve=>{
         requestAnimationFrame(()=>{
           requestAnimationFrame(resolve);
         });
       });
 
-      if(wrapper.scrollWidth<100||wrapper.scrollHeight<100){
+      spillPdfPages=
+        prepareSpillPdfPages(
+          wrapper
+        );
+
+      /* Chờ DOM hoàn tất bố cục sau khi tách thành các trang. */
+      await new Promise(resolve=>{
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(resolve);
+        });
+      });
+
+      if(
+        !spillPdfPages.length||
+        wrapper.scrollWidth<100||
+        wrapper.scrollHeight<100
+      ){
         throw new Error(
           "Khối PDF không có kích thước hợp lệ: "+
           wrapper.scrollWidth+"x"+wrapper.scrollHeight
