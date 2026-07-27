@@ -19359,6 +19359,93 @@ function renderAllPctt(){
     return buildLocalSummary();
   }
 
+  function formatSpillDateTimeForAi(value){
+    if(!value){
+      return "";
+    }
+
+    /*
+     * Input datetime-local có dạng YYYY-MM-DDTHH:mm.
+     * Tách trực tiếp chuỗi để tuyệt đối không chuyển sang UTC.
+     */
+    if(
+      typeof value==="string"&&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)
+    ){
+      const datePart=value.slice(0,10);
+      const timePart=value.slice(11,16);
+      const parts=datePart.split("-");
+
+      return `${timePart} ngày ${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    /*
+     * Các mốc do hệ thống tính toán tạo ra là đối tượng Date địa phương.
+     * Dùng dateVN/timeVN hiện có, không dùng toISOString/toJSON.
+     */
+    const date=
+      value instanceof Date
+        ?value
+        :new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+      return String(value);
+    }
+
+    return `${timeVN(date)} ngày ${dateVN(date)}`;
+  }
+
+  function buildSpillLockedFacts(plan){
+    const p=plan;
+    const x=p.input;
+
+    const startText=
+      formatSpillDateTimeForAi(
+        x.start
+      );
+
+    const deadlineText=
+      formatSpillDateTimeForAi(
+        x.end
+      );
+
+    const finishTimeText=
+      p.finishTime
+        ?formatSpillDateTimeForAi(
+            p.finishTime
+          )
+        :"";
+
+    let limitStatusText="";
+
+    if(p.exceedHours>0){
+      limitStatusText=
+        `Có ${p.exceedHours} khoảng vượt giới hạn.`;
+    }else if(p.nearHours>0){
+      limitStatusText=
+        `Có ${p.nearHours} khoảng cận giới hạn nhưng không ghi nhận khoảng vượt giới hạn.`;
+    }else{
+      limitStatusText=
+        "Không ghi nhận khoảng cận giới hạn hoặc vượt giới hạn.";
+    }
+
+    return {
+      startText,
+      deadlineText,
+      finishTimeText,
+      reachedText:
+        p.reached
+          ?"Đã đạt mực nước hồ mục tiêu."
+          :"Chưa đạt mực nước hồ mục tiêu.",
+      maintenanceText:
+        p.maintainedToDeadline
+          ?"Duy trì mực nước hồ mục tiêu đến hết thời hạn."
+          :"Chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn.",
+      limitStatusText
+    };
+  }
+
+
   function buildSpillAiKeyRows(rows,task){
     const source=Array.isArray(rows)?rows:[];
     const selected=[];
@@ -19427,6 +19514,7 @@ function renderAllPctt(){
   function buildAiPrompt(task){
     const p=state.plan;
     const x=p.input;
+    const locked=buildSpillLockedFacts(p);
 
     const taskNames={
       SUMMARY:"LẬP BÁO CÁO PHƯƠNG ÁN XẢ TRÀN",
@@ -19441,48 +19529,132 @@ function renderAllPctt(){
       LEVEL:"Nhập mức hạ mực nước hồ ngày/đêm"
     };
 
+    /*
+     * Không gửi đối tượng Date hoặc chuỗi ISO sang OpenAI.
+     * Tất cả thời gian dùng để viết báo cáo đều là chuỗi giờ Việt Nam.
+     */
     const payload={
-      task:task,
-      taskName:taskNames[task]||taskNames.SUMMARY,
+      task,
+      taskName:
+        taskNames[task]||
+        taskNames.SUMMARY,
+
+      lockedFacts:{
+        startText:
+          locked.startText,
+
+        deadlineText:
+          locked.deadlineText,
+
+        finishTimeText:
+          locked.finishTimeText,
+
+        reachedText:
+          locked.reachedText,
+
+        maintenanceText:
+          locked.maintenanceText,
+
+        limitStatusText:
+          locked.limitStatusText
+      },
 
       input:{
-        orderNo:x.orderNo||"",
-        preparedBy:x.preparedBy||"",
-        mode:x.mode,
-        modeName:modeNames[x.mode]||"Không xác định",
-        hStart:x.hStart,
-        hTarget:x.hTarget,
-        start:x.start,
-        deadline:x.end,
-        qInAssumed:x.qIn,
-        qMachine:x.qMachine,
-        qMaxTotal:x.qMaxTotal,
-        qMin:x.qMin,
-        firstHourCm:x.firstCm,
-        rampUp:x.rampUp,
-        taperCm:x.taperCm,
-        dayStart:x.dayStart,
-        dayEnd:x.dayEnd,
-        notes:x.notes||""
+        orderNo:
+          x.orderNo||"",
+
+        preparedBy:
+          x.preparedBy||"",
+
+        mode:
+          x.mode,
+
+        modeName:
+          modeNames[x.mode]||
+          "Không xác định",
+
+        hStart:
+          x.hStart,
+
+        hTarget:
+          x.hTarget,
+
+        qInAssumed:
+          x.qIn,
+
+        qMachine:
+          x.qMachine,
+
+        qMaxTotal:
+          x.qMaxTotal,
+
+        qMin:
+          x.qMin,
+
+        firstHourCm:
+          x.firstCm,
+
+        rampUp:
+          x.rampUp,
+
+        taperCm:
+          x.taperCm,
+
+        dayStart:
+          x.dayStart,
+
+        dayEnd:
+          x.dayEnd,
+
+        notes:
+          x.notes||""
       },
 
       result:{
-        volumeToLower:p.volumeToLower,
-        avgDaySpill:p.avgDay,
-        avgNightSpill:p.avgNight,
-        maxRequiredTotalQ:p.maxReq,
-        maxAppliedTotalQ:p.maxApplied,
-        finishTime:p.finishTime,
-        finalLevel:p.finalLevel,
-        reached:p.reached,
-        feasible:p.feasible,
-        maintainedToDeadline:p.maintainedToDeadline,
-        maintenancePossible:p.maintenancePossible,
-        maintenanceSpill:p.maintenanceSpill,
-        maintenanceHours:p.maintenanceHours,
-        exceedHours:p.exceedHours,
-        nearHours:p.nearHours,
-        warnings:p.warnings||[]
+        volumeToLower:
+          p.volumeToLower,
+
+        avgDaySpill:
+          p.avgDay,
+
+        avgNightSpill:
+          p.avgNight,
+
+        maxRequiredTotalQ:
+          p.maxReq,
+
+        maxAppliedTotalQ:
+          p.maxApplied,
+
+        finalLevel:
+          p.finalLevel,
+
+        reached:
+          p.reached,
+
+        feasible:
+          p.feasible,
+
+        maintainedToDeadline:
+          p.maintainedToDeadline,
+
+        maintenancePossible:
+          p.maintenancePossible,
+
+        maintenanceSpill:
+          p.maintenanceSpill,
+
+        maintenanceHours:
+          p.maintenanceHours,
+
+        exceedHours:
+          p.exceedHours,
+
+        nearHours:
+          p.nearHours,
+
+        warnings:
+          p.warnings||[]
       },
 
       importantRows:
@@ -19497,66 +19669,47 @@ function renderAllPctt(){
     if(task==="RISK"){
       structure=`
 CHỈ VIẾT MỘT BẢN RÀ SOÁT NGẮN GỌN.
-
-YÊU CẦU:
 - Tối đa 3 đoạn văn ngắn.
-- Nêu rõ các khoảng cận giới hạn hoặc vượt giới hạn nếu có.
+- Dùng nguyên văn các thời điểm trong lockedFacts.
+- Nêu đúng số khoảng cận giới hạn hoặc vượt giới hạn.
 - Không tự suy luận lại số liệu.
-- Không dùng từ tiếng Anh "hệ thống tính toán".
-- Không khẳng định tuyệt đối phương án an toàn.
-- Q về hồ phải được hiểu là giá trị giả định dùng cho tính toán.
+- Q về hồ là giá trị giả định dùng cho tính toán.
 `;
     }else if(task==="REVIEW"){
       structure=`
 CHỈ VIẾT MỘT BẢN RÀ SOÁT TÍNH HỢP LÝ.
-
-YÊU CẦU:
 - Tối đa 3 đoạn văn ngắn.
-- Phân biệt rõ thời điểm đạt mục tiêu và thời gian duy trì đến hết hạn.
-- Không suy luận lại thời gian từ bảng kết quả theo giờ.
-- Không dùng từ tiếng Anh "hệ thống tính toán".
-- Không khẳng định tuyệt đối phương án an toàn.
+- Dùng nguyên văn các thời điểm trong lockedFacts.
+- Phân biệt rõ thời điểm đạt mục tiêu và thời hạn.
+- Không suy luận thời gian từ bảng kết quả theo giờ.
 `;
     }else if(task==="NOTICE"){
       structure=`
 CHỈ SOẠN MỘT DỰ THẢO THÔNG BÁO NGẮN GỌN.
-
-YÊU CẦU:
 - Tối đa 3 đoạn văn ngắn.
-- Chỉ dùng các số liệu do hệ thống tính toán cung cấp.
-- Q về hồ phải được nêu là giá trị giả định dùng cho tính toán.
-- Không dùng từ tiếng Anh "hệ thống tính toán".
+- Dùng nguyên văn các thời điểm trong lockedFacts.
+- Q về hồ là giá trị giả định dùng cho tính toán.
 - Không phát lệnh vận hành thay người có thẩm quyền.
 `;
     }else{
       structure=`
 CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
-
-YÊU CẦU:
 - Không lặp lại tiêu đề bên trong nội dung.
-- Nội dung tối đa 3 đoạn văn ngắn.
-- Tổng độ dài khoảng 160 đến 230 từ.
-- Không chia thành Tóm tắt giao ban, Văn bản phương án hoặc Điểm cần lưu ý.
+- Nội dung tối đa 3 đoạn văn ngắn, khoảng 160 đến 230 từ.
 - Không dùng danh sách dài.
-- Không lặp lại cùng một số liệu.
-- Không liệt kê toàn bộ bảng kết quả theo giờ.
-- Q về hồ phải được mô tả là giá trị giả định, ước tính hoặc giá trị đầu vào dùng cho tính toán.
-- Không được mô tả Q về hồ là lưu lượng ổn định thực tế.
-- Q máy phải gọi là lưu lượng qua máy, không được gọi là công suất máy phát.
-- Không sử dụng từ tiếng Anh "hệ thống tính toán"; phải dùng cụm "hệ thống tính toán".
+- Không liệt kê lại toàn bộ bảng kết quả theo giờ.
+- Phải chép nguyên văn lockedFacts.startText khi viết thời gian bắt đầu.
+- Phải chép nguyên văn lockedFacts.deadlineText khi viết thời hạn.
+- Phải chép nguyên văn lockedFacts.finishTimeText khi viết thời điểm đạt mục tiêu.
+- Tuyệt đối không cộng, trừ hoặc chuyển đổi múi giờ.
+- Không suy luận thời gian từ importantRows.
+- Phải diễn đạt đúng lockedFacts.reachedText.
+- Phải diễn đạt đúng lockedFacts.maintenanceText.
+- Phải diễn đạt đúng lockedFacts.limitStatusText.
+- Q về hồ phải được mô tả là giá trị giả định hoặc giá trị đầu vào dùng cho tính toán.
+- Q máy phải gọi là lưu lượng qua máy.
 - Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
-- Thời gian bắt đầu chỉ lấy từ input.start.
-- Thời hạn chỉ lấy từ input.deadline.
-- Thời điểm đạt mục tiêu chỉ lấy từ result.finishTime.
-- Không được suy luận thời điểm đạt mục tiêu từ importantRows hoặc bảng kết quả theo giờ.
-- Nếu result.finishTime không có giá trị, phải ghi "chưa xác định".
-- Nếu result.reached là false, không được viết phương án đã đạt mục tiêu.
-- Nếu result.maintainedToDeadline là true, phải ghi rõ duy trì mực nước hồ mục tiêu đến hết thời hạn.
-- Nếu result.maintainedToDeadline là false, phải ghi rõ chưa bảo đảm duy trì đến hết thời hạn.
-- Nếu result.nearHours lớn hơn 0 và result.exceedHours bằng 0, phải nêu có khoảng cận giới hạn nhưng không vượt giới hạn.
-- Nếu result.exceedHours lớn hơn 0, phải nêu rõ có khoảng vượt giới hạn.
-- Nếu Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
-- Kết luận cuối cùng phải xác định phương án đạt hay chưa đạt theo kết quả tính toán.
+- Khi Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
 - Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
 `;
     }
@@ -19566,14 +19719,14 @@ YÊU CẦU:
 YÊU CẦU: ${taskNames[task]||taskNames.SUMMARY}
 
 NGUYÊN TẮC:
-- Chỉ diễn giải kết quả do hệ thống tính toán cung cấp.
-- Không tự tính lại, không tự nội suy và không thay đổi bất kỳ số liệu nào.
+- Chỉ diễn giải dữ liệu được cung cấp.
+- Không tự tính lại, không tự nội suy và không thay đổi số liệu.
 - Không phát lệnh vận hành.
-- Không bỏ sót các thông số chính.
-- Không lặp lại cùng một thông tin.
-- Không dùng từ tiếng Anh "hệ thống tính toán".
+- Không dùng từ tiếng Anh "engine".
 - Không dùng mã HTML hoặc định dạng Markdown.
-- Viết hoàn toàn bằng tiếng Việt, rõ ràng và chuyên nghiệp.
+- Viết hoàn toàn bằng tiếng Việt.
+- Các trường trong lockedFacts là dữ kiện đã khóa và có mức ưu tiên cao nhất.
+- Không được viết khác nội dung hoặc thời gian trong lockedFacts.
 
 ${structure}
 
@@ -19582,16 +19735,54 @@ ${JSON.stringify(payload)}`;
   }
 
   function buildLocalSummary(){
-    const p=state.plan,x=p.input;
-    const mode=x.mode==="AUTO"?"tự tính Q ngày/đêm theo thời hạn":x.mode==="FLOW"?"nhập Q tràn ngày/đêm":"nhập mức hạ MNH ngày/đêm";
-    const finish=p.finishTime?`${timeVN(p.finishTime)} ngày ${dateVN(p.finishTime)}`:"chưa đạt trong thời hạn";
-    const deadline=`${timeVN(x.end)} ngày ${dateVN(x.end)}`;
-    const maintainText=p.reached
-      ?p.maintainedToDeadline
-        ?`Sau khi đạt mục tiêu, phương án chuyển sang duy trì MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}, với Q tràn duy trì trung bình khoảng ${fmt(p.maintenanceSpill,1)} m³/s.`
-        :`Sau khi đạt mục tiêu, điều kiện Q về/Q máy/Q max hiện tại chưa cho phép duy trì chính xác MNH ${fmt(x.hTarget,2)} m đến thời hạn ${deadline}.`
-      :"";
-    return `BÁO CÁO PHƯƠNG ÁN XẢ TRÀN\n\nPhương án được lập theo chế độ ${mode}, bắt đầu lúc ${timeVN(x.start)} ngày ${dateVN(x.start)}, hạ MNH từ ${fmt(x.hStart,2)} m về ${fmt(x.hTarget,2)} m. Thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về hồ ước lượng ${fmt(x.qIn,1)} m³/s; Q máy ${fmt(x.qMachine,1)} m³/s; tổng Q xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.\n\nKhung ban ngày áp dụng từ ${x.dayStart} đến ${x.dayEnd}; ngoài khung này được tính là ban đêm. Giờ đầu bố trí hạ ${fmt(x.firstCm,1)} cm để mở êm, hạn chế thay đổi đột ngột đối với hạ du. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s và ban đêm khoảng ${fmt(p.avgNight,1)} m³/s. Tổng Q xả lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. Dự kiến đạt mục tiêu lúc ${finish}. ${maintainText}\n\nKết luận: ${p.feasible?"phương án đạt và duy trì MNH mục tiêu đến hết thời hạn":"phương án chưa đáp ứng đầy đủ yêu cầu đạt và duy trì MNH mục tiêu đến hết thời hạn"}. ${p.warnings.join(" ")}\n\nLưu ý: Đây là kết quả hỗ trợ tính toán; vận hành thực tế phải căn cứ lệnh hợp lệ, số liệu cập nhật và phê duyệt của người có thẩm quyền.`;
+    const p=state.plan;
+    const x=p.input;
+    const locked=buildSpillLockedFacts(p);
+
+    const mode=
+      x.mode==="AUTO"
+        ?"tự tính lưu lượng ngày/đêm theo thời hạn"
+        :x.mode==="FLOW"
+          ?"nhập lưu lượng qua tràn ngày/đêm"
+          :"nhập mức hạ mực nước hồ ngày/đêm";
+
+    const finishText=
+      locked.finishTimeText||
+      "chưa xác định";
+
+    const reachSentence=
+      p.reached
+        ?`Phương án đạt mực nước hồ mục tiêu vào lúc ${finishText}.`
+        :"Phương án chưa đạt mực nước hồ mục tiêu trong thời hạn đã chọn.";
+
+    const maintainSentence=
+      p.maintainedToDeadline
+        ?`Mực nước hồ mục tiêu được duy trì đến hết thời hạn ${locked.deadlineText}.`
+        :`Phương án chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn ${locked.deadlineText}.`;
+
+    let limitSentence="";
+
+    if(p.exceedHours>0){
+      limitSentence=
+        `Có ${p.exceedHours} khoảng vượt giới hạn tính toán.`;
+    }else if(p.nearHours>0){
+      limitSentence=
+        `Có ${p.nearHours} khoảng cận giới hạn nhưng không ghi nhận khoảng vượt giới hạn.`;
+    }else{
+      limitSentence=
+        "Không ghi nhận khoảng cận giới hạn hoặc vượt giới hạn.";
+    }
+
+    const conclusion=
+      p.feasible
+        ?"Theo dữ liệu đầu vào hiện tại, phương án đạt yêu cầu tính toán."
+        :"Theo dữ liệu đầu vào hiện tại, phương án chưa đáp ứng đầy đủ yêu cầu tính toán.";
+
+    return `Phương án được lập theo chế độ ${mode}, bắt đầu lúc ${locked.startText} và có thời hạn đến ${locked.deadlineText}. Mực nước hồ được hạ từ ${fmt(x.hStart,2)} m xuống ${fmt(x.hTarget,2)} m, tương ứng thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. Q về giả định dùng cho tính toán là ${fmt(x.qIn,1)} m³/s, lưu lượng qua máy ${fmt(x.qMachine,1)} m³/s và tổng lưu lượng xả tối đa theo văn bản ${fmt(x.qMaxTotal,1)} m³/s.
+
+Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s, ban đêm khoảng ${fmt(p.avgNight,1)} m³/s; tổng lưu lượng lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. ${reachSentence} ${maintainSentence} ${limitSentence}
+
+${conclusion} Khi Q về thực tế thay đổi đáng kể, cần cập nhật số liệu và tính toán lại phương án; đồng thời đối chiếu văn bản điều hành, cập nhật số liệu thực tế và thực hiện phê duyệt đúng thẩm quyền trước khi áp dụng.`;
   }
 
   async function callSpillAi(payload){
@@ -19724,11 +19915,9 @@ ${JSON.stringify(payload)}`;
 
   function normalizeSpillAiAnswer(value){
     let output=
-      String(
-        value||""
-      )
+      String(value||"")
         .replace(
-          /\bhệ thống tính toán\b/gi,
+          /\bengine\b/gi,
           "hệ thống tính toán"
         )
         .replace(
@@ -19737,7 +19926,7 @@ ${JSON.stringify(payload)}`;
         )
         .replace(
           /\bhoàn toàn khả thi\b/gi,
-          "đáp ứng theo dữ liệu đầu vào hiện tại"
+          "đạt yêu cầu theo dữ liệu đầu vào hiện tại"
         )
         .replace(
           /\bchắc chắn\b/gi,
@@ -19749,18 +19938,11 @@ ${JSON.stringify(payload)}`;
         )
         .trim();
 
-    /*
-     * Tiêu đề đã có sẵn ở giao diện và PDF,
-     * nên bỏ tiêu đề lặp trong nội dung OpenAI.
-     */
     output=output.replace(
-      /^\s*BÁO CÁO PHƯƠNG ÁN XẢ TRÀN\s*/i,
+      /^\s*BÁO CÁO PHƯƠNG ÁN XẢ TRÀN[\s.:–-]*/i,
       ""
     );
 
-    /*
-     * Chuẩn hóa nhiều dòng trống liên tiếp.
-     */
     output=output.replace(
       /\n{3,}/g,
       "\n\n"
@@ -19769,6 +19951,111 @@ ${JSON.stringify(payload)}`;
     return output.trim();
   }
 
+  function validateSpillAiAnswer(value,task){
+    const answer=
+      normalizeSpillAiAnswer(value);
+
+    if(task!=="SUMMARY"){
+      return {
+        valid:Boolean(answer),
+        answer,
+        reason:
+          answer
+            ?""
+            :"OpenAI không trả về nội dung."
+      };
+    }
+
+    const p=state.plan;
+    const locked=buildSpillLockedFacts(p);
+    const errors=[];
+
+    if(!answer){
+      errors.push(
+        "Nội dung trống."
+      );
+    }
+
+    if(
+      locked.startText&&
+      !answer.includes(
+        locked.startText
+      )
+    ){
+      errors.push(
+        "Sai hoặc thiếu thời gian bắt đầu."
+      );
+    }
+
+    if(
+      locked.deadlineText&&
+      !answer.includes(
+        locked.deadlineText
+      )
+    ){
+      errors.push(
+        "Sai hoặc thiếu thời hạn."
+      );
+    }
+
+    if(
+      p.reached&&
+      locked.finishTimeText&&
+      !answer.includes(
+        locked.finishTimeText
+      )
+    ){
+      errors.push(
+        "Sai hoặc thiếu thời điểm đạt mục tiêu."
+      );
+    }
+
+    if(
+      p.nearHours>0&&
+      !answer.includes(
+        String(p.nearHours)
+      )
+    ){
+      errors.push(
+        "Sai hoặc thiếu số khoảng cận giới hạn."
+      );
+    }
+
+    if(
+      p.nearHours>0&&
+      !/cận giới hạn/i.test(answer)
+    ){
+      errors.push(
+        "Thiếu kết luận cận giới hạn."
+      );
+    }
+
+    if(
+      p.exceedHours===0&&
+      p.nearHours>0&&
+      !/không (ghi nhận )?(có )?khoảng vượt giới hạn/i.test(answer)
+    ){
+      errors.push(
+        "Thiếu kết luận không vượt giới hạn."
+      );
+    }
+
+    if(
+      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|UTC|GMT|\.000Z/i.test(answer)
+    ){
+      errors.push(
+        "Nội dung có dấu hiệu sử dụng thời gian UTC hoặc ISO."
+      );
+    }
+
+    return {
+      valid:
+        errors.length===0,
+      answer,
+      reason:
+        errors.join(" ")
+    };
+  }
 
   async function aiSummary(){
     if(!state.plan){
@@ -19837,10 +20124,35 @@ ${JSON.stringify(payload)}`;
         );
       }
 
-      box.textContent=
-        normalizeSpillAiAnswer(
+      const checked=
+        validateSpillAiAnswer(
+          result.answer,
+          task
+        );
+
+      if(!checked.valid){
+        console.warn(
+          "[Spill AI] Nội dung OpenAI không vượt kiểm tra:",
+          checked.reason,
           result.answer
         );
+
+        box.textContent=
+          buildLocalSummary();
+
+        if(status){
+          status.className=
+            "spill-ai-status fallback";
+
+          status.textContent=
+            "● OpenAI trả về dữ liệu chưa nhất quán; đang hiển thị báo cáo đã kiểm chứng từ hệ thống tính toán";
+        }
+
+        return;
+      }
+
+      box.textContent=
+        checked.answer;
 
       if(status){
         status.className=
@@ -19856,8 +20168,10 @@ ${JSON.stringify(payload)}`;
       );
 
       box.textContent=
-        buildLocalAiContent(task)+
-        "\n\n(Ghi chú: Không kết nối được OpenAI; đang hiển thị nội dung dự phòng từ kết quả tính toán.)";
+        task==="SUMMARY"
+          ?buildLocalSummary()
+          :buildLocalAiContent(task)+
+            "\n\n(Ghi chú: Không kết nối được OpenAI; đang hiển thị nội dung dự phòng từ kết quả tính toán.)";
 
       if(status){
         status.className=
