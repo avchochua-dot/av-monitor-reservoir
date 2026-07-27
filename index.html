@@ -19430,20 +19430,21 @@ function renderAllPctt(){
 
     const taskNames={
       SUMMARY:"LẬP BÁO CÁO PHƯƠNG ÁN XẢ TRÀN",
-      RISK:"KIỂM TRA RỦI RO VÀ ĐIỂM CẦN LƯU Ý",
-      REVIEW:"RÀ SOÁT TÍNH HỢP LÝ PHƯƠNG ÁN",
+      RISK:"RÀ SOÁT RỦI RO VÀ CÁC ĐIỂM CẦN LƯU Ý",
+      REVIEW:"RÀ SOÁT TÍNH HỢP LÝ CỦA PHƯƠNG ÁN",
       NOTICE:"SOẠN DỰ THẢO THÔNG BÁO VẬN HÀNH"
     };
 
     const modeNames={
-      AUTO:"Tự tính Q ngày/đêm theo thời hạn",
-      FLOW:"Nhập Q tràn ngày/đêm",
-      LEVEL:"Nhập mức hạ MNH ngày/đêm"
+      AUTO:"Tự tính lưu lượng ngày/đêm theo thời hạn",
+      FLOW:"Nhập lưu lượng qua tràn ngày/đêm",
+      LEVEL:"Nhập mức hạ mực nước hồ ngày/đêm"
     };
 
     const payload={
-      task,
+      task:task,
       taskName:taskNames[task]||taskNames.SUMMARY,
+
       input:{
         orderNo:x.orderNo||"",
         preparedBy:x.preparedBy||"",
@@ -19453,7 +19454,7 @@ function renderAllPctt(){
         hTarget:x.hTarget,
         start:x.start,
         deadline:x.end,
-        qIn:x.qIn,
+        qInAssumed:x.qIn,
         qMachine:x.qMachine,
         qMaxTotal:x.qMaxTotal,
         qMin:x.qMin,
@@ -19464,6 +19465,7 @@ function renderAllPctt(){
         dayEnd:x.dayEnd,
         notes:x.notes||""
       },
+
       result:{
         volumeToLower:p.volumeToLower,
         avgDaySpill:p.avgDay,
@@ -19482,54 +19484,77 @@ function renderAllPctt(){
         nearHours:p.nearHours,
         warnings:p.warnings||[]
       },
-      keyRows:buildSpillAiKeyRows(
-        p.rows,
-        task
-      )
+
+      importantRows:
+        buildSpillAiKeyRows(
+          p.rows,
+          task
+        )
     };
 
     let structure="";
 
     if(task==="RISK"){
-      structure=`TRẢ VỀ ĐỦ 4 PHẦN:
-1. KẾT LUẬN NHANH
-2. RỦI RO VÀ MÂU THUẪN CẦN KIỂM TRA
-3. CÁC MỐC GIỜ CẦN THEO DÕI
-4. ĐIỀU KIỆN TRƯỚC KHI ÁP DỤNG`;
+      structure=`
+CHỈ VIẾT MỘT BẢN RÀ SOÁT NGẮN GỌN.
+
+YÊU CẦU:
+- Tối đa 3 đoạn văn ngắn.
+- Nêu rõ các khoảng cận giới hạn hoặc vượt giới hạn nếu có.
+- Không tự suy luận lại số liệu.
+- Không dùng từ tiếng Anh "hệ thống tính toán".
+- Không khẳng định tuyệt đối phương án an toàn.
+- Q về hồ phải được hiểu là giá trị giả định dùng cho tính toán.
+`;
     }else if(task==="REVIEW"){
-      structure=`TRẢ VỀ ĐỦ 3 PHẦN:
-1. ĐIỂM PHÙ HỢP
-2. ĐIỂM CẦN KIỂM TRA LẠI
-3. KẾT LUẬN RÀ SOÁT`;
+      structure=`
+CHỈ VIẾT MỘT BẢN RÀ SOÁT TÍNH HỢP LÝ.
+
+YÊU CẦU:
+- Tối đa 3 đoạn văn ngắn.
+- Phân biệt rõ thời điểm đạt mục tiêu và thời gian duy trì đến hết hạn.
+- Không suy luận lại thời gian từ bảng kết quả theo giờ.
+- Không dùng từ tiếng Anh "hệ thống tính toán".
+- Không khẳng định tuyệt đối phương án an toàn.
+`;
     }else if(task==="NOTICE"){
-      structure=`TRẢ VỀ ĐỦ CÁC PHẦN:
-1. CĂN CỨ
-2. THỜI GIAN THỰC HIỆN
-3. THÔNG SỐ CHÍNH
-4. TRÌNH TỰ THEO DÕI
-5. ĐIỀU KIỆN CHUYỂN SANG DUY TRÌ MNH
-6. LƯU Ý VÀ PHÊ DUYỆT`;
+      structure=`
+CHỈ SOẠN MỘT DỰ THẢO THÔNG BÁO NGẮN GỌN.
+
+YÊU CẦU:
+- Tối đa 3 đoạn văn ngắn.
+- Chỉ dùng các số liệu do hệ thống tính toán cung cấp.
+- Q về hồ phải được nêu là giá trị giả định dùng cho tính toán.
+- Không dùng từ tiếng Anh "hệ thống tính toán".
+- Không phát lệnh vận hành thay người có thẩm quyền.
+`;
     }else{
       structure=`
 CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 
 YÊU CẦU:
-- Tiêu đề: BÁO CÁO PHƯƠNG ÁN XẢ TRÀN.
+- Không lặp lại tiêu đề bên trong nội dung.
 - Nội dung tối đa 3 đoạn văn ngắn.
-- Tổng độ dài khoảng 180 đến 260 từ.
+- Tổng độ dài khoảng 160 đến 230 từ.
 - Không chia thành Tóm tắt giao ban, Văn bản phương án hoặc Điểm cần lưu ý.
 - Không dùng danh sách dài.
 - Không lặp lại cùng một số liệu.
 - Không liệt kê toàn bộ bảng kết quả theo giờ.
-- Chỉ nêu các thông số chính phục vụ đánh giá phương án.
 - Q về hồ phải được mô tả là giá trị giả định, ước tính hoặc giá trị đầu vào dùng cho tính toán.
 - Không được mô tả Q về hồ là lưu lượng ổn định thực tế.
 - Q máy phải gọi là lưu lượng qua máy, không được gọi là công suất máy phát.
 - Không sử dụng từ tiếng Anh "hệ thống tính toán"; phải dùng cụm "hệ thống tính toán".
 - Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
-- Phải nói rõ thời gian bắt đầu và thời hạn.
-- Phải lấy thời điểm đạt mục tiêu đúng từ result.finishTime.
-- Phải nói rõ khả năng duy trì mực nước hồ đến hết thời hạn.
+- Thời gian bắt đầu chỉ lấy từ input.start.
+- Thời hạn chỉ lấy từ input.deadline.
+- Thời điểm đạt mục tiêu chỉ lấy từ result.finishTime.
+- Không được suy luận thời điểm đạt mục tiêu từ importantRows hoặc bảng kết quả theo giờ.
+- Nếu result.finishTime không có giá trị, phải ghi "chưa xác định".
+- Nếu result.reached là false, không được viết phương án đã đạt mục tiêu.
+- Nếu result.maintainedToDeadline là true, phải ghi rõ duy trì mực nước hồ mục tiêu đến hết thời hạn.
+- Nếu result.maintainedToDeadline là false, phải ghi rõ chưa bảo đảm duy trì đến hết thời hạn.
+- Nếu result.nearHours lớn hơn 0 và result.exceedHours bằng 0, phải nêu có khoảng cận giới hạn nhưng không vượt giới hạn.
+- Nếu result.exceedHours lớn hơn 0, phải nêu rõ có khoảng vượt giới hạn.
 - Nếu Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
 - Kết luận cuối cùng phải xác định phương án đạt hay chưa đạt theo kết quả tính toán.
 - Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
@@ -19542,19 +19567,11 @@ YÊU CẦU: ${taskNames[task]||taskNames.SUMMARY}
 
 NGUYÊN TẮC:
 - Chỉ diễn giải kết quả do hệ thống tính toán cung cấp.
-- Không tự tính lại hoặc thay đổi bất kỳ số liệu nào.
+- Không tự tính lại, không tự nội suy và không thay đổi bất kỳ số liệu nào.
 - Không phát lệnh vận hành.
 - Không bỏ sót các thông số chính.
 - Không lặp lại cùng một thông tin.
-- Không liệt kê lại toàn bộ bảng kết quả theo giờ.
-- Không sử dụng từ tiếng Anh "hệ thống tính toán"; phải dùng cụm "hệ thống tính toán".
-- Q về hồ phải được mô tả là giá trị giả định, ước tính hoặc giá trị đầu vào dùng cho tính toán.
-- Không được mô tả Q về hồ là lưu lượng ổn định thực tế.
-- Q máy phải gọi là lưu lượng qua máy, không được gọi là công suất máy phát.
-- Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
-- Thời hạn lấy đúng từ input.deadline.
-- Thời điểm đạt mục tiêu lấy đúng từ result.finishTime.
-- Không tự suy luận lại thời gian từ bảng kết quả theo giờ.
+- Không dùng từ tiếng Anh "hệ thống tính toán".
 - Không dùng mã HTML hoặc định dạng Markdown.
 - Viết hoàn toàn bằng tiếng Việt, rõ ràng và chuyên nghiệp.
 
@@ -19705,6 +19722,54 @@ ${JSON.stringify(payload)}`;
     }
   }
 
+  function normalizeSpillAiAnswer(value){
+    let output=
+      String(
+        value||""
+      )
+        .replace(
+          /\bhệ thống tính toán\b/gi,
+          "hệ thống tính toán"
+        )
+        .replace(
+          /công suất máy phát/gi,
+          "lưu lượng qua máy"
+        )
+        .replace(
+          /\bhoàn toàn khả thi\b/gi,
+          "đáp ứng theo dữ liệu đầu vào hiện tại"
+        )
+        .replace(
+          /\bchắc chắn\b/gi,
+          "theo kết quả tính toán"
+        )
+        .replace(
+          /\ban toàn\b/gi,
+          "trong giới hạn tính toán"
+        )
+        .trim();
+
+    /*
+     * Tiêu đề đã có sẵn ở giao diện và PDF,
+     * nên bỏ tiêu đề lặp trong nội dung OpenAI.
+     */
+    output=output.replace(
+      /^\s*BÁO CÁO PHƯƠNG ÁN XẢ TRÀN\s*/i,
+      ""
+    );
+
+    /*
+     * Chuẩn hóa nhiều dòng trống liên tiếp.
+     */
+    output=output.replace(
+      /\n{3,}/g,
+      "\n\n"
+    );
+
+    return output.trim();
+  }
+
+
   async function aiSummary(){
     if(!state.plan){
       return;
@@ -19773,7 +19838,9 @@ ${JSON.stringify(payload)}`;
       }
 
       box.textContent=
-        String(result.answer).trim();
+        normalizeSpillAiAnswer(
+          result.answer
+        );
 
       if(status){
         status.className=
