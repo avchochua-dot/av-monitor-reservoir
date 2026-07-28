@@ -10452,12 +10452,12 @@ body.slideshow-frame-mode section{
                   </div>
                   <div class="spill-form-grid">
                     <div class="spill-field">
-                      <label>Lưu lượng cộng thêm tối thiểu <span class="spill-required">*</span></label>
-                      <div class="spill-input-wrap"><input id="spillQExtraMin" class="spill-input" type="number" min="0" step="0.1" value="25"><span class="spill-unit">m³/s</span></div>
+                      <label>Lưu lượng cộng thêm tối thiểu theo PTDS <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQExtraMin" class="spill-input" type="number" min="0" step="0.1" value="25" readonly aria-readonly="true"><span class="spill-unit">m³/s</span></div>
                     </div>
                     <div class="spill-field">
-                      <label>Lưu lượng cộng thêm tối đa <span class="spill-required">*</span></label>
-                      <div class="spill-input-wrap"><input id="spillQExtraMax" class="spill-input" type="number" min="0" step="0.1" value="150"><span class="spill-unit">m³/s</span></div>
+                      <label>Lưu lượng cộng thêm tối đa theo PTDS <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQExtraMax" class="spill-input" type="number" min="0" step="0.1" value="150" readonly aria-readonly="true"><span class="spill-unit">m³/s</span></div>
                     </div>
                     <div class="spill-field">
                       <label>Giới hạn kỹ thuật tổng Q (0 = không áp dụng)</label>
@@ -10468,7 +10468,7 @@ body.slideshow-frame-mode section{
                       <div class="spill-input-wrap"><input id="spillQMin" class="spill-input" type="number" min="0" step="0.1" value="0"><span class="spill-unit">m³/s</span></div>
                     </div>
                     <div class="spill-field">
-                      <label>Phạm vi tổng Q theo Q về hiện tại</label>
+                      <label>Phạm vi tổng Q theo Q về trung bình dự báo</label>
                       <div class="spill-input-wrap"><input id="spillQSpillAvailable" class="spill-input spill-readonly" type="text" readonly value="125,0 – 250,0"><span class="spill-unit">m³/s</span></div>
                     </div>
                   </div>
@@ -10601,7 +10601,7 @@ body.slideshow-frame-mode section{
             <div class="spill-table-wrap">
               <table class="spill-table">
                 <thead><tr>
-                  <th>STT</th><th>Ngày</th><th>Khoảng giờ</th><th>MNH đầu</th><th>Mức hạ yêu cầu</th><th>MNH cuối</th>
+                  <th>STT</th><th>Ngày</th><th>Khoảng giờ</th><th>MNH đầu</th><th>Mức hạ thực tế</th><th>MNH cuối</th>
                   <th>Q về</th><th>Nguồn Q về</th><th>Q cộng thêm yêu cầu</th><th>Q cộng thêm áp dụng</th>
                   <th>Q máy</th><th>Q tràn áp dụng</th><th>Q vận hành</th><th>Phạm vi PTDS</th>
                   <th>Biên trên</th><th>Q ròng</th><th>Thời lượng</th><th>Trạng thái</th>
@@ -18282,6 +18282,9 @@ function renderAllPctt(){
 
   const RESERVOIR_ID = "5c78601c-017e-4f85-b423-245a00abe795";
   const LEVEL_TOLERANCE_M = 0.001; // 0,1 cm
+  const PTDS_EXTRA_MIN = 25;
+  const PTDS_EXTRA_MAX = 150;
+  const PTDS_EXTRA_POLICY = "LOWERING_ONLY";
   const state = {
     curve:[],
     plan:null,
@@ -18521,27 +18524,62 @@ function renderAllPctt(){
       throw new Error("API không trả về chuỗi Q về dự báo.");
     }
 
+    const deadlineMs=new Date(to).getTime();
+
+    const intervalRows=result.data
+      .filter(row=>{
+        const timeMs=new Date(row.forecastTime).getTime();
+        return Number.isFinite(timeMs)&&timeMs<deadlineMs;
+      })
+      .sort((a,b)=>new Date(a.forecastTime)-new Date(b.forecastTime));
+
+    const expectedIntervals=Math.max(
+      0,
+      Math.round(
+        (new Date(to).getTime()-new Date(from).getTime())/3600000
+      )
+    );
+
+    const intervalValues=intervalRows
+      .map(row=>Number(row.inflowM3s))
+      .filter(Number.isFinite);
+
+    const intervalStatistics=intervalValues.length
+      ?{
+          minimum:Math.min(...intervalValues),
+          average:intervalValues.reduce((sum,value)=>sum+value,0)/intervalValues.length,
+          maximum:Math.max(...intervalValues)
+        }
+      :null;
+
+    const intervalCoverage={
+      expectedHours:expectedIntervals,
+      receivedHours:intervalRows.length,
+      missingHours:[],
+      complete:intervalRows.length===expectedIntervals&&expectedIntervals>0
+    };
+
     state.spillInflow={
       mode:"forecast",
       manualValue:num("spillQIn"),
       requestedSource:source,
       selectedSource:result.source||source,
       updatedAt:result.updatedAt||"",
-      rows:result.data,
-      coverage:result.coverage||null,
-      statistics:result.statistics||null,
+      rows:intervalRows,
+      coverage:intervalCoverage,
+      statistics:intervalStatistics,
       loadedFrom:result.from||from,
       loadedTo:result.to||to
     };
 
-    if(result.coverage?.complete!==true){
+    if(intervalCoverage.complete!==true){
       setForecastStatus(
-        `Dữ liệu chưa đầy đủ: ${result.coverage?.receivedHours||0}/${result.coverage?.expectedHours||0} mốc giờ; thiếu ${result.coverage?.missingHours?.length||0} mốc.`,
+        `Dữ liệu chưa đầy đủ cho các khoảng vận hành: ${intervalCoverage.receivedHours}/${intervalCoverage.expectedHours} mốc bắt đầu giờ.`,
         "error"
       );
     }else{
       setForecastStatus(
-        `Đã tải ${result.data.length} điểm • Nguồn ${result.source} • Q nhỏ nhất ${fmt(result.statistics.minimum,1)} • Q trung bình ${fmt(result.statistics.average,1)} • Q lớn nhất ${fmt(result.statistics.maximum,1)} m³/s`,
+        `Đã tải ${intervalRows.length} khoảng vận hành • Nguồn ${result.source} • Q nhỏ nhất ${fmt(intervalStatistics.minimum,1)} • Q trung bình ${fmt(intervalStatistics.average,1)} • Q lớn nhất ${fmt(intervalStatistics.maximum,1)} m³/s`,
         "success"
       );
     }
@@ -18566,8 +18604,8 @@ function renderAllPctt(){
     const h1=num("spillLevelTarget",370);
     const qIn=num("spillQIn");
     const qM=num("spillQMachine",78);
-    const qExtraMin=num("spillQExtraMin",25);
-    const qExtraMax=num("spillQExtraMax",150);
+    const qExtraMin=PTDS_EXTRA_MIN;
+    const qExtraMax=PTDS_EXTRA_MAX;
     const qTechnicalMax=num("spillQMaxTotal",0);
     const useForecast=Boolean(el("spillUseForecastInflow")?.checked);
     const start=el("spillStartTime")?.value?new Date(el("spillStartTime").value):null;
@@ -18649,10 +18687,10 @@ function renderAllPctt(){
       qForecastCoverage:state.spillInflow.coverage,
       qMachine:num("spillQMachine",78),
       qMin:num("spillQMin"),
-      qExtraMin:num("spillQExtraMin",25),
-      qExtraMax:num("spillQExtraMax",150),
+      qExtraMin:PTDS_EXTRA_MIN,
+      qExtraMax:PTDS_EXTRA_MAX,
       qMaxTotal:num("spillQMaxTotal",0),
-      extraPolicy:"LOWERING_ONLY",
+      extraPolicy:PTDS_EXTRA_POLICY,
       firstCm:num("spillFirstHourCm",2),
       rampUp:num("spillRampUp",100),
       taperCm:num("spillTaperCm",10),
@@ -19049,7 +19087,6 @@ function renderAllPctt(){
     }
 
     const maintainedToDeadline=reached&&maintenancePossible&&Math.abs(h-x.hTarget)<=LEVEL_TOLERANCE_M;
-    const feasible=reached&&finishTime<=x.end&&maintainedToDeadline;
 
     if(!reached&&h-x.hTarget>LEVEL_TOLERANCE_M){
       warnings.push(`Đến thời hạn, MNH dự kiến còn ${fmt(h,2)} m, cao hơn mục tiêu ${fmt((h-x.hTarget)*100,1)} cm.`);
@@ -19059,8 +19096,12 @@ function renderAllPctt(){
     const belowMinHours=rows.filter(row=>row.method!=="Duy trì MNH mục tiêu"&&row.qExtraRequested<x.qExtraMin-1e-6).length;
     const nearHours=rows.filter(row=>row.method!=="Duy trì MNH mục tiêu"&&row.qExtraApplied>=x.qExtraMin+0.9*(x.qExtraMax-x.qExtraMin)-1e-6&&row.qExtraApplied<=x.qExtraMax+1e-6).length;
 
-    if(exceedHours)warnings.push(`${exceedHours} khoảng có nhu cầu cộng thêm vượt mức tối đa hoặc vượt giới hạn kỹ thuật.`);
-    if(belowMinHours)warnings.push(`${belowMinHours} khoảng có nhu cầu thấp hơn mức cộng thêm tối thiểu và đã được khống chế về phạm vi PTDS.`);
+    if(exceedHours)warnings.push(`${exceedHours} khoảng có nhu cầu cộng thêm vượt mức tối đa 150 m³/s hoặc vượt giới hạn kỹ thuật.`);
+    if(belowMinHours)warnings.push(`${belowMinHours} khoảng có nhu cầu thấp hơn mức cộng thêm tối thiểu 25 m³/s và đã được khống chế về phạm vi PTDS.`);
+
+    const reachedWithinDeadline=Boolean(reached&&finishTime&&finishTime<=x.end);
+    const ptdsRequirementMet=exceedHours===0;
+    const feasible=reachedWithinDeadline&&maintainedToDeadline&&ptdsRequirementMet;
 
     const maxReq=Math.max(...rows.map(row=>row.qTotalRequested),0);
     const maxApplied=Math.max(...rows.map(row=>row.qTotal),0);
@@ -19077,7 +19118,8 @@ function renderAllPctt(){
     state.plan={
       input:x,rows,feasible,reached,finishTime,finalLevel:h,warnings,
       exceedHours,belowMinHours,nearHours,maxReq,maxApplied,maxExtraApplied,minExtraApplied,
-      avgDay,avgNight,maintainedToDeadline,maintenancePossible,maintenanceSpill,
+      avgDay,avgNight,reachedWithinDeadline,ptdsRequirementMet,
+      maintainedToDeadline,maintenancePossible,maintenanceSpill,
       maintenanceHours:maintenanceRows.reduce((sum,row)=>sum+row.hours,0),
       startVol:interpolateVolume(x.hStart),
       targetVol:interpolateVolume(x.hTarget),
@@ -19099,16 +19141,28 @@ function renderAllPctt(){
     const p=state.plan;
     const x=p.input;
     const status=el("spillSummaryStatus");
-    status.className="spill-status "+(p.feasible&&p.exceedHours===0?"ok":p.reached?"warn":"bad");
+    status.className="spill-status "+(p.feasible?"ok":p.reachedWithinDeadline?"warn":"bad");
 
     const inflowSourceText=
       x.qInMode==="forecast"
         ?`Q về dự báo ${x.qForecastSource}`
         :"Q về giả định do người dùng nhập";
 
-    status.textContent=p.feasible
-      ?`Phương án đạt MNH ${fmt(x.hTarget,2)} m lúc ${dateVN(p.finishTime)} ${timeVN(p.finishTime)}. ${inflowSourceText}; phần lưu lượng cộng thêm áp dụng trong giai đoạn hạ MNH được kiểm tra theo phạm vi ${fmt(x.qExtraMin,1)}–${fmt(x.qExtraMax,1)} m³/s.`
-      :`Phương án chưa đạt đầy đủ yêu cầu đến hạn. MNH cuối kỳ dự kiến ${fmt(p.finalLevel,2)} m. ${p.warnings.join(" ")}`;
+    const reachedSummary=p.reachedWithinDeadline
+      ?`Đạt MNH ${fmt(x.hTarget,2)} m lúc ${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`
+      :`Chưa đạt MNH ${fmt(x.hTarget,2)} m đúng thời hạn`;
+
+    const maintenanceSummary=p.maintainedToDeadline
+      ?"duy trì được MNH mục tiêu đến hết thời hạn"
+      :"chưa duy trì được MNH mục tiêu đến hết thời hạn";
+
+    const ptdsSummary=p.ptdsRequirementMet
+      ?"không có khoảng nhu cầu vượt phạm vi cộng thêm 25–150 m³/s"
+      :`có ${p.exceedHours} khoảng nhu cầu vượt phạm vi cộng thêm tối đa hoặc giới hạn kỹ thuật`;
+
+    status.textContent=
+      `${reachedSummary}; ${maintenanceSummary}; ${ptdsSummary}. `+
+      `${inflowSourceText}. Kết luận chung: ${p.feasible?"ĐẠT":"CHƯA ĐẠT"}.`;
 
     const qInMin=Math.min(...p.rows.map(r=>r.qIn));
     const qInMax=Math.max(...p.rows.map(r=>r.qIn));
@@ -19534,6 +19588,12 @@ function renderAllPctt(){
         feasible:
           p.feasible,
 
+        reachedWithinDeadline:
+          p.reachedWithinDeadline,
+
+        ptdsRequirementMet:
+          p.ptdsRequirementMet,
+
         maintainedToDeadline:
           p.maintainedToDeadline,
 
@@ -19611,6 +19671,10 @@ CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 - Tổng Q vận hành bằng Q về cộng Q cộng thêm.
 - Không được mô tả 150 m³/s là tổng Q tối đa.
 - Phạm vi tổng Q vận hành thay đổi theo Q về của từng giờ.
+- Phạm vi cộng thêm 25–150 m³/s chỉ áp dụng trong giai đoạn đang hạ MNH; sau khi đạt mục tiêu, hệ thống được phép chuyển sang mô phỏng duy trì MNH.
+- Đạt MNH mục tiêu không đồng nghĩa đạt yêu cầu PTDS.
+- Chỉ được kết luận chung là đạt khi reachedWithinDeadline, maintainedToDeadline và ptdsRequirementMet đều đúng.
+- Nếu exceedHours lớn hơn 0, phải kết luận chưa đạt đầy đủ yêu cầu PTDS, dù MNH mục tiêu đã đạt.
 - Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
 - Khi Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
 - Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
@@ -19674,8 +19738,10 @@ ${JSON.stringify(payload)}`;
         :"Không ghi nhận khoảng áp dụng vượt phạm vi lưu lượng cộng thêm.";
 
     const conclusion=p.feasible
-      ?"Theo dữ liệu đầu vào hiện tại, phương án đạt yêu cầu tính toán."
-      :"Theo dữ liệu đầu vào hiện tại, phương án chưa đáp ứng đầy đủ yêu cầu tính toán.";
+      ?"Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH, duy trì đến hết thời hạn và đáp ứng yêu cầu PTDS trong giai đoạn hạ MNH."
+      :p.reachedWithinDeadline
+        ?`Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH nhưng chưa đạt đầy đủ yêu cầu chung do ${p.exceedHours>0?`có ${p.exceedHours} khoảng nhu cầu vượt phạm vi PTDS`:"chưa bảo đảm duy trì đến hết thời hạn"}.`
+        :"Theo dữ liệu đầu vào hiện tại, phương án chưa đạt mục tiêu MNH đúng thời hạn.";
 
     return `Phương án được lập theo chế độ ${mode}, bắt đầu lúc ${locked.startText} và có thời hạn đến ${locked.deadlineText}. Mực nước hồ được hạ từ ${fmt(x.hStart,2)} m xuống ${fmt(x.hTarget,2)} m, tương ứng thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. ${inflowSentence} Lưu lượng qua máy là ${fmt(x.qMachine,1)} m³/s.
 
@@ -21095,24 +21161,45 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           </tr>
 
           <tr>
-            <td>Q về ước lượng</td>
-            <td>${fmt(x.qIn,1)} m³/s</td>
+            <td>Nguồn Q về</td>
+            <td>${x.qInMode==="forecast"?`Dự báo ${escapeHtml(x.qForecastSource)}`:"Người dùng nhập ước lượng"}</td>
             <td>Q máy</td>
             <td>${fmt(x.qMachine,1)} m³/s</td>
           </tr>
 
           <tr>
-            <td>Tổng Q max theo văn bản</td>
-            <td>${fmt(x.qMaxTotal,1)} m³/s</td>
-            <td>Q tràn tối đa còn lại</td>
-            <td>${fmt(Math.max(0,x.qMaxTotal-x.qMachine),1)} m³/s</td>
+            <td>Q về nhỏ nhất / trung bình / lớn nhất</td>
+            <td>${fmt(Math.min(...p.rows.map(row=>row.qIn)),1)} / ${fmt(avg(p.rows.map(row=>row.qIn)),1)} / ${fmt(Math.max(...p.rows.map(row=>row.qIn)),1)} m³/s</td>
+            <td>Giới hạn kỹ thuật tổng Q</td>
+            <td>${x.qMaxTotal>0?`${fmt(x.qMaxTotal,1)} m³/s`:"Không áp dụng"}</td>
+          </tr>
+
+          <tr>
+            <td>Q cộng thêm theo PTDS</td>
+            <td>${fmt(x.qExtraMin,1)}–${fmt(x.qExtraMax,1)} m³/s</td>
+            <td>Phạm vi áp dụng</td>
+            <td>Chỉ trong giai đoạn hạ MNH</td>
           </tr>
 
           <tr>
             <td>Thể tích cần hạ</td>
             <td>${fmt(p.volumeToLower,2)} triệu m³</td>
-            <td>Kết luận</td>
+            <td>Kết luận chung</td>
             <td><b>${p.feasible?"ĐẠT":"CHƯA ĐẠT"}</b></td>
+          </tr>
+
+          <tr>
+            <td>Đạt MNH đúng thời hạn</td>
+            <td><b>${p.reachedWithinDeadline?"CÓ":"KHÔNG"}</b></td>
+            <td>Đáp ứng yêu cầu PTDS</td>
+            <td><b>${p.ptdsRequirementMet?"CÓ":"KHÔNG"}</b></td>
+          </tr>
+
+          <tr>
+            <td>Duy trì MNH đến hết thời hạn</td>
+            <td><b>${p.maintainedToDeadline?"CÓ":"KHÔNG"}</b></td>
+            <td>Số khoảng nhu cầu vượt PTDS/kỹ thuật</td>
+            <td><b>${p.exceedHours}</b></td>
           </tr>
         </table>
       </div>
@@ -21140,13 +21227,15 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                   "Ngày",
                   "Giờ",
                   "MNH đầu",
-                  "Hạ cm",
+                  "Hạ thực tế cm",
                   "MNH cuối",
                   "Q về",
                   "Q máy",
                   "Q tràn",
-                  "Tổng Q",
-                  "Q max",
+                  "Q vận hành",
+                  "Q cộng thêm",
+                  "Giới hạn dưới",
+                  "Giới hạn trên",
                   "Trạng thái"
                 ]
                 .map(header=>`<th>${header}</th>`)
@@ -21163,13 +21252,15 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                   <td>${row.date}</td>
                   <td>${row.period}</td>
                   <td>${fmt(row.hStart,2)}</td>
-                  <td>${row.desiredDropCm==null?"—":fmt(row.desiredDropCm,1)}</td>
+                  <td>${fmt(row.actualDropCm,1)}</td>
                   <td>${fmt(row.hEnd,2)}</td>
                   <td>${fmt(row.qIn,1)}</td>
                   <td>${fmt(row.qMachine,1)}</td>
                   <td>${fmt(row.qSpillApplied,1)}</td>
                   <td>${fmt(row.qTotal,1)}</td>
-                  <td>${fmt(row.qMax,1)}</td>
+                  <td>${fmt(row.qExtraApplied,1)}</td>
+                  <td>${fmt(row.qOperatingMin,1)}</td>
+                  <td>${fmt(row.qOperatingMax,1)}</td>
                   <td>${escapeHtml(row.status)}</td>
                 </tr>
               `).join("")
@@ -21185,8 +21276,10 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           <b>Kết luận:</b>
           ${
             p.feasible
-              ? "Phương án dự kiến đạt MNH mục tiêu trong thời hạn đã chọn."
-              : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
+              ? "Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn và đáp ứng yêu cầu PTDS trong giai đoạn hạ MNH."
+              : p.reachedWithinDeadline
+                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đạt đầy đủ yêu cầu chung${p.exceedHours>0?` do có ${p.exceedHours} khoảng nhu cầu vượt phạm vi PTDS hoặc giới hạn kỹ thuật`:" do chưa bảo đảm duy trì đến hết thời hạn"}.`
+                : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
           }
         </div>
 
@@ -21538,7 +21631,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   function reset(){
     setDefaultTimes();
     el("spillLevelStart").value="372.00";el("spillLevelTarget").value="370.00";el("spillQIn").value="100";
-    el("spillQMachine").value="78";el("spillQMin").value="0";el("spillQExtraMin").value="25";el("spillQExtraMax").value="150";el("spillQMaxTotal").value="0";el("spillFirstHourCm").value="2";
+    el("spillQMachine").value="78";el("spillQMin").value="0";el("spillQExtraMin").value=String(PTDS_EXTRA_MIN);el("spillQExtraMax").value=String(PTDS_EXTRA_MAX);el("spillQMaxTotal").value="0";el("spillFirstHourCm").value="2";
     if(el("spillUseForecastInflow"))el("spillUseForecastInflow").checked=false;
     if(el("spillForecastSource"))el("spillForecastSource").value="auto";
     state.spillInflow={mode:"manual",manualValue:100,requestedSource:"auto",selectedSource:"",updatedAt:"",rows:[],coverage:null,statistics:null,loadedFrom:"",loadedTo:""};
