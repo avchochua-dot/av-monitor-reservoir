@@ -10452,12 +10452,12 @@ body.slideshow-frame-mode section{
                   </div>
                   <div class="spill-form-grid">
                     <div class="spill-field">
-                      <label>Lưu lượng cộng thêm tối thiểu theo PTDS <span class="spill-required">*</span></label>
-                      <div class="spill-input-wrap"><input id="spillQExtraMin" class="spill-input" type="number" min="0" step="0.1" value="25" readonly aria-readonly="true"><span class="spill-unit">m³/s</span></div>
+                      <label>Lưu lượng cộng thêm tối thiểu theo văn bản <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQExtraMin" class="spill-input" type="number" min="0" step="0.1" value="" placeholder="Nhập theo văn bản" required><span class="spill-unit">m³/s</span></div>
                     </div>
                     <div class="spill-field">
-                      <label>Lưu lượng cộng thêm tối đa theo PTDS <span class="spill-required">*</span></label>
-                      <div class="spill-input-wrap"><input id="spillQExtraMax" class="spill-input" type="number" min="0" step="0.1" value="150" readonly aria-readonly="true"><span class="spill-unit">m³/s</span></div>
+                      <label>Lưu lượng cộng thêm tối đa theo văn bản <span class="spill-required">*</span></label>
+                      <div class="spill-input-wrap"><input id="spillQExtraMax" class="spill-input" type="number" min="0" step="0.1" value="" placeholder="Nhập theo văn bản" required><span class="spill-unit">m³/s</span></div>
                     </div>
                     <div class="spill-field">
                       <label>Giới hạn kỹ thuật tổng Q (0 = không áp dụng)</label>
@@ -10473,7 +10473,7 @@ body.slideshow-frame-mode section{
                     </div>
                   </div>
                   <div class="spill-ptds-formula">
-                    Điều kiện mặc định áp dụng trong giai đoạn hạ mực nước: Q vận hành = Q về + ΔQ, với 25 ≤ ΔQ ≤ 150 m³/s. Sau khi đạt MNH mục tiêu, hệ thống chuyển sang mô phỏng duy trì mực nước.
+                    Nhập giới hạn ΔQ tối thiểu và tối đa đúng theo văn bản điều hành của từng phương án. Trong giai đoạn hạ mực nước: Q vận hành = Q về + ΔQ. Sau khi đạt MNH mục tiêu, hệ thống chuyển sang mô phỏng duy trì mực nước.
                   </div>
                 </section>
 
@@ -18282,8 +18282,6 @@ function renderAllPctt(){
 
   const RESERVOIR_ID = "5c78601c-017e-4f85-b423-245a00abe795";
   const LEVEL_TOLERANCE_M = 0.001; // 0,1 cm
-  const PTDS_EXTRA_MIN = 25;
-  const PTDS_EXTRA_MAX = 150;
   const PTDS_EXTRA_POLICY = "LOWERING_ONLY";
   const state = {
     curve:[],
@@ -18604,8 +18602,8 @@ function renderAllPctt(){
     const h1=num("spillLevelTarget",370);
     const qIn=num("spillQIn");
     const qM=num("spillQMachine",78);
-    const qExtraMin=PTDS_EXTRA_MIN;
-    const qExtraMax=PTDS_EXTRA_MAX;
+    const qExtraMin=num("spillQExtraMin",NaN);
+    const qExtraMax=num("spillQExtraMax",NaN);
     const qTechnicalMax=num("spillQMaxTotal",0);
     const useForecast=Boolean(el("spillUseForecastInflow")?.checked);
     const start=el("spillStartTime")?.value?new Date(el("spillStartTime").value):null;
@@ -18616,16 +18614,34 @@ function renderAllPctt(){
         ?state.spillInflow.statistics.average
         :qIn;
 
-    const operatingMin=displayQIn+qExtraMin;
-    const ptdsMax=displayQIn+qExtraMax;
+    const hasValidExtraRange=
+      Number.isFinite(qExtraMin)&&
+      Number.isFinite(qExtraMax)&&
+      qExtraMin>=0&&
+      qExtraMax>=qExtraMin;
+
+    const operatingMin=
+      hasValidExtraRange
+        ?displayQIn+qExtraMin
+        :NaN;
+
+    const ptdsMax=
+      hasValidExtraRange
+        ?displayQIn+qExtraMax
+        :NaN;
+
     const operatingMax=
-      qTechnicalMax>0
-        ?Math.min(ptdsMax,qTechnicalMax)
-        :ptdsMax;
+      Number.isFinite(ptdsMax)
+        ?qTechnicalMax>0
+          ?Math.min(ptdsMax,qTechnicalMax)
+          :ptdsMax
+        :NaN;
 
     if(el("spillQSpillAvailable")){
       el("spillQSpillAvailable").value=
-        `${fmt(operatingMin,1)} – ${fmt(operatingMax,1)}`;
+        hasValidExtraRange&&Number.isFinite(displayQIn)
+          ?`${fmt(operatingMin,1)} – ${fmt(operatingMax,1)}`
+          :"Chưa xác định";
     }
 
     if(el("spillLevelDelta")){
@@ -18650,8 +18666,18 @@ function renderAllPctt(){
       {t:end&&Number.isFinite(end.getTime())?`Hạn ${timeVN(end)} ${dateVN(end)}`:"Chưa chọn hạn",c:""},
       {t:inflowText,c:useForecast?"strong":""},
       {t:`Q máy ${fmt(qM,1)} m³/s`,c:""},
-      {t:`Q cộng thêm ${fmt(qExtraMin,1)}–${fmt(qExtraMax,1)} m³/s`,c:"warn"},
-      {t:`Q vận hành tham chiếu ${fmt(operatingMin,1)}–${fmt(operatingMax,1)} m³/s`,c:""}
+      {
+        t:hasValidExtraRange
+          ?`Q cộng thêm ${fmt(qExtraMin,1)}–${fmt(qExtraMax,1)} m³/s`
+          :"Chưa nhập phạm vi Q cộng thêm theo văn bản",
+        c:"warn"
+      },
+      {
+        t:hasValidExtraRange&&Number.isFinite(displayQIn)
+          ?`Q vận hành tham chiếu ${fmt(operatingMin,1)}–${fmt(operatingMax,1)} m³/s`
+          :"Phạm vi Q vận hành chưa xác định",
+        c:""
+      }
     ];
 
     preview.innerHTML=parts.map(p=>`<span class="spill-preview-chip ${p.c}">${p.t}</span>`).join("");
@@ -18687,8 +18713,8 @@ function renderAllPctt(){
       qForecastCoverage:state.spillInflow.coverage,
       qMachine:num("spillQMachine",78),
       qMin:num("spillQMin"),
-      qExtraMin:PTDS_EXTRA_MIN,
-      qExtraMax:PTDS_EXTRA_MAX,
+      qExtraMin:num("spillQExtraMin",NaN),
+      qExtraMax:num("spillQExtraMax",NaN),
       qMaxTotal:num("spillQMaxTotal",0),
       extraPolicy:PTDS_EXTRA_POLICY,
       firstCm:num("spillFirstHourCm",2),
@@ -18712,8 +18738,15 @@ function renderAllPctt(){
     if(!Number.isFinite(x.start.getTime())||!Number.isFinite(x.end.getTime()))errors.push("Thời gian bắt đầu/kết thúc không hợp lệ.");
     if(x.end<=x.start)errors.push("Thời điểm hoàn thành phải sau thời gian bắt đầu.");
     if(x.hStart<=x.hTarget)errors.push("MNH hiện tại phải cao hơn MNH mục tiêu.");
-    if(x.qExtraMin<0||x.qExtraMax<0)errors.push("Lưu lượng cộng thêm không được âm.");
-    if(x.qExtraMax<x.qExtraMin)errors.push("Lưu lượng cộng thêm tối đa phải lớn hơn hoặc bằng mức tối thiểu.");
+    if(!Number.isFinite(x.qExtraMin))errors.push("Phải nhập lưu lượng cộng thêm tối thiểu theo văn bản điều hành.");
+    if(!Number.isFinite(x.qExtraMax))errors.push("Phải nhập lưu lượng cộng thêm tối đa theo văn bản điều hành.");
+    if(Number.isFinite(x.qExtraMin)&&x.qExtraMin<0)errors.push("Lưu lượng cộng thêm tối thiểu không được âm.");
+    if(Number.isFinite(x.qExtraMax)&&x.qExtraMax<0)errors.push("Lưu lượng cộng thêm tối đa không được âm.");
+    if(
+      Number.isFinite(x.qExtraMin)&&
+      Number.isFinite(x.qExtraMax)&&
+      x.qExtraMax<x.qExtraMin
+    )errors.push("Lưu lượng cộng thêm tối đa phải lớn hơn hoặc bằng mức tối thiểu.");
     if(x.qMaxTotal>0&&x.qMaxTotal<x.qMachine)errors.push("Giới hạn kỹ thuật tổng Q đang nhỏ hơn lưu lượng qua máy.");
     [x.qIn,x.qMachine,x.qMin,x.firstCm,x.rampUp].forEach(v=>{if(v<0)errors.push("Các thông số lưu lượng và mức hạ không được âm.");});
 
@@ -18760,31 +18793,69 @@ function renderAllPctt(){
   }
 
   function solveAuto(x,ints){
-    const qValues=ints.map(it=>getQInAtTime(x,it.start).value);
-    const qInAverage=qValues.length?avg(qValues):x.qIn;
     const first=ints[0];
-    const firstTarget=Math.max(x.hTarget,x.hStart-x.firstCm/100);
-    const firstTotal=exactRequiredTotalQ(x.hStart,firstTarget,qValues[0]??qInAverage,first.hours);
-    const firstSpill=Math.max(0,firstTotal-x.qMachine);
-    const vAfterFirst=interpolateVolume(firstTarget);
-    const vTarget=interpolateVolume(x.hTarget);
-    const remainingM3=Math.max(0,(vAfterFirst-vTarget)*1e6);
-    let dayH=0,nightH=0;
+    const firstTarget=Math.max(
+      x.hTarget,
+      x.hStart-x.firstCm/100
+    );
+
+    const firstVolumeDropM3=Math.max(
+      0,
+      (
+        interpolateVolume(x.hStart)-
+        interpolateVolume(firstTarget)
+      )*1e6
+    );
+
+    const firstExtra=
+      first.hours>0
+        ?firstVolumeDropM3/(first.hours*3600)
+        :0;
+
+    const remainingM3=Math.max(
+      0,
+      (
+        interpolateVolume(firstTarget)-
+        interpolateVolume(x.hTarget)
+      )*1e6
+    );
+
+    let dayH=0;
+    let nightH=0;
 
     ints.slice(1).forEach(it=>{
-      const split=splitDayNightHours(it.start,it.end,x.dayStart,x.dayEnd);
+      const split=splitDayNightHours(
+        it.start,
+        it.end,
+        x.dayStart,
+        x.dayEnd
+      );
+
       dayH+=split.dayHours;
       nightH+=split.nightHours;
     });
 
-    const denom=dayH+x.nightRatio*nightH;
-    let qDay=0;
-    if(denom>0){
-      qDay=(remainingM3/3600+(qInAverage-x.qMachine)*(dayH+nightH))/denom;
-      qDay=Math.max(0,qDay);
-    }
+    /*
+     * ΔQ chính là lưu lượng rút khỏi dung tích hồ.
+     * Vì Q vận hành = Q về + ΔQ nên ΔQ không phụ thuộc Q về.
+     */
+    const denominator=
+      dayH+
+      x.nightRatio*nightH;
 
-    return {firstSpill,qDay,qNight:qDay*x.nightRatio,qInAverage};
+    const qExtraDay=
+      denominator>0
+        ?remainingM3/(3600*denominator)
+        :0;
+
+    const qExtraNight=
+      qExtraDay*x.nightRatio;
+
+    return {
+      firstExtra,
+      qExtraDay,
+      qExtraNight
+    };
   }
 
   function calculate(){
@@ -18796,334 +18867,1163 @@ function renderAllPctt(){
       return;
     }
 
-    const ints=intervals(x.start,x.end);
+    const ints=intervals(
+      x.start,
+      x.end
+    );
 
     if(!ints.length){
-      renderError("Khoảng thời gian không có dữ liệu.");
+      renderError(
+        "Khoảng thời gian không có dữ liệu."
+      );
       return;
     }
 
     let auto=null;
+
     try{
-      auto=x.mode==="AUTO"?solveAuto(x,ints):null;
+      auto=
+        x.mode==="AUTO"
+          ?solveAuto(x,ints)
+          :null;
     }catch(error){
       renderError(error.message);
       return;
     }
 
-    const targetVol=interpolateVolume(x.hTarget);
+    const targetVol=
+      interpolateVolume(x.hTarget);
+
     let h=x.hStart;
     let vol=interpolateVolume(h);
     let prevTotal=x.qMachine;
+
     const rows=[];
     const warnings=[];
+
     let reached=false;
     let finishTime=null;
     let maintenancePossible=true;
     let maintenanceWarningAdded=false;
 
     function getLimits(qIn){
-      const ptdsMin=qIn+x.qExtraMin;
-      const ptdsMax=qIn+x.qExtraMax;
-      const allowedMax=x.qMaxTotal>0?Math.min(ptdsMax,x.qMaxTotal):ptdsMax;
-      return {ptdsMin,ptdsMax,allowedMax};
+      const ptdsMin=
+        qIn+x.qExtraMin;
+
+      const ptdsMax=
+        qIn+x.qExtraMax;
+
+      const technicalMax=
+        x.qMaxTotal>0
+          ?x.qMaxTotal
+          :Infinity;
+
+      return {
+        ptdsMin,
+        ptdsMax,
+        technicalMax
+      };
+    }
+
+    function getPtdsStatus(qExtraRequired){
+      if(qExtraRequired<x.qExtraMin-1e-6){
+        return {
+          code:"BELOW_PTDS",
+          text:"THẤP HƠN GIỚI HẠN PTDS"
+        };
+      }
+
+      if(qExtraRequired>x.qExtraMax+1e-6){
+        return {
+          code:"ABOVE_PTDS",
+          text:"VƯỢT GIỚI HẠN PTDS"
+        };
+      }
+
+      return {
+        code:"VALID_PTDS",
+        text:"ĐÚNG PHẠM VI PTDS"
+      };
     }
 
     function appendRow({
-      start,end,hStart,hEnd,desiredDropCm,
-      qIn,qInSource,qSpillRequested,qSpillApplied,
-      qTotalRequested,qTotal,qExtraRequested,qExtraApplied,
-      ptdsMin,ptdsMax,allowedMax,net,method,flags,status
+      start,
+      end,
+      hStart,
+      hEnd,
+      desiredDropCm,
+      qIn,
+      qInSource,
+      qSpillRequested,
+      qSpillApplied,
+      qTotalRequested,
+      qTotal,
+      qExtraRequested,
+      qExtraApplied,
+      ptdsMin,
+      ptdsMax,
+      technicalMax,
+      net,
+      method,
+      flags,
+      status,
+      ptdsCode,
+      executionCode
     }){
-      const split=splitDayNightHours(start,end,x.dayStart,x.dayEnd);
-      const hours=(end.getTime()-start.getTime())/3600000;
+      const split=
+        splitDayNightHours(
+          start,
+          end,
+          x.dayStart,
+          x.dayEnd
+        );
+
+      const hours=
+        (
+          end.getTime()-
+          start.getTime()
+        )/3600000;
 
       rows.push({
         index:rows.length+1,
         date:dateVN(start),
-        period:`${timeVN(start)}–${timeVN(end)}`,
-        start,end,hStart,hEnd,desiredDropCm,
-        actualDropCm:(hStart-hEnd)*100,
-        qIn,qInSource,qMachine:x.qMachine,
-        qSpillRequested,qSpillApplied,
-        qTotalRequested,qTotal,
-        qExtraRequested,qExtraApplied,
+        period:
+          `${timeVN(start)}–${timeVN(end)}`,
+        start,
+        end,
+        hStart,
+        hEnd,
+        desiredDropCm,
+        actualDropCm:
+          (hStart-hEnd)*100,
+        qIn,
+        qInSource,
+        qMachine:x.qMachine,
+        qSpillRequested,
+        qSpillApplied,
+        qTotalRequested,
+        qTotal,
+        qExtraRequested,
+        qExtraApplied,
         qOperatingMin:ptdsMin,
-        qOperatingMax:allowedMax,
+        qOperatingMax:ptdsMax,
         qPtdsMax:ptdsMax,
-        qMax:allowedMax,
-        margin:allowedMax-qTotal,
-        net,hours,minutes:Math.round(hours*60),
-        day:split.type==="DAY",
+        qMax:
+          Number.isFinite(technicalMax)
+            ?technicalMax
+            :ptdsMax,
+        margin:
+          ptdsMax-qTotalRequested,
+        net,
+        hours,
+        minutes:
+          Math.round(hours*60),
+        day:
+          split.type==="DAY",
         dayHours:split.dayHours,
         nightHours:split.nightHours,
         periodType:split.type,
-        method,flags,status
+        method,
+        flags,
+        status,
+        ptdsCode,
+        executionCode
       });
     }
 
-    function appendMaintenance(start,end,qInfo){
-      const hours=(end.getTime()-start.getTime())/3600000;
-      if(hours<=1e-8)return;
+    function appendMaintenance(
+      start,
+      end,
+      qInfo
+    ){
+      const hours=
+        (
+          end.getTime()-
+          start.getTime()
+        )/3600000;
+
+      if(hours<=1e-8){
+        return;
+      }
 
       const qIn=qInfo.value;
       const qInSource=qInfo.source;
       const limits=getLimits(qIn);
       const hStart=h;
-      const flags=["Phạm vi cộng thêm PTDS chỉ áp dụng trong giai đoạn hạ mực nước"];
 
-      const requestedTotal=qIn;
-      const requestedSpill=Math.max(0,requestedTotal-x.qMachine);
-      let appliedTotal=requestedTotal;
-      let appliedSpill=Math.max(0,appliedTotal-x.qMachine);
+      const flags=[
+        "Phạm vi cộng thêm theo văn bản chỉ áp dụng trong giai đoạn hạ mực nước"
+      ];
+
+      /*
+       * Muốn duy trì MNH: Q vận hành phải bằng Q về.
+       */
+      const qTotalRequested=qIn;
+      const qSpillRequested=
+        qTotalRequested-x.qMachine;
+
+      let qSpillApplied=
+        Math.max(
+          0,
+          qSpillRequested
+        );
+
+      let qTotal=
+        x.qMachine+
+        qSpillApplied;
+
+      let executionCode="OK";
       let status="DUY TRÌ MỤC TIÊU";
 
-      if(x.qMachine>qIn+1e-6){
+      if(qSpillRequested<0){
+        executionCode="MACHINE_EXCEEDS_MAINTENANCE";
         maintenancePossible=false;
         status="KHÔNG THỂ DUY TRÌ";
-        flags.push("Lưu lượng qua máy lớn hơn Q về; hồ tiếp tục giảm dù Q tràn bằng 0");
-        appliedTotal=x.qMachine;
-        appliedSpill=0;
+
+        flags.push(
+          "Lưu lượng qua máy lớn hơn Q về; dù Q tràn bằng 0, mực nước vẫn tiếp tục giảm"
+        );
+
+        qSpillApplied=0;
+        qTotal=x.qMachine;
       }
 
-      if(x.qMaxTotal>0&&appliedTotal>x.qMaxTotal+1e-6){
+      if(
+        x.qMaxTotal>0&&
+        qTotal>x.qMaxTotal+1e-6
+      ){
+        executionCode="TECHNICAL_MAX";
         maintenancePossible=false;
         status="KHÔNG THỂ DUY TRÌ";
-        flags.push("Q về lớn hơn giới hạn kỹ thuật tổng Q");
-        appliedTotal=x.qMaxTotal;
-        appliedSpill=Math.max(0,appliedTotal-x.qMachine);
+
+        flags.push(
+          "Tổng Q duy trì vượt giới hạn kỹ thuật"
+        );
+
+        qTotal=x.qMaxTotal;
+        qSpillApplied=
+          Math.max(
+            0,
+            qTotal-x.qMachine
+          );
       }
 
-      const net=appliedTotal-qIn;
-      const newVol=vol-(net*hours*3600)/1e6;
-      const hEnd=Math.abs(net)<=1e-8?x.hTarget:interpolateLevel(newVol);
+      const net=
+        qTotal-qIn;
 
-      if(Math.abs(hEnd-x.hTarget)>LEVEL_TOLERANCE_M){
+      const newVol=
+        vol-
+        (
+          net*
+          hours*
+          3600
+        )/1e6;
+
+      const hEnd=
+        Math.abs(net)<=1e-8
+          ?x.hTarget
+          :interpolateLevel(newVol);
+
+      if(
+        Math.abs(
+          hEnd-x.hTarget
+        )>
+        LEVEL_TOLERANCE_M
+      ){
         maintenancePossible=false;
         status="KHÔNG THỂ DUY TRÌ";
       }
 
       appendRow({
-        start,end,hStart,hEnd,desiredDropCm:0,
-        qIn,qInSource,
-        qSpillRequested:requestedSpill,
-        qSpillApplied:appliedSpill,
-        qTotalRequested:requestedTotal,
-        qTotal:appliedTotal,
-        qExtraRequested:requestedTotal-qIn,
-        qExtraApplied:appliedTotal-qIn,
+        start,
+        end,
+        hStart,
+        hEnd,
+        desiredDropCm:0,
+        qIn,
+        qInSource,
+        qSpillRequested,
+        qSpillApplied,
+        qTotalRequested,
+        qTotal,
+        qExtraRequested:0,
+        qExtraApplied:
+          qTotal-qIn,
         ptdsMin:limits.ptdsMin,
         ptdsMax:limits.ptdsMax,
-        allowedMax:limits.allowedMax,
-        net,method:"Duy trì MNH mục tiêu",flags,status
+        technicalMax:
+          limits.technicalMax,
+        net,
+        method:
+          "Duy trì MNH mục tiêu",
+        flags,
+        status,
+        ptdsCode:
+          "NOT_APPLICABLE",
+        executionCode
       });
 
       h=hEnd;
       vol=newVol;
-      prevTotal=appliedTotal;
+      prevTotal=qTotal;
 
-      if(!maintenancePossible&&!maintenanceWarningAdded){
-        warnings.push("Sau khi đạt mục tiêu, điều kiện Q về và lưu lượng qua máy hiện tại chưa cho phép duy trì chính xác MNH mục tiêu đến hết thời hạn.");
+      if(
+        !maintenancePossible&&
+        !maintenanceWarningAdded
+      ){
+        warnings.push(
+          "Sau khi đạt mục tiêu, điều kiện Q về và lưu lượng qua máy chưa cho phép duy trì chính xác MNH mục tiêu đến hết thời hạn."
+        );
+
         maintenanceWarningAdded=true;
       }
     }
 
     try{
-      for(let i=0;i<ints.length;i++){
+      for(
+        let i=0;
+        i<ints.length;
+        i++
+      ){
         const it=ints[i];
-        const qInfo=getQInAtTime(x,it.start);
+
+        const qInfo=
+          getQInAtTime(
+            x,
+            it.start
+          );
+
         const qIn=qInfo.value;
         const limits=getLimits(qIn);
 
         if(reached){
-          appendMaintenance(it.start,it.end,qInfo);
+          appendMaintenance(
+            it.start,
+            it.end,
+            qInfo
+          );
           continue;
         }
 
-        const split=splitDayNightHours(it.start,it.end,x.dayStart,x.dayEnd);
-        const remainingCm=Math.max(0,(h-x.hTarget)*100);
+        const split=
+          splitDayNightHours(
+            it.start,
+            it.end,
+            x.dayStart,
+            x.dayEnd
+          );
+
+        const remainingCm=
+          Math.max(
+            0,
+            (
+              h-x.hTarget
+            )*100
+          );
+
         let desiredDropCm=0;
-        let requestedSpill=0;
+        let qExtraRequired=0;
+        let qSpillRequested=0;
+        let qTotalRequested=0;
         let method="";
 
-        if(i===0&&x.firstCm>0){
-          desiredDropCm=Math.min(x.firstCm,remainingCm);
-          const desiredH=Math.max(x.hTarget,h-desiredDropCm/100);
-          requestedSpill=Math.max(0,exactRequiredTotalQ(h,desiredH,qIn,it.hours)-x.qMachine);
+        /*
+         * LEVEL và AUTO:
+         * ΔQ được tính từ lượng dung tích cần hạ.
+         * Q về chỉ được cộng vào sau để xác định Q vận hành.
+         */
+        if(
+          i===0&&
+          x.firstCm>0
+        ){
+          desiredDropCm=
+            Math.min(
+              x.firstCm,
+              remainingCm
+            );
+
+          const desiredH=
+            Math.max(
+              x.hTarget,
+              h-
+              desiredDropCm/100
+            );
+
+          const volumeDropM3=
+            Math.max(
+              0,
+              (
+                interpolateVolume(h)-
+                interpolateVolume(desiredH)
+              )*1e6
+            );
+
+          qExtraRequired=
+            volumeDropM3/
+            (
+              it.hours*
+              3600
+            );
+
           method="Khởi động êm";
-        }else if(x.mode==="LEVEL"){
-          const weightedDrop=x.cmDay*split.dayHours+x.cmNight*split.nightHours;
-          desiredDropCm=Math.min(weightedDrop,remainingCm);
-          const desiredH=Math.max(x.hTarget,h-desiredDropCm/100);
-          requestedSpill=Math.max(0,exactRequiredTotalQ(h,desiredH,qIn,it.hours)-x.qMachine);
-          method=split.type==="MIXED"?"Hạ MNH chuyển tiếp ngày/đêm":split.type==="DAY"?"Hạ MNH ban ngày":"Hạ MNH ban đêm";
-        }else if(x.mode==="FLOW"){
-          requestedSpill=split.totalHours>0?(x.qDay*split.dayHours+x.qNight*split.nightHours)/split.totalHours:0;
-          method=split.type==="MIXED"?"Q tràn chuyển tiếp ngày/đêm":split.type==="DAY"?"Q tràn ban ngày":"Q tràn ban đêm";
+        }else if(
+          x.mode==="LEVEL"
+        ){
+          const weightedDrop=
+            x.cmDay*
+            split.dayHours+
+            x.cmNight*
+            split.nightHours;
+
+          desiredDropCm=
+            Math.min(
+              weightedDrop,
+              remainingCm
+            );
+
+          const desiredH=
+            Math.max(
+              x.hTarget,
+              h-
+              desiredDropCm/100
+            );
+
+          const volumeDropM3=
+            Math.max(
+              0,
+              (
+                interpolateVolume(h)-
+                interpolateVolume(desiredH)
+              )*1e6
+            );
+
+          qExtraRequired=
+            volumeDropM3/
+            (
+              it.hours*
+              3600
+            );
+
+          method=
+            split.type==="MIXED"
+              ?"Hạ MNH chuyển tiếp ngày/đêm"
+              :split.type==="DAY"
+                ?"Hạ MNH ban ngày"
+                :"Hạ MNH ban đêm";
+        }else if(
+          x.mode==="AUTO"
+        ){
+          qExtraRequired=
+            i===0
+              ?auto.firstExtra
+              :split.totalHours>0
+                ?(
+                    auto.qExtraDay*
+                    split.dayHours+
+                    auto.qExtraNight*
+                    split.nightHours
+                  )/
+                  split.totalHours
+                :0;
+
+          const volumeDropM3=
+            qExtraRequired*
+            it.hours*
+            3600;
+
+          const desiredVolume=
+            Math.max(
+              targetVol,
+              vol-
+              volumeDropM3/1e6
+            );
+
+          const desiredH=
+            interpolateLevel(
+              desiredVolume
+            );
+
+          desiredDropCm=
+            Math.max(
+              0,
+              (
+                h-desiredH
+              )*100
+            );
+
+          method=
+            i===0
+              ?"Khởi động êm"
+              :split.type==="MIXED"
+                ?"Tự tính mức hạ chuyển tiếp"
+                :split.type==="DAY"
+                  ?"Tự tính mức hạ ban ngày"
+                  :"Tự tính mức hạ ban đêm";
         }else{
-          requestedSpill=i===0?auto.firstSpill:split.totalHours>0?(auto.qDay*split.dayHours+auto.qNight*split.nightHours)/split.totalHours:0;
-          method=i===0?"Khởi động êm":split.type==="MIXED"?"Tự tính chuyển tiếp ngày/đêm":split.type==="DAY"?"Tự tính ban ngày":"Tự tính ban đêm";
+          /*
+           * FLOW:
+           * Người dùng nhập trực tiếp Q tràn.
+           * Vì vậy ΔQ được suy ra từ tổng Q đề xuất trừ Q về.
+           */
+          qSpillRequested=
+            split.totalHours>0
+              ?(
+                  x.qDay*
+                  split.dayHours+
+                  x.qNight*
+                  split.nightHours
+                )/
+                split.totalHours
+              :0;
+
+          qTotalRequested=
+            x.qMachine+
+            qSpillRequested;
+
+          qExtraRequired=
+            qTotalRequested-
+            qIn;
+
+          method=
+            split.type==="MIXED"
+              ?"Q tràn chuyển tiếp ngày/đêm"
+              :split.type==="DAY"
+                ?"Q tràn ban ngày"
+                :"Q tràn ban đêm";
         }
 
-        const requestedTotal=x.qMachine+requestedSpill;
-        const requestedExtra=requestedTotal-qIn;
+        if(x.mode!=="FLOW"){
+          qTotalRequested=
+            qIn+
+            qExtraRequired;
+
+          qSpillRequested=
+            qTotalRequested-
+            x.qMachine;
+        }
+
+        const ptds=
+          getPtdsStatus(
+            qExtraRequired
+          );
+
         const flags=[];
 
-        if(requestedExtra>x.qExtraMax+1e-6){
-          flags.push(`Nhu cầu cộng thêm vượt mức tối đa ${fmt(requestedExtra-x.qExtraMax,1)} m³/s`);
-        }
-        if(requestedExtra<x.qExtraMin-1e-6){
-          flags.push(`Nhu cầu cộng thêm thấp hơn mức tối thiểu ${fmt(x.qExtraMin-requestedExtra,1)} m³/s`);
-        }
-        if(x.qMaxTotal>0&&requestedTotal>x.qMaxTotal+1e-6){
-          flags.push(`Nhu cầu vượt giới hạn kỹ thuật tổng Q ${fmt(requestedTotal-x.qMaxTotal,1)} m³/s`);
+        if(
+          ptds.code==="BELOW_PTDS"
+        ){
+          flags.push(
+            `Q cộng thêm tính từ mức hạ MNH thấp hơn giới hạn dưới ${fmt(x.qExtraMin,1)} m³/s`
+          );
         }
 
-        let appliedTotal=Math.min(requestedTotal,limits.allowedMax);
+        if(
+          ptds.code==="ABOVE_PTDS"
+        ){
+          flags.push(
+            `Q cộng thêm tính từ mức hạ MNH vượt giới hạn trên ${fmt(x.qExtraMax,1)} m³/s`
+          );
+        }
 
+        let executionCode="OK";
+        let qSpillApplied=
+          qSpillRequested;
+
+        /*
+         * Ràng buộc vật lý: không có Q tràn âm.
+         * Đây là cảnh báo khả năng thực hiện, không phải lỗi PTDS.
+         */
+        if(qSpillApplied<0){
+          executionCode=
+            "MACHINE_EXCEEDS_REQUIRED_TOTAL";
+
+          flags.push(
+            "Q máy lớn hơn tổng Q vận hành yêu cầu; không thể thực hiện chính xác mức hạ đã chọn khi giữ nguyên Q máy"
+          );
+
+          qSpillApplied=0;
+        }
+
+        /*
+         * Q tràn tối thiểu khi mở là ràng buộc thiết bị,
+         * tách biệt hoàn toàn với giới hạn PTDS.
+         */
+        if(
+          qSpillApplied>0&&
+          qSpillApplied<x.qMin-1e-6
+        ){
+          executionCode=
+            "SPILL_BELOW_OPEN_MIN";
+
+          flags.push(
+            "Q tràn yêu cầu thấp hơn Q tràn tối thiểu khi mở"
+          );
+
+          qSpillApplied=x.qMin;
+        }
+
+        let qTotal=
+          x.qMachine+
+          qSpillApplied;
+
+        /*
+         * Giới hạn kỹ thuật tổng Q là ràng buộc thực hiện,
+         * không dùng để tính lại trạng thái PTDS.
+         */
+        if(
+          x.qMaxTotal>0&&
+          qTotalRequested>
+            x.qMaxTotal+1e-6
+        ){
+          executionCode=
+            "TECHNICAL_MAX";
+
+          flags.push(
+            `Tổng Q yêu cầu vượt giới hạn kỹ thuật ${fmt(qTotalRequested-x.qMaxTotal,1)} m³/s`
+          );
+
+          qTotal=
+            x.qMaxTotal;
+
+          qSpillApplied=
+            Math.max(
+              0,
+              qTotal-
+              x.qMachine
+            );
+        }
+
+        /*
+         * Khống chế tốc độ tăng Q chỉ tác động đến khả năng thực hiện.
+         */
         if(x.rampUp>0){
-          const rampLimited=prevTotal+x.rampUp;
-          if(appliedTotal>rampLimited+1e-6){
-            appliedTotal=rampLimited;
-            flags.push("Đã khống chế tốc độ tăng Q");
+          const rampLimited=
+            prevTotal+
+            x.rampUp*
+            it.hours;
+
+          if(
+            qTotal>
+            rampLimited+1e-6
+          ){
+            if(
+              executionCode==="OK"
+            ){
+              executionCode=
+                "RAMP_LIMIT";
+            }
+
+            flags.push(
+              "Tổng Q yêu cầu bị giới hạn bởi tốc độ tăng Q tối đa"
+            );
+
+            qTotal=rampLimited;
+            qSpillApplied=
+              Math.max(
+                0,
+                qTotal-
+                x.qMachine
+              );
           }
         }
 
-        if(appliedTotal<limits.ptdsMin-1e-6){
-          appliedTotal=limits.ptdsMin;
-          flags.push("Đã nâng tổng Q đến mức cộng thêm tối thiểu theo PTDS");
-        }
+        const qExtraApplied=
+          qTotal-qIn;
 
-        if(appliedTotal>limits.allowedMax){
-          appliedTotal=limits.allowedMax;
-        }
+        const net=
+          qExtraApplied;
 
-        let appliedSpill=Math.max(0,appliedTotal-x.qMachine);
+        let newVol=
+          vol-
+          (
+            net*
+            it.hours*
+            3600
+          )/1e6;
 
-        if(appliedSpill>0&&appliedSpill<x.qMin-1e-6){
-          appliedSpill=x.qMin;
-          appliedTotal=x.qMachine+appliedSpill;
-          if(appliedTotal>limits.allowedMax){
-            appliedTotal=limits.allowedMax;
-            appliedSpill=Math.max(0,appliedTotal-x.qMachine);
-          }
-          flags.push("Q tràn yêu cầu thấp hơn Q tràn tối thiểu khi mở");
-        }
+        const hEndRaw=
+          interpolateLevel(
+            newVol
+          );
 
-        const appliedExtra=appliedTotal-qIn;
-        const net=appliedExtra;
-        let newVol=vol-(net*it.hours*3600)/1e6;
-        const hEndRaw=interpolateLevel(newVol);
-
-        const nearThreshold=x.qExtraMin+0.9*(x.qExtraMax-x.qExtraMin);
         let status=
-          appliedExtra>x.qExtraMax+1e-6||appliedExtra<x.qExtraMin-1e-6
-            ?"CẢNH BÁO PHẠM VI"
-            :appliedExtra>=nearThreshold
-              ?"CẬN MỨC CỘNG THÊM TỐI ĐA"
-              :"ĐÚNG PHẠM VI";
+          ptds.text;
 
-        if(net>0&&(newVol<=targetVol||hEndRaw<=x.hTarget+LEVEL_TOLERANCE_M)){
-          const needM3=Math.max(0,(vol-targetVol)*1e6);
-          const activeHours=needM3/(net*3600);
-          const reachEnd=new Date(it.start.getTime()+activeHours*3600000);
+        if(
+          executionCode!=="OK"
+        ){
+          status=
+            "CẢNH BÁO KHẢ NĂNG THỰC HIỆN";
+        }
+
+        if(
+          net>0&&
+          (
+            newVol<=targetVol||
+            hEndRaw<=
+              x.hTarget+
+              LEVEL_TOLERANCE_M
+          )
+        ){
+          const needM3=
+            Math.max(
+              0,
+              (
+                vol-targetVol
+              )*1e6
+            );
+
+          const activeHours=
+            needM3/
+            (
+              net*
+              3600
+            );
+
+          const reachEnd=
+            new Date(
+              it.start.getTime()+
+              activeHours*
+              3600000
+            );
+
           finishTime=reachEnd;
           reached=true;
-          flags.push("Đạt MNH mục tiêu");
+
+          flags.push(
+            "Đạt MNH mục tiêu"
+          );
 
           if(activeHours>1e-8){
             appendRow({
-              start:it.start,end:reachEnd,hStart:h,hEnd:x.hTarget,desiredDropCm,
-              qIn,qInSource:qInfo.source,
-              qSpillRequested:requestedSpill,qSpillApplied:appliedSpill,
-              qTotalRequested:requestedTotal,qTotal:appliedTotal,
-              qExtraRequested:requestedExtra,qExtraApplied:appliedExtra,
-              ptdsMin:limits.ptdsMin,ptdsMax:limits.ptdsMax,allowedMax:limits.allowedMax,
-              net,method,flags,status:"ĐẠT MỤC TIÊU"
+              start:it.start,
+              end:reachEnd,
+              hStart:h,
+              hEnd:x.hTarget,
+              desiredDropCm,
+              qIn,
+              qInSource:qInfo.source,
+              qSpillRequested,
+              qSpillApplied,
+              qTotalRequested,
+              qTotal,
+              qExtraRequested:
+                qExtraRequired,
+              qExtraApplied,
+              ptdsMin:
+                limits.ptdsMin,
+              ptdsMax:
+                limits.ptdsMax,
+              technicalMax:
+                limits.technicalMax,
+              net,
+              method,
+              flags,
+              status:
+                "ĐẠT MỤC TIÊU",
+              ptdsCode:
+                ptds.code,
+              executionCode
             });
           }
 
           h=x.hTarget;
           vol=targetVol;
-          prevTotal=appliedTotal;
+          prevTotal=qTotal;
 
           if(reachEnd<it.end){
-            appendMaintenance(reachEnd,it.end,qInfo);
+            appendMaintenance(
+              reachEnd,
+              it.end,
+              qInfo
+            );
           }
+
           continue;
         }
 
         appendRow({
-          start:it.start,end:it.end,hStart:h,hEnd:hEndRaw,desiredDropCm,
-          qIn,qInSource:qInfo.source,
-          qSpillRequested:requestedSpill,qSpillApplied:appliedSpill,
-          qTotalRequested:requestedTotal,qTotal:appliedTotal,
-          qExtraRequested:requestedExtra,qExtraApplied:appliedExtra,
-          ptdsMin:limits.ptdsMin,ptdsMax:limits.ptdsMax,allowedMax:limits.allowedMax,
-          net,method,flags,status
+          start:it.start,
+          end:it.end,
+          hStart:h,
+          hEnd:hEndRaw,
+          desiredDropCm,
+          qIn,
+          qInSource:qInfo.source,
+          qSpillRequested,
+          qSpillApplied,
+          qTotalRequested,
+          qTotal,
+          qExtraRequested:
+            qExtraRequired,
+          qExtraApplied,
+          ptdsMin:
+            limits.ptdsMin,
+          ptdsMax:
+            limits.ptdsMax,
+          technicalMax:
+            limits.technicalMax,
+          net,
+          method,
+          flags,
+          status,
+          ptdsCode:
+            ptds.code,
+          executionCode
         });
 
         h=hEndRaw;
         vol=newVol;
-        prevTotal=appliedTotal;
+        prevTotal=qTotal;
       }
     }catch(error){
       renderError(error.message);
       return;
     }
 
-    if(!reached&&Math.abs(h-x.hTarget)<=LEVEL_TOLERANCE_M){
+    if(
+      !reached&&
+      Math.abs(
+        h-x.hTarget
+      )<=
+      LEVEL_TOLERANCE_M
+    ){
       reached=true;
-      finishTime=new Date(x.end);
+      finishTime=
+        new Date(x.end);
       h=x.hTarget;
       vol=targetVol;
-      const lastRow=rows[rows.length-1];
+
+      const lastRow=
+        rows[
+          rows.length-1
+        ];
+
       if(lastRow){
-        lastRow.hEnd=x.hTarget;
-        lastRow.actualDropCm=(lastRow.hStart-x.hTarget)*100;
-        lastRow.status="ĐẠT MỤC TIÊU";
-        lastRow.flags=[...(lastRow.flags||[]),"Đạt MNH mục tiêu trong dung sai 0,1 cm"];
+        lastRow.hEnd=
+          x.hTarget;
+
+        lastRow.actualDropCm=
+          (
+            lastRow.hStart-
+            x.hTarget
+          )*100;
+
+        lastRow.status=
+          "ĐẠT MỤC TIÊU";
+
+        lastRow.flags=[
+          ...(
+            lastRow.flags||
+            []
+          ),
+          "Đạt MNH mục tiêu trong dung sai 0,1 cm"
+        ];
       }
     }
 
-    const maintainedToDeadline=reached&&maintenancePossible&&Math.abs(h-x.hTarget)<=LEVEL_TOLERANCE_M;
+    const maintainedToDeadline=
+      reached&&
+      maintenancePossible&&
+      Math.abs(
+        h-x.hTarget
+      )<=
+      LEVEL_TOLERANCE_M;
 
-    if(!reached&&h-x.hTarget>LEVEL_TOLERANCE_M){
-      warnings.push(`Đến thời hạn, MNH dự kiến còn ${fmt(h,2)} m, cao hơn mục tiêu ${fmt((h-x.hTarget)*100,1)} cm.`);
+    if(
+      !reached&&
+      h-x.hTarget>
+        LEVEL_TOLERANCE_M
+    ){
+      warnings.push(
+        `Đến thời hạn, MNH dự kiến còn ${fmt(h,2)} m, cao hơn mục tiêu ${fmt((h-x.hTarget)*100,1)} cm.`
+      );
     }
 
-    const exceedHours=rows.filter(row=>row.qExtraRequested>x.qExtraMax+1e-6||(x.qMaxTotal>0&&row.qTotalRequested>x.qMaxTotal+1e-6)).length;
-    const belowMinHours=rows.filter(row=>row.method!=="Duy trì MNH mục tiêu"&&row.qExtraRequested<x.qExtraMin-1e-6).length;
-    const nearHours=rows.filter(row=>row.method!=="Duy trì MNH mục tiêu"&&row.qExtraApplied>=x.qExtraMin+0.9*(x.qExtraMax-x.qExtraMin)-1e-6&&row.qExtraApplied<=x.qExtraMax+1e-6).length;
+    const loweringRows=
+      rows.filter(
+        row=>
+          row.method!==
+          "Duy trì MNH mục tiêu"
+      );
 
-    if(exceedHours)warnings.push(`${exceedHours} khoảng có nhu cầu cộng thêm vượt mức tối đa 150 m³/s hoặc vượt giới hạn kỹ thuật.`);
-    if(belowMinHours)warnings.push(`${belowMinHours} khoảng có nhu cầu thấp hơn mức cộng thêm tối thiểu 25 m³/s và đã được khống chế về phạm vi PTDS.`);
+    const belowMinHours=
+      loweringRows.filter(
+        row=>
+          row.ptdsCode===
+          "BELOW_PTDS"
+      ).length;
 
-    const reachedWithinDeadline=Boolean(reached&&finishTime&&finishTime<=x.end);
-    const ptdsRequirementMet=exceedHours===0;
-    const feasible=reachedWithinDeadline&&maintainedToDeadline&&ptdsRequirementMet;
+    const aboveMaxHours=
+      loweringRows.filter(
+        row=>
+          row.ptdsCode===
+          "ABOVE_PTDS"
+      ).length;
 
-    const maxReq=Math.max(...rows.map(row=>row.qTotalRequested),0);
-    const maxApplied=Math.max(...rows.map(row=>row.qTotal),0);
-    const maxExtraApplied=Math.max(...rows.map(row=>row.qExtraApplied),0);
-    const minExtraApplied=Math.min(...rows.filter(row=>row.method!=="Duy trì MNH mục tiêu").map(row=>row.qExtraApplied),0);
+    const ptdsOutOfRangeHours=
+      belowMinHours+
+      aboveMaxHours;
 
-    const totalDayHours=rows.reduce((sum,row)=>sum+(row.dayHours||0),0);
-    const totalNightHours=rows.reduce((sum,row)=>sum+(row.nightHours||0),0);
-    const avgDay=totalDayHours>0?rows.reduce((sum,row)=>sum+row.qSpillApplied*(row.dayHours||0),0)/totalDayHours:0;
-    const avgNight=totalNightHours>0?rows.reduce((sum,row)=>sum+row.qSpillApplied*(row.nightHours||0),0)/totalNightHours:0;
-    const maintenanceRows=rows.filter(row=>row.method==="Duy trì MNH mục tiêu");
-    const maintenanceSpill=maintenanceRows.length?maintenanceRows.reduce((sum,row)=>sum+row.qSpillApplied*row.hours,0)/maintenanceRows.reduce((sum,row)=>sum+row.hours,0):0;
+    const executionIssueHours=
+      loweringRows.filter(
+        row=>
+          row.executionCode!==
+          "OK"
+      ).length;
+
+    const technicalExceedHours=
+      loweringRows.filter(
+        row=>
+          row.executionCode===
+          "TECHNICAL_MAX"
+      ).length;
+
+    /*
+     * Giữ exceedHours để tương thích các phần giao diện cũ,
+     * nhưng ý nghĩa mới là số khoảng vượt giới hạn trên PTDS
+     * hoặc vượt giới hạn kỹ thuật.
+     */
+    const exceedHours=
+      aboveMaxHours+
+      technicalExceedHours;
+
+    const nearHours=0;
+
+    if(belowMinHours){
+      warnings.push(
+        `${belowMinHours} khoảng có Q cộng thêm tính từ mức hạ MNH thấp hơn giới hạn dưới ${fmt(x.qExtraMin,1)} m³/s.`
+      );
+    }
+
+    if(aboveMaxHours){
+      warnings.push(
+        `${aboveMaxHours} khoảng có Q cộng thêm tính từ mức hạ MNH vượt giới hạn trên ${fmt(x.qExtraMax,1)} m³/s.`
+      );
+    }
+
+    if(executionIssueHours){
+      warnings.push(
+        `${executionIssueHours} khoảng có cảnh báo về khả năng thực hiện do Q máy, Q tràn tối thiểu, tốc độ tăng Q hoặc giới hạn kỹ thuật.`
+      );
+    }
+
+    const reachedWithinDeadline=
+      Boolean(
+        reached&&
+        finishTime&&
+        finishTime<=x.end
+      );
+
+    const ptdsRequirementMet=
+      ptdsOutOfRangeHours===0;
+
+    const executionRequirementMet=
+      executionIssueHours===0;
+
+    const feasible=
+      reachedWithinDeadline&&
+      maintainedToDeadline&&
+      ptdsRequirementMet&&
+      executionRequirementMet;
+
+    const maxReq=
+      Math.max(
+        ...rows.map(
+          row=>
+            row.qTotalRequested
+        ),
+        0
+      );
+
+    const maxApplied=
+      Math.max(
+        ...rows.map(
+          row=>row.qTotal
+        ),
+        0
+      );
+
+    const maxExtraApplied=
+      Math.max(
+        ...loweringRows.map(
+          row=>
+            row.qExtraApplied
+        ),
+        0
+      );
+
+    const minExtraApplied=
+      loweringRows.length
+        ?Math.min(
+            ...loweringRows.map(
+              row=>
+                row.qExtraApplied
+            )
+          )
+        :0;
+
+    const maxExtraRequired=
+      Math.max(
+        ...loweringRows.map(
+          row=>
+            row.qExtraRequested
+        ),
+        0
+      );
+
+    const minExtraRequired=
+      loweringRows.length
+        ?Math.min(
+            ...loweringRows.map(
+              row=>
+                row.qExtraRequested
+            )
+          )
+        :0;
+
+    const totalDayHours=
+      rows.reduce(
+        (
+          sum,
+          row
+        )=>
+          sum+
+          (
+            row.dayHours||
+            0
+          ),
+        0
+      );
+
+    const totalNightHours=
+      rows.reduce(
+        (
+          sum,
+          row
+        )=>
+          sum+
+          (
+            row.nightHours||
+            0
+          ),
+        0
+      );
+
+    const avgDay=
+      totalDayHours>0
+        ?rows.reduce(
+            (
+              sum,
+              row
+            )=>
+              sum+
+              row.qSpillApplied*
+              (
+                row.dayHours||
+                0
+              ),
+            0
+          )/
+          totalDayHours
+        :0;
+
+    const avgNight=
+      totalNightHours>0
+        ?rows.reduce(
+            (
+              sum,
+              row
+            )=>
+              sum+
+              row.qSpillApplied*
+              (
+                row.nightHours||
+                0
+              ),
+            0
+          )/
+          totalNightHours
+        :0;
+
+    const maintenanceRows=
+      rows.filter(
+        row=>
+          row.method===
+          "Duy trì MNH mục tiêu"
+      );
+
+    const maintenanceHours=
+      maintenanceRows.reduce(
+        (
+          sum,
+          row
+        )=>
+          sum+
+          row.hours,
+        0
+      );
+
+    const maintenanceSpill=
+      maintenanceRows.length&&
+      maintenanceHours>0
+        ?maintenanceRows.reduce(
+            (
+              sum,
+              row
+            )=>
+              sum+
+              row.qSpillApplied*
+              row.hours,
+            0
+          )/
+          maintenanceHours
+        :0;
 
     state.plan={
-      input:x,rows,feasible,reached,finishTime,finalLevel:h,warnings,
-      exceedHours,belowMinHours,nearHours,maxReq,maxApplied,maxExtraApplied,minExtraApplied,
-      avgDay,avgNight,reachedWithinDeadline,ptdsRequirementMet,
-      maintainedToDeadline,maintenancePossible,maintenanceSpill,
-      maintenanceHours:maintenanceRows.reduce((sum,row)=>sum+row.hours,0),
-      startVol:interpolateVolume(x.hStart),
-      targetVol:interpolateVolume(x.hTarget),
-      volumeToLower:interpolateVolume(x.hStart)-interpolateVolume(x.hTarget),
+      input:x,
+      rows,
+      feasible,
+      reached,
+      finishTime,
+      finalLevel:h,
+      warnings,
+      exceedHours,
+      belowMinHours,
+      aboveMaxHours,
+      ptdsOutOfRangeHours,
+      executionIssueHours,
+      executionRequirementMet,
+      nearHours,
+      maxReq,
+      maxApplied,
+      maxExtraApplied,
+      minExtraApplied,
+      maxExtraRequired,
+      minExtraRequired,
+      avgDay,
+      avgNight,
+      reachedWithinDeadline,
+      ptdsRequirementMet,
+      maintainedToDeadline,
+      maintenancePossible,
+      maintenanceSpill,
+      maintenanceHours,
+      startVol:
+        interpolateVolume(
+          x.hStart
+        ),
+      targetVol:
+        interpolateVolume(
+          x.hTarget
+        ),
+      volumeToLower:
+        interpolateVolume(
+          x.hStart
+        )-
+        interpolateVolume(
+          x.hTarget
+        ),
       auto
     };
 
@@ -19157,11 +20057,15 @@ function renderAllPctt(){
       :"chưa duy trì được MNH mục tiêu đến hết thời hạn";
 
     const ptdsSummary=p.ptdsRequirementMet
-      ?"không có khoảng nhu cầu vượt phạm vi cộng thêm 25–150 m³/s"
-      :`có ${p.exceedHours} khoảng nhu cầu vượt phạm vi cộng thêm tối đa hoặc giới hạn kỹ thuật`;
+      ?`Q cộng thêm tính từ mức hạ MNH nằm trong phạm vi ${fmt(x.qExtraMin,1)}–${fmt(x.qExtraMax,1)} m³/s`
+      :`có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm tính từ mức hạ MNH nằm ngoài phạm vi PTDS`;
+
+    const executionSummary=p.executionRequirementMet
+      ?"không có cảnh báo khả năng thực hiện"
+      :`có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`;
 
     status.textContent=
-      `${reachedSummary}; ${maintenanceSummary}; ${ptdsSummary}. `+
+      `${reachedSummary}; ${maintenanceSummary}; ${ptdsSummary}; ${executionSummary}. `+
       `${inflowSourceText}. Kết luận chung: ${p.feasible?"ĐẠT":"CHƯA ĐẠT"}.`;
 
     const qInMin=Math.min(...p.rows.map(r=>r.qIn));
@@ -19173,7 +20077,7 @@ function renderAllPctt(){
       ["Q tràn TB ngày",fmt(p.avgDay,1),"m³/s",""],
       ["Q tràn TB đêm",fmt(p.avgNight,1),"m³/s",""],
       ["Q vận hành lớn nhất",fmt(p.maxApplied,1),"m³/s",p.exceedHours?"warn":"ok"],
-      ["Q cộng thêm lớn nhất",fmt(p.maxExtraApplied,1),`/ ${fmt(x.qExtraMax,1)} m³/s`,p.maxExtraApplied>x.qExtraMax?"bad":p.maxExtraApplied>=x.qExtraMin+.9*(x.qExtraMax-x.qExtraMin)?"warn":"ok"],
+      ["Q cộng thêm yêu cầu lớn nhất",fmt(p.maxExtraRequired,1),`/ ${fmt(x.qExtraMax,1)} m³/s`,p.aboveMaxHours?"bad":"ok"],
       ["Thời điểm đạt mục tiêu",p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt","",p.finishTime?"ok":"bad"],
       ["Kết luận",p.feasible?"ĐẠT":"CHƯA ĐẠT","theo thời hạn đã nhập",p.feasible?"ok":"bad"]
     ];
@@ -19181,13 +20085,29 @@ function renderAllPctt(){
     el("spillKpis").innerHTML=kpis.map(k=>`<div class="spill-kpi ${k[3]}"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join("");
 
     el("spillTableBody").innerHTML=p.rows.map(r=>{
-      const warning=r.status.includes("CẢNH BÁO")||r.flags.some(f=>/vượt|thấp hơn/i.test(f));
-      const near=r.status.includes("CẬN");
-      const cls=r.status==="ĐẠT MỤC TIÊU"?"spill-row-target":warning?"spill-row-over":r.index===1?"spill-row-start":near?"spill-row-near":"";
-      const chip=r.status==="ĐẠT MỤC TIÊU"?"info":warning?"bad":near?"warn":"ok";
+      const warning=
+        r.ptdsCode==="BELOW_PTDS"||
+        r.ptdsCode==="ABOVE_PTDS"||
+        r.executionCode!=="OK";
+
+      const cls=
+        r.status==="ĐẠT MỤC TIÊU"
+          ?"spill-row-target"
+          :warning
+            ?"spill-row-over"
+            :r.index===1
+              ?"spill-row-start"
+              :"";
+
+      const chip=
+        r.status==="ĐẠT MỤC TIÊU"
+          ?"info"
+          :warning
+            ?"bad"
+            :"ok";
       return `<tr class="${cls}">
         <td>${r.index}</td><td>${r.date}</td><td>${r.period}</td><td>${fmt(r.hStart,2)}</td>
-        <td>${r.desiredDropCm?fmt(r.desiredDropCm,1)+" cm":"—"}</td><td>${fmt(r.hEnd,2)}</td>
+        <td>${fmt(r.actualDropCm,1)} cm</td><td>${fmt(r.hEnd,2)}</td>
         <td>${fmt(r.qIn,1)}</td><td>${escapeHtml(r.qInSource)}</td>
         <td>${fmt(r.qExtraRequested,1)}</td><td>${fmt(r.qExtraApplied,1)}</td>
         <td>${fmt(r.qMachine,1)}</td><td>${fmt(r.qSpillApplied,1)}</td><td>${fmt(r.qTotal,1)}</td>
@@ -19667,14 +20587,20 @@ CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 - Phải diễn đạt đúng lockedFacts.limitStatusText.
 - Khi qInMode là manual, Q về phải được mô tả là giá trị giả định do người dùng nhập. Khi qInMode là forecast, phải ghi rõ sử dụng chuỗi Q về dự báo theo giờ và tên nguồn mô hình.
 - Q máy phải gọi là lưu lượng qua máy.
-- Phần 25–150 m³/s là lưu lượng cộng thêm so với Q về, không phải giới hạn tổng Q.
+- input.qExtraMin và input.qExtraMax là giới hạn lưu lượng cộng thêm lấy từ văn bản điều hành của phương án hiện tại.
+- Phần lưu lượng cộng thêm là phần tăng thêm so với Q về, không phải giới hạn tổng Q cố định.
 - Tổng Q vận hành bằng Q về cộng Q cộng thêm.
-- Không được mô tả 150 m³/s là tổng Q tối đa.
+- Không được tự thay đổi hoặc thay thế input.qExtraMin và input.qExtraMax bằng giá trị mặc định khác.
 - Phạm vi tổng Q vận hành thay đổi theo Q về của từng giờ.
-- Phạm vi cộng thêm 25–150 m³/s chỉ áp dụng trong giai đoạn đang hạ MNH; sau khi đạt mục tiêu, hệ thống được phép chuyển sang mô phỏng duy trì MNH.
-- Đạt MNH mục tiêu không đồng nghĩa đạt yêu cầu PTDS.
-- Chỉ được kết luận chung là đạt khi reachedWithinDeadline, maintainedToDeadline và ptdsRequirementMet đều đúng.
-- Nếu exceedHours lớn hơn 0, phải kết luận chưa đạt đầy đủ yêu cầu PTDS, dù MNH mục tiêu đã đạt.
+- Phạm vi cộng thêm do người dùng nhập chỉ áp dụng trong giai đoạn đang hạ MNH; sau khi đạt mục tiêu, hệ thống được phép chuyển sang mô phỏng duy trì MNH.
+- Q cộng thêm để kiểm tra PTDS phải lấy từ result/keyRows.qExtraRequested, là giá trị được tính từ thể tích hạ MNH trong từng giờ.
+- Không dùng qExtraApplied để đánh giá PTDS.
+- Q về chỉ làm thay đổi Q vận hành yêu cầu và Q tràn yêu cầu; Q về không làm thay đổi Q cộng thêm cần thiết khi lịch hạ MNH giữ nguyên.
+- Không sử dụng hoặc diễn đạt trạng thái "cận giới hạn PTDS".
+- Phải tách rõ đánh giá PTDS và đánh giá khả năng thực hiện.
+- Cảnh báo Q máy lớn hơn Q vận hành yêu cầu là cảnh báo khả năng thực hiện, không phải vi phạm PTDS.
+- Đạt MNH mục tiêu không đồng nghĩa đạt yêu cầu PTDS hoặc đáp ứng khả năng thực hiện.
+- Chỉ được kết luận chung là đạt khi reachedWithinDeadline, maintainedToDeadline, ptdsRequirementMet và executionRequirementMet đều đúng.
 - Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
 - Khi Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
 - Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
@@ -21198,8 +22124,15 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           <tr>
             <td>Duy trì MNH đến hết thời hạn</td>
             <td><b>${p.maintainedToDeadline?"CÓ":"KHÔNG"}</b></td>
-            <td>Số khoảng nhu cầu vượt PTDS/kỹ thuật</td>
-            <td><b>${p.exceedHours}</b></td>
+            <td>Số khoảng ngoài phạm vi PTDS</td>
+            <td><b>${p.ptdsOutOfRangeHours}</b></td>
+          </tr>
+
+          <tr>
+            <td>Khả năng thực hiện theo Q máy/Q tràn/kỹ thuật</td>
+            <td><b>${p.executionRequirementMet?"ĐÁP ỨNG":"CẦN KIỂM TRA"}</b></td>
+            <td>Số khoảng cảnh báo thực hiện</td>
+            <td><b>${p.executionIssueHours}</b></td>
           </tr>
         </table>
       </div>
@@ -21276,9 +22209,9 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           <b>Kết luận:</b>
           ${
             p.feasible
-              ? "Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn và đáp ứng yêu cầu PTDS trong giai đoạn hạ MNH."
+              ? "Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn, đáp ứng phạm vi PTDS và không có cảnh báo về khả năng thực hiện."
               : p.reachedWithinDeadline
-                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đạt đầy đủ yêu cầu chung${p.exceedHours>0?` do có ${p.exceedHours} khoảng nhu cầu vượt phạm vi PTDS hoặc giới hạn kỹ thuật`:" do chưa bảo đảm duy trì đến hết thời hạn"}.`
+                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đạt đầy đủ yêu cầu chung${!p.maintainedToDeadline?" do chưa bảo đảm duy trì đến hết thời hạn":p.ptdsOutOfRangeHours>0?` do có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS`:` do có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`}.`
                 : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
           }
         </div>
@@ -21631,7 +22564,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   function reset(){
     setDefaultTimes();
     el("spillLevelStart").value="372.00";el("spillLevelTarget").value="370.00";el("spillQIn").value="100";
-    el("spillQMachine").value="78";el("spillQMin").value="0";el("spillQExtraMin").value=String(PTDS_EXTRA_MIN);el("spillQExtraMax").value=String(PTDS_EXTRA_MAX);el("spillQMaxTotal").value="0";el("spillFirstHourCm").value="2";
+    el("spillQMachine").value="78";el("spillQMin").value="0";el("spillQExtraMin").value="";el("spillQExtraMax").value="";el("spillQMaxTotal").value="0";el("spillFirstHourCm").value="2";
     if(el("spillUseForecastInflow"))el("spillUseForecastInflow").checked=false;
     if(el("spillForecastSource"))el("spillForecastSource").value="auto";
     state.spillInflow={mode:"manual",manualValue:100,requestedSource:"auto",selectedSource:"",updatedAt:"",rows:[],coverage:null,statistics:null,loadedFrom:"",loadedTo:""};
