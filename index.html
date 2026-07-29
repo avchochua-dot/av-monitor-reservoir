@@ -21357,6 +21357,16 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           );
         });
 
+    const reportSection=
+      findSectionByTitle(
+        "I. BÁO CÁO PHƯƠNG ÁN XẢ TRÀN"
+      );
+
+    const inputSection=
+      findSectionByTitle(
+        "II. THÔNG SỐ ĐẦU VÀO"
+      );
+
     const chartSection=
       findSectionByTitle(
         "III. BIỂU ĐỒ DIỄN BIẾN PHƯƠNG ÁN"
@@ -21373,12 +21383,14 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       );
 
     if(
+      !reportSection||
+      !inputSection||
       !chartSection||
       !tableSection||
       !conclusionSection
     ){
       throw new Error(
-        "Không xác định được các phần biểu đồ, bảng số liệu hoặc kết luận."
+        "Không xác định được đầy đủ các phần của báo cáo PDF."
       );
     }
 
@@ -21491,11 +21503,23 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     wrapper.innerHTML="";
 
     /*
-     * Trang đầu: toàn bộ nội dung trước phần biểu đồ.
+     * Trang 1:
+     * Chỉ gồm phần đầu văn bản và toàn bộ Mục I.
+     * Mục II tuyệt đối không được ghép vào trang này.
      */
+    const inputIndex=
+      children.indexOf(
+        inputSection
+      );
+
     const chartIndex=
       children.indexOf(
         chartSection
+      );
+
+    const tableIndex=
+      children.indexOf(
+        tableSection
       );
 
     const pageOne=
@@ -21504,7 +21528,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     children
       .slice(
         0,
-        chartIndex
+        inputIndex
       )
       .filter(node=>
         !node.classList.contains(
@@ -21517,17 +21541,71 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         );
       });
 
+    if(!pageFits(pageOne)){
+      throw new Error(
+        "Phần đầu văn bản và Mục I vượt quá chiều cao trang 1. Vui lòng rút gọn nội dung báo cáo."
+      );
+    }
+
     /*
-     * Trang tiếp theo bắt đầu bằng biểu đồ.
-     * Sau biểu đồ, hệ thống thử thêm bảng và tự xác định
-     * số hàng vừa với phần chiều cao còn lại.
+     * Trang 2:
+     * Bắt đầu từ Mục II, sau đó là Mục III.
+     * Bảng kết quả không được ghép vào trang 2.
+     */
+    const pageTwo=
+      createPage();
+
+    children
+      .slice(
+        inputIndex,
+        tableIndex
+      )
+      .filter(node=>
+        !node.classList.contains(
+          "pdf-page-break"
+        )
+      )
+      .forEach(node=>{
+        pageTwo.appendChild(
+          node.cloneNode(true)
+        );
+      });
+
+    if(!pageFits(pageTwo)){
+      /*
+       * Trường hợp nội dung Mục II và biểu đồ quá cao:
+       * giữ Mục II ở trang 2, chuyển biểu đồ sang trang 3.
+       */
+      pageTwo.innerHTML="";
+      pageTwo.appendChild(
+        inputSection.cloneNode(true)
+      );
+
+      if(!pageFits(pageTwo)){
+        throw new Error(
+          "Mục II. Thông số đầu vào vượt quá chiều cao một trang PDF."
+        );
+      }
+
+      const chartPage=
+        createPage();
+
+      chartPage.appendChild(
+        chartSection.cloneNode(true)
+      );
+
+      if(!pageFits(chartPage)){
+        throw new Error(
+          "Biểu đồ phương án vượt quá chiều cao một trang PDF."
+        );
+      }
+    }
+
+    /*
+     * Từ trang tiếp theo mới bắt đầu bảng kết quả.
      */
     let currentPage=
       createPage();
-
-    currentPage.appendChild(
-      chartSection.cloneNode(true)
-    );
 
     let tablePart=
       buildTableSection(
@@ -21537,28 +21615,6 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     currentPage.appendChild(
       tablePart.section
     );
-
-    /*
-     * Nếu riêng biểu đồ + tiêu đề bảng đã vượt trang,
-     * chuyển bảng sang trang kế tiếp.
-     */
-    if(!pageFits(currentPage)){
-      currentPage.removeChild(
-        tablePart.section
-      );
-
-      currentPage=
-        createPage();
-
-      tablePart=
-        buildTableSection(
-          false
-        );
-
-      currentPage.appendChild(
-        tablePart.section
-      );
-    }
 
     let hasPlacedAnyRow=false;
 
@@ -21772,8 +21828,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           grid-template-columns:190px minmax(330px,1fr) minmax(430px,1.25fr);
           align-items:start;
           column-gap:18px;
-          min-height:84px;
-          padding:2px 4px 10px;
+          min-height:78px;
+          padding:2px 4px 7px;
           font-family:"Times New Roman",serif;
           color:#111;
           break-inside:avoid;
@@ -21830,7 +21886,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         }
 
         .pdf-title{
-          margin:13px 0 11px;
+          margin:9px 0 8px;
           text-align:center;
           font-family:"Times New Roman",serif;
           color:#111;
@@ -21857,7 +21913,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           display:flex;
           justify-content:center;
           gap:22px;
-          margin:0 0 11px;
+          margin:0 0 8px;
           color:#475569;
           font-size:9px;
           break-inside:avoid;
@@ -21868,7 +21924,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           display:grid;
           grid-template-columns:1fr 1fr 1fr;
           gap:8px;
-          margin-bottom:12px;
+          margin-bottom:8px;
           break-inside:avoid;
           page-break-inside:avoid;
         }
@@ -21897,16 +21953,26 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         }
 
         .pdf-summary{
-          padding:12px 13px;
+          padding:18px 20px;
           border:1px solid #bfdbfe;
-          border-radius:8px;
+          border-radius:9px;
           background:#eff6ff;
-          font-size:11.5px;
-          line-height:1.62;
-          letter-spacing:.05px;
+          font-size:14px;
+          line-height:1.72;
+          letter-spacing:.03px;
+          text-align:justify;
           white-space:pre-wrap;
           break-inside:avoid;
           page-break-inside:avoid;
+        }
+
+        .pdf-cover-report{
+          margin-top:13px;
+        }
+
+        .pdf-cover-report .pdf-section-title{
+          padding:8px 11px;
+          font-size:12.5px;
         }
 
         .pdf-inputs{
@@ -22083,7 +22149,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         <div><b>Thời gian lập</b><br>${exportTime.toLocaleString("vi-VN")}</div>
       </div>
 
-      <div class="pdf-section">
+      <div class="pdf-section pdf-cover-report">
         <div class="pdf-section-title">I. BÁO CÁO PHƯƠNG ÁN XẢ TRÀN</div>
         <div class="pdf-summary">${escapeHtml(summary)}</div>
       </div>
