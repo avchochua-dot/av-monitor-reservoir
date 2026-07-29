@@ -10602,9 +10602,9 @@ body.slideshow-frame-mode section{
               <table class="spill-table">
                 <thead><tr>
                   <th>STT</th><th>Ngày</th><th>Khoảng giờ</th><th>MNH đầu</th><th>Mức hạ thực tế</th><th>MNH cuối</th>
-                  <th>Q về</th><th>Nguồn Q về</th><th>Q cộng thêm yêu cầu</th><th>Q cộng thêm áp dụng</th>
-                  <th>Q máy</th><th>Q tràn áp dụng</th><th>Q vận hành</th><th>Phạm vi PTDS</th>
-                  <th>Biên trên</th><th>Q ròng</th><th>Thời lượng</th><th>Trạng thái</th>
+                  <th>Q về</th><th>Nguồn Q về</th><th>Q cộng thêm yêu cầu từ mức hạ MNH</th><th>Q cộng thêm áp dụng</th>
+                  <th>Q máy</th><th>Q tràn áp dụng</th><th>Q vận hành</th><th>Phạm vi Q vận hành theo PTDS</th>
+                  <th>Dự phòng đến Q vận hành giới hạn trên</th><th>Q ròng</th><th>Thời lượng</th><th>Trạng thái</th>
                 </tr></thead>
                 <tbody id="spillTableBody"><tr><td colspan="18">Chưa có dữ liệu tính toán.</td></tr></tbody>
               </table>
@@ -20163,11 +20163,21 @@ function renderAllPctt(){
     if(!host)return;
     if(!p){host.innerHTML="";return;}
     const finish=p.finishTime?`${dateVN(p.finishTime)} ${timeVN(p.finishTime)}`:"Chưa đạt";
+    const hasMaintenancePeriod=
+      Number(p.maintenanceHours)>1e-6;
+
+    const maintenanceLabel=
+      hasMaintenancePeriod
+        ?p.maintainedToDeadline
+          ?"Có"
+          :"Chưa bảo đảm"
+        :"Không phát sinh";
+
     host.innerHTML=`
-      <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận hệ thống tính toán</small><b>${p.feasible?"Đạt và duy trì":"Chưa đáp ứng đầy đủ"}</b></div>
+      <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận hệ thống tính toán</small><b>${p.feasible?"Đạt yêu cầu tính toán":"Chưa đáp ứng đầy đủ"}</b></div>
       <div class="spill-ai-fact"><small>Thời điểm đạt mục tiêu</small><b>${finish}</b></div>
-      <div class="spill-ai-fact ${p.maintainedToDeadline?"good":"warn"}"><small>Duy trì đến hạn</small><b>${p.maintainedToDeadline?"Có":"Chưa bảo đảm"}</b></div>
-      <div class="spill-ai-fact ${p.exceedHours?"warn":"good"}"><small>Khoảng vượt mức cộng thêm</small><b>${p.exceedHours||0} khoảng</b></div>`;
+      <div class="spill-ai-fact ${hasMaintenancePeriod?(p.maintainedToDeadline?"good":"warn"):"good"}"><small>Giai đoạn duy trì</small><b>${maintenanceLabel}</b></div>
+      <div class="spill-ai-fact ${p.ptdsOutOfRangeHours?"warn":"good"}"><small>Khoảng ngoài phạm vi PTDS</small><b>${p.ptdsOutOfRangeHours||0} khoảng</b></div>`;
   }
 
   function buildLocalAiContent(task){
@@ -20259,18 +20269,20 @@ function renderAllPctt(){
           )
         :"";
 
-    let limitStatusText="";
+    const hasMaintenancePeriod=
+      Number(p.maintenanceHours)>1e-6;
 
-    if(p.exceedHours>0){
-      limitStatusText=
-        `Có ${p.exceedHours} khoảng vượt giới hạn.`;
-    }else if(p.nearHours>0){
-      limitStatusText=
-        `Có ${p.nearHours} khoảng cận giới hạn nhưng không ghi nhận khoảng vượt giới hạn.`;
-    }else{
-      limitStatusText=
-        "Không ghi nhận khoảng cận giới hạn hoặc vượt giới hạn.";
-    }
+    const limitStatusText=
+      p.ptdsOutOfRangeHours>0
+        ?`Có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS.`
+        :"Không có khoảng Q cộng thêm nằm ngoài phạm vi PTDS.";
+
+    const maintenanceText=
+      !hasMaintenancePeriod&&p.reachedWithinDeadline
+        ?"Đạt mục tiêu đúng tại thời hạn; không phát sinh giai đoạn duy trì riêng."
+        :p.maintainedToDeadline
+          ?"Có giai đoạn duy trì mực nước hồ mục tiêu đến hết thời hạn."
+          :"Chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn.";
 
     return {
       startText,
@@ -20280,10 +20292,7 @@ function renderAllPctt(){
         p.reached
           ?"Đã đạt mực nước hồ mục tiêu."
           :"Chưa đạt mực nước hồ mục tiêu.",
-      maintenanceText:
-        p.maintainedToDeadline
-          ?"Duy trì mực nước hồ mục tiêu đến hết thời hạn."
-          :"Chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn.",
+      maintenanceText,
       limitStatusText
     };
   }
@@ -20296,8 +20305,7 @@ function renderAllPctt(){
       "ĐẠT MỤC TIÊU",
       "DUY TRÌ MỤC TIÊU",
       "KHÔNG THỂ DUY TRÌ",
-      "CẢNH BÁO",
-      "CẬN GIỚI HẠN"
+      "CẢNH BÁO"
     ];
 
     source.forEach((row,index)=>{
@@ -20338,7 +20346,8 @@ function renderAllPctt(){
           hEnd:+row.hEnd.toFixed(2),
           qIn:+row.qIn.toFixed(1),
           qInSource:row.qInSource,
-          qExtra:+row.qExtraApplied.toFixed(1),
+          qExtraRequested:+row.qExtraRequested.toFixed(1),
+          qExtraApplied:+row.qExtraApplied.toFixed(1),
           qSpill:+row.qSpillApplied.toFixed(1),
           qTotal:+row.qTotal.toFixed(1),
           qOperatingMin:+row.qOperatingMin.toFixed(1),
@@ -20550,7 +20559,7 @@ function renderAllPctt(){
 CHỈ VIẾT MỘT BẢN RÀ SOÁT NGẮN GỌN.
 - Tối đa 3 đoạn văn ngắn.
 - Dùng nguyên văn các thời điểm trong lockedFacts.
-- Nêu đúng số khoảng cận giới hạn hoặc vượt giới hạn.
+- Nêu đúng số khoảng Q cộng thêm nằm ngoài phạm vi PTDS và số khoảng cảnh báo khả năng thực hiện.
 - Không tự suy luận lại số liệu.
 - Phải mô tả đúng nguồn Q về: nhập ước lượng hoặc chuỗi dự báo theo giờ từ cơ sở dữ liệu.
 `;
@@ -20601,6 +20610,9 @@ CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 - Cảnh báo Q máy lớn hơn Q vận hành yêu cầu là cảnh báo khả năng thực hiện, không phải vi phạm PTDS.
 - Đạt MNH mục tiêu không đồng nghĩa đạt yêu cầu PTDS hoặc đáp ứng khả năng thực hiện.
 - Chỉ được kết luận chung là đạt khi reachedWithinDeadline, maintainedToDeadline, ptdsRequirementMet và executionRequirementMet đều đúng.
+- Nếu maintenanceHours bằng 0 và finishTime trùng thời hạn, phải viết "đạt mục tiêu đúng tại thời hạn; không phát sinh giai đoạn duy trì riêng", không được viết "duy trì đến hết thời hạn".
+- "Tổng Q vận hành lớn nhất" là kết quả tính toán của phương án, không được gọi là "tổng Q tối đa theo văn bản".
+- Không gán giới hạn Q cộng thêm tối thiểu/tối đa riêng cho ban ngày hoặc ban đêm nếu văn bản không quy định như vậy.
 - Không dùng các kết luận tuyệt đối như "an toàn", "hoàn toàn khả thi" hoặc "chắc chắn".
 - Khi Q về thực tế thay đổi đáng kể, phải yêu cầu cập nhật số liệu và tính toán lại phương án.
 - Cuối báo cáo nhắc đối chiếu văn bản điều hành, cập nhật số liệu thực tế và phê duyệt đúng thẩm quyền.
@@ -20649,29 +20661,37 @@ ${JSON.stringify(payload)}`;
         :`Q về giả định do người dùng nhập là ${fmt(x.qIn,1)} m³/s.`;
 
     const finishText=locked.finishTimeText||"chưa xác định";
+    const hasMaintenancePeriod=
+      Number(p.maintenanceHours)>1e-6;
+
     const reachSentence=p.reached
       ?`Phương án đạt mực nước hồ mục tiêu vào lúc ${finishText}.`
       :"Phương án chưa đạt mực nước hồ mục tiêu trong thời hạn đã chọn.";
 
-    const maintainSentence=p.maintainedToDeadline
-      ?`Mực nước hồ mục tiêu được duy trì đến hết thời hạn ${locked.deadlineText}.`
-      :`Phương án chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn ${locked.deadlineText}.`;
+    const maintainSentence=
+      !hasMaintenancePeriod&&p.reachedWithinDeadline
+        ?`Phương án đạt mục tiêu đúng tại thời hạn ${locked.deadlineText}; không phát sinh giai đoạn duy trì riêng trước thời hạn.`
+        :p.maintainedToDeadline
+          ?`Mực nước hồ mục tiêu được duy trì đến hết thời hạn ${locked.deadlineText}.`
+          :`Phương án chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn ${locked.deadlineText}.`;
 
-    const limitSentence=p.exceedHours>0
-      ?`Có ${p.exceedHours} khoảng có nhu cầu vượt mức cộng thêm tối đa hoặc giới hạn kỹ thuật.`
-      :p.nearHours>0
-        ?`Có ${p.nearHours} khoảng cận mức cộng thêm tối đa nhưng không ghi nhận khoảng áp dụng vượt phạm vi.`
-        :"Không ghi nhận khoảng áp dụng vượt phạm vi lưu lượng cộng thêm.";
+    const limitSentence=p.ptdsOutOfRangeHours>0
+      ?`Có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm tính từ mức hạ MNH nằm ngoài phạm vi PTDS.`
+      :"Q cộng thêm trong các khoảng hạ MNH nằm trong phạm vi PTDS theo dữ liệu đầu vào hiện tại.";
+
+    const executionSentence=p.executionIssueHours>0
+      ?`Có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện theo Q máy, Q tràn hoặc giới hạn kỹ thuật.`
+      :"Chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán.";
 
     const conclusion=p.feasible
-      ?"Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH, duy trì đến hết thời hạn và đáp ứng yêu cầu PTDS trong giai đoạn hạ MNH."
+      ?"Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH, đáp ứng phạm vi PTDS và chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán."
       :p.reachedWithinDeadline
-        ?`Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH nhưng chưa đạt đầy đủ yêu cầu chung do ${p.exceedHours>0?`có ${p.exceedHours} khoảng nhu cầu vượt phạm vi PTDS`:"chưa bảo đảm duy trì đến hết thời hạn"}.`
+        ?`Theo dữ liệu đầu vào hiện tại, phương án đạt mục tiêu MNH nhưng chưa đáp ứng đầy đủ yêu cầu chung.`
         :"Theo dữ liệu đầu vào hiện tại, phương án chưa đạt mục tiêu MNH đúng thời hạn.";
 
     return `Phương án được lập theo chế độ ${mode}, bắt đầu lúc ${locked.startText} và có thời hạn đến ${locked.deadlineText}. Mực nước hồ được hạ từ ${fmt(x.hStart,2)} m xuống ${fmt(x.hTarget,2)} m, tương ứng thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. ${inflowSentence} Lưu lượng qua máy là ${fmt(x.qMachine,1)} m³/s.
 
-Theo yêu cầu PTDS, tổng lưu lượng vận hành được xác định bằng Q về cộng thêm từ ${fmt(x.qExtraMin,1)} đến ${fmt(x.qExtraMax,1)} m³/s; đây không phải giới hạn tổng Q cố định. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s, ban đêm khoảng ${fmt(p.avgNight,1)} m³/s; tổng Q vận hành lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. ${reachSentence} ${maintainSentence} ${limitSentence}
+Theo yêu cầu PTDS, tổng lưu lượng vận hành được xác định bằng Q về cộng thêm từ ${fmt(x.qExtraMin,1)} đến ${fmt(x.qExtraMax,1)} m³/s; đây không phải giới hạn tổng Q cố định. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s, ban đêm khoảng ${fmt(p.avgNight,1)} m³/s; tổng Q vận hành lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. ${reachSentence} ${maintainSentence} ${limitSentence} ${executionSentence}
 
 ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng kể, cần cập nhật dữ liệu và tính toán lại phương án; đồng thời đối chiếu văn bản điều hành và thực hiện phê duyệt đúng thẩm quyền trước khi áp dụng.`;
   }
@@ -21265,7 +21285,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     planWs.getRow(4).eachCell(c=>{c.fill={type:"pattern",pattern:"solid",fgColor:{argb:navy}};c.font=sectionFont;c.border=allBorder;c.alignment={horizontal:"center",vertical:"middle",wrapText:true}});
     p.rows.forEach(r=>{
       const row=planWs.addRow([
-        r.index,r.date,r.period,+r.hStart.toFixed(2),r.desiredDropCm===null?"":+r.desiredDropCm.toFixed(1),
+        r.index,r.date,r.period,+r.hStart.toFixed(2),+r.actualDropCm.toFixed(1),
         +r.hEnd.toFixed(2),+r.qIn.toFixed(1),r.qInSource,+r.qExtraRequested.toFixed(1),
         +r.qExtraApplied.toFixed(1),+r.qMachine.toFixed(1),+r.qSpillApplied.toFixed(1),+r.qTotal.toFixed(1),
         `${fmt(r.qOperatingMin,1)}–${fmt(r.qOperatingMax,1)}`,+r.net.toFixed(1),r.status,r.flags.join("; ")
@@ -22122,8 +22142,14 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           </tr>
 
           <tr>
-            <td>Duy trì MNH đến hết thời hạn</td>
-            <td><b>${p.maintainedToDeadline?"CÓ":"KHÔNG"}</b></td>
+            <td>Giai đoạn duy trì MNH</td>
+            <td><b>${
+              Number(p.maintenanceHours)>1e-6
+                ?p.maintainedToDeadline
+                  ?"CÓ – DUY TRÌ ĐẾN HẾT HẠN"
+                  :"CHƯA BẢO ĐẢM"
+                :"KHÔNG PHÁT SINH – ĐẠT ĐÚNG TẠI HẠN"
+            }</b></td>
             <td>Số khoảng ngoài phạm vi PTDS</td>
             <td><b>${p.ptdsOutOfRangeHours}</b></td>
           </tr>
@@ -22166,9 +22192,9 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                   "Q máy",
                   "Q tràn",
                   "Q vận hành",
-                  "Q cộng thêm",
-                  "Giới hạn dưới",
-                  "Giới hạn trên",
+                  "Q cộng thêm yêu cầu",
+                  "Q vận hành giới hạn dưới",
+                  "Q vận hành giới hạn trên",
                   "Trạng thái"
                 ]
                 .map(header=>`<th>${header}</th>`)
@@ -22191,7 +22217,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                   <td>${fmt(row.qMachine,1)}</td>
                   <td>${fmt(row.qSpillApplied,1)}</td>
                   <td>${fmt(row.qTotal,1)}</td>
-                  <td>${fmt(row.qExtraApplied,1)}</td>
+                  <td>${fmt(row.qExtraRequested,1)}</td>
                   <td>${fmt(row.qOperatingMin,1)}</td>
                   <td>${fmt(row.qOperatingMax,1)}</td>
                   <td>${escapeHtml(row.status)}</td>
@@ -22209,9 +22235,11 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           <b>Kết luận:</b>
           ${
             p.feasible
-              ? "Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn, đáp ứng phạm vi PTDS và không có cảnh báo về khả năng thực hiện."
+              ?Number(p.maintenanceHours)>1e-6
+                ?"Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn, đáp ứng phạm vi PTDS và chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán."
+                :"Phương án đạt MNH mục tiêu đúng tại thời hạn; không phát sinh giai đoạn duy trì riêng, đáp ứng phạm vi PTDS và chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán."
               : p.reachedWithinDeadline
-                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đạt đầy đủ yêu cầu chung${!p.maintainedToDeadline?" do chưa bảo đảm duy trì đến hết thời hạn":p.ptdsOutOfRangeHours>0?` do có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS`:` do có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`}.`
+                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đáp ứng đầy đủ yêu cầu chung${!p.maintainedToDeadline?" do chưa bảo đảm duy trì đến hết thời hạn":p.ptdsOutOfRangeHours>0?` do có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS`:` do có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`}.`
                 : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
           }
         </div>
