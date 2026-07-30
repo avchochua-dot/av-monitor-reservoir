@@ -18928,21 +18928,24 @@ function renderAllPctt(){
     function getPtdsStatus(qExtraRequired){
       if(qExtraRequired<x.qExtraMin-1e-6){
         return {
-          code:"BELOW_PTDS",
-          text:"THẤP HƠN GIỚI HẠN PTDS"
+          code:"BELOW_PTDS_REFERENCE",
+          text:"THẤP HƠN MỨC THAM CHIẾU PTDS",
+          affectsConclusion:false
         };
       }
 
       if(qExtraRequired>x.qExtraMax+1e-6){
         return {
-          code:"ABOVE_PTDS",
-          text:"VƯỢT GIỚI HẠN PTDS"
+          code:"ABOVE_PTDS_MAX",
+          text:"VƯỢT GIỚI HẠN TRÊN PTDS",
+          affectsConclusion:true
         };
       }
 
       return {
         code:"VALID_PTDS",
-        text:"ĐÚNG PHẠM VI PTDS"
+        text:"ĐÚNG PHẠM VI PTDS",
+        affectsConclusion:false
       };
     }
 
@@ -19410,15 +19413,15 @@ function renderAllPctt(){
         const flags=[];
 
         if(
-          ptds.code==="BELOW_PTDS"
+          ptds.code==="BELOW_PTDS_REFERENCE"
         ){
           flags.push(
-            `Q cộng thêm tính từ mức hạ MNH thấp hơn giới hạn dưới ${fmt(x.qExtraMin,1)} m³/s`
+            `Q cộng thêm tính từ mức hạ MNH thấp hơn mức tham chiếu tối thiểu ${fmt(x.qExtraMin,1)} m³/s; chỉ ghi chú để rà soát, không dùng riêng để kết luận phương án không đạt`
           );
         }
 
         if(
-          ptds.code==="ABOVE_PTDS"
+          ptds.code==="ABOVE_PTDS_MAX"
         ){
           flags.push(
             `Q cộng thêm tính từ mức hạ MNH vượt giới hạn trên ${fmt(x.qExtraMax,1)} m³/s`
@@ -19751,18 +19754,20 @@ function renderAllPctt(){
       loweringRows.filter(
         row=>
           row.ptdsCode===
-          "BELOW_PTDS"
+          "BELOW_PTDS_REFERENCE"
       ).length;
 
     const aboveMaxHours=
       loweringRows.filter(
         row=>
           row.ptdsCode===
-          "ABOVE_PTDS"
+          "ABOVE_PTDS_MAX"
       ).length;
 
+    const ptdsAdvisoryHours=
+      belowMinHours;
+
     const ptdsOutOfRangeHours=
-      belowMinHours+
       aboveMaxHours;
 
     const executionIssueHours=
@@ -19792,7 +19797,7 @@ function renderAllPctt(){
 
     if(belowMinHours){
       warnings.push(
-        `${belowMinHours} khoảng có Q cộng thêm tính từ mức hạ MNH thấp hơn giới hạn dưới ${fmt(x.qExtraMin,1)} m³/s.`
+        `${belowMinHours} khoảng có Q cộng thêm tính từ mức hạ MNH thấp hơn mức tham chiếu tối thiểu ${fmt(x.qExtraMin,1)} m³/s; các khoảng này chỉ được ghi chú để rà soát và không dùng riêng để kết luận phương án không đạt.`
       );
     }
 
@@ -19816,7 +19821,7 @@ function renderAllPctt(){
       );
 
     const ptdsRequirementMet=
-      ptdsOutOfRangeHours===0;
+      aboveMaxHours===0;
 
     const executionRequirementMet=
       executionIssueHours===0;
@@ -19991,6 +19996,7 @@ function renderAllPctt(){
       exceedHours,
       belowMinHours,
       aboveMaxHours,
+      ptdsAdvisoryHours,
       ptdsOutOfRangeHours,
       executionIssueHours,
       executionRequirementMet,
@@ -20057,15 +20063,19 @@ function renderAllPctt(){
       :"chưa duy trì được MNH mục tiêu đến hết thời hạn";
 
     const ptdsSummary=p.ptdsRequirementMet
-      ?`Q cộng thêm tính từ mức hạ MNH nằm trong phạm vi ${fmt(x.qExtraMin,1)}–${fmt(x.qExtraMax,1)} m³/s`
-      :`có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm tính từ mức hạ MNH nằm ngoài phạm vi PTDS`;
+      ?`không có khoảng Q cộng thêm vượt giới hạn trên ${fmt(x.qExtraMax,1)} m³/s`
+      :`có ${p.aboveMaxHours} khoảng Q cộng thêm vượt giới hạn trên PTDS`;
+
+    const ptdsAdvisorySummary=p.ptdsAdvisoryHours>0
+      ?`có ${p.ptdsAdvisoryHours} khoảng thấp hơn mức tham chiếu tối thiểu ${fmt(x.qExtraMin,1)} m³/s, chỉ ghi chú để rà soát`
+      :"không có khoảng thấp hơn mức tham chiếu tối thiểu";
 
     const executionSummary=p.executionRequirementMet
       ?"không có cảnh báo khả năng thực hiện"
       :`có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`;
 
     status.textContent=
-      `${reachedSummary}; ${maintenanceSummary}; ${ptdsSummary}; ${executionSummary}. `+
+      `${reachedSummary}; ${maintenanceSummary}; ${ptdsSummary}; ${ptdsAdvisorySummary}; ${executionSummary}. `+
       `${inflowSourceText}. Kết luận chung: ${p.feasible?"ĐẠT":"CHƯA ĐẠT"}.`;
 
     const qInMin=Math.min(...p.rows.map(r=>r.qIn));
@@ -20085,26 +20095,32 @@ function renderAllPctt(){
     el("spillKpis").innerHTML=kpis.map(k=>`<div class="spill-kpi ${k[3]}"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join("");
 
     el("spillTableBody").innerHTML=p.rows.map(r=>{
-      const warning=
-        r.ptdsCode==="BELOW_PTDS"||
-        r.ptdsCode==="ABOVE_PTDS"||
+      const advisory=
+        r.ptdsCode==="BELOW_PTDS_REFERENCE";
+
+      const critical=
+        r.ptdsCode==="ABOVE_PTDS_MAX"||
         r.executionCode!=="OK";
 
       const cls=
         r.status==="ĐẠT MỤC TIÊU"
           ?"spill-row-target"
-          :warning
+          :critical
             ?"spill-row-over"
-            :r.index===1
-              ?"spill-row-start"
-              :"";
+            :advisory
+              ?"spill-row-near"
+              :r.index===1
+                ?"spill-row-start"
+                :"";
 
       const chip=
         r.status==="ĐẠT MỤC TIÊU"
           ?"info"
-          :warning
+          :critical
             ?"bad"
-            :"ok";
+            :advisory
+              ?"warn"
+              :"ok";
       return `<tr class="${cls}">
         <td>${r.index}</td><td>${r.date}</td><td>${r.period}</td><td>${fmt(r.hStart,2)}</td>
         <td>${fmt(r.actualDropCm,1)} cm</td><td>${fmt(r.hEnd,2)}</td>
@@ -20177,7 +20193,8 @@ function renderAllPctt(){
       <div class="spill-ai-fact ${p.feasible?"good":"bad"}"><small>Kết luận hệ thống tính toán</small><b>${p.feasible?"Đạt yêu cầu tính toán":"Chưa đáp ứng đầy đủ"}</b></div>
       <div class="spill-ai-fact"><small>Thời điểm đạt mục tiêu</small><b>${finish}</b></div>
       <div class="spill-ai-fact ${hasMaintenancePeriod?(p.maintainedToDeadline?"good":"warn"):"good"}"><small>Giai đoạn duy trì</small><b>${maintenanceLabel}</b></div>
-      <div class="spill-ai-fact ${p.ptdsOutOfRangeHours?"warn":"good"}"><small>Khoảng ngoài phạm vi PTDS</small><b>${p.ptdsOutOfRangeHours||0} khoảng</b></div>`;
+      <div class="spill-ai-fact ${p.aboveMaxHours?"bad":"good"}"><small>Khoảng vượt giới hạn trên PTDS</small><b>${p.aboveMaxHours||0} khoảng</b></div>
+      <div class="spill-ai-fact ${p.ptdsAdvisoryHours?"warn":"good"}"><small>Ghi chú dưới mức tham chiếu</small><b>${p.ptdsAdvisoryHours||0} khoảng</b></div>`;
   }
 
   function buildLocalAiContent(task){
@@ -20273,9 +20290,14 @@ function renderAllPctt(){
       Number(p.maintenanceHours)>1e-6;
 
     const limitStatusText=
-      p.ptdsOutOfRangeHours>0
-        ?`Có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS.`
-        :"Không có khoảng Q cộng thêm nằm ngoài phạm vi PTDS.";
+      p.aboveMaxHours>0
+        ?`Có ${p.aboveMaxHours} khoảng Q cộng thêm vượt giới hạn trên PTDS.`
+        :"Không có khoảng Q cộng thêm vượt giới hạn trên PTDS.";
+
+    const lowerReferenceText=
+      p.ptdsAdvisoryHours>0
+        ?`Có ${p.ptdsAdvisoryHours} khoảng thấp hơn mức tham chiếu tối thiểu; đây chỉ là ghi chú rà soát.`
+        :"Không có khoảng thấp hơn mức tham chiếu tối thiểu.";
 
     const maintenanceText=
       !hasMaintenancePeriod&&p.reachedWithinDeadline
@@ -20293,7 +20315,8 @@ function renderAllPctt(){
           ?"Đã đạt mực nước hồ mục tiêu."
           :"Chưa đạt mực nước hồ mục tiêu.",
       maintenanceText,
-      limitStatusText
+      limitStatusText,
+      lowerReferenceText
     };
   }
 
@@ -20559,7 +20582,7 @@ function renderAllPctt(){
 CHỈ VIẾT MỘT BẢN RÀ SOÁT NGẮN GỌN.
 - Tối đa 3 đoạn văn ngắn.
 - Dùng nguyên văn các thời điểm trong lockedFacts.
-- Nêu đúng số khoảng Q cộng thêm nằm ngoài phạm vi PTDS và số khoảng cảnh báo khả năng thực hiện.
+- Nêu đúng số khoảng vượt giới hạn trên PTDS, số khoảng thấp hơn mức tham chiếu tối thiểu và số khoảng cảnh báo khả năng thực hiện.
 - Không tự suy luận lại số liệu.
 - Phải mô tả đúng nguồn Q về: nhập ước lượng hoặc chuỗi dự báo theo giờ từ cơ sở dữ liệu.
 `;
@@ -20606,6 +20629,10 @@ CHỈ VIẾT MỘT BÁO CÁO PHƯƠNG ÁN DUY NHẤT.
 - Không dùng qExtraApplied để đánh giá PTDS.
 - Q về chỉ làm thay đổi Q vận hành yêu cầu và Q tràn yêu cầu; Q về không làm thay đổi Q cộng thêm cần thiết khi lịch hạ MNH giữ nguyên.
 - Không sử dụng hoặc diễn đạt trạng thái "cận giới hạn PTDS".
+- Q cộng thêm thấp hơn input.qExtraMin chỉ là cảnh báo/ghi chú tham khảo, không làm phương án thành chưa đạt.
+- Không được kết luận phương án chưa đạt chỉ vì belowMinHours hoặc ptdsAdvisoryHours lớn hơn 0.
+- Chỉ các khoảng qExtraRequested lớn hơn input.qExtraMax mới làm ptdsRequirementMet bằng false.
+- Khi có khoảng dưới mức tham chiếu, phải nêu ngắn gọn rằng có thể liên quan đến mở êm giờ đầu, vận hành ban đêm hoặc mức hạ nhỏ; không được tự khẳng định nguyên nhân nếu dữ liệu không chỉ rõ.
 - Phải tách rõ đánh giá PTDS và đánh giá khả năng thực hiện.
 - Cảnh báo Q máy lớn hơn Q vận hành yêu cầu là cảnh báo khả năng thực hiện, không phải vi phạm PTDS.
 - Đạt MNH mục tiêu không đồng nghĩa đạt yêu cầu PTDS hoặc đáp ứng khả năng thực hiện.
@@ -20675,9 +20702,13 @@ ${JSON.stringify(payload)}`;
           ?`Mực nước hồ mục tiêu được duy trì đến hết thời hạn ${locked.deadlineText}.`
           :`Phương án chưa bảo đảm duy trì mực nước hồ mục tiêu đến hết thời hạn ${locked.deadlineText}.`;
 
-    const limitSentence=p.ptdsOutOfRangeHours>0
-      ?`Có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm tính từ mức hạ MNH nằm ngoài phạm vi PTDS.`
-      :"Q cộng thêm trong các khoảng hạ MNH nằm trong phạm vi PTDS theo dữ liệu đầu vào hiện tại.";
+    const limitSentence=p.aboveMaxHours>0
+      ?`Có ${p.aboveMaxHours} khoảng Q cộng thêm tính từ mức hạ MNH vượt giới hạn trên PTDS.`
+      :"Không có khoảng Q cộng thêm tính từ mức hạ MNH vượt giới hạn trên PTDS.";
+
+    const lowerReferenceSentence=p.ptdsAdvisoryHours>0
+      ?`Có ${p.ptdsAdvisoryHours} khoảng thấp hơn mức tham chiếu tối thiểu; các khoảng này chỉ được ghi chú để rà soát và không dùng riêng để kết luận phương án không đạt.`
+      :"Không có khoảng thấp hơn mức tham chiếu tối thiểu.";
 
     const executionSentence=p.executionIssueHours>0
       ?`Có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện theo Q máy, Q tràn hoặc giới hạn kỹ thuật.`
@@ -20691,7 +20722,7 @@ ${JSON.stringify(payload)}`;
 
     return `Phương án được lập theo chế độ ${mode}, bắt đầu lúc ${locked.startText} và có thời hạn đến ${locked.deadlineText}. Mực nước hồ được hạ từ ${fmt(x.hStart,2)} m xuống ${fmt(x.hTarget,2)} m, tương ứng thể tích cần giảm khoảng ${fmt(p.volumeToLower,2)} triệu m³. ${inflowSentence} Lưu lượng qua máy là ${fmt(x.qMachine,1)} m³/s.
 
-Theo yêu cầu PTDS, tổng lưu lượng vận hành được xác định bằng Q về cộng thêm từ ${fmt(x.qExtraMin,1)} đến ${fmt(x.qExtraMax,1)} m³/s; đây không phải giới hạn tổng Q cố định. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s, ban đêm khoảng ${fmt(p.avgNight,1)} m³/s; tổng Q vận hành lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. ${reachSentence} ${maintainSentence} ${limitSentence} ${executionSentence}
+Theo yêu cầu PTDS, tổng lưu lượng vận hành được xác định bằng Q về cộng thêm từ ${fmt(x.qExtraMin,1)} đến ${fmt(x.qExtraMax,1)} m³/s; đây không phải giới hạn tổng Q cố định. Q tràn trung bình ban ngày khoảng ${fmt(p.avgDay,1)} m³/s, ban đêm khoảng ${fmt(p.avgNight,1)} m³/s; tổng Q vận hành lớn nhất áp dụng là ${fmt(p.maxApplied,1)} m³/s. ${reachSentence} ${maintainSentence} ${limitSentence} ${lowerReferenceSentence} ${executionSentence}
 
 ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng kể, cần cập nhật dữ liệu và tính toán lại phương án; đồng thời đối chiếu văn bản điều hành và thực hiện phê duyệt đúng thẩm quyền trước khi áp dụng.`;
   }
@@ -22216,8 +22247,15 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                   :"CHƯA BẢO ĐẢM"
                 :"KHÔNG PHÁT SINH – ĐẠT ĐÚNG TẠI HẠN"
             }</b></td>
-            <td>Số khoảng ngoài phạm vi PTDS</td>
-            <td><b>${p.ptdsOutOfRangeHours}</b></td>
+            <td>Số khoảng vượt giới hạn trên PTDS</td>
+            <td><b>${p.aboveMaxHours}</b></td>
+          </tr>
+
+          <tr>
+            <td>Ghi chú dưới mức tham chiếu tối thiểu</td>
+            <td><b>${p.ptdsAdvisoryHours} khoảng</b></td>
+            <td>Ảnh hưởng kết luận</td>
+            <td><b>KHÔNG</b></td>
           </tr>
 
           <tr>
@@ -22305,7 +22343,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
                 ?"Phương án đạt MNH mục tiêu đúng thời hạn, duy trì đến hết thời hạn, đáp ứng phạm vi PTDS và chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán."
                 :"Phương án đạt MNH mục tiêu đúng tại thời hạn; không phát sinh giai đoạn duy trì riêng, đáp ứng phạm vi PTDS và chưa ghi nhận cảnh báo về khả năng thực hiện trong mô hình tính toán."
               : p.reachedWithinDeadline
-                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đáp ứng đầy đủ yêu cầu chung${!p.maintainedToDeadline?" do chưa bảo đảm duy trì đến hết thời hạn":p.ptdsOutOfRangeHours>0?` do có ${p.ptdsOutOfRangeHours} khoảng Q cộng thêm nằm ngoài phạm vi PTDS`:` do có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`}.`
+                ? `Phương án đạt MNH mục tiêu đúng thời hạn nhưng chưa đáp ứng đầy đủ yêu cầu chung${!p.maintainedToDeadline?" do chưa bảo đảm duy trì đến hết thời hạn":p.aboveMaxHours>0?` do có ${p.aboveMaxHours} khoảng Q cộng thêm vượt giới hạn trên PTDS`:` do có ${p.executionIssueHours} khoảng cần kiểm tra khả năng thực hiện`}.`
                 : "Phương án chưa đạt MNH mục tiêu trong thời hạn đã chọn."
           }
         </div>
