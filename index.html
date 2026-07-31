@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương • Dashboard • AI • V82</title>
+  <title>A Vương • Dashboard • AI • V85</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -7682,6 +7682,379 @@ body.slideshow-frame-mode section{
 }
 </style>
 
+
+
+<style id="FC_V83_INPUT_GROUPS">
+.fc-pdf-input-groups{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.fc-pdf-input-group{
+  border:1px solid #d5dee9;
+  border-radius:9px;
+  overflow:hidden;
+  background:#fff;
+}
+.fc-pdf-input-group h3{
+  margin:0;
+  padding:9px 12px;
+  background:#dbeafe;
+  color:#173d68;
+  font-size:12.5px;
+  font-weight:800;
+}
+.fc-pdf-input-group table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+}
+.fc-pdf-input-group td{
+  padding:8px 10px;
+  border-top:1px solid #e2e8f0;
+  font-size:11.5px;
+  line-height:1.25;
+  vertical-align:middle;
+}
+.fc-pdf-input-group td:first-child{
+  width:57%;
+  color:#334155;
+  font-weight:700;
+  text-align:left;
+}
+.fc-pdf-input-group td:last-child{
+  color:#111827;
+  font-weight:700;
+  text-align:right;
+}
+.fc-pdf-input-note{
+  grid-column:1/-1;
+  padding:10px 12px;
+  border:1px solid #bfdbfe;
+  border-radius:8px;
+  background:#eff6ff;
+  font-size:10.5px;
+  line-height:1.4;
+  color:#475569;
+}
+.fc-pdf-table th{
+  white-space:normal!important;
+  line-height:1.15!important;
+  overflow:visible!important;
+}
+</style>
+
+
+
+<style id="FC_V84_NOTE_LAYOUT">
+.fc-pdf-table{
+  table-layout:fixed!important;
+}
+.fc-pdf-table th{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.12!important;
+  vertical-align:middle!important;
+}
+.fc-pdf-table td{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.18!important;
+  vertical-align:middle!important;
+}
+.fc-pdf-table td.note{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  line-height:1.22!important;
+  text-align:left!important;
+  vertical-align:middle!important;
+}
+.fc-pdf-table tr{
+  height:auto!important;
+}
+</style>
+
+
+
+<style id="FC_V85_VISUAL_SYSTEM">
+#tab-floodcontrol{
+  --fc-blue:#2563eb;
+  --fc-blue-soft:#eff6ff;
+  --fc-cyan:#0891b2;
+  --fc-cyan-soft:#ecfeff;
+  --fc-green:#059669;
+  --fc-green-soft:#ecfdf5;
+  --fc-violet:#7c3aed;
+  --fc-violet-soft:#f5f3ff;
+  --fc-orange:#ea580c;
+  --fc-orange-soft:#fff7ed;
+  --fc-red:#dc2626;
+  --fc-red-soft:#fef2f2;
+  --fc-teal:#0f766e;
+  --fc-teal-soft:#f0fdfa;
+}
+#tab-floodcontrol .fc-svg{
+  width:18px;
+  height:18px;
+  display:block;
+  flex:0 0 auto;
+}
+#tab-floodcontrol .fc-card{
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(37,99,235,.10);
+  box-shadow:0 14px 34px rgba(15,23,42,.055);
+}
+#tab-floodcontrol .fc-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:3px;
+  background:linear-gradient(90deg,#2563eb,#06b6d4,#10b981);
+  opacity:.75;
+}
+#tab-floodcontrol .fc-head{
+  padding-bottom:14px;
+}
+#tab-floodcontrol .fc-head-main{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+#tab-floodcontrol .fc-step-icon{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
+}
+#tab-floodcontrol .fc-step-icon .fc-svg{width:21px;height:21px}
+#tab-floodcontrol .fc-step-icon.blue{background:linear-gradient(135deg,#dbeafe,#eff6ff);color:#2563eb}
+#tab-floodcontrol .fc-step-icon.violet{background:linear-gradient(135deg,#ede9fe,#faf5ff);color:#7c3aed}
+#tab-floodcontrol .fc-step-icon.green{background:linear-gradient(135deg,#d1fae5,#ecfdf5);color:#059669}
+#tab-floodcontrol .fc-step-icon.cyan{background:linear-gradient(135deg,#cffafe,#ecfeff);color:#0891b2}
+#tab-floodcontrol .fc-head h3{margin-top:2px}
+#tab-floodcontrol .fc-head-blue small{color:#2563eb}
+#tab-floodcontrol .fc-head-violet small{color:#7c3aed}
+#tab-floodcontrol .fc-head-green small{color:#059669}
+#tab-floodcontrol .fc-head-cyan small{color:#0891b2}
+
+#tab-floodcontrol .fc-subtitle{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-top:18px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid transparent;
+}
+#tab-floodcontrol .fc-subtitle>span{
+  width:28px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+}
+#tab-floodcontrol .fc-subtitle .fc-svg{width:16px;height:16px}
+#tab-floodcontrol .fc-subtitle-blue{background:#eff6ff;border-color:#dbeafe;color:#1d4ed8}
+#tab-floodcontrol .fc-subtitle-blue>span{background:#dbeafe}
+#tab-floodcontrol .fc-subtitle-cyan{background:#ecfeff;border-color:#cffafe;color:#0e7490}
+#tab-floodcontrol .fc-subtitle-cyan>span{background:#cffafe}
+#tab-floodcontrol .fc-subtitle-orange{background:#fff7ed;border-color:#ffedd5;color:#c2410c}
+#tab-floodcontrol .fc-subtitle-orange>span{background:#ffedd5}
+#tab-floodcontrol .fc-subtitle-green{background:#ecfdf5;border-color:#d1fae5;color:#047857}
+#tab-floodcontrol .fc-subtitle-green>span{background:#d1fae5}
+
+#tab-floodcontrol .fc-label-title{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:7px;
+  color:#52647d;
+  font-size:11px;
+  font-weight:900;
+}
+#tab-floodcontrol .fc-label-icon{
+  width:22px;
+  height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:7px;
+  color:#2563eb;
+  background:#eff6ff;
+}
+#tab-floodcontrol .fc-label-icon .fc-svg{width:13px;height:13px}
+#tab-floodcontrol .fc-form label:nth-child(3n+2) .fc-label-icon{color:#7c3aed;background:#f5f3ff}
+#tab-floodcontrol .fc-form label:nth-child(3n) .fc-label-icon{color:#059669;background:#ecfdf5}
+#tab-floodcontrol .fc-form input,
+#tab-floodcontrol .fc-form select{
+  transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+#tab-floodcontrol .fc-form input:focus,
+#tab-floodcontrol .fc-form select:focus{
+  border-color:#60a5fa!important;
+  box-shadow:0 0 0 4px rgba(37,99,235,.10)!important;
+  outline:none;
+}
+#tab-floodcontrol .fc-form input:hover,
+#tab-floodcontrol .fc-form select:hover{
+  border-color:#bfdbfe;
+}
+
+#tab-floodcontrol .fc-kpis{
+  gap:12px;
+}
+#tab-floodcontrol .fc-kpi-card{
+  position:relative;
+  min-height:136px;
+  padding:15px 15px 14px 16px;
+  overflow:hidden;
+  background:#fff!important;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+#tab-floodcontrol .fc-kpi-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 26px rgba(15,23,42,.09);
+}
+#tab-floodcontrol .fc-kpi-card::after{
+  content:"";
+  position:absolute;
+  width:86px;
+  height:86px;
+  border-radius:50%;
+  right:-34px;
+  bottom:-38px;
+  background:currentColor;
+  opacity:.055;
+}
+#tab-floodcontrol .fc-kpi-icon{
+  width:36px;
+  height:36px;
+  display:flex!important;
+  min-height:0!important;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  margin-bottom:11px;
+}
+#tab-floodcontrol .fc-kpi-icon .fc-svg{width:19px;height:19px}
+#tab-floodcontrol .fc-kpi-card>b{font-size:25px}
+#tab-floodcontrol .fc-kpi-card>span:not(.fc-kpi-icon){min-height:auto}
+#tab-floodcontrol .tone-blue{color:#2563eb;border-color:#dbeafe!important}.tone-blue .fc-kpi-icon,.tone-blue .fc-mini-icon{background:#dbeafe;color:#2563eb}
+#tab-floodcontrol .tone-red{color:#dc2626;border-color:#fee2e2!important}.tone-red .fc-kpi-icon,.tone-red .fc-mini-icon{background:#fee2e2;color:#dc2626}
+#tab-floodcontrol .tone-green{color:#059669;border-color:#d1fae5!important}.tone-green .fc-kpi-icon,.tone-green .fc-mini-icon{background:#d1fae5;color:#059669}
+#tab-floodcontrol .tone-violet{color:#7c3aed;border-color:#ede9fe!important}.tone-violet .fc-kpi-icon,.tone-violet .fc-mini-icon{background:#ede9fe;color:#7c3aed}
+#tab-floodcontrol .tone-cyan{color:#0891b2;border-color:#cffafe!important}.tone-cyan .fc-kpi-icon,.tone-cyan .fc-mini-icon{background:#cffafe;color:#0891b2}
+#tab-floodcontrol .tone-teal{color:#0f766e;border-color:#ccfbf1!important}.tone-teal .fc-kpi-icon,.tone-teal .fc-mini-icon{background:#ccfbf1;color:#0f766e}
+#tab-floodcontrol .tone-sky{color:#0284c7;border-color:#e0f2fe!important}.tone-sky .fc-kpi-icon,.tone-sky .fc-mini-icon{background:#e0f2fe;color:#0284c7}
+#tab-floodcontrol .tone-emerald{color:#047857;border-color:#d1fae5!important}.tone-emerald .fc-kpi-icon,.tone-emerald .fc-mini-icon{background:#d1fae5;color:#047857}
+#tab-floodcontrol .tone-orange{color:#c2410c;border-color:#ffedd5!important}.tone-orange .fc-kpi-icon,.tone-orange .fc-mini-icon{background:#ffedd5;color:#c2410c}
+#tab-floodcontrol .tone-status{color:#475569;border-color:#e2e8f0!important}
+#tab-floodcontrol .tone-status .fc-kpi-icon{background:#f1f5f9;color:#475569}
+#tab-floodcontrol .tone-status.is-success{color:#047857;border-color:#a7f3d0!important;background:linear-gradient(180deg,#fff,#ecfdf5)!important}
+#tab-floodcontrol .tone-status.is-success .fc-kpi-icon{background:#d1fae5;color:#059669}
+#tab-floodcontrol .tone-status.is-warning{color:#b45309;border-color:#fde68a!important;background:linear-gradient(180deg,#fff,#fffbeb)!important}
+#tab-floodcontrol .tone-status.is-warning .fc-kpi-icon{background:#fef3c7;color:#d97706}
+
+#tab-floodcontrol .fc-report-title strong{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+#tab-floodcontrol .fc-title-icon{
+  width:28px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+  background:rgba(255,255,255,.14);
+}
+#tab-floodcontrol .fc-title-icon .fc-svg{width:16px;height:16px}
+#tab-floodcontrol .fc-report-actions button,
+#tab-floodcontrol #fcRunSimulation,
+#tab-floodcontrol #fcExportCsv{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+#tab-floodcontrol .fc-report-actions .fc-svg,
+#tab-floodcontrol #fcRunSimulation .fc-svg,
+#tab-floodcontrol #fcExportCsv .fc-svg{
+  width:15px;
+  height:15px;
+}
+#tab-floodcontrol .fc-report-actions button:hover:not(:disabled){
+  background:rgba(255,255,255,.22)!important;
+  transform:translateY(-1px);
+}
+#tab-floodcontrol .fc-report-kpi{
+  position:relative;
+  padding-left:50px!important;
+  overflow:hidden;
+}
+#tab-floodcontrol .fc-mini-icon{
+  position:absolute;
+  left:11px;
+  top:12px;
+  width:29px;
+  height:29px;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+}
+#tab-floodcontrol .fc-mini-icon .fc-svg{width:15px;height:15px}
+#tab-floodcontrol .fc-report-kpi>b{color:#172033!important}
+
+#tab-floodcontrol .fc-chart-controls{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);
+}
+#tab-floodcontrol .fc-chart-controls-title::before{
+  content:"";
+  display:inline-block;
+  width:8px;
+  height:8px;
+  margin-right:7px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#2563eb,#06b6d4);
+  box-shadow:0 0 0 4px rgba(37,99,235,.10);
+}
+#tab-floodcontrol .fc-chart-controls label{
+  padding:6px 9px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+}
+#tab-floodcontrol .fc-chart-controls label:hover{
+  border-color:#bfdbfe;
+  background:#eff6ff;
+}
+#tab-floodcontrol .fc-chart-quick button{
+  background:#fff!important;
+  border:1px solid #dbeafe!important;
+  color:#2563eb!important;
+}
+#tab-floodcontrol .fc-chart-quick button:hover{
+  background:#eff6ff!important;
+}
+
+@media(max-width:760px){
+  #tab-floodcontrol .fc-step-icon{width:38px;height:38px}
+  #tab-floodcontrol .fc-kpi-card{min-height:124px}
+}
+</style>
+
 </head>
 <body>
 
@@ -11160,7 +11533,7 @@ body.slideshow-frame-mode section{
     <div class="fc-hero">
       <div>
         <span class="fc-eyebrow">MÔ PHỎNG HỒ CHỨA THEO QUAN HỆ Z–V</span>
-        <span style="display:inline-flex;margin-left:8px;padding:3px 8px;border-radius:999px;background:#eef4ff;color:#2563eb;font-size:11px;font-weight:900">BẢN V82</span>
+        <span style="display:inline-flex;margin-left:8px;padding:3px 8px;border-radius:999px;background:#eef4ff;color:#2563eb;font-size:11px;font-weight:900">BẢN V85</span>
         <h2>Tính toán cắt giảm lũ cho hạ du</h2>
         <p>Mô phỏng chu trình hạ về mực nước đón lũ → duy trì → tích nước cắt lũ → đạt mực nước mục tiêu.</p>
       </div>
@@ -11171,12 +11544,12 @@ body.slideshow-frame-mode section{
 
     <article class="fc-report" aria-labelledby="fcReportHeading">
       <div class="fc-report-title">
-        <strong id="fcReportHeading">I. BÁO CÁO PHƯƠNG ÁN CẮT GIẢM LŨ</strong>
+        <strong id="fcReportHeading"><span class="fc-title-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg></span>I. BÁO CÁO PHƯƠNG ÁN CẮT GIẢM LŨ</strong>
         <div class="fc-report-actions">
-          <button id="fcRefreshReport" type="button">Cập nhật báo cáo</button>
-          <button id="fcCopyReport" type="button">Sao chép</button>
-          <button id="fcExportExcel" type="button" disabled>Xuất Excel</button>
-          <button id="fcExportPdf" type="button" disabled>Xuất PDF</button>
+          <button id="fcRefreshReport" type="button"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.4 9A7 7 0 0 0 6.3 6.3L4 8"/><path d="M5.6 15A7 7 0 0 0 17.7 17.7L20 16"/></svg><span>Cập nhật báo cáo</span></button>
+          <button id="fcCopyReport" type="button"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Sao chép</span></button>
+          <button id="fcExportExcel" type="button" disabled><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m8 13 4 5"/><path d="m12 13-4 5"/></svg><span>Xuất Excel</span></button>
+          <button id="fcExportPdf" type="button" disabled><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 15h2a2 2 0 0 0 0-4H8v7"/><path d="M14 11v7"/><path d="M14 11h2.5"/></svg><span>Xuất PDF</span></button>
         </div>
       </div>
 
@@ -11187,24 +11560,25 @@ body.slideshow-frame-mode section{
       </div>
 
       <div class="fc-report-kpis">
-        <div id="fcReportStatusCard">
+        <div id="fcReportStatusCard" class="fc-report-kpi tone-green">
+          <span class="fc-mini-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
           <span>Kết quả mục tiêu MNH</span>
           <b id="fcReportStatus">Chưa chạy</b>
         </div>
-        <div>
+        <div class="fc-report-kpi tone-orange"><span class="fc-mini-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
           <span>Thời điểm bắt đầu cắt lũ</span>
           <b id="fcReportCutStart">—</b>
         </div>
-        <div>
+        <div class="fc-report-kpi tone-violet"><span class="fc-mini-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 5-14 14"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></svg></span>
           <span>Tỷ lệ cắt thực tế</span>
           <b id="fcReportCutPercent">—</b>
         </div>
-        <div>
+        <div class="fc-report-kpi tone-cyan"><span class="fc-mini-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 5h8M8 10h5M8 15h8M8 20h5"/></svg></span>
           <span>Mực nước lớn nhất</span>
           <b id="fcReportMaxLevel">—</b>
         </div>
-        <div>
-          <span>Khoảng cảnh báo</span>
+        <div class="fc-report-kpi tone-red"><span class="fc-mini-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span>Số bước ngoài điều kiện mô phỏng</span>
           <b id="fcReportWarnings">0</b>
         </div>
       </div>
@@ -11213,15 +11587,15 @@ body.slideshow-frame-mode section{
 
     <div class="fc-two">
       <article class="fc-card">
-        <div class="fc-head"><div><small>BƯỚC 1</small><h3>Nguồn số liệu Q về</h3></div><span id="fcPointCount">0 điểm</span></div>
+        <div class="fc-head fc-head-blue"><div class="fc-head-main"><span class="fc-step-icon blue"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div><small>BƯỚC 1</small><h3>Nguồn số liệu Q về</h3></div></div><span id="fcPointCount">0 điểm</span></div>
         <div class="fc-form">
-          <label>Nguồn số liệu Q về hồ
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Nguồn số liệu Q về hồ</span>
             <select id="fcSourceType">
               <option value="historical">Sự kiện lũ lịch sử</option>
               <option value="forecast">Số liệu Q về dự báo</option>
             </select>
           </label>
-          <label id="fcHistoricalField">Sự kiện lũ
+          <label id="fcHistoricalField"><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></svg></span>Sự kiện lũ</span>
             <select id="fcHistoricalEvent">
               <option value="">-- Chọn sự kiện lũ --</option>
               <option value="FLOOD_SMALL_20250927">Lũ nhỏ 27–30/09/2025 — Q đỉnh 630,33 m³/s</option>
@@ -11229,10 +11603,10 @@ body.slideshow-frame-mode section{
               <option value="FLOOD_LARGE_20251026">Lũ lớn 26–30/10/2025 — Q đỉnh 2.377,68 m³/s</option>
             </select>
           </label>
-          <label id="fcSimulationStartField">Thời điểm bắt đầu mô phỏng
+          <label id="fcSimulationStartField"><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>Thời điểm bắt đầu mô phỏng</span>
             <input id="fcSimulationStart" type="datetime-local">
           </label>
-          <label id="fcForecastField" hidden>Mô hình dự báo
+          <label id="fcForecastField" hidden><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 11h.01M15 11h.01M8 15h8M12 3v4"/></svg></span>Mô hình dự báo</span>
             <select id="fcForecastModel">
               <option value="rf2q_ai_v1">AI V1</option>
               <option value="rf2q_v7">RF2Q V7</option>
@@ -11240,10 +11614,10 @@ body.slideshow-frame-mode section{
               <option value="all">Nguồn mới nhất</option>
             </select>
           </label>
-          <label id="fcForecastHoursField" hidden>Thời hạn dự báo
+          <label id="fcForecastHoursField" hidden><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Thời hạn dự báo</span>
             <select id="fcForecastHours"><option value="72">72 giờ</option><option value="96">96 giờ</option><option value="120">120 giờ</option></select>
           </label>
-          <label>Quy mô lũ giả định (% so với sự kiện gốc)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 5-14 14"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></svg></span>Quy mô lũ giả định (% so với sự kiện gốc)</span>
             <input id="fcInflowFactor" type="number" value="100" min="50" max="150" step="1">
           </label>
         </div>
@@ -11255,75 +11629,75 @@ body.slideshow-frame-mode section{
       </article>
 
       <article class="fc-card">
-        <div class="fc-head"><div><small>BƯỚC 2</small><h3>Thông số đầu vào</h3></div><span class="green">Có thể hiệu chỉnh</span></div>
+        <div class="fc-head fc-head-violet"><div class="fc-head-main"><span class="fc-step-icon violet"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg></span><div><small>BƯỚC 2</small><h3>Thông số đầu vào</h3></div></div><span class="green">Có thể hiệu chỉnh</span></div>
 
-        <div class="fc-subtitle">A. Trạng thái hồ đầu kỳ</div>
+        <div class="fc-subtitle fc-subtitle-blue"><span><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 5h8M8 10h5M8 15h8M8 20h5"/></svg></span>A. Trạng thái hồ đầu kỳ</div>
         <div class="fc-form fc-form-3">
-          <label>Mực nước hồ đầu kỳ (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 5h8M8 10h5M8 15h8M8 20h5"/></svg></span>Mực nước hồ đầu kỳ (m)</span>
             <input id="fcCurrentLevel" type="number" value="370.00" step="0.01">
           </label>
         </div>
         <input id="fcCurrentVolume" type="hidden" value="0">
 
-        <div class="fc-subtitle">B. Ngưỡng Q về và mực nước điều tiết</div>
+        <div class="fc-subtitle fc-subtitle-cyan"><span><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 1 1 16 0"/><path d="m12 14 4-4"/><path d="M6 18h12"/></svg></span>B. Ngưỡng Q về và mực nước điều tiết</div>
         <div class="fc-form fc-form-3">
-          <label>Q về dưới ngưỡng hạ hồ (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></svg></span>Q về dưới ngưỡng hạ hồ (m³/s)</span>
             <input id="fcQLower" type="number" value="450" min="0" step="10">
           </label>
-          <label>Q về bắt đầu cắt lũ (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 1 1 16 0"/><path d="m12 14 4-4"/><path d="M6 18h12"/></svg></span>Q về bắt đầu cắt lũ (m³/s)</span>
             <input id="fcQFlood" type="number" value="600" min="0" step="10">
           </label>
-          <label>Mực nước đón lũ (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 5h8M8 10h5M8 15h8M8 20h5"/></svg></span>Mực nước đón lũ (m)</span>
             <input id="fcFloodLevel" type="number" value="370.00" step="0.01">
           </label>
-          <label>Mực nước mục tiêu sau tích (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Mực nước mục tiêu sau tích (m)</span>
             <input id="fcTargetLevel" type="number" value="379.50" step="0.01">
           </label>
-          <label>Mực nước tối đa cho phép (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></span>Mực nước tối đa cho phép (m)</span>
             <input id="fcMaxLevel" type="number" value="380.00" step="0.01">
           </label>
-          <label>Sai số duy trì mực nước (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg></span>Sai số duy trì mực nước (m)</span>
             <input id="fcLevelTolerance" type="number" value="0.02" min="0" step="0.01">
           </label>
         </div>
 
-        <div class="fc-subtitle">C. Mục tiêu cắt lũ và năng lực xả</div>
+        <div class="fc-subtitle fc-subtitle-orange"><span><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></span>C. Mục tiêu cắt lũ và năng lực xả</div>
         <div class="fc-form fc-form-3">
-          <label>Tỷ lệ cắt giảm Q về (%)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 5-14 14"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></svg></span>Tỷ lệ cắt giảm Q về (%)</span>
             <input id="fcCutPercent" type="number" value="30" min="0" max="95" step="1">
           </label>
-          <label>Thời gian hạ về MN đón lũ (giờ)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Thời gian hạ về MN đón lũ (giờ)</span>
             <input id="fcLowerHours" type="number" value="12" min="1" step="1">
           </label>
-          <label>Q xả tối thiểu (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13"/><path d="m12 7 5 5-5 5"/><path d="M20 5v14"/></svg></span>Q xả tối thiểu (m³/s)</span>
             <input id="fcReleaseMin" type="number" value="0" min="0" step="10">
           </label>
-          <label>Q xả tối đa (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13"/><path d="m12 7 5 5-5 5"/><path d="M20 5v14"/></svg></span>Q xả tối đa (m³/s)</span>
             <input id="fcReleaseMax" type="number" value="1200" min="1" step="10">
           </label>
-          <label>Q tổ máy tối đa (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a8 8 0 1 1 16 0"/><path d="m12 14 4-4"/><path d="M6 18h12"/></svg></span>Q tổ máy tối đa (m³/s)</span>
             <input id="fcTurbineMax" type="number" value="78" min="0" step="1">
           </label>
-          <label>Q xả tràn tối đa (m³/s)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></svg></span>Q xả tràn tối đa (m³/s)</span>
             <input id="fcSpillwayMax" type="number" value="1122" min="0" step="10">
           </label>
-          <label>Tăng xả tối đa (m³/s mỗi giờ)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg></span>Tăng xả tối đa (m³/s mỗi giờ)</span>
             <input id="fcRampUp" type="number" value="100" min="0" step="10">
           </label>
-          <label>Giảm xả tối đa (m³/s mỗi giờ)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg></span>Giảm xả tối đa (m³/s mỗi giờ)</span>
             <input id="fcRampDown" type="number" value="100" min="0" step="10">
           </label>
         </div>
 
-        <div class="fc-subtitle">D. Thông tin hạ du hỗ trợ người vận hành</div>
+        <div class="fc-subtitle fc-subtitle-green"><span><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>D. Thông tin hạ du hỗ trợ người vận hành</div>
         <div class="fc-form fc-form-3">
-          <label>MN Ái Nghĩa hiện tại (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>MN Ái Nghĩa hiện tại (m)</span>
             <input id="fcAiNghiaCurrent" type="number" value="5.50" step="0.01">
           </label>
-          <label>MN Hội Khách hiện tại (m)
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>MN Hội Khách hiện tại (m)</span>
             <input id="fcHoiKhachCurrent" type="number" value="14.50" step="0.01">
           </label>
-          <label>Quyết định của người vận hành
+          <label><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>Quyết định của người vận hành</span>
             <select id="fcOperatorMode">
               <option value="auto">Theo chu trình tự động của trận lũ</option>
               <option value="lower">Hạ về mực nước đón lũ</option>
@@ -11342,17 +11716,17 @@ body.slideshow-frame-mode section{
     </div>
 
     <article class="fc-card">
-      <div class="fc-head"><div><small>BƯỚC 3</small><h3>Kết quả mô phỏng</h3></div><button id="fcRunSimulation" class="fc-primary compact" type="button" disabled>Chạy mô phỏng</button></div>
+      <div class="fc-head fc-head-green"><div class="fc-head-main"><span class="fc-step-icon green"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg></span><div><small>BƯỚC 3</small><h3>Kết quả mô phỏng</h3></div></div><button id="fcRunSimulation" class="fc-primary compact" type="button" disabled><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg><span>Chạy mô phỏng</span></button></div>
       <div class="fc-kpis">
-        <div><span>Đỉnh Q về</span><b id="fcPeakIn">—</b><small>m³/s</small></div>
-        <div><span>Đỉnh Q xả mô phỏng</span><b id="fcPeakOut">—</b><small>m³/s</small></div>
-        <div><span>Giảm đỉnh</span><b id="fcPeakReduction">—</b><small>%</small></div>
-        <div><span>Dung tích tích thêm</span><b id="fcRetainedVolume">—</b><small>triệu m³</small></div>
-        <div><span>Mực nước lớn nhất</span><b id="fcMaxLevelResult">—</b><small>m</small></div>
-        <div><span>Mực nước cuối kỳ</span><b id="fcEndLevelResult">—</b><small>m</small></div>
-        <div><span>Thời điểm đạt MN đón lũ</span><b id="fcFloodLevelTime">—</b><small></small></div>
-        <div><span>Thời điểm đạt MN mục tiêu</span><b id="fcTargetLevelTime">—</b><small></small></div>
-        <div class="wide"><span>Trạng thái phương án</span><b id="fcScenarioState">Chưa chạy</b><small id="fcScenarioNote">Bấm Chạy mô phỏng</small></div>
+        <div class="fc-kpi-card tone-blue"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></svg></span><span>Đỉnh Q về</span><b id="fcPeakIn">—</b><small>m³/s</small></div>
+        <div class="fc-kpi-card tone-red"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13"/><path d="m12 7 5 5-5 5"/><path d="M20 5v14"/></svg></span><span>Đỉnh Q xả mô phỏng</span><b id="fcPeakOut">—</b><small>m³/s</small></div>
+        <div class="fc-kpi-card tone-green"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></span><span>Giảm đỉnh</span><b id="fcPeakReduction">—</b><small>%</small></div>
+        <div class="fc-kpi-card tone-violet"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v14H5z"/><path d="M8 2v3M16 2v3M8 19v3M16 19v3"/><path d="M8 12h8"/></svg></span><span>Dung tích hồ tăng ròng</span><b id="fcRetainedVolume">—</b><small>triệu m³</small></div>
+        <div class="fc-kpi-card tone-cyan"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 5h8M8 10h5M8 15h8M8 20h5"/></svg></span><span>Mực nước lớn nhất</span><b id="fcMaxLevelResult">—</b><small>m</small></div>
+        <div class="fc-kpi-card tone-teal"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span><span>Mực nước cuối kỳ</span><b id="fcEndLevelResult">—</b><small>m</small></div>
+        <div class="fc-kpi-card tone-sky"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span>Thời điểm đạt MN đón lũ</span><b id="fcFloodLevelTime">—</b><small></small></div>
+        <div class="fc-kpi-card tone-emerald"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span><span>Thời điểm đạt MN mục tiêu</span><b id="fcTargetLevelTime">—</b><small></small></div>
+        <div class="fc-kpi-card tone-status wide" id="fcScenarioCard"><span class="fc-kpi-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><span>Trạng thái phương án</span><b id="fcScenarioState">Chưa chạy</b><small id="fcScenarioNote">Bấm Chạy mô phỏng</small></div>
       </div>
       <div class="fc-chart-controls" id="fcChartControls">
 <div class="fc-chart-controls-title">Hiển thị biểu đồ</div>
@@ -11369,7 +11743,7 @@ body.slideshow-frame-mode section{
     </article>
 
     <article class="fc-card">
-      <div class="fc-head"><div><small>CHI TIẾT</small><h3>Bảng kế hoạch theo giờ</h3></div><button id="fcExportCsv" type="button" disabled>Xuất CSV dữ liệu thô</button></div>
+      <div class="fc-head fc-head-cyan"><div class="fc-head-main"><span class="fc-step-icon cyan"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><div><small>CHI TIẾT</small><h3>Bảng kế hoạch theo giờ</h3></div></div><button id="fcExportCsv" type="button" disabled><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>Xuất CSV dữ liệu thô</span></button></div>
       <div class="fc-table-wrap">
         <table class="fc-table">
           <thead><tr><th>Thời gian</th><th>Q về</th><th>Q xả lịch sử</th><th>Q xả mô phỏng</th><th>Q giữ lại</th><th>Dung tích hồ</th><th>MN hồ</th><th>Giai đoạn</th><th>Ghi chú</th></tr></thead>
@@ -23909,99 +24283,318 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
 
   function runSimulation(){
     try{validate();}catch(e){message(e.message,'error');return;}
-    const qLower=num('fcQLower',450),qFlood=num('fcQFlood',600),zFlood=num('fcFloodLevel',370),zTarget=num('fcTargetLevel',379.5),zMax=num('fcMaxLevel',380),tol=num('fcLevelTolerance',0.02);
-    const vFlood=volumeFromLevel(zFlood),vTarget=volumeFromLevel(zTarget),vMax=volumeFromLevel(zMax);
-    const cut=num('fcCutPercent',30)/100,lowerHours=Math.max(1,num('fcLowerHours',12)),qMin=num('fcReleaseMin',0),qMax=Math.min(num('fcReleaseMax',1200),num('fcTurbineMax',78)+num('fcSpillwayMax',1122));
-    const rampUp=num('fcRampUp',100),rampDown=num('fcRampDown',100),mode=$('fcOperatorMode').value;
-    let level=num('fcCurrentLevel',370),volume=num('fcCurrentVolume',volumeFromLevel(level));
-    try{const zv=volumeFromLevel(level);if(Math.abs(zv-volume)>0.5)volume=zv;}catch(_){}
-    let prev=clamp(dataset.points[0].qObservedOut??dataset.points[0].qIn,qMin,qMax);
-    let phase='PREPARE', floodCutStarted=false, reachedFloodAt=null, reachedTargetAt=null, totalPositive=0, totalNegative=0, maxLevel=level, warnings=[];
-    if(mode==='cut'){phase='FLOOD_CUT';floodCutStarted=true;}
-    else if(mode==='hold')phase='HOLD';
-    else if(mode==='target')phase='TARGET_REACHED';
-    else if(mode==='manual')phase='MANUAL';
-    else if(mode==='lower')phase='PREPARE';
+
+    const qLower=num('fcQLower',450),
+          qFlood=num('fcQFlood',600),
+          zFlood=num('fcFloodLevel',370),
+          zTarget=num('fcTargetLevel',379.5),
+          zMax=num('fcMaxLevel',380),
+          tol=num('fcLevelTolerance',0.02);
+
+    const vFlood=volumeFromLevel(zFlood),
+          vTarget=volumeFromLevel(zTarget),
+          vMax=volumeFromLevel(zMax);
+
+    const cut=num('fcCutPercent',30)/100,
+          lowerHours=Math.max(1,num('fcLowerHours',12)),
+          qMin=num('fcReleaseMin',0),
+          qMax=Math.min(
+            num('fcReleaseMax',1200),
+            num('fcTurbineMax',78)+num('fcSpillwayMax',1122)
+          );
+
+    const rampUp=num('fcRampUp',100),
+          rampDown=num('fcRampDown',100),
+          mode=$('fcOperatorMode').value;
+
+    let level=num('fcCurrentLevel',370),
+        volume=num('fcCurrentVolume',volumeFromLevel(level));
+
+    try{
+      const zv=volumeFromLevel(level);
+      if(Math.abs(zv-volume)>0.5) volume=zv;
+    }catch(_){}
+
+    const initialVolume=volume;
+    const simulationStart=dataset.points[0]?.timestamp || new Date().toISOString();
+
+    let prev=clamp(
+      dataset.points[0].qObservedOut??dataset.points[0].qIn,
+      qMin,
+      qMax
+    );
+
+    let phase='PREPARE',
+        floodCutStarted=false,
+        reachedFloodAt=null,
+        reachedTargetAt=null,
+        totalPositive=0,
+        totalNegative=0,
+        maxLevel=level,
+        warnings=[];
+
+    const floodReachedInitially=level<=zFlood+tol;
+    if(floodReachedInitially){
+      reachedFloodAt=simulationStart;
+      phase='HOLD';
+    }
+
+    if(mode==='cut'){
+      phase='FLOOD_CUT';
+      floodCutStarted=true;
+    }else if(mode==='hold'){
+      phase='HOLD';
+    }else if(mode==='target'){
+      phase='TARGET_REACHED';
+      reachedTargetAt=simulationStart;
+      volume=vTarget;
+      level=zTarget;
+    }else if(mode==='manual'){
+      phase='MANUAL';
+    }else if(mode==='lower'){
+      phase='PREPARE';
+    }
 
     const rows=dataset.points.map((p,i)=>{
-      const dt=i?Math.max(60,(new Date(p.timestamp)-new Date(dataset.points[i-1].timestamp))/1000):3600;
+      const dt=i
+        ? Math.max(
+            60,
+            (new Date(p.timestamp)-new Date(dataset.points[i-1].timestamp))/1000
+          )
+        : 3600;
+
       const qIn=Math.max(0,p.qIn);
-      if(mode==='auto'){
+
+      /*
+       * Máy trạng thái:
+       * - TARGET_REACHED là trạng thái khóa, không quay lại hạ hồ/cắt lũ.
+       * - Sau khi đạt mục tiêu: Q xả = Q về giả định, V và MN hồ giữ tại mục tiêu.
+       */
+      if(mode==='auto' && phase!=='TARGET_REACHED'){
         if(phase==='PREPARE'){
-          if(qIn>=qFlood){phase='FLOOD_CUT';floodCutStarted=true;}
-          else if(qIn>=qLower || level<=zFlood+tol){phase='HOLD';}
+          if(qIn>=qFlood){
+            phase='FLOOD_CUT';
+            floodCutStarted=true;
+          }else if(qIn>=qLower || level<=zFlood+tol){
+            phase='HOLD';
+            if(level<=zFlood+tol){
+              reachedFloodAt=reachedFloodAt||p.timestamp;
+            }
+          }
         }else if(phase==='HOLD'&&!floodCutStarted){
-          if(qIn>=qFlood){phase='FLOOD_CUT';floodCutStarted=true;}
-          else if(qIn<qLower&&level>zFlood+tol){phase='PREPARE';}
-        }else if(phase==='FLOOD_CUT'&&level>=zTarget-tol){
-          phase='TARGET_REACHED';reachedTargetAt=reachedTargetAt||p.timestamp;
+          if(qIn>=qFlood){
+            phase='FLOOD_CUT';
+            floodCutStarted=true;
+          }else if(qIn<qLower && level>zFlood+tol){
+            phase='PREPARE';
+          }
+        }else if(phase==='FLOOD_CUT' && level>=zTarget-tol){
+          phase='TARGET_REACHED';
+          reachedTargetAt=reachedTargetAt||p.timestamp;
+          volume=vTarget;
+          level=zTarget;
         }
       }
 
-      let desired=qIn,note='';
+      let desired=qIn;
+      let note='';
+
       if(phase==='PREPARE'){
         if(level>zFlood+tol){
           const remainingM3=Math.max(0,(volume-vFlood)*1e6);
           desired=qIn+remainingM3/(lowerHours*3600);
-          note='Đang hạ hồ về mực nước đón lũ';
+          note='Tăng xả để hạ MN hồ';
         }else{
-          desired=qIn;note='Đã đạt mực nước đón lũ';
+          desired=qIn;
+          note=floodReachedInitially
+            ? 'Hồ đã ở mực nước đón lũ từ đầu kỳ'
+            : 'Đã đạt mực nước đón lũ';
           reachedFloodAt=reachedFloodAt||p.timestamp;
         }
       }else if(phase==='HOLD'){
-        desired=qIn;note=floodCutStarted?'Duy trì theo quyết định người vận hành':'Duy trì mực nước hồ hiện tại';
+        desired=qIn;
+        note=floodReachedInitially && !floodCutStarted
+          ? 'Duy trì mực nước đón lũ từ đầu kỳ'
+          : (floodCutStarted
+              ? 'Duy trì theo quyết định người vận hành'
+              : 'Duy trì mực nước hồ hiện tại');
       }else if(phase==='FLOOD_CUT'){
-        desired=qIn*(1-cut);note=`Tích nước cắt lũ ${fmt(cut*100,0)}% Q về`;
+        desired=qIn*(1-cut);
+        note=`Cắt ${fmt(cut*100,0)}% Q về`;
       }else if(phase==='TARGET_REACHED'){
-        const correction=(volume-vTarget)*1e6/dt;
-        desired=qIn+correction;note='Đã đạt mực nước mục tiêu, chuyển sang duy trì';
+        desired=qIn;
+        note='Q xả = Q về';
       }else if(phase==='MANUAL'){
-        desired=num('fcManualRelease',450);note='Q xả do người vận hành nhập';
+        desired=num('fcManualRelease',450);
+        note='Q xả do người vận hành nhập';
       }
 
-      desired=clamp(desired,qMin,qMax);
-      const up=rampUp*(dt/3600),down=rampDown*(dt/3600);
-      let qOut=clamp(desired,prev-down,prev+up);
-      qOut=clamp(qOut,qMin,qMax);
+      let qOut;
+      let nextVolume;
 
-      let nextVolume=volume+(qIn-qOut)*dt/1e6;
-      if(phase==='PREPARE'&&nextVolume<vFlood){
-        const exact=qIn+(volume-vFlood)*1e6/dt;
-        qOut=clamp(exact,Math.max(qMin,prev-down),Math.min(qMax,prev+up));
+      if(phase==='TARGET_REACHED'){
+        // Khóa đúng mục tiêu: không áp dụng lại ramp hay logic hạ hồ.
+        qOut=clamp(qIn,qMin,qMax);
+        nextVolume=vTarget;
+      }else{
+        desired=clamp(desired,qMin,qMax);
+        const up=rampUp*(dt/3600);
+        const down=rampDown*(dt/3600);
+
+        qOut=clamp(desired,prev-down,prev+up);
+        qOut=clamp(qOut,qMin,qMax);
         nextVolume=volume+(qIn-qOut)*dt/1e6;
-        if(nextVolume<=vFlood+0.0005){nextVolume=vFlood;reachedFloodAt=reachedFloodAt||p.timestamp;note='Đã đạt mực nước đón lũ';}
+
+        if(phase==='PREPARE'&&nextVolume<vFlood){
+          const exact=qIn+(volume-vFlood)*1e6/dt;
+          qOut=clamp(
+            exact,
+            Math.max(qMin,prev-down),
+            Math.min(qMax,prev+up)
+          );
+          nextVolume=volume+(qIn-qOut)*dt/1e6;
+
+          if(nextVolume<=vFlood+0.0005){
+            nextVolume=vFlood;
+            reachedFloodAt=reachedFloodAt||p.timestamp;
+            note=floodReachedInitially
+              ? 'Hồ đã ở mực nước đón lũ từ đầu kỳ'
+              : 'Đã đạt mực nước đón lũ';
+          }
+        }
+
+        if(phase==='FLOOD_CUT'&&nextVolume>=vTarget){
+          const exact=qIn-(vTarget-volume)*1e6/dt;
+          qOut=clamp(
+            exact,
+            Math.max(qMin,prev-down),
+            Math.min(qMax,prev+up)
+          );
+          nextVolume=volume+(qIn-qOut)*dt/1e6;
+
+          if(nextVolume>=vTarget-0.0005){
+            nextVolume=vTarget;
+            phase='TARGET_REACHED';
+            reachedTargetAt=reachedTargetAt||p.timestamp;
+            note='Q xả = Q về';
+          }
+        }
+
+        if(nextVolume>vMax){
+          const exact=qIn+(volume-vMax)*1e6/dt;
+          qOut=clamp(
+            exact,
+            Math.max(qMin,prev-down),
+            Math.min(qMax,prev+up)
+          );
+          nextVolume=volume+(qIn-qOut)*dt/1e6;
+
+          if(nextVolume>vMax+0.0005){
+            warnings.push(
+              `Không thể giữ dưới MN tối đa tại ${fmtTime(p.timestamp)}`
+            );
+            note='Ngoài điều kiện mô phỏng: vượt khả năng khống chế MN tối đa';
+          }else{
+            nextVolume=vMax;
+            note='Khống chế tại mực nước tối đa';
+          }
+        }
       }
-      if(phase==='FLOOD_CUT'&&nextVolume>=vTarget){
-        const exact=qIn-(vTarget-volume)*1e6/dt;
-        qOut=clamp(exact,Math.max(qMin,prev-down),Math.min(qMax,prev+up));
-        nextVolume=volume+(qIn-qOut)*dt/1e6;
-        if(nextVolume>=vTarget-0.0005){nextVolume=vTarget;phase='TARGET_REACHED';reachedTargetAt=reachedTargetAt||p.timestamp;note='Đã đạt mực nước mục tiêu';}
-      }
-      if(nextVolume>vMax){
-        const exact=qIn+(volume-vMax)*1e6/dt;
-        qOut=clamp(exact,Math.max(qMin,prev-down),Math.min(qMax,prev+up));
-        nextVolume=volume+(qIn-qOut)*dt/1e6;
-        if(nextVolume>vMax+0.0005){warnings.push(`Không thể giữ dưới MN tối đa tại ${fmtTime(p.timestamp)}`);note='CẢNH BÁO: vượt khả năng khống chế MN tối đa';}
-        else{nextVolume=vMax;note='Khống chế tại mực nước tối đa';}
-      }
+
       let nextLevel;
-      try{nextLevel=levelFromVolume(nextVolume);}catch(e){
-        warnings.push(`Dung tích ngoài phạm vi Z–V tại ${fmtTime(p.timestamp)}`);
-        nextLevel=nextVolume>curve.at(-1).v?curve.at(-1).z:curve[0].z;
+      if(phase==='TARGET_REACHED'){
+        nextLevel=zTarget;
+      }else{
+        try{
+          nextLevel=levelFromVolume(nextVolume);
+        }catch(e){
+          warnings.push(
+            `Dung tích ngoài phạm vi Z–V tại ${fmtTime(p.timestamp)}`
+          );
+          nextLevel=nextVolume>curve.at(-1).v
+            ? curve.at(-1).z
+            : curve[0].z;
+        }
       }
-      const qRetain=qIn-qOut,dv=qRetain*dt/1e6;
-      if(dv>0)totalPositive+=dv;else totalNegative+=Math.abs(dv);
+
+      if(!reachedFloodAt && nextLevel<=zFlood+tol){
+        reachedFloodAt=p.timestamp;
+      }
+
+      const qRetain=phase==='TARGET_REACHED' ? 0 : qIn-qOut;
+      const dv=qRetain*dt/1e6;
+
+      if(dv>0) totalPositive+=dv;
+      else totalNegative+=Math.abs(dv);
+
       maxLevel=Math.max(maxLevel,nextLevel);
-      const out={...p,qIn,qSim:qOut,qRetain,volumeSim:nextVolume,levelSim:nextLevel,phase,phaseLabel:phaseLabel(phase),note};
-      prev=qOut;volume=nextVolume;level=nextLevel;
+
+      const out={
+        ...p,
+        qIn,
+        qSim:qOut,
+        qRetain,
+        volumeSim:nextVolume,
+        levelSim:nextLevel,
+        phase,
+        phaseLabel:phaseLabel(phase),
+        note
+      };
+
+      prev=qOut;
+      volume=nextVolume;
+      level=nextLevel;
       return out;
     });
 
-    const peakIn=Math.max(...rows.map(x=>x.qIn)),peakOut=Math.max(...rows.map(x=>x.qSim)),reduction=peakIn?(peakIn-peakOut)/peakIn*100:0;
-    const endLevel=rows.at(-1)?.levelSim??level,targetReached=rows.some(x=>x.levelSim>=zTarget-tol),unsafe=maxLevel>zMax+tol||warnings.length>0;
-    simulation={points:rows,peakIn,peakOut,reduction,totalPositive,totalNegative,maxLevel,endLevel,targetReached,reachedFloodAt,reachedTargetAt,warnings,mode,zTarget,zMax};
+    const peakIn=Math.max(...rows.map(x=>x.qIn));
+    const peakOut=Math.max(...rows.map(x=>x.qSim));
+    const reduction=peakIn
+      ? (peakIn-peakOut)/peakIn*100
+      : 0;
+
+    const endLevel=rows.at(-1)?.levelSim??level;
+    const endVolume=rows.at(-1)?.volumeSim??volume;
+    const netStorageIncrease=endVolume-initialVolume;
+    const waterBalanceIncrease=totalPositive-totalNegative;
+    const balanceDifference=Math.abs(netStorageIncrease-waterBalanceIncrease);
+
+    const targetReached=rows.some(x=>x.phase==='TARGET_REACHED');
+    if(balanceDifference>0.01){
+      warnings.push(
+        `Sai khác cân bằng nước ${fmt(balanceDifference,3)} triệu m³`
+      );
+    }
+
+    simulation={
+      points:rows,
+      peakIn,
+      peakOut,
+      reduction,
+      totalPositive,
+      totalNegative,
+      netStorageIncrease,
+      waterBalanceIncrease,
+      balanceDifference,
+      initialVolume,
+      endVolume,
+      maxLevel,
+      endLevel,
+      targetReached,
+      reachedFloodAt,
+      floodReachedInitially,
+      reachedTargetAt,
+      warnings,
+      mode,
+      zTarget,
+      zMax
+    };
+
     renderSimulation();
-    message('Đã mô phỏng theo quan hệ Z–V và chu trình trạng thái của trận lũ.','success');
+    message(
+      'Đã mô phỏng theo quan hệ Z–V và chu trình trạng thái của trận lũ.',
+      'success'
+    );
   }
 
 
@@ -24101,14 +24694,15 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     const maxLevelExceeded = s.maxLevel > s.zMax + num('fcLevelTolerance',0.02);
 
     const finalLevel=Number(s.endLevel),tolerance=num('fcLevelTolerance',0.02),diff=finalLevel-zTarget;
-    let status='',conclusion='';
-    if(Math.abs(diff)<=tolerance){status='Đạt mực nước mục tiêu';conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, nằm trong sai số ±${fmt(tolerance,2)} m so với mục tiêu ${fmt(zTarget,2)} m.`;}
-    else if(diff<0){status='Chưa đạt mực nước mục tiêu';conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, thấp hơn mục tiêu ${fmt(zTarget,2)} m là ${fmt(Math.abs(diff),2)} m.`;}
-    else{status='Vượt mực nước mục tiêu';conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, cao hơn mục tiêu ${fmt(zTarget,2)} m là ${fmt(diff,2)} m.`;}
+    const sharedEvaluation=evaluateFloodControlTarget(s);
+    let status=sharedEvaluation.status,conclusion='';
+    if(Math.abs(diff)<=tolerance){conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, nằm trong sai số ±${fmt(tolerance,2)} m so với mục tiêu ${fmt(zTarget,2)} m.`;}
+    else if(diff<0){conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, thấp hơn mục tiêu ${fmt(zTarget,2)} m là ${fmt(Math.abs(diff),2)} m.`;}
+    else{conclusion=`Mực nước hồ cuối kỳ đạt ${fmt(finalLevel,2)} m, cao hơn mục tiêu ${fmt(zTarget,2)} m là ${fmt(diff,2)} m.`;}
 
     const cutStartText = cutStartPoint ? fmtTime(cutStartPoint.timestamp) : 'Chưa phát sinh';
     const targetTimeText = s.reachedTargetAt ? fmtTime(s.reachedTargetAt) : 'Chưa đạt';
-    const floodTimeText = s.reachedFloodAt ? fmtTime(s.reachedFloodAt) : 'Chưa ghi nhận';
+    const floodTimeText = s.reachedFloodAt ? (s.floodReachedInitially ? `Đã đạt từ đầu kỳ (${fmtTime(s.reachedFloodAt)})` : fmtTime(s.reachedFloodAt)) : 'Chưa đạt trong thời hạn mô phỏng';
     const maxLevelTimeText = maxLevelPoint ? fmtTime(maxLevelPoint.timestamp) : '—';
 
     $('fcReportBody').innerHTML = `
@@ -24131,8 +24725,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       <p>
         Đỉnh Q về là ${fmt(s.peakIn,1)} m³/s, đỉnh Q xả mô phỏng là ${fmt(s.peakOut,1)} m³/s,
         tương ứng giảm đỉnh ${fmt(peakReductionAbs,1)} m³/s và đạt tỷ lệ cắt giảm thực tế
-        ${fmt(actualCut,1)}%. Tổng dung tích tích thêm trong phương án là
-        ${fmt(s.totalPositive,3)} triệu m³.
+        ${fmt(actualCut,1)}%. Dung tích hồ tăng ròng từ đầu kỳ đến cuối kỳ là
+        ${fmt(s.netStorageIncrease,3)} triệu m³; tổng thể tích giữ lại theo cân bằng giờ là ${fmt(s.waterBalanceIncrease,3)} triệu m³.
       </p>
 
       <p>
@@ -24140,13 +24734,13 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         mực nước cuối kỳ ${fmt(s.endLevel,2)} m. Tổng Q xả tối đa được giới hạn ở
         ${fmt(qMax,0)} m³/s; tốc độ tăng và giảm Q xả lần lượt không vượt quá
         ${fmt(rampUp,0)} và ${fmt(rampDown,0)} m³/s mỗi giờ theo thông số đầu vào.
-        Số khoảng cảnh báo ghi nhận: ${warningCount}.
+        Số bước ngoài điều kiện mô phỏng ghi nhận: ${warningCount}.
       </p>
 
       <p>
         Theo kết quả mô phỏng, kết quả mục tiêu mực nước hồ cuối kỳ là:
         <strong>${status}</strong>. ${conclusion}
-        Mực nước Ái Nghĩa và Hội Khách không tham gia trực tiếp vào phép tính;
+        Sau khi đạt mực nước mục tiêu, Q xả mô phỏng được đặt bằng Q về giả định để duy trì mực nước mục tiêu. Mực nước Ái Nghĩa và Hội Khách không tham gia trực tiếp vào phép tính;
         người vận hành sử dụng các thông tin này để lựa chọn, hiệu chỉnh và phê duyệt
         phương án đúng thẩm quyền trước khi áp dụng.
       </p>`;
@@ -24185,18 +24779,62 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     $('fcScenarioState').textContent='Chưa chạy';$('fcScenarioNote').textContent='Bấm Chạy mô phỏng';
     renderTable(p,false);drawChart(p,false);buildFloodControlReport();
   }
+  function evaluateFloodControlTarget(s){
+    const tolerance=num('fcLevelTolerance',0.02);
+    const diff=Number(s.endLevel)-Number(s.zTarget);
+    let status='Đạt mực nước mục tiêu';
+    if(diff < -tolerance) status='Chưa đạt mực nước mục tiêu';
+    else if(diff > tolerance) status='Vượt mực nước mục tiêu';
+    return {status,diff,tolerance};
+  }
+
   function renderSimulation(){
     const s=simulation;
-    $('fcPeakIn').textContent=fmt(s.peakIn);$('fcPeakOut').textContent=fmt(s.peakOut);$('fcPeakReduction').textContent=fmt(s.reduction);
-    $('fcRetainedVolume').textContent=fmt(s.totalPositive,3);$('fcMaxLevelResult').textContent=fmt(s.maxLevel,2);$('fcEndLevelResult').textContent=fmt(s.endLevel,2);
-    $('fcFloodLevelTime').textContent=s.reachedFloodAt?fmtTime(s.reachedFloodAt):'Chưa đạt';
-    $('fcTargetLevelTime').textContent=s.reachedTargetAt?fmtTime(s.reachedTargetAt):'Chưa đạt';
-    let state='Đạt mực nước mục tiêu',note='Mô phỏng hồ chứa theo đường Z–V';
-    if(s.warnings.length){state='Chưa đạt mực nước mục tiêu';note=s.warnings[0];}
-    else if(!s.targetReached){state='Chưa đạt MN mục tiêu';note=`Mực nước cuối kỳ ${fmt(s.endLevel,2)} m, mục tiêu ${fmt(s.zTarget,2)} m`;}
-    else if(s.mode!=='auto'){state='Theo quyết định NVH';note='Đã mô phỏng theo chế độ người vận hành lựa chọn';}
-    $('fcScenarioState').textContent=state;$('fcScenarioNote').textContent=note;
-    $('fcExportCsv').disabled=false;$('fcExportExcel').disabled=false;$('fcExportPdf').disabled=false;renderTable(s.points,true);drawChart(s.points,true);buildFloodControlReport();
+    const evaluation=evaluateFloodControlTarget(s);
+
+    $('fcPeakIn').textContent=fmt(s.peakIn);
+    $('fcPeakOut').textContent=fmt(s.peakOut);
+    $('fcPeakReduction').textContent=fmt(s.reduction);
+    $('fcRetainedVolume').textContent=fmt(s.netStorageIncrease,3);
+    $('fcMaxLevelResult').textContent=fmt(s.maxLevel,2);
+    $('fcEndLevelResult').textContent=fmt(s.endLevel,2);
+
+    $('fcFloodLevelTime').textContent=s.reachedFloodAt
+      ? (s.floodReachedInitially
+          ? `Đã đạt từ đầu kỳ\n${fmtTime(s.reachedFloodAt)}`
+          : fmtTime(s.reachedFloodAt))
+      : 'Chưa đạt';
+
+    $('fcTargetLevelTime').textContent=s.reachedTargetAt
+      ? fmtTime(s.reachedTargetAt)
+      : 'Chưa đạt';
+
+    let note=`Mực nước cuối kỳ ${fmt(s.endLevel,2)} m; mục tiêu ${fmt(s.zTarget,2)} m`;
+    if(s.balanceDifference>0.01){
+      note+=`. Sai khác cân bằng nước ${fmt(s.balanceDifference,3)} triệu m³`;
+    }
+    if(s.mode!=='auto'){
+      note+=`. Chế độ do người vận hành lựa chọn`;
+    }
+
+    $('fcScenarioState').textContent=evaluation.status;
+    $('fcScenarioNote').textContent=note;
+
+    const stateCard=$('fcScenarioCard');
+    stateCard?.classList.remove('is-success','is-warning');
+    stateCard?.classList.add(
+      evaluation.status==='Đạt mực nước mục tiêu'
+        ? 'is-success'
+        : 'is-warning'
+    );
+
+    $('fcExportCsv').disabled=false;
+    $('fcExportExcel').disabled=false;
+    $('fcExportPdf').disabled=false;
+
+    renderTable(s.points,true);
+    drawChart(s.points,true);
+    buildFloodControlReport();
   }
   function renderTable(points,sim){
     $('fcTableBody').innerHTML=points.map(x=>`<tr>
@@ -24219,7 +24857,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       {label:`Q về giả định ${scale}%`,fcKey:'qInAdjusted',data:points.map(x=>x.qInAdjusted??x.qIn),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',fill:true,pointRadius:0,tension:.22,yAxisID:'y'},
       {label:'Q xả lịch sử',fcKey:'qObservedOut',data:points.map(x=>x.qObservedOut),borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,tension:.18,yAxisID:'y'}];
     if(sim){ds.push({label:'Q xả mô phỏng',fcKey:'qSim',data:points.map(x=>x.qSim),borderColor:'#ef4444',pointRadius:0,tension:.18,yAxisID:'y'});ds.push({label:'Mực nước hồ mô phỏng',fcKey:'levelSim',data:points.map(x=>x.levelSim),borderColor:'#16a34a',pointRadius:0,tension:.2,yAxisID:'y1'});ds.push({label:'MN đón lũ',fcKey:'floodLevel',data:points.map(()=>num('fcFloodLevel',370)),borderColor:'#0ea5e9',borderDash:[5,5],pointRadius:0,yAxisID:'y1'});ds.push({label:'MN mục tiêu',fcKey:'targetLevel',data:points.map(()=>num('fcTargetLevel',379.5)),borderColor:'#f59e0b',borderDash:[7,5],pointRadius:0,yAxisID:'y1'});ds.push({label:'MN tối đa',fcKey:'maxLevel',data:points.map(()=>num('fcMaxLevel',380)),borderColor:'#dc2626',borderDash:[3,4],pointRadius:0,yAxisID:'y1'});}
-    chart=new Chart($('fcChart'),{type:'line',data:{labels:points.map(x=>fmtTime(x.timestamp)),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top'}},scales:{x:{ticks:{maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Lưu lượng (m³/s)'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Mực nước hồ (m)'}}}}});fcApplyVisibility();
+    chart=new Chart($('fcChart'),{type:'line',data:{labels:points.map(x=>fmtTime(x.timestamp)),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{generateLabels(chart){return Chart.defaults.plugins.legend.labels.generateLabels(chart).filter(item=>!item.hidden);}}}},scales:{x:{ticks:{maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Lưu lượng (m³/s)'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Mực nước hồ (m)'}}}}});fcApplyVisibility();
   }
 
   function fcFileStamp(date = new Date()){
@@ -24256,6 +24894,26 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     return Array.from($('fcReportBody')?.querySelectorAll('p') || [])
       .map(node => node.textContent.trim())
       .filter(Boolean);
+  }
+
+  function compactFloodControlNote(point){
+    const phase=point?.phase;
+    const note=String(point?.note||'');
+
+    if(phase==='TARGET_REACHED') return 'Q xả = Q về';
+    if(phase==='FLOOD_CUT') return `Cắt ${fmt(num('fcCutPercent',30),0)}% Q về`;
+    if(phase==='HOLD'){
+      if(note.includes('đón lũ')) return 'Q xả ≈ Q về';
+      return 'Duy trì MN hồ';
+    }
+    if(phase==='PREPARE') return 'Tăng xả để hạ MN hồ';
+    if(phase==='MANUAL') return 'Theo Q người dùng nhập';
+
+    return note
+      .replace('Đã đạt mục tiêu, Q xả bằng Q về để duy trì MN mục tiêu','Q xả = Q về')
+      .replace('Đã đạt mực nước mục tiêu, chuyển sang duy trì','Q xả = Q về')
+      .replace('Đã đạt mục tiêu, Q xả bằng Q về để duy trì MN mục tiêu','Q xả = Q về')
+      .trim();
   }
 
   function fcBuildExportModel(){
@@ -24306,12 +24964,13 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       ['Đỉnh Q về gốc', `${fmt(Math.max(...dataset.points.map(p=>Number(p.qInOriginal??p.qIn))),1)} m³/s`],['Đỉnh Q về dùng tính toán', `${fmt(simulation.peakIn,1)} m³/s`],
       ['Đỉnh Q xả mô phỏng', `${fmt(simulation.peakOut,1)} m³/s`],
       ['Tỷ lệ cắt thực tế', `${fmt(simulation.reduction,1)}%`],
-      ['Dung tích tích thêm', `${fmt(simulation.totalPositive,3)} triệu m³`],
+      ['Dung tích hồ tăng ròng', `${fmt(simulation.netStorageIncrease,3)} triệu m³`],
+      ['Thể tích giữ lại theo cân bằng giờ', `${fmt(simulation.waterBalanceIncrease,3)} triệu m³`],
       ['Mực nước lớn nhất', `${fmt(simulation.maxLevel,2)} m`],
       ['Mực nước cuối kỳ', `${fmt(simulation.endLevel,2)} m`],
-      ['Thời điểm đạt MN đón lũ', simulation.reachedFloodAt ? fmtTime(simulation.reachedFloodAt) : 'Chưa ghi nhận'],
+      ['Thời điểm đạt MN đón lũ', simulation.reachedFloodAt ? (simulation.floodReachedInitially ? `Đã đạt từ đầu kỳ (${fmtTime(simulation.reachedFloodAt)})` : fmtTime(simulation.reachedFloodAt)) : 'Chưa đạt trong thời hạn mô phỏng'],
       ['Thời điểm đạt MN mục tiêu', simulation.reachedTargetAt ? fmtTime(simulation.reachedTargetAt) : 'Chưa đạt'],
-      ['Số khoảng cảnh báo', String(simulation.warnings?.length || 0)]
+      ['Số bước ngoài điều kiện mô phỏng', String(simulation.warnings?.length || 0)]
     ];
 
     return {
@@ -24335,7 +24994,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         level:Number(point.levelSim),
         phase:point.phase,
         phaseLabel:point.phaseLabel,
-        note:point.note || ''
+        note:compactFloodControlNote(point)
       })),
       chartImage: chart?.canvas?.toDataURL('image/png',1) || $('fcChart')?.toDataURL?.('image/png',1) || null,
       status:fcGetReportStatus()
@@ -24385,6 +25044,17 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       </div>`;
   }
 
+  function fcInputValue(model,name){
+    return model.inputs.find(item=>item[0]===name)?.[1] || '—';
+  }
+
+  function fcInputGroup(model,title,names){
+    const rows=names.map(name=>`
+      <tr><td>${name}</td><td>${fcInputValue(model,name)}</td></tr>
+    `).join('');
+    return `<section class="fc-pdf-input-group"><h3>${title}</h3><table><tbody>${rows}</tbody></table></section>`;
+  }
+
   function fcBuildPdfPages(model){
     const pages=[];
 
@@ -24403,16 +25073,56 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       <div class="fc-pdf-text">${model.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>
       <div class="fc-pdf-kpis">${kpis}</div>
     `);
+    const inputGroups=[
+      fcInputGroup(model,'A. NGUỒN DỮ LIỆU VÀ THỜI GIAN',[
+        'Nguồn số liệu Q về',
+        'Tên chuỗi số liệu',
+        'Thời điểm bắt đầu mô phỏng',
+        'Thời điểm kết thúc mô phỏng',
+        'Số bước tính',
+        'Quy mô lũ giả định'
+      ]),
+      fcInputGroup(model,'B. TRẠNG THÁI HỒ VÀ MỤC TIÊU',[
+        'Mực nước hồ đầu kỳ',
+        'Dung tích hồ đầu kỳ',
+        'Mực nước đón lũ',
+        'Mực nước mục tiêu sau tích',
+        'Mực nước tối đa cho phép',
+        'Sai số duy trì mực nước'
+      ]),
+      fcInputGroup(model,'C. QUY TẮC CẮT GIẢM LŨ',[
+        'Ngưỡng Q về hạ hồ',
+        'Ngưỡng Q về bắt đầu cắt lũ',
+        'Tỷ lệ cắt giảm yêu cầu',
+        'Thời gian hạ về MN đón lũ'
+      ]),
+      fcInputGroup(model,'D. NĂNG LỰC XẢ',[
+        'Q xả tối thiểu',
+        'Q xả tối đa',
+        'Q tổ máy tối đa',
+        'Q xả tràn tối đa',
+        'Tốc độ tăng xả tối đa',
+        'Tốc độ giảm xả tối đa'
+      ]),
+      fcInputGroup(model,'E. DỮ LIỆU KỸ THUẬT Z–V',[
+        'Số điểm đường Z–V',
+        'Phạm vi đường Z–V'
+      ]),
+      fcInputGroup(model,'F. THÔNG TIN HỖ TRỢ NGƯỜI VẬN HÀNH',[
+        'MN Ái Nghĩa hiện tại',
+        'MN Hội Khách hiện tại',
+        'Quyết định người vận hành'
+      ])
+    ].join('');
 
-    const inputRows=model.inputs.map(item=>`<tr><td>${item[0]}</td><td>${item[1]}</td></tr>`).join('');
     pages.push(`
       ${fcBuildContinuationHeader('II. THÔNG SỐ ĐẦU VÀO')}
-      <div class="fc-pdf-input-page">
-        <div class="fc-pdf-section-title">II. THÔNG SỐ ĐẦU VÀO</div>
-        <table class="fc-pdf-inputs">
-          <thead><tr><th style="width:56%">Thông số</th><th>Giá trị</th></tr></thead>
-          <tbody>${inputRows}</tbody>
-        </table>
+      <div class="fc-pdf-section-title">II. THÔNG SỐ ĐẦU VÀO</div>
+      <div class="fc-pdf-input-groups">
+        ${inputGroups}
+        <div class="fc-pdf-input-note">
+          Thông tin Ái Nghĩa và Hội Khách chỉ hỗ trợ người vận hành lựa chọn hoặc hiệu chỉnh chế độ; không tham gia trực tiếp vào công thức mô phỏng.
+        </div>
       </div>
     `);
 
@@ -24455,22 +25165,22 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
           <td>${fmt(row.volume,3)}</td>
           <td>${fmt(row.level,2)}</td>
           <td>${row.phaseLabel}</td>
-          <td class="note">${row.note}</td>
+          <td class="note">${compactFloodControlNote(row)}</td>
         </tr>`).join('');
 
       pages.push(`
         ${fcBuildContinuationHeader(`V. BẢNG KẾ HOẠCH THEO GIỜ – PHẦN ${Math.floor(startIndex/rowsPerPage)+1}`)}
-        <div class="fc-pdf-section-title">V. BẢNG KẾ HOẠCH VẬN HÀNH THEO GIỜ</div>
+        <div class="fc-pdf-section-title">V. BẢNG KẾ HOẠCH VẬN HÀNH THEO GIỜ</div><div style="font-size:9px;color:#64748b;margin:-4px 0 8px">Q giữ lại = Q về giả định − Q xả mô phỏng. Sau khi đạt MN mục tiêu: Q xả = Q về, Q giữ lại = 0.</div>
         <table class="fc-pdf-table">
           <colgroup>
             <col style="width:4%"><col style="width:11%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
-            <col style="width:7%"><col style="width:7%"><col style="width:8%"><col style="width:6%">
-            <col style="width:13%"><col style="width:24%">
+            <col style="width:7%"><col style="width:6%"><col style="width:8%"><col style="width:6%">
+            <col style="width:11%"><col style="width:27%">
           </colgroup>
           <thead>
             <tr>
-              <th>STT</th><th>Thời gian</th><th>Q về gốc</th><th>Q về giả định</th><th>Q xả lịch sử</th>
-              <th>Q xả mô phỏng</th><th>Q giữ lại</th><th>Dung tích</th><th>MN hồ</th>
+              <th>STT</th><th>Thời<br>gian</th><th>Q về<br>gốc</th><th>Q về<br>giả định</th><th>Q xả<br>lịch sử</th>
+              <th>Q xả<br>mô phỏng</th><th>Q giữ<br>lại</th><th>Dung tích<br>(triệu m³)</th><th>MN hồ<br>(m)</th>
               <th>Giai đoạn</th><th>Ghi chú</th>
             </tr>
           </thead>
