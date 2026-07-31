@@ -11608,10 +11608,11 @@ body.slideshow-frame-mode section{
           </label>
           <label id="fcForecastField" hidden><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 11h.01M15 11h.01M8 15h8M12 3v4"/></svg></span>Mô hình dự báo</span>
             <select id="fcForecastModel">
-              <option value="rf2q_ai_v1">AI V1</option>
+              <option value="all">Tự động chọn nguồn phù hợp</option>
               <option value="rf2q_v7">RF2Q V7</option>
-              <option value="rf2q_mixed_real_fc">Mixed real + forecast</option>
-              <option value="all">Nguồn mới nhất</option>
+              <option value="rf2q_v6">RF2Q V6</option>
+              <option value="rf2q_v5">RF2Q V5</option>
+              <option value="rf2q_v4">RF2Q V4</option>
             </select>
           </label>
           <label id="fcForecastHoursField" hidden><span class="fc-label-title"><span class="fc-label-icon"><svg class="fc-svg" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Thời hạn dự báo</span>
@@ -24233,32 +24234,201 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   }
 
   async function forecast(){
-    const s=await client(),hours=num('fcForecastHours',72),src=$('fcForecastModel').value,from=new Date().toISOString(),to=new Date(Date.now()+hours*3600000).toISOString();
-    let q=s.from('inflow_forecast').select('forecast_time,inflow_m3s,inflow,source,created_at').gte('forecast_time',from).lte('forecast_time',to).order('forecast_time');
-    if(src!=='all')q=q.eq('source',src);
-    const {data,error}=await q;if(error)throw error;if(!data?.length)throw new Error('Không có dữ liệu Q về dự báo phù hợp.');
-    const latest=new Map();[...data].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0)).forEach(r=>latest.set(r.forecast_time,r));
-    const scale=clamp(num('fcInflowFactor',100),50,150);$('fcInflowFactor').value=scale;const factor=scale/100;
-    const rows=[...latest.values()].sort((a,b)=>new Date(a.forecast_time)-new Date(b.forecast_time));
-    return{sourceId:src,name:`Dự báo ${src} – ${hours} giờ`,points:rows.map(r=>({timestamp:r.forecast_time,qInOriginal:Number(r.inflow_m3s??r.inflow??0),qInAdjusted:Number(r.inflow_m3s??r.inflow??0)*factor,qIn:Number(r.inflow_m3s??r.inflow??0)*factor,qObservedOut:null,reservoirLevel:null,observedVolume:null}))};
+    const hours=Math.max(1,num('fcForecastHours',72));
+    const selectedModel=$('fcForecastModel')?.value||'all';
+
+    setDefaultSimulationStart();
+
+    const startRaw=$('fcSimulationStart')?.value;
+    const startTime=startRaw?new Date(startRaw):new Date();
+
+    if(Number.isNaN(startTime.getTime())){
+      throw new Error('Thời điểm bắt đầu mô phỏng không hợp lệ.');
+    }
+
+    const endTime=new Date(startTime.getTime()+hours*3600000);
+    const from=startTime.toISOString();
+    const to=endTime.toISOString();
+
+    // Dùng cùng API và cùng cơ chế chọn nguồn với Tab Tính toán xả tràn.
+    const apiSource=selectedModel==='all'?'auto':selectedModel;
+    const query=new URLSearchParams({
+      action:'forecast',
+      source:apiSource,
+      from,
+      to
+    });
+
+    const endpoint=location.protocol==='file:'
+      ?`https://avuonghydro.com/api/inflow-frequency?${query.toString()}`
+      :`/api/inflow-frequency?${query.toString()}`;
+
+    const response=await fetch(endpoint,{
+      method:'GET',
+      headers:{Accept:'application/json'},
+      cache:'no-store'
+    });
+
+    let result;
+    try{
+      result=await response.json();
+    }catch(_){
+      throw new Error(`API Q về trả dữ liệu không đúng JSON, HTTP ${response.status}.`);
+    }
+
+    if(!response.ok||!result?.success){
+      throw new Error(
+        result?.error||
+        `Không tải được dữ liệu Q về dự báo, HTTP ${response.status}.`
+      );
+    }
+
+    if(!Array.isArray(result.data)||!result.data.length){
+      throw new Error('API không trả về chuỗi Q về dự báo trong khoảng thời gian đã chọn.');
+    }
+
+    const startMs=startTime.getTime();
+    const endMs=endTime.getTime();
+
+    const normalizedRows=result.data
+      .map(row=>{
+        const timestamp=row.forecastTime??row.forecast_time??null;
+        const inflow=Number(
+          row.inflowM3s??
+          row.inflow_m3s??
+          row.qInM3s??
+          row.q_in_m3s??
+          row.qRoutedM3s??
+          row.q_routed_m3s
+        );
+        const timeMs=timestamp?new Date(timestamp).getTime():NaN;
+
+        return{
+          timestamp,
+          timeMs,
+          inflow,
+          source:row.source||result.source||apiSource,
+          createdAt:row.createdAt||row.created_at||result.updatedAt||null
+        };
+      })
+      .filter(row=>
+        row.timestamp&&
+        Number.isFinite(row.timeMs)&&
+        Number.isFinite(row.inflow)&&
+        row.timeMs>=startMs&&
+        row.timeMs<endMs
+      );
+
+    if(!normalizedRows.length){
+      throw new Error('Có dữ liệu trả về nhưng không có giá trị Q hợp lệ trong khoảng mô phỏng.');
+    }
+
+    // Nếu trùng forecast_time thì giữ bản ghi có created_at mới nhất.
+    const latestByTime=new Map();
+    normalizedRows
+      .sort((a,b)=>{
+        const timeDiff=a.timeMs-b.timeMs;
+        if(timeDiff!==0)return timeDiff;
+        return new Date(a.createdAt||0)-new Date(b.createdAt||0);
+      })
+      .forEach(row=>{
+        latestByTime.set(new Date(row.timestamp).toISOString(),row);
+      });
+
+    const rows=[...latestByTime.values()]
+      .sort((a,b)=>a.timeMs-b.timeMs);
+
+    const scale=clamp(num('fcInflowFactor',100),50,150);
+    $('fcInflowFactor').value=scale;
+    const factor=scale/100;
+
+    const points=rows.map(row=>{
+      const qOriginal=Number(row.inflow);
+      const qAdjusted=qOriginal*factor;
+
+      return{
+        timestamp:new Date(row.timestamp).toISOString(),
+        qInOriginal:qOriginal,
+        qInAdjusted:qAdjusted,
+        qIn:qAdjusted,
+        qObservedOut:null,
+        reservoirLevel:null,
+        observedVolume:null,
+        source:row.source
+      };
+    });
+
+    const expectedHours=Math.max(
+      1,
+      Math.round((endMs-startMs)/3600000)
+    );
+    const receivedHours=points.length;
+    const sourceName=result.source||rows[0]?.source||apiSource;
+    const coverageText=receivedHours>=expectedHours
+      ?`${receivedHours}/${expectedHours} giờ`
+      :`${receivedHours}/${expectedHours} giờ, dữ liệu chưa đủ`;
+
+    return{
+      sourceId:sourceName,
+      name:`Dự báo ${sourceName} – ${hours} giờ – ${coverageText}`,
+      requestedSource:apiSource,
+      selectedSource:sourceName,
+      updatedAt:result.updatedAt||null,
+      from:result.from||from,
+      to:result.to||to,
+      expectedHours,
+      receivedHours,
+      points
+    };
   }
+
   async function loadData(){
-    const b=$('fcLoadData');b.disabled=true;b.textContent='Đang tải...';
+    const b=$('fcLoadData');
+    if(!b)return;
+
+    b.disabled=true;
+    b.textContent='Đang tải...';
+
     try{
       if(curve.length<2)await loadCurve();
-      dataset=$('fcSourceType').value==='historical'?await historical():await forecast();
+
+      dataset=$('fcSourceType').value==='historical'
+        ?await historical()
+        :await forecast();
+
+      if(!dataset?.points?.length){
+        throw new Error('Không có chuỗi số liệu Q về để mô phỏng.');
+      }
+
       $('fcPointCount').textContent=`${dataset.points.length} điểm`;
       syncVolumeFromLevel();
       $('fcRunSimulation').disabled=false;
-      message(`Đã tải “${dataset.name}”, mô phỏng từ ${fmtTime(dataset.points[0].timestamp)} đến ${fmtTime(dataset.points.at(-1).timestamp)}. Q về đầu kỳ: ${fmt(dataset.points[0].qIn,1)} m³/s.`,'success');
+
+      const firstPoint=dataset.points[0];
+      const lastPoint=dataset.points.at(-1);
+      const sourceText=dataset.selectedSource||dataset.sourceId||'không xác định';
+      const coverageText=
+        Number.isFinite(dataset.expectedHours)&&Number.isFinite(dataset.receivedHours)
+          ?` Độ phủ: ${dataset.receivedHours}/${dataset.expectedHours} giờ.`
+          :'';
+
+      message(
+        `Đã tải “${dataset.name}”. Nguồn thực tế: ${sourceText}. `+
+        `Mô phỏng từ ${fmtTime(firstPoint.timestamp)} đến ${fmtTime(lastPoint.timestamp)}. `+
+        `Q về đầu kỳ: ${fmt(firstPoint.qIn,1)} m³/s.${coverageText}`,
+        'success'
+      );
+
       renderRaw();
     }catch(e){
       dataset=null;
       $('fcRunSimulation').disabled=true;
-      console.error("Lỗi tải dữ liệu mô phỏng:", e);
-      message(`Không tải được dữ liệu: ${e?.message || e}`, 'error');
+      console.error('Lỗi tải dữ liệu mô phỏng:',e);
+      message(`Không tải được dữ liệu: ${e?.message||e}`,'error');
+    }finally{
+      b.disabled=false;
+      b.textContent='Tải dữ liệu mô phỏng';
     }
-    finally{b.disabled=false;b.textContent='Tải dữ liệu mô phỏng';}
   }
 
   function validate(){
