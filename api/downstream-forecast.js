@@ -10,19 +10,29 @@ function json(res, status, data, cache = "no-store") {
 }
 
 function num(value, defaultValue = null) {
-  if (value === null || value === undefined || value === "") return defaultValue;
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+
   const n = Number(value);
   return Number.isFinite(n) ? n : defaultValue;
 }
 
 function text(value, defaultValue = "") {
-  if (value === null || value === undefined || value === "") return defaultValue;
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+
   return String(value);
 }
 
 function round(value, digits = 2) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return null;
+
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+
   const p = Math.pow(10, digits);
   return Math.round(n * p) / p;
 }
@@ -32,18 +42,34 @@ function addHours(date, hours) {
 }
 
 function toDateOnly(value) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
+
   const s = String(value);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s;
+  }
 
   const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
+
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+
   return d.toISOString().slice(0, 10);
 }
 
 function readBody(req) {
-  if (!req.body) return {};
-  if (typeof req.body === "object") return req.body;
+  if (!req.body) {
+    return {};
+  }
+
+  if (typeof req.body === "object") {
+    return req.body;
+  }
+
   try {
     return JSON.parse(req.body);
   } catch {
@@ -52,33 +78,52 @@ function readBody(req) {
 }
 
 function pickValue(req, body, key, defaultValue = null) {
-  if (body && body[key] !== undefined) return body[key];
-  if (req.query && req.query[key] !== undefined) return req.query[key];
+  if (body && body[key] !== undefined) {
+    return body[key];
+  }
+
+  if (req.query && req.query[key] !== undefined) {
+    return req.query[key];
+  }
+
   return defaultValue;
 }
 
 function toIsoTime(value) {
-  if (!value) return new Date().toISOString();
+  if (!value) {
+    return new Date().toISOString();
+  }
+
   const d = new Date(String(value));
+
   if (Number.isNaN(d.getTime())) {
     throw new Error("Thời gian không hợp lệ");
   }
+
   return d.toISOString();
 }
 
 function toIsoHour(value) {
   const d = value ? new Date(String(value)) : new Date();
+
   if (Number.isNaN(d.getTime())) {
     throw new Error("obs_hour không hợp lệ");
   }
+
   d.setUTCMinutes(0, 0, 0);
+
   return d.toISOString();
 }
 
 function normalizeObsHourKey(value) {
   const d = new Date(String(value || ""));
-  if (Number.isNaN(d.getTime())) return String(value || "");
+
+  if (Number.isNaN(d.getTime())) {
+    return String(value || "");
+  }
+
   d.setUTCMinutes(0, 0, 0);
+
   return d.toISOString();
 }
 
@@ -86,22 +131,38 @@ function buildObsTimeFromDateHour(req, body) {
   const obsDate = pickValue(req, body, "obs_date", null);
   const obsHour = pickValue(req, body, "obs_hour_value", null);
 
-  if (!obsDate || obsHour === null || obsHour === undefined || obsHour === "") {
+  if (
+    !obsDate ||
+    obsHour === null ||
+    obsHour === undefined ||
+    obsHour === ""
+  ) {
     return null;
   }
 
   const h = Number(obsHour);
+
   if (!Number.isInteger(h) || h < 0 || h > 23) {
     throw new Error("obs_hour_value phải là số nguyên từ 0 đến 23");
   }
 
   const hh = String(h).padStart(2, "0");
+
   return `${obsDate}T${hh}:00:00+07:00`;
 }
 
+/* ======================================================
+   SUPABASE REST HELPERS
+====================================================== */
+
 async function supabaseSelect(path) {
-  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
-  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
 
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -118,19 +179,28 @@ async function supabaseSelect(path) {
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Supabase REST SELECT ${response.status}: ${body}`);
+    throw new Error(
+      `Supabase REST SELECT ${response.status}: ${body}`
+    );
   }
 
   try {
     return JSON.parse(body);
   } catch {
-    throw new Error(`Supabase response is not JSON: ${body.slice(0, 300)}`);
+    throw new Error(
+      `Supabase response is not JSON: ${body.slice(0, 300)}`
+    );
   }
 }
 
 async function supabaseUpsert(path, payload, onConflict) {
-  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
-  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
 
   const url =
     `${SUPABASE_URL}/rest/v1/${path}` +
@@ -150,19 +220,28 @@ async function supabaseUpsert(path, payload, onConflict) {
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Supabase REST UPSERT ${response.status}: ${body}`);
+    throw new Error(
+      `Supabase REST UPSERT ${response.status}: ${body}`
+    );
   }
 
   try {
     return JSON.parse(body);
   } catch {
-    throw new Error(`Supabase upsert response is not JSON: ${body.slice(0, 300)}`);
+    throw new Error(
+      `Supabase upsert response is not JSON: ${body.slice(0, 300)}`
+    );
   }
 }
 
 async function supabaseUpsertMinimal(path, payload, onConflict) {
-  if (!SUPABASE_URL) throw new Error("Missing SUPABASE_URL");
-  if (!SUPABASE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
+  }
+
+  if (!SUPABASE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
 
   const url =
     `${SUPABASE_URL}/rest/v1/${path}` +
@@ -182,7 +261,9 @@ async function supabaseUpsertMinimal(path, payload, onConflict) {
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Supabase REST UPSERT ${response.status}: ${body}`);
+    throw new Error(
+      `Supabase REST UPSERT ${response.status}: ${body}`
+    );
   }
 
   return true;
@@ -194,6 +275,7 @@ async function supabaseUpsertMinimal(path, payload, onConflict) {
 
 function formatVnApiDateTime(date) {
   const d = new Date(date);
+
   if (Number.isNaN(d.getTime())) {
     throw new Error("Ngày giờ không hợp lệ");
   }
@@ -212,14 +294,19 @@ function formatVnApiDateTime(date) {
 function toIsoHourFromVnString(value) {
   const s = String(value || "").trim();
   const normalized = s.replace(" ", "T");
+
   const iso = normalized.includes("+")
     ? normalized
     : `${normalized}+07:00`;
 
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
+
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
 
   d.setUTCMinutes(0, 0, 0);
+
   return d.toISOString();
 }
 
@@ -234,21 +321,30 @@ function stripHtml(str) {
 }
 
 function parseTtbHtmlTable(html) {
-  const rowMatches = String(html || "").match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const rowMatches =
+    String(html || "").match(/<tr[\s\S]*?<\/tr>/gi) || [];
+
   const rows = [];
 
   for (let i = 1; i < rowMatches.length; i++) {
-    const cols = [...rowMatches[i].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)]
-      .map((m) => stripHtml(m[1]));
+    const cols = [
+      ...rowMatches[i].matchAll(
+        /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
+      ),
+    ].map((m) => stripHtml(m[1]));
 
-    if (cols.length < 3) continue;
+    if (cols.length < 3) {
+      continue;
+    }
 
     const stationId = cols[0];
     const rawTime = cols[1];
     const value = num(cols[2], null);
     const obsHour = toIsoHourFromVnString(rawTime);
 
-    if (!obsHour || value === null) continue;
+    if (!obsHour || value === null) {
+      continue;
+    }
 
     rows.push({
       station_id: stationId,
@@ -283,7 +379,10 @@ async function fetchTtbStationSeries({
     `&thoigiankt=${encodeURIComponent(`'${endText}'`)}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -304,7 +403,9 @@ async function fetchTtbStationSeries({
         url,
         count: 0,
         data: [],
-        error: `TTB API ${stationId} lỗi HTTP ${response.status}: ${textBody.slice(0, 300)}`,
+        error:
+          `TTB API ${stationId} lỗi HTTP ` +
+          `${response.status}: ${textBody.slice(0, 300)}`,
       };
     }
 
@@ -340,6 +441,7 @@ function mergeObservedStations(hkRows, anRows) {
 
   for (const row of hkRows || []) {
     const key = row.obs_hour;
+
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -351,12 +453,14 @@ function mergeObservedStations(hkRows, anRows) {
         created_by: "system",
       });
     }
+
     const item = map.get(key);
     item.hoi_khach_m = row.value_m;
   }
 
   for (const row of anRows || []) {
     const key = row.obs_hour;
+
     if (!map.has(key)) {
       map.set(key, {
         obs_time: key,
@@ -368,26 +472,38 @@ function mergeObservedStations(hkRows, anRows) {
         created_by: "system",
       });
     }
+
     const item = map.get(key);
     item.ai_nghia_m = row.value_m;
   }
 
   return Array.from(map.values()).sort(
-    (a, b) => new Date(a.obs_hour).getTime() - new Date(b.obs_hour).getTime()
+    (a, b) =>
+      new Date(a.obs_hour).getTime() -
+      new Date(b.obs_hour).getTime()
   );
 }
 
 async function fetchExistingObservedRows(startIso, endIso) {
   const path =
     "downstream_manual_observations" +
-    `?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,source,note,created_by,updated_at` +
+    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m," +
+    "source,note,created_by,updated_at" +
     `&obs_hour=gte.${encodeURIComponent(startIso)}` +
     `&obs_hour=lte.${encodeURIComponent(endIso)}` +
-    `&order=obs_hour.asc`;
+    "&order=obs_hour.asc";
 
   return supabaseSelect(path);
 }
 
+/*
+  Tạo kế hoạch đồng bộ dữ liệu.
+
+  Quan trọng:
+  - Không đưa trường id vào payload upsert.
+  - Supabase cập nhật dựa trên on_conflict=obs_hour.
+  - Tất cả object trong toUpsert có cùng một tập key.
+*/
 function buildSyncPlan(mergedRows, existingRows) {
   const existingMap = new Map(
     (existingRows || []).map((row) => [
@@ -405,20 +521,45 @@ function buildSyncPlan(mergedRows, existingRows) {
     const rowKey = normalizeObsHourKey(row.obs_hour);
     const existed = existingMap.get(rowKey);
 
+    const payload = {
+      obs_time: row.obs_time || row.obs_hour,
+      obs_hour: row.obs_hour,
+
+      hoi_khach_m:
+        row.hoi_khach_m === null ||
+        row.hoi_khach_m === undefined
+          ? null
+          : Number(row.hoi_khach_m),
+
+      ai_nghia_m:
+        row.ai_nghia_m === null ||
+        row.ai_nghia_m === undefined
+          ? null
+          : Number(row.ai_nghia_m),
+
+      source: "api_ttb",
+      note: "sync-72h-ttb",
+      created_by: "system",
+      updated_at: new Date().toISOString(),
+    };
+
     if (!existed) {
       inserted.push(row.obs_hour);
-      toUpsert.push({
-        ...row,
-        updated_at: new Date().toISOString(),
-      });
+      toUpsert.push(payload);
       continue;
     }
 
-    if (String(existed.source || "").toLowerCase() === "manual") {
+    /*
+      Không ghi đè dữ liệu do người vận hành nhập tay.
+    */
+    if (
+      String(existed.source || "").toLowerCase() === "manual"
+    ) {
       skippedManual.push({
         obs_hour: row.obs_hour,
         source: existed.source,
       });
+
       continue;
     }
 
@@ -427,17 +568,13 @@ function buildSyncPlan(mergedRows, existingRows) {
       old_source: existed.source || "unknown",
     });
 
-    toUpsert.push({
-      id: existed.id,
-      obs_time: row.obs_time,
-      obs_hour: row.obs_hour,
-      hoi_khach_m: row.hoi_khach_m,
-      ai_nghia_m: row.ai_nghia_m,
-      source: "api_ttb",
-      note: "sync-72h-ttb",
-      created_by: "system",
-      updated_at: new Date().toISOString(),
-    });
+    /*
+      Không truyền id tại đây.
+
+      Supabase xác định bản ghi cần cập nhật bằng:
+      on_conflict=obs_hour
+    */
+    toUpsert.push(payload);
   }
 
   return {
@@ -448,15 +585,113 @@ function buildSyncPlan(mergedRows, existingRows) {
   };
 }
 
-async function upsertObservedRowsInBatches(rows, batchSize = 3) {
-  const chunks = [];
-
-  for (let i = 0; i < rows.length; i += batchSize) {
-    chunks.push(rows.slice(i, i + batchSize));
+/*
+  Chuẩn hóa tất cả dòng thành cùng một cấu trúc.
+  Điều này ngăn lỗi PGRST102:
+  All object keys must match.
+*/
+function normalizeObservedUpsertRow(row) {
+  if (!row || !row.obs_hour) {
+    throw new Error("Payload sync thiếu obs_hour");
   }
 
-  for (let i = 0; i < chunks.length; i++) {
-    const batch = chunks[i];
+  const obsHour = normalizeObsHourKey(row.obs_hour);
+
+  if (!obsHour) {
+    throw new Error(
+      `obs_hour không hợp lệ: ${row.obs_hour}`
+    );
+  }
+
+  const hoiKhachM =
+    row.hoi_khach_m === null ||
+    row.hoi_khach_m === undefined
+      ? null
+      : num(row.hoi_khach_m, null);
+
+  const aiNghiaM =
+    row.ai_nghia_m === null ||
+    row.ai_nghia_m === undefined
+      ? null
+      : num(row.ai_nghia_m, null);
+
+  return {
+    obs_time: row.obs_time || obsHour,
+    obs_hour: obsHour,
+    hoi_khach_m: hoiKhachM,
+    ai_nghia_m: aiNghiaM,
+    source: text(row.source, "api_ttb"),
+    note: text(row.note, "sync-72h-ttb"),
+    created_by: text(row.created_by, "system"),
+    updated_at:
+      row.updated_at || new Date().toISOString(),
+  };
+}
+
+/*
+  Kiểm tra trước khi gửi Supabase để nếu có lỗi key
+  thì backend báo rõ vị trí thay vì PostgREST trả PGRST102.
+*/
+function validateSameObjectKeys(rows) {
+  if (!Array.isArray(rows)) {
+    throw new Error("Payload upsert phải là một mảng");
+  }
+
+  if (!rows.length) {
+    return true;
+  }
+
+  const expectedKeys = Object.keys(rows[0]).sort();
+  const expectedText = expectedKeys.join("|");
+
+  rows.forEach((row, index) => {
+    const actualKeys = Object.keys(row).sort();
+    const actualText = actualKeys.join("|");
+
+    if (actualText !== expectedText) {
+      throw new Error(
+        `Payload không đồng nhất key tại dòng ${index}. ` +
+        `Expected=[${expectedKeys.join(", ")}], ` +
+        `Actual=[${actualKeys.join(", ")}]`
+      );
+    }
+  });
+
+  return true;
+}
+
+async function upsertObservedRowsInBatches(
+  rows,
+  batchSize = 3
+) {
+  if (!Array.isArray(rows)) {
+    throw new Error("rows phải là một mảng");
+  }
+
+  if (!rows.length) {
+    return 0;
+  }
+
+  const normalizedRows =
+    rows.map(normalizeObservedUpsertRow);
+
+  validateSameObjectKeys(normalizedRows);
+
+  const safeBatchSize = Math.max(
+    1,
+    Number(batchSize) || 3
+  );
+
+  for (
+    let i = 0;
+    i < normalizedRows.length;
+    i += safeBatchSize
+  ) {
+    const batch = normalizedRows.slice(
+      i,
+      i + safeBatchSize
+    );
+
     await supabaseUpsertMinimal(
       "downstream_manual_observations",
       batch,
@@ -464,7 +699,7 @@ async function upsertObservedRowsInBatches(rows, batchSize = 3) {
     );
   }
 
-  return rows.length;
+  return normalizedRows.length;
 }
 
 /* ======================================================
@@ -493,8 +728,15 @@ function getInputVariables(query) {
     AN_Delta_1h: num(query.AN_Delta_1h, 0),
     AN_Delta_3h: num(query.AN_Delta_3h, 0),
 
-    Q_VuGia_Delta_1h: num(query.Q_VuGia_Delta_1h, 0),
-    Q_VuGia_Delta_3h: num(query.Q_VuGia_Delta_3h, 0),
+    Q_VuGia_Delta_1h: num(
+      query.Q_VuGia_Delta_1h,
+      0
+    ),
+
+    Q_VuGia_Delta_3h: num(
+      query.Q_VuGia_Delta_3h,
+      0
+    ),
   };
 }
 
@@ -512,7 +754,9 @@ function validateInput(input) {
     "PCTT_Qve_ThuBon",
   ];
 
-  const missing = required.filter((key) => input[key] === null);
+  const missing = required.filter(
+    (key) => input[key] === null
+  );
 
   return {
     ok: missing.length === 0,
@@ -522,35 +766,54 @@ function validateInput(input) {
 
 async function loadCoefficients() {
   return supabaseSelect(
-    "downstream_active_model_coefficients?select=*&order=model_code.asc"
+    "downstream_active_model_coefficients" +
+    "?select=*&order=model_code.asc"
   );
 }
 
 async function loadThresholds() {
-  const rows = await supabaseSelect("downstream_alarm_thresholds?select=*");
+  const rows = await supabaseSelect(
+    "downstream_alarm_thresholds?select=*"
+  );
+
   const map = {};
+
   for (const row of rows || []) {
     map[row.station_code] = row;
   }
+
   return map;
 }
 
 async function loadMetrics() {
   const rows = await supabaseSelect(
-    "downstream_forecast_model_metrics?select=model_code,station_code,horizon_hours,test_r2,test_mae_cm,test_rmse_cm"
+    "downstream_forecast_model_metrics" +
+    "?select=model_code,station_code,horizon_hours," +
+    "test_r2,test_mae_cm,test_rmse_cm"
   );
+
   const map = {};
+
   for (const row of rows || []) {
     map[row.model_code] = row;
   }
+
   return map;
 }
 
-function calculateForecast(modelCode, coefficients, input) {
-  const rows = coefficients.filter((x) => x.model_code === modelCode);
+function calculateForecast(
+  modelCode,
+  coefficients,
+  input
+) {
+  const rows = coefficients.filter(
+    (x) => x.model_code === modelCode
+  );
 
   if (!rows.length) {
-    throw new Error(`Không tìm thấy hệ số cho model ${modelCode}`);
+    throw new Error(
+      `Không tìm thấy hệ số cho model ${modelCode}`
+    );
   }
 
   let result = 0;
@@ -560,7 +823,11 @@ function calculateForecast(modelCode, coefficients, input) {
     const coef = Number(row.coefficient);
 
     if (!Number.isFinite(coef)) {
-      throw new Error(`Hệ số không hợp lệ: model=${modelCode}, variable=${variableName}`);
+      throw new Error(
+        `Hệ số không hợp lệ: ` +
+        `model=${modelCode}, ` +
+        `variable=${variableName}`
+      );
     }
 
     if (variableName === "intercept") {
@@ -569,8 +836,12 @@ function calculateForecast(modelCode, coefficients, input) {
     }
 
     const value = input[variableName];
+
     if (value === undefined || value === null) {
-      throw new Error(`Thiếu biến đầu vào ${variableName} cho model ${modelCode}`);
+      throw new Error(
+        `Thiếu biến đầu vào ${variableName} ` +
+        `cho model ${modelCode}`
+      );
     }
 
     result += coef * Number(value);
@@ -583,46 +854,95 @@ function getAlarmLevel(forecasts, threshold) {
   if (!threshold) {
     return {
       alarm_level: "unknown",
-      alarm_message: "Chưa cấu hình ngưỡng báo động cho trạm",
+      alarm_message:
+        "Chưa cấu hình ngưỡng báo động cho trạm",
     };
   }
 
   const bd1 = Number(threshold.bd1_cm);
   const bd2 = Number(threshold.bd2_cm);
   const bd3 = Number(threshold.bd3_cm);
-  const watchRatio = Number(threshold.watch_ratio || 0.8);
 
-  const fc4 = forecasts.find((x) => x.horizon_hours === 4)?.forecast_water_level_cm;
-  const fc6 = forecasts.find((x) => x.horizon_hours === 6)?.forecast_water_level_cm;
-  const fc12 = forecasts.find((x) => x.horizon_hours === 12)?.forecast_water_level_cm;
+  const watchRatio = Number(
+    threshold.watch_ratio || 0.8
+  );
 
-  const max4to6 = Math.max(fc4 ?? -Infinity, fc6 ?? -Infinity);
-  const maxAll = Math.max(fc4 ?? -Infinity, fc6 ?? -Infinity, fc12 ?? -Infinity);
+  const fc4 = forecasts.find(
+    (x) => x.horizon_hours === 4
+  )?.forecast_water_level_cm;
+
+  const fc6 = forecasts.find(
+    (x) => x.horizon_hours === 6
+  )?.forecast_water_level_cm;
+
+  const fc12 = forecasts.find(
+    (x) => x.horizon_hours === 12
+  )?.forecast_water_level_cm;
+
+  const max4to6 = Math.max(
+    fc4 ?? -Infinity,
+    fc6 ?? -Infinity
+  );
+
+  const maxAll = Math.max(
+    fc4 ?? -Infinity,
+    fc6 ?? -Infinity,
+    fc12 ?? -Infinity
+  );
 
   if (max4to6 >= bd3) {
-    return { alarm_level: "emergency", alarm_message: "Dự báo có khả năng vượt báo động III trong 4-6 giờ tới" };
+    return {
+      alarm_level: "emergency",
+      alarm_message:
+        "Dự báo có khả năng vượt báo động III " +
+        "trong 4-6 giờ tới",
+    };
   }
+
   if (max4to6 >= bd2) {
-    return { alarm_level: "danger", alarm_message: "Dự báo có khả năng vượt báo động II trong 4-6 giờ tới" };
+    return {
+      alarm_level: "danger",
+      alarm_message:
+        "Dự báo có khả năng vượt báo động II " +
+        "trong 4-6 giờ tới",
+    };
   }
+
   if (max4to6 >= bd1) {
-    return { alarm_level: "warning", alarm_message: "Dự báo có khả năng vượt báo động I trong 4-6 giờ tới" };
+    return {
+      alarm_level: "warning",
+      alarm_message:
+        "Dự báo có khả năng vượt báo động I " +
+        "trong 4-6 giờ tới",
+    };
   }
+
   if (maxAll >= bd1 * watchRatio) {
-    return { alarm_level: "watch", alarm_message: "Mực nước dự báo tiệm cận báo động I, cần theo dõi" };
+    return {
+      alarm_level: "watch",
+      alarm_message:
+        "Mực nước dự báo tiệm cận báo động I, " +
+        "cần theo dõi",
+    };
   }
 
   return {
     alarm_level: "normal",
-    alarm_message: "Mực nước dự báo dưới ngưỡng cảnh báo",
+    alarm_message:
+      "Mực nước dự báo dưới ngưỡng cảnh báo",
   };
 }
 
 async function handleForecast(req, res) {
-  const forecastTime = req.query.time ? new Date(String(req.query.time)) : new Date();
+  const forecastTime = req.query.time
+    ? new Date(String(req.query.time))
+    : new Date();
 
   if (Number.isNaN(forecastTime.getTime())) {
-    return json(res, 400, { ok: false, error: "Tham số time không hợp lệ" });
+    return json(res, 400, {
+      ok: false,
+      error: "Tham số time không hợp lệ",
+    });
   }
 
   const input = getInputVariables(req.query);
@@ -636,35 +956,62 @@ async function handleForecast(req, res) {
     });
   }
 
-  const [coefficients, thresholds, metrics] = await Promise.all([
+  const [
+    coefficients,
+    thresholds,
+    metrics,
+  ] = await Promise.all([
     loadCoefficients(),
     loadThresholds(),
     loadMetrics(),
   ]);
 
   if (!coefficients.length) {
-    throw new Error("Không có hệ số mô hình trong downstream_active_model_coefficients");
+    throw new Error(
+      "Không có hệ số mô hình trong " +
+      "downstream_active_model_coefficients"
+    );
   }
 
   const modelGroups = [
     {
       station_code: "HOI_KHACH",
       station_name: "Hội Khách",
-      current_water_level_cm: input.Hoi_Khach_cm,
+      current_water_level_cm:
+        input.Hoi_Khach_cm,
       models: [
-        { model_code: "HK_4H", horizon_hours: 4 },
-        { model_code: "HK_6H", horizon_hours: 6 },
-        { model_code: "HK_12H", horizon_hours: 12 },
+        {
+          model_code: "HK_4H",
+          horizon_hours: 4,
+        },
+        {
+          model_code: "HK_6H",
+          horizon_hours: 6,
+        },
+        {
+          model_code: "HK_12H",
+          horizon_hours: 12,
+        },
       ],
     },
     {
       station_code: "AI_NGHIA",
       station_name: "Ái Nghĩa",
-      current_water_level_cm: input.Ai_Nghia_cm,
+      current_water_level_cm:
+        input.Ai_Nghia_cm,
       models: [
-        { model_code: "AN_4H", horizon_hours: 4 },
-        { model_code: "AN_6H", horizon_hours: 6 },
-        { model_code: "AN_12H", horizon_hours: 12 },
+        {
+          model_code: "AN_4H",
+          horizon_hours: 4,
+        },
+        {
+          model_code: "AN_6H",
+          horizon_hours: 6,
+        },
+        {
+          model_code: "AN_12H",
+          horizon_hours: 12,
+        },
       ],
     },
   ];
@@ -673,34 +1020,61 @@ async function handleForecast(req, res) {
 
   for (const station of modelGroups) {
     const forecasts = station.models.map((m) => {
-      const forecastValue = calculateForecast(m.model_code, coefficients, input);
-      const metric = metrics[m.model_code] || null;
+      const forecastValue = calculateForecast(
+        m.model_code,
+        coefficients,
+        input
+      );
+
+      const metric =
+        metrics[m.model_code] || null;
 
       return {
         model_code: m.model_code,
         horizon_hours: m.horizon_hours,
-        target_time: addHours(forecastTime, m.horizon_hours).toISOString(),
-        forecast_water_level_cm: round(forecastValue, 2),
+
+        target_time: addHours(
+          forecastTime,
+          m.horizon_hours
+        ).toISOString(),
+
+        forecast_water_level_cm:
+          round(forecastValue, 2),
+
         model_quality: metric
           ? {
-              test_r2: round(metric.test_r2, 3),
-              test_mae_cm: round(metric.test_mae_cm, 2),
-              test_rmse_cm: round(metric.test_rmse_cm, 2),
+              test_r2:
+                round(metric.test_r2, 3),
+
+              test_mae_cm:
+                round(metric.test_mae_cm, 2),
+
+              test_rmse_cm:
+                round(metric.test_rmse_cm, 2),
             }
           : null,
       };
     });
 
-    const alarm = getAlarmLevel(forecasts, thresholds[station.station_code]);
+    const alarm = getAlarmLevel(
+      forecasts,
+      thresholds[station.station_code]
+    );
 
     stations.push({
       station_code: station.station_code,
       station_name: station.station_name,
-      current_water_level_cm: station.current_water_level_cm,
+
+      current_water_level_cm:
+        station.current_water_level_cm,
+
       forecasts,
+
       alarm_level: alarm.alarm_level,
       alarm_message: alarm.alarm_message,
-      thresholds: thresholds[station.station_code] || null,
+
+      thresholds:
+        thresholds[station.station_code] || null,
     });
   }
 
@@ -729,16 +1103,34 @@ async function handleSaveManual(req, res) {
   const obsTime = toIsoTime(obsTimeRaw);
   const obsHour = toIsoHour(obsTimeRaw);
 
-  const hoiKhachM = num(pickValue(req, body, "hoi_khach_m", null));
-  const aiNghiaM = num(pickValue(req, body, "ai_nghia_m", null));
-  const note = text(pickValue(req, body, "note", ""));
-  const createdBy = text(pickValue(req, body, "created_by", "operator"));
+  const hoiKhachM = num(
+    pickValue(req, body, "hoi_khach_m", null)
+  );
+
+  const aiNghiaM = num(
+    pickValue(req, body, "ai_nghia_m", null)
+  );
+
+  const note = text(
+    pickValue(req, body, "note", "")
+  );
+
+  const createdBy = text(
+    pickValue(
+      req,
+      body,
+      "created_by",
+      "operator"
+    )
+  );
 
   if (hoiKhachM === null && aiNghiaM === null) {
     return json(res, 400, {
       ok: false,
       mode: "save-manual",
-      error: "Cần nhập ít nhất hoi_khach_m hoặc ai_nghia_m",
+      error:
+        "Cần nhập ít nhất hoi_khach_m " +
+        "hoặc ai_nghia_m",
     });
   }
 
@@ -772,7 +1164,8 @@ async function handleSaveManual(req, res) {
 
 async function handleLatestInput(req, res) {
   const rows = await supabaseSelect(
-    "downstream_latest_manual_with_delta?select=*&limit=1"
+    "downstream_latest_manual_with_delta" +
+    "?select=*&limit=1"
   );
 
   const latest = rows?.[0] || null;
@@ -781,40 +1174,81 @@ async function handleLatestInput(req, res) {
     return json(res, 404, {
       ok: false,
       mode: "latest-input",
-      error: "Chưa có số liệu hạ du nhập tay",
+      error:
+        "Chưa có số liệu hạ du nhập tay",
     });
   }
 
   return json(res, 200, {
     ok: true,
     mode: "latest-input",
+
     downstream: {
       id: latest.id,
-      obs_hour: latest.obs_hour || null,
-      obs_time: latest.obs_time || latest.obs_hour || null,
-      Hoi_Khach_m: round(latest.hoi_khach_m, 2),
-      Ai_Nghia_m: round(latest.ai_nghia_m, 2),
-      Hoi_Khach_cm: round(latest.hoi_khach_cm, 2),
-      Ai_Nghia_cm: round(latest.ai_nghia_cm, 2),
-      HK_Delta_1h_cm: round(latest.hk_delta_1h_cm, 2),
-      HK_Delta_3h_cm: round(latest.hk_delta_3h_cm, 2),
-      AN_Delta_1h_cm: round(latest.an_delta_1h_cm, 2),
-      AN_Delta_3h_cm: round(latest.an_delta_3h_cm, 2),
-      source: latest.source || "manual",
-      note: latest.note || "",
-      created_by: latest.created_by || "",
-      created_at: latest.created_at || null,
-      updated_at: latest.updated_at || null,
+
+      obs_hour:
+        latest.obs_hour || null,
+
+      obs_time:
+        latest.obs_time ||
+        latest.obs_hour ||
+        null,
+
+      Hoi_Khach_m:
+        round(latest.hoi_khach_m, 2),
+
+      Ai_Nghia_m:
+        round(latest.ai_nghia_m, 2),
+
+      Hoi_Khach_cm:
+        round(latest.hoi_khach_cm, 2),
+
+      Ai_Nghia_cm:
+        round(latest.ai_nghia_cm, 2),
+
+      HK_Delta_1h_cm:
+        round(latest.hk_delta_1h_cm, 2),
+
+      HK_Delta_3h_cm:
+        round(latest.hk_delta_3h_cm, 2),
+
+      AN_Delta_1h_cm:
+        round(latest.an_delta_1h_cm, 2),
+
+      AN_Delta_3h_cm:
+        round(latest.an_delta_3h_cm, 2),
+
+      source:
+        latest.source || "manual",
+
+      note:
+        latest.note || "",
+
+      created_by:
+        latest.created_by || "",
+
+      created_at:
+        latest.created_at || null,
+
+      updated_at:
+        latest.updated_at || null,
     },
   });
 }
 
 async function handleManualHistory(req, res) {
-  const limit = Math.min(num(req.query.limit, 50), 500);
+  const limit = Math.min(
+    num(req.query.limit, 50),
+    500
+  );
 
   const rows = await supabaseSelect(
     "downstream_manual_observations" +
-    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
+    "?select=id,obs_hour,obs_time," +
+    "hoi_khach_m,ai_nghia_m," +
+    "hoi_khach_cm,ai_nghia_cm," +
+    "source,note,created_by," +
+    "created_at,updated_at" +
     "&source=eq.manual" +
     "&order=obs_hour.desc" +
     `&limit=${limit}`
@@ -833,11 +1267,21 @@ async function handleManualHistory(req, res) {
 ====================================================== */
 
 async function handleDebugTtb(req, res) {
-  const stationId = String(req.query.station_id || "553100");
-  const hours = Math.min(Math.max(num(req.query.hours, 24), 1), 168);
+  const stationId = String(
+    req.query.station_id || "553100"
+  );
+
+  const hours = Math.min(
+    Math.max(num(req.query.hours, 24), 1),
+    168
+  );
 
   const endTime = new Date();
-  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const startTime = new Date(
+    endTime.getTime() -
+    hours * 60 * 60 * 1000
+  );
 
   const result = await fetchTtbStationSeries({
     stationId,
@@ -849,21 +1293,34 @@ async function handleDebugTtb(req, res) {
     timeoutMs: 12000,
   });
 
-  return json(res, result.ok ? 200 : 502, {
-    ok: result.ok,
-    mode: "debug-ttb",
-    station_id: stationId,
-    hours,
-    result,
-  });
+  return json(
+    res,
+    result.ok ? 200 : 502,
+    {
+      ok: result.ok,
+      mode: "debug-ttb",
+      station_id: stationId,
+      hours,
+      result,
+    }
+  );
 }
 
 async function handleSyncTtb(req, res) {
-  const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
-  const dryRun = String(req.query.dry_run || "0") === "1";
+  const hours = Math.min(
+    Math.max(num(req.query.hours, 72), 1),
+    168
+  );
+
+  const dryRun =
+    String(req.query.dry_run || "0") === "1";
 
   const endTime = new Date();
-  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const startTime = new Date(
+    endTime.getTime() -
+    hours * 60 * 60 * 1000
+  );
 
   let hoiKhach = null;
   let aiNghia = null;
@@ -873,26 +1330,28 @@ async function handleSyncTtb(req, res) {
   let upsertedCount = 0;
 
   try {
-    [hoiKhach, aiNghia] = await Promise.all([
-      fetchTtbStationSeries({
-        stationId: "553100",
-        startTime,
-        endTime,
-        tableName: "mucnuoc_oday",
-        stepMinutes: 60,
-        aggregate: 0,
-        timeoutMs: 12000,
-      }),
-      fetchTtbStationSeries({
-        stationId: "553300",
-        startTime,
-        endTime,
-        tableName: "mucnuoc_oday",
-        stepMinutes: 60,
-        aggregate: 0,
-        timeoutMs: 12000,
-      }),
-    ]);
+    [hoiKhach, aiNghia] =
+      await Promise.all([
+        fetchTtbStationSeries({
+          stationId: "553100",
+          startTime,
+          endTime,
+          tableName: "mucnuoc_oday",
+          stepMinutes: 60,
+          aggregate: 0,
+          timeoutMs: 12000,
+        }),
+
+        fetchTtbStationSeries({
+          stationId: "553300",
+          startTime,
+          endTime,
+          tableName: "mucnuoc_oday",
+          stepMinutes: 60,
+          aggregate: 0,
+          timeoutMs: 12000,
+        }),
+      ]);
   } catch (err) {
     return json(res, 500, {
       ok: false,
@@ -907,7 +1366,11 @@ async function handleSyncTtb(req, res) {
       ok: false,
       mode: "sync-ttb",
       stage: "fetch-ttb",
-      error: "Không lấy được dữ liệu từ cả 2 trạm TTB",
+
+      error:
+        "Không lấy được dữ liệu từ " +
+        "cả 2 trạm TTB",
+
       diagnostics: {
         hoi_khach: hoiKhach,
         ai_nghia: aiNghia,
@@ -917,8 +1380,13 @@ async function handleSyncTtb(req, res) {
 
   try {
     mergedRows = mergeObservedStations(
-      hoiKhach?.ok ? hoiKhach.data : [],
-      aiNghia?.ok ? aiNghia.data : []
+      hoiKhach?.ok
+        ? hoiKhach.data
+        : [],
+
+      aiNghia?.ok
+        ? aiNghia.data
+        : []
     );
   } catch (err) {
     return json(res, 500, {
@@ -926,9 +1394,13 @@ async function handleSyncTtb(req, res) {
       mode: "sync-ttb",
       stage: "merge",
       error: err.message,
+
       diagnostics: {
-        hoi_khach_count: hoiKhach?.count || 0,
-        ai_nghia_count: aiNghia?.count || 0,
+        hoi_khach_count:
+          hoiKhach?.count || 0,
+
+        ai_nghia_count:
+          aiNghia?.count || 0,
       },
     });
   }
@@ -938,37 +1410,64 @@ async function handleSyncTtb(req, res) {
       ok: true,
       mode: "sync-ttb",
       stage: "merge",
-      message: "Không có dữ liệu mới để đồng bộ",
+
+      message:
+        "Không có dữ liệu mới để đồng bộ",
+
       mergedCount: 0,
     });
   }
 
-  const startIso = mergedRows[0]?.obs_hour || startTime.toISOString();
-  const endIso = mergedRows[mergedRows.length - 1]?.obs_hour || endTime.toISOString();
+  const startIso =
+    mergedRows[0]?.obs_hour ||
+    startTime.toISOString();
+
+  const endIso =
+    mergedRows[
+      mergedRows.length - 1
+    ]?.obs_hour ||
+    endTime.toISOString();
 
   try {
-    existingRows = await fetchExistingObservedRows(startIso, endIso);
+    existingRows =
+      await fetchExistingObservedRows(
+        startIso,
+        endIso
+      );
   } catch (err) {
     return json(res, 500, {
       ok: false,
       mode: "sync-ttb",
       stage: "db-select",
       error: err.message,
-      period: { start: startIso, end: endIso },
-      mergedCount: mergedRows.length,
+
+      period: {
+        start: startIso,
+        end: endIso,
+      },
+
+      mergedCount:
+        mergedRows.length,
     });
   }
 
   try {
-    plan = buildSyncPlan(mergedRows, existingRows);
+    plan = buildSyncPlan(
+      mergedRows,
+      existingRows
+    );
   } catch (err) {
     return json(res, 500, {
       ok: false,
       mode: "sync-ttb",
       stage: "build-plan",
       error: err.message,
-      existingCount: existingRows.length,
-      mergedCount: mergedRows.length,
+
+      existingCount:
+        existingRows.length,
+
+      mergedCount:
+        mergedRows.length,
     });
   }
 
@@ -978,38 +1477,74 @@ async function handleSyncTtb(req, res) {
       mode: "sync-ttb",
       stage: "dry-run",
       hours,
+
       period: {
         start: startIso,
         end: endIso,
       },
+
       sourceStations: {
         hoi_khach: {
           ok: hoiKhach.ok,
           station_id: "553100",
           count: hoiKhach.count,
-          error: hoiKhach.error || null,
+          error:
+            hoiKhach.error || null,
         },
+
         ai_nghia: {
           ok: aiNghia.ok,
           station_id: "553300",
           count: aiNghia.count,
-          error: aiNghia.error || null,
+          error:
+            aiNghia.error || null,
         },
       },
-      mergedCount: mergedRows.length,
-      existingCount: existingRows.length,
-      toUpsertCount: plan.toUpsert.length,
-      insertedCount: plan.inserted.length,
-      overwrittenApiCount: plan.overwrittenApi.length,
-      skippedManualCount: plan.skippedManual.length,
-      sampleRows: mergedRows.slice(0, 3),
-      sampleUpsertRows: plan.toUpsert.slice(0, 3),
+
+      mergedCount:
+        mergedRows.length,
+
+      existingCount:
+        existingRows.length,
+
+      toUpsertCount:
+        plan.toUpsert.length,
+
+      insertedCount:
+        plan.inserted.length,
+
+      overwrittenApiCount:
+        plan.overwrittenApi.length,
+
+      skippedManualCount:
+        plan.skippedManual.length,
+
+      sampleRows:
+        mergedRows.slice(0, 3),
+
+      sampleUpsertRows:
+        plan.toUpsert
+          .slice(0, 3)
+          .map(normalizeObservedUpsertRow),
+
+      sampleUpsertKeys:
+        plan.toUpsert[0]
+          ? Object.keys(
+              normalizeObservedUpsertRow(
+                plan.toUpsert[0]
+              )
+            ).sort()
+          : [],
     });
   }
 
   try {
     if (plan.toUpsert.length) {
-      upsertedCount = await upsertObservedRowsInBatches(plan.toUpsert, 3);
+      upsertedCount =
+        await upsertObservedRowsInBatches(
+          plan.toUpsert,
+          3
+        );
     }
   } catch (err) {
     return json(res, 500, {
@@ -1017,14 +1552,36 @@ async function handleSyncTtb(req, res) {
       mode: "sync-ttb",
       stage: "db-upsert",
       error: err.message,
+
       period: {
         start: startIso,
         end: endIso,
       },
-      mergedCount: mergedRows.length,
-      existingCount: existingRows.length,
-      toUpsertCount: plan.toUpsert.length,
-      firstUpsertRow: plan.toUpsert[0] || null,
+
+      mergedCount:
+        mergedRows.length,
+
+      existingCount:
+        existingRows.length,
+
+      toUpsertCount:
+        plan.toUpsert.length,
+
+      firstUpsertRow:
+        plan.toUpsert[0]
+          ? normalizeObservedUpsertRow(
+              plan.toUpsert[0]
+            )
+          : null,
+
+      firstUpsertRowKeys:
+        plan.toUpsert[0]
+          ? Object.keys(
+              normalizeObservedUpsertRow(
+                plan.toUpsert[0]
+              )
+            ).sort()
+          : [],
     });
   }
 
@@ -1033,39 +1590,62 @@ async function handleSyncTtb(req, res) {
     mode: "sync-ttb",
     stage: "done",
     hours,
+
     period: {
       start: startIso,
       end: endIso,
     },
+
     sourceStations: {
       hoi_khach: {
         ok: hoiKhach.ok,
         station_id: "553100",
         count: hoiKhach.count,
-        error: hoiKhach.error || null,
+        error:
+          hoiKhach.error || null,
       },
+
       ai_nghia: {
         ok: aiNghia.ok,
         station_id: "553300",
         count: aiNghia.count,
-        error: aiNghia.error || null,
+        error:
+          aiNghia.error || null,
       },
     },
-    mergedCount: mergedRows.length,
-    existingCount: existingRows.length,
-    insertedCount: plan.inserted.length,
-    overwrittenApiCount: plan.overwrittenApi.length,
-    skippedManualCount: plan.skippedManual.length,
+
+    mergedCount:
+      mergedRows.length,
+
+    existingCount:
+      existingRows.length,
+
+    insertedCount:
+      plan.inserted.length,
+
+    overwrittenApiCount:
+      plan.overwrittenApi.length,
+
+    skippedManualCount:
+      plan.skippedManual.length,
+
     upsertedCount,
-    skippedManual: plan.skippedManual,
+
+    skippedManual:
+      plan.skippedManual,
   });
 }
 
 async function handleObservedLatest(req, res) {
   const rows = await supabaseSelect(
     "downstream_manual_observations" +
-    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
-    "&order=obs_hour.desc&limit=1"
+    "?select=id,obs_hour,obs_time," +
+    "hoi_khach_m,ai_nghia_m," +
+    "hoi_khach_cm,ai_nghia_cm," +
+    "source,note,created_by," +
+    "created_at,updated_at" +
+    "&order=obs_hour.desc" +
+    "&limit=1"
   );
 
   const latest = rows?.[0] || null;
@@ -1074,7 +1654,8 @@ async function handleObservedLatest(req, res) {
     return json(res, 404, {
       ok: false,
       mode: "observed-latest",
-      error: "Chưa có dữ liệu observed",
+      error:
+        "Chưa có dữ liệu observed",
     });
   }
 
@@ -1091,16 +1672,31 @@ async function handleObservedLatest(req, res) {
 }
 
 async function handleObservedHistory(req, res) {
-  const hours = Math.min(Math.max(num(req.query.hours, 72), 1), 168);
+  const hours = Math.min(
+    Math.max(num(req.query.hours, 72), 1),
+    168
+  );
 
   const endTime = new Date();
-  const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
+
+  const startTime = new Date(
+    endTime.getTime() -
+    hours * 60 * 60 * 1000
+  );
 
   const rows = await supabaseSelect(
     "downstream_manual_observations" +
-    "?select=id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m,hoi_khach_cm,ai_nghia_cm,source,note,created_by,created_at,updated_at" +
-    `&obs_hour=gte.${encodeURIComponent(startTime.toISOString())}` +
-    `&obs_hour=lte.${encodeURIComponent(endTime.toISOString())}` +
+    "?select=id,obs_hour,obs_time," +
+    "hoi_khach_m,ai_nghia_m," +
+    "hoi_khach_cm,ai_nghia_cm," +
+    "source,note,created_by," +
+    "created_at,updated_at" +
+    `&obs_hour=gte.${encodeURIComponent(
+      startTime.toISOString()
+    )}` +
+    `&obs_hour=lte.${encodeURIComponent(
+      endTime.toISOString()
+    )}` +
     "&order=obs_hour.asc"
   );
 
@@ -1123,9 +1719,14 @@ async function handleObservedHistory(req, res) {
 ====================================================== */
 
 function getStationConfig(station) {
-  const s = String(station || "").toUpperCase();
+  const s = String(
+    station || ""
+  ).toUpperCase();
 
-  if (s === "HK" || s === "HOI_KHACH") {
+  if (
+    s === "HK" ||
+    s === "HOI_KHACH"
+  ) {
     return {
       station_code: "HOI_KHACH",
       station_name: "Hội Khách",
@@ -1133,7 +1734,10 @@ function getStationConfig(station) {
     };
   }
 
-  if (s === "AN" || s === "AI_NGHIA") {
+  if (
+    s === "AN" ||
+    s === "AI_NGHIA"
+  ) {
     return {
       station_code: "AI_NGHIA",
       station_name: "Ái Nghĩa",
@@ -1171,19 +1775,59 @@ function buildBacktestPath({
     ].join(",")
   );
 
-  params.set("station_code", `eq.${station_code}`);
-  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
-  if (split) params.set("split", `eq.${String(split).toUpperCase()}`);
-  if (startDate) params.append("forecast_time", `gte.${startDate}T00:00:00+00:00`);
-  if (endDate) params.append("forecast_time", `lte.${endDate}T23:59:59+00:00`);
+  params.set(
+    "station_code",
+    `eq.${station_code}`
+  );
 
-  params.set("order", "forecast_time.asc");
-  params.set("limit", String(limit));
+  if (horizon) {
+    params.set(
+      "horizon_hours",
+      `eq.${horizon}`
+    );
+  }
 
-  return `downstream_forecast_backtest?${params.toString()}`;
+  if (split) {
+    params.set(
+      "split",
+      `eq.${String(split).toUpperCase()}`
+    );
+  }
+
+  if (startDate) {
+    params.append(
+      "forecast_time",
+      `gte.${startDate}T00:00:00+00:00`
+    );
+  }
+
+  if (endDate) {
+    params.append(
+      "forecast_time",
+      `lte.${endDate}T23:59:59+00:00`
+    );
+  }
+
+  params.set(
+    "order",
+    "forecast_time.asc"
+  );
+
+  params.set(
+    "limit",
+    String(limit)
+  );
+
+  return (
+    "downstream_forecast_backtest?" +
+    params.toString()
+  );
 }
 
-function buildSummaryPath({ station_code, horizon }) {
+function buildSummaryPath({
+  station_code,
+  horizon,
+}) {
   const params = new URLSearchParams();
 
   params.set(
@@ -1203,14 +1847,33 @@ function buildSummaryPath({ station_code, horizon }) {
     ].join(",")
   );
 
-  params.set("station_code", `eq.${station_code}`);
-  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
-  params.set("order", "horizon_hours.asc,split.asc");
+  params.set(
+    "station_code",
+    `eq.${station_code}`
+  );
 
-  return `downstream_forecast_backtest_summary?${params.toString()}`;
+  if (horizon) {
+    params.set(
+      "horizon_hours",
+      `eq.${horizon}`
+    );
+  }
+
+  params.set(
+    "order",
+    "horizon_hours.asc,split.asc"
+  );
+
+  return (
+    "downstream_forecast_backtest_summary?" +
+    params.toString()
+  );
 }
 
-function buildMetricsPath({ station_code, horizon }) {
+function buildMetricsPath({
+  station_code,
+  horizon,
+}) {
   const params = new URLSearchParams();
 
   params.set(
@@ -1235,11 +1898,27 @@ function buildMetricsPath({ station_code, horizon }) {
     ].join(",")
   );
 
-  params.set("station_code", `eq.${station_code}`);
-  if (horizon) params.set("horizon_hours", `eq.${horizon}`);
-  params.set("order", "horizon_hours.asc");
+  params.set(
+    "station_code",
+    `eq.${station_code}`
+  );
 
-  return `downstream_forecast_model_metrics?${params.toString()}`;
+  if (horizon) {
+    params.set(
+      "horizon_hours",
+      `eq.${horizon}`
+    );
+  }
+
+  params.set(
+    "order",
+    "horizon_hours.asc"
+  );
+
+  return (
+    "downstream_forecast_model_metrics?" +
+    params.toString()
+  );
 }
 
 function summarizeRows(rows) {
@@ -1255,55 +1934,123 @@ function summarizeRows(rows) {
     };
   }
 
-  const errors = rows.map((x) => Number(x.error_cm)).filter(Number.isFinite);
-  const absErrors = rows.map((x) => Number(x.abs_error_cm)).filter(Number.isFinite);
+  const errors = rows
+    .map((x) => Number(x.error_cm))
+    .filter(Number.isFinite);
 
-  const bias = errors.length ? errors.reduce((a, b) => a + b, 0) / errors.length : null;
-  const mae = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
-  const rmse = errors.length
-    ? Math.sqrt(errors.reduce((a, b) => a + b * b, 0) / errors.length)
+  const absErrors = rows
+    .map((x) => Number(x.abs_error_cm))
+    .filter(Number.isFinite);
+
+  const bias = errors.length
+    ? errors.reduce(
+        (a, b) => a + b,
+        0
+      ) / errors.length
     : null;
-  const maxAbs = absErrors.length ? Math.max(...absErrors) : null;
+
+  const mae = absErrors.length
+    ? absErrors.reduce(
+        (a, b) => a + b,
+        0
+      ) / absErrors.length
+    : null;
+
+  const rmse = errors.length
+    ? Math.sqrt(
+        errors.reduce(
+          (a, b) => a + b * b,
+          0
+        ) / errors.length
+      )
+    : null;
+
+  const maxAbs = absErrors.length
+    ? Math.max(...absErrors)
+    : null;
 
   return {
     n_rows: rows.length,
     bias_cm: round(bias, 2),
     mae_cm: round(mae, 2),
     rmse_cm: round(rmse, 2),
-    max_abs_error_cm: round(maxAbs, 2),
-    min_forecast_time: rows[0]?.forecast_time || null,
-    max_forecast_time: rows[rows.length - 1]?.forecast_time || null,
+    max_abs_error_cm:
+      round(maxAbs, 2),
+
+    min_forecast_time:
+      rows[0]?.forecast_time || null,
+
+    max_forecast_time:
+      rows[
+        rows.length - 1
+      ]?.forecast_time || null,
   };
 }
 
 async function handleBacktest(req, res) {
-  const stationInput = text(req.query.station || req.query.station_code || "HOI_KHACH");
-  const station = getStationConfig(stationInput);
+  const stationInput = text(
+    req.query.station ||
+    req.query.station_code ||
+    "HOI_KHACH"
+  );
+
+  const station =
+    getStationConfig(stationInput);
 
   if (!station) {
     return json(res, 400, {
       ok: false,
       error: "station không hợp lệ",
-      supported_station: ["HOI_KHACH", "AI_NGHIA"],
+
+      supported_station: [
+        "HOI_KHACH",
+        "AI_NGHIA",
+      ],
     });
   }
 
-  const horizon = num(req.query.horizon || req.query.horizon_hours, null);
-  if (horizon !== null && ![4, 6, 12].includes(horizon)) {
+  const horizon = num(
+    req.query.horizon ||
+    req.query.horizon_hours,
+    null
+  );
+
+  if (
+    horizon !== null &&
+    ![4, 6, 12].includes(horizon)
+  ) {
     return json(res, 400, {
       ok: false,
-      error: "horizon không hợp lệ, chỉ hỗ trợ 4, 6, 12",
+      error:
+        "horizon không hợp lệ, " +
+        "chỉ hỗ trợ 4, 6, 12",
     });
   }
 
-  const startDate = toDateOnly(req.query.start || "2025-09-01");
-  const endDate = toDateOnly(req.query.end || "2025-12-31");
-  const split = req.query.split ? String(req.query.split).toUpperCase() : "";
-  const limit = Math.min(num(req.query.limit, 5000), 20000);
+  const startDate = toDateOnly(
+    req.query.start || "2025-09-01"
+  );
+
+  const endDate = toDateOnly(
+    req.query.end || "2025-12-31"
+  );
+
+  const split = req.query.split
+    ? String(
+        req.query.split
+      ).toUpperCase()
+    : "";
+
+  const limit = Math.min(
+    num(req.query.limit, 5000),
+    20000
+  );
 
   const rows = await supabaseSelect(
     buildBacktestPath({
-      station_code: station.station_code,
+      station_code:
+        station.station_code,
+
       horizon,
       startDate,
       endDate,
@@ -1313,17 +2060,47 @@ async function handleBacktest(req, res) {
   );
 
   const normalized = rows.map((x) => ({
-    model_code: x.model_code,
-    station_code: x.station_code,
-    horizon_hours: x.horizon_hours,
-    split: x.split,
-    forecast_time: x.forecast_time,
-    target_time: x.target_time,
-    current_water_level_cm: round(x.current_water_level_cm, 2),
-    forecast_water_level_cm: round(x.forecast_water_level_cm, 2),
-    actual_water_level_cm: round(x.actual_water_level_cm, 2),
-    error_cm: round(x.error_cm, 2),
-    abs_error_cm: round(x.abs_error_cm, 2),
+    model_code:
+      x.model_code,
+
+    station_code:
+      x.station_code,
+
+    horizon_hours:
+      x.horizon_hours,
+
+    split:
+      x.split,
+
+    forecast_time:
+      x.forecast_time,
+
+    target_time:
+      x.target_time,
+
+    current_water_level_cm:
+      round(
+        x.current_water_level_cm,
+        2
+      ),
+
+    forecast_water_level_cm:
+      round(
+        x.forecast_water_level_cm,
+        2
+      ),
+
+    actual_water_level_cm:
+      round(
+        x.actual_water_level_cm,
+        2
+      ),
+
+    error_cm:
+      round(x.error_cm, 2),
+
+    abs_error_cm:
+      round(x.abs_error_cm, 2),
   }));
 
   return json(
@@ -1332,43 +2109,98 @@ async function handleBacktest(req, res) {
     {
       ok: true,
       mode: "backtest",
-      station_code: station.station_code,
-      station_name: station.station_name,
-      horizon_hours: horizon,
-      start: startDate,
-      end: endDate,
-      split: split || "ALL",
+
+      station_code:
+        station.station_code,
+
+      station_name:
+        station.station_name,
+
+      horizon_hours:
+        horizon,
+
+      start:
+        startDate,
+
+      end:
+        endDate,
+
+      split:
+        split || "ALL",
+
       limit,
-      summary: summarizeRows(normalized),
-      data: normalized,
+
+      summary:
+        summarizeRows(normalized),
+
+      data:
+        normalized,
     },
     "s-maxage=300, stale-while-revalidate=600"
   );
 }
 
 async function handleSummary(req, res) {
-  const stationInput = text(req.query.station || req.query.station_code || "HOI_KHACH");
-  const station = getStationConfig(stationInput);
+  const stationInput = text(
+    req.query.station ||
+    req.query.station_code ||
+    "HOI_KHACH"
+  );
+
+  const station =
+    getStationConfig(stationInput);
 
   if (!station) {
     return json(res, 400, {
       ok: false,
       error: "station không hợp lệ",
-      supported_station: ["HOI_KHACH", "AI_NGHIA"],
+
+      supported_station: [
+        "HOI_KHACH",
+        "AI_NGHIA",
+      ],
     });
   }
 
-  const horizon = num(req.query.horizon || req.query.horizon_hours, null);
-  if (horizon !== null && ![4, 6, 12].includes(horizon)) {
+  const horizon = num(
+    req.query.horizon ||
+    req.query.horizon_hours,
+    null
+  );
+
+  if (
+    horizon !== null &&
+    ![4, 6, 12].includes(horizon)
+  ) {
     return json(res, 400, {
       ok: false,
-      error: "horizon không hợp lệ, chỉ hỗ trợ 4, 6, 12",
+      error:
+        "horizon không hợp lệ, " +
+        "chỉ hỗ trợ 4, 6, 12",
     });
   }
 
-  const [summaryRows, metricsRows] = await Promise.all([
-    supabaseSelect(buildSummaryPath({ station_code: station.station_code, horizon })),
-    supabaseSelect(buildMetricsPath({ station_code: station.station_code, horizon })),
+  const [
+    summaryRows,
+    metricsRows,
+  ] = await Promise.all([
+    supabaseSelect(
+      buildSummaryPath({
+        station_code:
+          station.station_code,
+
+        horizon,
+      })
+    ),
+
+    supabaseSelect(
+      buildMetricsPath({
+        station_code:
+          station.station_code,
+
+        horizon,
+      })
+    ),
   ]);
 
   return json(
@@ -1377,11 +2209,21 @@ async function handleSummary(req, res) {
     {
       ok: true,
       mode: "summary",
-      station_code: station.station_code,
-      station_name: station.station_name,
-      horizon_hours: horizon,
-      summary: summaryRows,
-      metrics: metricsRows,
+
+      station_code:
+        station.station_code,
+
+      station_name:
+        station.station_name,
+
+      horizon_hours:
+        horizon,
+
+      summary:
+        summaryRows,
+
+      metrics:
+        metricsRows,
     },
     "s-maxage=300, stale-while-revalidate=600"
   );
@@ -1394,79 +2236,172 @@ async function handleSummary(req, res) {
 export default async function handler(req, res) {
   try {
     if (req.method === "OPTIONS") {
-      return json(res, 200, { ok: true });
-    }
-
-    if (req.query.debug === "env") {
       return json(res, 200, {
         ok: true,
-        has_SUPABASE_URL: !!SUPABASE_URL,
-        has_SUPABASE_SERVICE_ROLE_KEY: !!SUPABASE_KEY,
       });
     }
 
-    const mode = String(req.query.mode || "forecast").toLowerCase();
+    /*
+      Chỉ trả boolean kiểm tra biến môi trường.
+      Không trả service role key ra frontend.
+    */
+    if (req.query.debug === "env") {
+      return json(res, 200, {
+        ok: true,
+
+        has_SUPABASE_URL:
+          !!SUPABASE_URL,
+
+        has_SUPABASE_SERVICE_ROLE_KEY:
+          !!SUPABASE_KEY,
+      });
+    }
+
+    const mode = String(
+      req.query.mode || "forecast"
+    ).toLowerCase();
 
     if (mode === "save-manual") {
-      if (req.method !== "POST" && req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "save-manual chỉ hỗ trợ POST hoặc GET" });
+      if (
+        req.method !== "POST" &&
+        req.method !== "GET"
+      ) {
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "save-manual chỉ hỗ trợ " +
+            "POST hoặc GET",
+        });
       }
+
       return handleSaveManual(req, res);
     }
 
-    if (mode === "latest-input" || mode === "current-input") {
+    if (
+      mode === "latest-input" ||
+      mode === "current-input"
+    ) {
       if (req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "latest-input chỉ hỗ trợ GET" });
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "latest-input chỉ hỗ trợ GET",
+        });
       }
+
       return handleLatestInput(req, res);
     }
 
     if (mode === "manual-history") {
       if (req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "manual-history chỉ hỗ trợ GET" });
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "manual-history chỉ hỗ trợ GET",
+        });
       }
+
       return handleManualHistory(req, res);
     }
 
     if (mode === "debug-ttb") {
       if (req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "debug-ttb chỉ hỗ trợ GET" });
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "debug-ttb chỉ hỗ trợ GET",
+        });
       }
+
       return handleDebugTtb(req, res);
     }
 
     if (mode === "sync-ttb") {
-      if (req.method !== "GET" && req.method !== "POST") {
-        return json(res, 405, { ok: false, mode, error: "sync-ttb chỉ hỗ trợ GET hoặc POST" });
+      if (
+        req.method !== "GET" &&
+        req.method !== "POST"
+      ) {
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "sync-ttb chỉ hỗ trợ " +
+            "GET hoặc POST",
+        });
       }
+
       return handleSyncTtb(req, res);
     }
 
     if (mode === "observed-latest") {
       if (req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "observed-latest chỉ hỗ trợ GET" });
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "observed-latest chỉ hỗ trợ GET",
+        });
       }
+
       return handleObservedLatest(req, res);
     }
 
     if (mode === "observed-history") {
       if (req.method !== "GET") {
-        return json(res, 405, { ok: false, mode, error: "observed-history chỉ hỗ trợ GET" });
+        return json(res, 405, {
+          ok: false,
+          mode,
+
+          error:
+            "observed-history chỉ hỗ trợ GET",
+        });
       }
+
       return handleObservedHistory(req, res);
     }
 
     if (req.method !== "GET") {
-      return json(res, 405, { ok: false, error: "Method not allowed" });
+      return json(res, 405, {
+        ok: false,
+        error: "Method not allowed",
+      });
     }
 
-    if (mode === "forecast" || mode === "predict") return handleForecast(req, res);
-    if (mode === "backtest" || mode === "history") return handleBacktest(req, res);
-    if (mode === "summary" || mode === "metrics") return handleSummary(req, res);
+    if (
+      mode === "forecast" ||
+      mode === "predict"
+    ) {
+      return handleForecast(req, res);
+    }
+
+    if (
+      mode === "backtest" ||
+      mode === "history"
+    ) {
+      return handleBacktest(req, res);
+    }
+
+    if (
+      mode === "summary" ||
+      mode === "metrics"
+    ) {
+      return handleSummary(req, res);
+    }
 
     return json(res, 400, {
       ok: false,
       error: "mode không hợp lệ",
+
       supported_modes: [
         "forecast",
         "backtest",
@@ -1484,9 +2419,18 @@ export default async function handler(req, res) {
   } catch (err) {
     return json(res, 500, {
       ok: false,
-      mode: req.query.mode || "forecast",
-      error: err.message,
-      hint: "Kiểm tra stage sync, payload upsert và schema bảng downstream_manual_observations",
+
+      mode:
+        req.query.mode || "forecast",
+
+      error:
+        err?.message ||
+        "Lỗi máy chủ không xác định",
+
+      hint:
+        "Kiểm tra stage sync, payload upsert " +
+        "và schema bảng " +
+        "downstream_manual_observations",
     });
   }
 }
