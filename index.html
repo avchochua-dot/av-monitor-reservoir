@@ -6932,7 +6932,7 @@ body.slideshow-frame-mode section{
 
 
 /* =========================================================
-   DOWNSTREAM PUBLIC FLOOD MARK LOOKUP - V86
+   DOWNSTREAM PUBLIC FLOOD MARK LOOKUP - V87
    UX: Xã -> mốc AVC -> so sánh với đỉnh lũ 2025 tại trạm tham chiếu
    ========================================================= */
 .downstream-public-section{
@@ -7304,6 +7304,80 @@ body.slideshow-frame-mode section{
   text-decoration:none;
   font-size:11px;
   font-weight:1000;
+}
+
+.ds-public-map-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.ds-public-map-link.primary{
+  margin-top:0;
+  padding:8px 12px;
+  border-radius:13px;
+  background:#2563eb;
+  color:#fff;
+  border:1px solid #2563eb;
+  box-shadow:0 9px 20px rgba(37,99,235,.16);
+}
+.ds-public-map-link.secondary{
+  margin-top:0;
+  padding:8px 12px;
+  border-radius:13px;
+  background:#fff;
+  color:#2563eb;
+  border:1px solid rgba(37,99,235,.20);
+}
+.ds-public-mymaps-panel{
+  margin-top:12px;
+  padding:12px;
+  border-radius:18px;
+  border:1px solid rgba(15,23,42,.08);
+  background:#f8fafc;
+}
+.ds-public-mymaps-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:9px;
+}
+.ds-public-mymaps-head b{
+  color:#0f172a;
+  font-size:12px;
+  font-weight:1000;
+}
+.ds-public-mymaps-head span{
+  display:block;
+  margin-top:3px;
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:800;
+  line-height:1.4;
+}
+.ds-public-mymaps-frame{
+  width:100%;
+  height:420px;
+  border:0;
+  display:block;
+  border-radius:15px;
+  background:#e2e8f0;
+}
+.ds-public-mymaps-note{
+  margin-top:8px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:780;
+  line-height:1.45;
+}
+@media(max-width:640px){
+  .ds-public-map-actions{display:grid;grid-template-columns:1fr}
+  .ds-public-map-link.primary,
+  .ds-public-map-link.secondary{justify-content:center;width:100%}
+  .ds-public-mymaps-frame{height:320px}
 }
 .ds-public-disclaimer{
   margin-top:12px;
@@ -9260,7 +9334,7 @@ body.slideshow-frame-mode section{
           </section>
 
           
-          <!-- V86: Public flood-mark lookup by commune -->
+          <!-- V87: Public flood-mark lookup by commune + My Maps -->
           <section class="downstream-card downstream-public-section" id="dsPublicLookup">
             <div class="downstream-head">
               <div class="downstream-title">
@@ -16113,6 +16187,47 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     selectedMark: null
   };
 
+  /* V87: Bản đồ mốc lũ Google My Maps do A Vương quản lý.
+     URL My Maps dùng center/zoom theo tọa độ AVC để người dân đi thẳng
+     vào đúng khu vực mốc, thay vì mở Google Maps thường theo tọa độ. */
+  const DOWNSTREAM_FLOOD_MYMAPS_ID =
+    "1OuvFULZypRbV6ABno2txIHFKzQ6nIhc";
+
+  function buildDownstreamFloodMyMapsViewerUrl(lat, lon, zoom = 18){
+    const y = Number(lat);
+    const x = Number(lon);
+    if(!Number.isFinite(y) || !Number.isFinite(x)) return "";
+    return (
+      "https://www.google.com/maps/d/viewer" +
+      "?mid=" + encodeURIComponent(DOWNSTREAM_FLOOD_MYMAPS_ID) +
+      "&femb=1" +
+      "&ll=" + encodeURIComponent(`${y},${x}`) +
+      "&z=" + encodeURIComponent(String(zoom))
+    );
+  }
+
+  function buildDownstreamFloodMyMapsEmbedUrl(lat, lon, zoom = 18){
+    const y = Number(lat);
+    const x = Number(lon);
+    if(!Number.isFinite(y) || !Number.isFinite(x)) return "";
+    return (
+      "https://www.google.com/maps/d/embed" +
+      "?mid=" + encodeURIComponent(DOWNSTREAM_FLOOD_MYMAPS_ID) +
+      "&ll=" + encodeURIComponent(`${y},${x}`) +
+      "&z=" + encodeURIComponent(String(zoom))
+    );
+  }
+
+  function buildDownstreamGoogleDirectionsUrl(lat, lon){
+    const y = Number(lat);
+    const x = Number(lon);
+    if(!Number.isFinite(y) || !Number.isFinite(x)) return "";
+    return (
+      "https://www.google.com/maps/dir/?api=1" +
+      "&destination=" + encodeURIComponent(`${y},${x}`)
+    );
+  }
+
   function dsPublicEscapeHtml(value){
     return String(value ?? "").replace(/[&<>"']/g, ch => ({
       "&":"&amp;",
@@ -16494,8 +16609,15 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     const lat = Number(mark.latitude);
     const lon = Number(mark.longitude);
-    const mapLink = Number.isFinite(lat) && Number.isFinite(lon)
-      ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}`
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+    const myMapsLink = hasCoords
+      ? buildDownstreamFloodMyMapsViewerUrl(lat, lon, 18)
+      : "";
+    const myMapsEmbed = hasCoords
+      ? buildDownstreamFloodMyMapsEmbedUrl(lat, lon, 18)
+      : "";
+    const directionsLink = hasCoords
+      ? buildDownstreamGoogleDirectionsUrl(lat, lon)
       : "";
 
     box.innerHTML = `
@@ -16504,7 +16626,16 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           <div class="ds-public-detail-code">${dsPublicEscapeHtml(mark.mark_code || "--")}</div>
           <div class="ds-public-detail-place">${dsPublicEscapeHtml(mark.village || "Vị trí mốc lũ")} · Xã ${dsPublicEscapeHtml(downstreamPublicState.selectedCommune || "--")}</div>
           <div class="ds-public-detail-location">📍 ${dsPublicEscapeHtml(mark.location_desc || "Chưa có mô tả vị trí")}</div>
-          ${mapLink ? `<a class="ds-public-map-link" href="${mapLink}" target="_blank" rel="noopener noreferrer">🗺️ Mở vị trí mốc trên Google Maps</a>` : ""}
+          ${hasCoords ? `
+            <div class="ds-public-map-actions">
+              <a class="ds-public-map-link primary" href="${myMapsLink}" target="_blank" rel="noopener noreferrer">
+                🗺️ Xem ${dsPublicEscapeHtml(mark.mark_code || "mốc")} trên bản đồ mốc lũ
+              </a>
+              <a class="ds-public-map-link secondary" href="${directionsLink}" target="_blank" rel="noopener noreferrer">
+                🧭 Chỉ đường tới mốc
+              </a>
+            </div>
+          ` : ""}
         </div>
         <div class="ds-public-detail-body">
           <div class="ds-public-meta-grid">
@@ -16521,6 +16652,27 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
               <b>${Number.isFinite(lat) && Number.isFinite(lon) ? `${lat.toFixed(6)}, ${lon.toFixed(6)}` : "--"}</b>
             </div>
           </div>
+
+          ${myMapsEmbed ? `
+            <div class="ds-public-mymaps-panel">
+              <div class="ds-public-mymaps-head">
+                <div>
+                  <b>🗺️ Bản đồ mốc lũ hạ du A Vương</b>
+                  <span>Đang căn giữa theo tọa độ ${dsPublicEscapeHtml(mark.mark_code || "AVC")} để đối chiếu với các mốc lân cận trên Google My Maps.</span>
+                </div>
+              </div>
+              <iframe
+                class="ds-public-mymaps-frame"
+                src="${myMapsEmbed}"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Bản đồ mốc lũ ${dsPublicEscapeHtml(mark.mark_code || "AVC")}">
+              </iframe>
+              <div class="ds-public-mymaps-note">
+                Google My Maps được mở tại tâm tọa độ của mốc. Tùy trình duyệt/Google Maps, bong bóng chi tiết của marker có thể cần bấm trực tiếp trên bản đồ.
+              </div>
+            </div>
+          ` : ""}
 
           <div class="ds-public-reference-box" style="margin-bottom:0">
             ${renderDownstreamPublicForecast(reference, true)}
