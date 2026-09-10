@@ -933,27 +933,25 @@ function getAlarmLevel(forecasts, threshold) {
   };
 }
 
-async function handleForecast(req, res) {
-  const forecastTime = req.query.time
-    ? new Date(String(req.query.time))
+async function calculateDownstreamForecastData(query) {
+  const forecastTime = query.time
+    ? new Date(String(query.time))
     : new Date();
 
   if (Number.isNaN(forecastTime.getTime())) {
-    return json(res, 400, {
-      ok: false,
-      error: "Tham số time không hợp lệ",
-    });
+    const err = new Error("Tham số time không hợp lệ");
+    err.statusCode = 400;
+    throw err;
   }
 
-  const input = getInputVariables(req.query);
+  const input = getInputVariables(query);
   const valid = validateInput(input);
 
   if (!valid.ok) {
-    return json(res, 400, {
-      ok: false,
-      error: "Thiếu biến đầu vào",
-      missing: valid.missing,
-    });
+    const err = new Error("Thiếu biến đầu vào");
+    err.statusCode = 400;
+    err.missing = valid.missing;
+    throw err;
   }
 
   const [
@@ -1078,12 +1076,784 @@ async function handleForecast(req, res) {
     });
   }
 
-  return json(res, 200, {
-    ok: true,
-    mode: "forecast",
+  return {
     forecast_time: forecastTime.toISOString(),
     input,
     stations,
+  };
+}
+
+async function handleForecast(req, res) {
+  try {
+    const result =
+      await calculateDownstreamForecastData(req.query);
+
+    return json(res, 200, {
+      ok: true,
+      mode: "forecast",
+      ...result,
+    });
+  } catch (err) {
+    if (err?.statusCode === 400) {
+      return json(res, 400, {
+        ok: false,
+        mode: "forecast",
+        error: err.message,
+        missing: err.missing || undefined,
+      });
+    }
+
+    throw err;
+  }
+}
+
+/* ======================================================
+   PUBLIC FLOOD-MARK LOOKUP
+   UX: Xã -> Mốc AVC -> So sánh với đỉnh lũ 2025
+====================================================== */
+
+const PUBLIC_COMMUNE_ORDER = [
+  "Thượng Đức",
+  "Hà Nha",
+  "Đại Lộc",
+  "Vu Gia",
+  "Phú Thuận",
+];
+
+const PUBLIC_MARK_VIEW =
+  "v_downstream_flood_mark_reference";
+
+const PUBLIC_MARK_SELECT = [
+  "mark_code",
+  "commune",
+  "village",
+  "location_desc",
+  "latitude",
+  "longitude",
+  "reference_station",
+  "reference_station_name",
+  "reference_flood_2025_level_m",
+  "comparison_mode",
+  "active",
+].join(",");
+
+async function loadPublicFloodMarks({
+  commune = null,
+  markCode = null,
+} = {}) {
+  const params = new URLSearchParams();
+
+  params.set("select", PUBLIC_MARK_SELECT);
+  params.set("active", "eq.true");
+
+  if (commune) {
+    params.set(
+      "commune",
+      `eq.${String(commune)}`
+    );
+  }
+
+  if (markCode) {
+    params.set(
+      "mark_code",
+      `eq.${String(markCode).toUpperCase()}`
+    );
+  }
+
+  params.set("order", "mark_code.asc");
+
+  return supabaseSelect(
+    `${PUBLIC_MARK_VIEW}?${params.toString()}`
+  );
+}
+
+function normalizePublicMark(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    mark_code: row.mark_code || null,
+    commune: row.commune || null,
+    village: row.village || null,
+    location_desc: row.location_desc || null,
+    latitude: num(row.latitude, null),
+    longitude: num(row.longitude, null),
+    reference_station:
+      row.reference_station || null,
+    reference_station_name:
+      row.reference_station_name || null,
+    reference_flood_2025_level_m:
+      round(
+        row.reference_flood_2025_level_m,
+        3
+      ),
+    comparison_mode:
+      row.comparison_mode ||
+      "REFERENCE_STATION_2025",
+  };
+}
+
+function compareWithFlood2025(
+  waterLevelCm,
+  flood2025LevelM
+) {
+  const waterCm = num(waterLevelCm, null);
+  const refM = num(flood2025LevelM, null);
+
+  if (waterCm === null || refM === null) {
+    return {
+      difference_2025_cm: null,
+      comparison: "UNKNOWN",
+      comparison_text:
+        "Chưa đủ dữ liệu để so sánh với lũ năm 2025",
+    };
+  }
+
+  const referenceCm = refM * 100;
+  const deltaCm = round(
+    waterCm - referenceCm,
+    1
+  );
+
+  let comparison = "EQUAL_2025";
+  let comparisonText =
+    "xấp xỉ mức lũ năm 2025";
+
+  if (deltaCm > 0) {
+    comparison = "ABOVE_2025";
+    comparisonText =
+      `cao hơn mức lũ năm 2025 khoảng ` +
+      `${round(Math.abs(deltaCm), 1)} cm`;
+  } else if (deltaCm < 0) {
+    comparison = "BELOW_2025";
+    comparisonText =
+      `thấp hơn mức lũ năm 2025 khoảng ` +
+      `${round(Math.abs(deltaCm), 1)} cm`;
+  }
+
+  return {
+    difference_2025_cm:
+      deltaCm,
+
+    comparison,
+
+    comparison_text:
+      comparisonText,
+  };
+}
+
+function buildPublicStationForecast(
+  station,
+  flood2025LevelM
+) {
+  if (!station) {
+    return {
+      available: false,
+      reason: "STATION_FORECAST_NOT_FOUND",
+    };
+  }
+
+  const current = {
+    current_level_m:
+      round(
+        num(
+          station.current_water_level_cm,
+          null
+        ) / 100,
+        2
+      ),
+
+    ...compareWithFlood2025(
+      station.current_water_level_cm,
+      flood2025LevelM
+    ),
+  };
+
+  const forecasts = (
+    station.forecasts || []
+  ).map((item) => ({
+    horizon_hours:
+      item.horizon_hours,
+
+    target_time:
+      item.target_time,
+
+    forecast_level_m:
+      round(
+        num(
+          item.forecast_water_level_cm,
+          null
+        ) / 100,
+        2
+      ),
+
+    ...compareWithFlood2025(
+      item.forecast_water_level_cm,
+      flood2025LevelM
+    ),
+
+    model_quality:
+      item.model_quality || null,
+  }));
+
+  return {
+    available: true,
+
+    station_code:
+      station.station_code,
+
+    station_name:
+      station.station_name,
+
+    flood_2025_level_m:
+      round(flood2025LevelM, 3),
+
+    current,
+
+    forecasts,
+
+    alarm_level:
+      station.alarm_level,
+
+    alarm_message:
+      station.alarm_message,
+  };
+}
+
+/*
+  Public mode có thể nhận cùng bộ biến đầu vào với mode=forecast.
+
+  Nếu thiếu các biến đầu vào, endpoint vẫn trả danh mục xã/mốc
+  và forecast.available=false, để frontend vẫn tra cứu được vị trí.
+
+  Có thể truyền:
+  include_forecast=0
+  nếu chỉ muốn lấy danh mục mà không tính mô hình.
+*/
+async function tryBuildPublicForecast(
+  req,
+  referenceStation,
+  flood2025LevelM
+) {
+  const includeForecast =
+    String(
+      req.query.include_forecast ?? "1"
+    ) !== "0";
+
+  if (!includeForecast) {
+    return {
+      available: false,
+      reason: "FORECAST_DISABLED",
+    };
+  }
+
+  const input = getInputVariables(req.query);
+  const valid = validateInput(input);
+
+  if (!valid.ok) {
+    return {
+      available: false,
+      reason: "MISSING_FORECAST_INPUTS",
+      missing_inputs: valid.missing,
+      hint:
+        "Truyền cùng bộ biến đầu vào của mode=forecast " +
+        "để API tính +4h/+6h/+12h cho khu vực.",
+    };
+  }
+
+  const result =
+    await calculateDownstreamForecastData(
+      req.query
+    );
+
+  const station =
+    result.stations.find(
+      (x) =>
+        x.station_code ===
+        referenceStation
+    ) || null;
+
+  return {
+    forecast_time:
+      result.forecast_time,
+
+    ...buildPublicStationForecast(
+      station,
+      flood2025LevelM
+    ),
+  };
+}
+
+async function handlePublicCommunes(req, res) {
+  const rows = await loadPublicFloodMarks();
+
+  const map = new Map();
+
+  for (const raw of rows || []) {
+    const row = normalizePublicMark(raw);
+
+    if (!row?.commune) {
+      continue;
+    }
+
+    if (!map.has(row.commune)) {
+      map.set(row.commune, {
+        commune: row.commune,
+        total_marks: 0,
+
+        reference_station:
+          row.reference_station,
+
+        reference_station_name:
+          row.reference_station_name,
+
+        reference_flood_2025_level_m:
+          row.reference_flood_2025_level_m,
+      });
+    }
+
+    map.get(row.commune).total_marks += 1;
+  }
+
+  const order = new Map(
+    PUBLIC_COMMUNE_ORDER.map(
+      (name, index) => [name, index]
+    )
+  );
+
+  const data =
+    Array.from(map.values()).sort(
+      (a, b) => {
+        const ai =
+          order.has(a.commune)
+            ? order.get(a.commune)
+            : 999;
+
+        const bi =
+          order.has(b.commune)
+            ? order.get(b.commune)
+            : 999;
+
+        if (ai !== bi) {
+          return ai - bi;
+        }
+
+        return String(a.commune)
+          .localeCompare(
+            String(b.commune),
+            "vi"
+          );
+      }
+    );
+
+  return json(
+    res,
+    200,
+    {
+      ok: true,
+      mode: "public-communes",
+      total_communes: data.length,
+      total_marks:
+        data.reduce(
+          (sum, x) =>
+            sum + x.total_marks,
+          0
+        ),
+      data,
+    },
+    "s-maxage=300, stale-while-revalidate=600"
+  );
+}
+
+async function handlePublicCommune(req, res) {
+  const commune = text(
+    req.query.commune,
+    ""
+  ).trim();
+
+  if (!commune) {
+    return json(res, 400, {
+      ok: false,
+      mode: "public-commune",
+      error: "Thiếu tham số commune",
+    });
+  }
+
+  const rows =
+    await loadPublicFloodMarks({
+      commune,
+    });
+
+  if (!rows.length) {
+    return json(res, 404, {
+      ok: false,
+      mode: "public-commune",
+      error:
+        `Không tìm thấy mốc lũ của xã ${commune}`,
+    });
+  }
+
+  const marks =
+    rows.map(normalizePublicMark);
+
+  const referenceStations =
+    [
+      ...new Set(
+        marks
+          .map(
+            (x) =>
+              x.reference_station
+          )
+          .filter(Boolean)
+      ),
+    ];
+
+  if (referenceStations.length !== 1) {
+    return json(res, 409, {
+      ok: false,
+      mode: "public-commune",
+      error:
+        "Một xã đang được gán nhiều trạm tham chiếu",
+      commune,
+      reference_stations:
+        referenceStations,
+    });
+  }
+
+  const first = marks[0];
+
+  const forecast =
+    await tryBuildPublicForecast(
+      req,
+      first.reference_station,
+      first.reference_flood_2025_level_m
+    );
+
+  return json(res, 200, {
+    ok: true,
+    mode: "public-commune",
+
+    commune: {
+      name: commune,
+      total_marks: marks.length,
+    },
+
+    reference: {
+      station_code:
+        first.reference_station,
+
+      station_name:
+        first.reference_station_name,
+
+      flood_2025_level_m:
+        first.reference_flood_2025_level_m,
+
+      comparison_mode:
+        first.comparison_mode,
+    },
+
+    forecast,
+
+    marks: marks.map((x) => ({
+      mark_code: x.mark_code,
+      village: x.village,
+      location_desc:
+        x.location_desc,
+      latitude: x.latitude,
+      longitude: x.longitude,
+    })),
+
+    disclaimer:
+      "Kết quả mốc AVC được tham chiếu theo dự báo " +
+      "mực nước của trạm Hội Khách hoặc Ái Nghĩa; " +
+      "không phải số đo mực nước riêng tại từng mốc AVC.",
+  });
+}
+
+async function handlePublicMark(req, res) {
+  const markCode = text(
+    req.query.mark ||
+    req.query.mark_code,
+    ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (!markCode) {
+    return json(res, 400, {
+      ok: false,
+      mode: "public-mark",
+      error:
+        "Thiếu tham số mark hoặc mark_code",
+    });
+  }
+
+  const rows =
+    await loadPublicFloodMarks({
+      markCode,
+    });
+
+  const mark =
+    normalizePublicMark(
+      rows?.[0] || null
+    );
+
+  if (!mark) {
+    return json(res, 404, {
+      ok: false,
+      mode: "public-mark",
+      error:
+        `Không tìm thấy mốc ${markCode}`,
+    });
+  }
+
+  const forecast =
+    await tryBuildPublicForecast(
+      req,
+      mark.reference_station,
+      mark.reference_flood_2025_level_m
+    );
+
+  return json(res, 200, {
+    ok: true,
+    mode: "public-mark",
+
+    mark: {
+      mark_code:
+        mark.mark_code,
+      commune:
+        mark.commune,
+      village:
+        mark.village,
+      location_desc:
+        mark.location_desc,
+      latitude:
+        mark.latitude,
+      longitude:
+        mark.longitude,
+    },
+
+    reference: {
+      station_code:
+        mark.reference_station,
+
+      station_name:
+        mark.reference_station_name,
+
+      flood_2025_level_m:
+        mark.reference_flood_2025_level_m,
+
+      comparison_mode:
+        mark.comparison_mode,
+    },
+
+    forecast,
+
+    disclaimer:
+      "Thông tin tại mốc được tham chiếu theo trạm dự báo; " +
+      "không phải mực nước đo trực tiếp tại mốc AVC.",
+  });
+}
+
+function haversineDistanceKm(
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) {
+  const toRad =
+    (value) =>
+      value * Math.PI / 180;
+
+  const R = 6371;
+
+  const dLat =
+    toRad(lat2 - lat1);
+
+  const dLon =
+    toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) ** 2;
+
+  return (
+    2 *
+    R *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    )
+  );
+}
+
+async function handlePublicNearest(req, res) {
+  const lat = num(
+    req.query.lat,
+    null
+  );
+
+  const lon = num(
+    req.query.lon ??
+    req.query.lng ??
+    req.query.longitude,
+    null
+  );
+
+  if (
+    lat === null ||
+    lon === null
+  ) {
+    return json(res, 400, {
+      ok: false,
+      mode: "public-nearest",
+      error:
+        "Thiếu hoặc sai tham số lat/lon",
+    });
+  }
+
+  if (
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return json(res, 400, {
+      ok: false,
+      mode: "public-nearest",
+      error:
+        "Tọa độ lat/lon ngoài phạm vi hợp lệ",
+    });
+  }
+
+  const rows =
+    await loadPublicFloodMarks();
+
+  const candidates =
+    rows
+      .map(normalizePublicMark)
+      .filter(
+        (x) =>
+          Number.isFinite(x?.latitude) &&
+          Number.isFinite(x?.longitude)
+      )
+      .map((mark) => ({
+        mark,
+        distance_km:
+          haversineDistanceKm(
+            lat,
+            lon,
+            mark.latitude,
+            mark.longitude
+          ),
+      }))
+      .sort(
+        (a, b) =>
+          a.distance_km -
+          b.distance_km
+      );
+
+  const nearest =
+    candidates[0] || null;
+
+  if (!nearest) {
+    return json(res, 404, {
+      ok: false,
+      mode: "public-nearest",
+      error:
+        "Không có mốc AVC có tọa độ hợp lệ",
+    });
+  }
+
+  const maxDistanceKm =
+    num(
+      req.query.max_distance_km,
+      null
+    );
+
+  if (
+    maxDistanceKm !== null &&
+    nearest.distance_km >
+      maxDistanceKm
+  ) {
+    return json(res, 404, {
+      ok: false,
+      mode: "public-nearest",
+      error:
+        "Không có mốc AVC trong bán kính yêu cầu",
+      nearest_distance_km:
+        round(
+          nearest.distance_km,
+          3
+        ),
+      max_distance_km:
+        maxDistanceKm,
+    });
+  }
+
+  const mark =
+    nearest.mark;
+
+  const forecast =
+    await tryBuildPublicForecast(
+      req,
+      mark.reference_station,
+      mark.reference_flood_2025_level_m
+    );
+
+  return json(res, 200, {
+    ok: true,
+    mode: "public-nearest",
+
+    query_location: {
+      latitude: lat,
+      longitude: lon,
+    },
+
+    nearest: {
+      distance_m:
+        Math.round(
+          nearest.distance_km * 1000
+        ),
+
+      mark: {
+        mark_code:
+          mark.mark_code,
+        commune:
+          mark.commune,
+        village:
+          mark.village,
+        location_desc:
+          mark.location_desc,
+        latitude:
+          mark.latitude,
+        longitude:
+          mark.longitude,
+      },
+    },
+
+    reference: {
+      station_code:
+        mark.reference_station,
+
+      station_name:
+        mark.reference_station_name,
+
+      flood_2025_level_m:
+        mark.reference_flood_2025_level_m,
+
+      comparison_mode:
+        mark.comparison_mode,
+    },
+
+    forecast,
+
+    disclaimer:
+      "Mốc gần nhất được xác định theo khoảng cách tọa độ. " +
+      "Kết quả dự báo vẫn tham chiếu theo trạm Hội Khách/Ái Nghĩa.",
   });
 }
 
@@ -2370,6 +3140,59 @@ export default async function handler(req, res) {
       return handleObservedHistory(req, res);
     }
 
+
+    if (mode === "public-communes") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error:
+            "public-communes chỉ hỗ trợ GET",
+        });
+      }
+
+      return handlePublicCommunes(req, res);
+    }
+
+    if (mode === "public-commune") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error:
+            "public-commune chỉ hỗ trợ GET",
+        });
+      }
+
+      return handlePublicCommune(req, res);
+    }
+
+    if (mode === "public-mark") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error:
+            "public-mark chỉ hỗ trợ GET",
+        });
+      }
+
+      return handlePublicMark(req, res);
+    }
+
+    if (mode === "public-nearest") {
+      if (req.method !== "GET") {
+        return json(res, 405, {
+          ok: false,
+          mode,
+          error:
+            "public-nearest chỉ hỗ trợ GET",
+        });
+      }
+
+      return handlePublicNearest(req, res);
+    }
+
     if (req.method !== "GET") {
       return json(res, 405, {
         ok: false,
@@ -2414,10 +3237,19 @@ export default async function handler(req, res) {
         "sync-ttb",
         "observed-latest",
         "observed-history",
+        "public-communes",
+        "public-commune",
+        "public-mark",
+        "public-nearest",
       ],
     });
   } catch (err) {
-    return json(res, 500, {
+    const statusCode =
+      Number.isInteger(err?.statusCode)
+        ? err.statusCode
+        : 500;
+
+    return json(res, statusCode, {
       ok: false,
 
       mode:
@@ -2427,10 +3259,16 @@ export default async function handler(req, res) {
         err?.message ||
         "Lỗi máy chủ không xác định",
 
+      missing:
+        err?.missing || undefined,
+
       hint:
-        "Kiểm tra stage sync, payload upsert " +
-        "và schema bảng " +
-        "downstream_manual_observations",
+        statusCode >= 500
+          ? (
+              "Kiểm tra biến môi trường Supabase, " +
+              "schema dữ liệu và log backend"
+            )
+          : undefined,
     });
   }
 }
