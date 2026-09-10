@@ -1,12 +1,13 @@
 
 
+
 <!doctype html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Vương • Dashboard • AI • V85</title>
+  <title>A Vương • Dashboard • AI • V86</title>
 
   <meta name="theme-color" content="#ffffff" />
 
@@ -6928,6 +6929,418 @@ body.slideshow-frame-mode section{
 @media(max-width:1200px){.spill-grid{grid-template-columns:1fr}.spill-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.spill-field.span3{grid-column:span 2}.spill-kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.spill-form-grid,.spill-mode-row,.spill-kpis{grid-template-columns:1fr}.spill-field.span2,.spill-field.span3{grid-column:span 1}.spill-hero{display:block}.spill-badge{display:inline-flex;margin-top:12px}.spill-btn{width:100%!important}}
 
+
+
+/* =========================================================
+   DOWNSTREAM PUBLIC FLOOD MARK LOOKUP - V86
+   UX: Xã -> mốc AVC -> so sánh với đỉnh lũ 2025 tại trạm tham chiếu
+   ========================================================= */
+.downstream-public-section{
+  background:
+    radial-gradient(360px 220px at 0% 0%, rgba(14,165,233,.10), transparent 68%),
+    radial-gradient(320px 220px at 100% 0%, rgba(16,185,129,.08), transparent 70%),
+    #fff;
+}
+.ds-public-intro{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-bottom:14px;
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid rgba(37,99,235,.12);
+  background:#f8fbff;
+  color:#475569;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.5;
+}
+.ds-public-intro strong{color:#1d4ed8}
+.ds-public-commune-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+}
+.ds-public-commune-card{
+  width:100%!important;
+  min-height:118px;
+  padding:15px!important;
+  text-align:left;
+  border-radius:20px!important;
+  border:1px solid rgba(15,23,42,.08)!important;
+  background:linear-gradient(180deg,#fff,#f8fbff)!important;
+  color:#0f172a!important;
+  box-shadow:0 10px 24px rgba(15,23,42,.045)!important;
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease!important;
+}
+.ds-public-commune-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(37,99,235,.24)!important;
+  box-shadow:0 16px 32px rgba(37,99,235,.10)!important;
+}
+.ds-public-commune-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:10px;
+}
+.ds-public-commune-icon{
+  width:36px;
+  height:36px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#dbeafe,#ecfeff);
+  font-size:18px;
+}
+.ds-public-count{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:#eff6ff;
+  color:#2563eb;
+  font-size:10px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.ds-public-commune-name{
+  display:block;
+  color:#0f172a;
+  font-size:15px;
+  font-weight:1000;
+  line-height:1.25;
+  margin-bottom:6px;
+}
+.ds-public-commune-meta{
+  display:block;
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:850;
+  line-height:1.45;
+}
+.ds-public-view[hidden]{display:none!important}
+.ds-public-nav-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.ds-public-back{
+  width:auto!important;
+  min-width:132px!important;
+  height:38px!important;
+  padding:7px 12px!important;
+  border-radius:14px!important;
+  border:1px solid rgba(37,99,235,.18)!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+  font-size:11px!important;
+  font-weight:1000!important;
+  box-shadow:none!important;
+}
+.ds-public-heading{
+  flex:1;
+  min-width:220px;
+}
+.ds-public-heading b{
+  display:block;
+  color:#0f172a;
+  font-size:16px;
+  font-weight:1000;
+}
+.ds-public-heading span{
+  display:block;
+  margin-top:3px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+}
+.ds-public-reference-box{
+  margin-bottom:12px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:20px;
+  background:#fff;
+  padding:14px;
+}
+.ds-public-reference-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.ds-public-reference-title b{
+  display:block;
+  color:#0f172a;
+  font-size:14px;
+  font-weight:1000;
+}
+.ds-public-reference-title span{
+  display:block;
+  margin-top:3px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:800;
+}
+.ds-public-reference-level{
+  padding:7px 11px;
+  border-radius:999px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#b45309;
+  font-size:11px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+.ds-public-forecast-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.ds-public-forecast-card{
+  min-height:105px;
+  padding:12px;
+  border-radius:17px;
+  border:1px solid rgba(15,23,42,.075);
+  background:#f8fafc;
+}
+.ds-public-forecast-card .label{
+  display:block;
+  color:#64748b;
+  font-size:9.5px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-bottom:6px;
+}
+.ds-public-forecast-card .level{
+  display:block;
+  color:#0f172a;
+  font-size:20px;
+  font-weight:1000;
+  letter-spacing:-.6px;
+  margin-bottom:5px;
+}
+.ds-public-forecast-card .compare{
+  display:block;
+  font-size:11px;
+  font-weight:950;
+  line-height:1.35;
+}
+.ds-public-forecast-card.below .compare{color:#059669}
+.ds-public-forecast-card.near{background:#fff7ed;border-color:#fed7aa}
+.ds-public-forecast-card.near .compare{color:#b45309}
+.ds-public-forecast-card.above{background:#fef2f2;border-color:#fecaca}
+.ds-public-forecast-card.above .compare{color:#dc2626}
+.ds-public-forecast-card.unknown .compare{color:#64748b}
+.ds-public-forecast-foot{
+  margin-top:9px;
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:800;
+  line-height:1.45;
+}
+.ds-public-search{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin:12px 0;
+}
+.ds-public-search input{
+  width:100%;
+  min-height:42px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#fff;
+  color:#0f172a;
+  padding:10px 13px;
+  outline:none;
+  font-size:12px;
+  font-weight:850;
+  box-shadow:0 8px 18px rgba(15,23,42,.045);
+}
+.ds-public-search input:focus{
+  border-color:rgba(37,99,235,.34);
+  box-shadow:0 0 0 3px rgba(37,99,235,.09),0 8px 18px rgba(15,23,42,.045);
+}
+.ds-public-mark-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+}
+.ds-public-mark-card{
+  width:100%!important;
+  min-height:112px;
+  padding:13px 14px!important;
+  border-radius:18px!important;
+  border:1px solid rgba(15,23,42,.075)!important;
+  background:#fff!important;
+  color:#0f172a!important;
+  text-align:left!important;
+  box-shadow:0 9px 20px rgba(15,23,42,.04)!important;
+  transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease!important;
+}
+.ds-public-mark-card:hover{
+  transform:translateY(-1px);
+  border-color:rgba(37,99,235,.24)!important;
+  box-shadow:0 13px 26px rgba(37,99,235,.08)!important;
+}
+.ds-public-mark-code{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:7px;
+}
+.ds-public-mark-code b{
+  color:#1d4ed8;
+  font-family:var(--font-mono);
+  font-size:14px;
+  font-weight:1000;
+}
+.ds-public-mark-code span{
+  color:#94a3b8;
+  font-size:18px;
+}
+.ds-public-mark-village{
+  color:#0f172a;
+  font-size:12px;
+  font-weight:1000;
+  line-height:1.35;
+}
+.ds-public-mark-location{
+  margin-top:5px;
+  color:#64748b;
+  font-size:10.5px;
+  font-weight:780;
+  line-height:1.4;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.ds-public-empty{
+  grid-column:1/-1;
+  padding:22px 14px;
+  text-align:center;
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+  border:1px dashed rgba(100,116,139,.25);
+  border-radius:18px;
+  background:#f8fafc;
+}
+.ds-public-detail-card{
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:22px;
+  background:#fff;
+  overflow:hidden;
+}
+.ds-public-detail-top{
+  padding:16px;
+  background:linear-gradient(135deg,#eff6ff,#f0fdfa);
+  border-bottom:1px solid rgba(15,23,42,.07);
+}
+.ds-public-detail-code{
+  color:#1d4ed8;
+  font-family:var(--font-mono);
+  font-size:22px;
+  font-weight:1000;
+}
+.ds-public-detail-place{
+  margin-top:4px;
+  color:#0f172a;
+  font-size:15px;
+  font-weight:1000;
+}
+.ds-public-detail-location{
+  margin-top:6px;
+  color:#475569;
+  font-size:11.5px;
+  font-weight:800;
+  line-height:1.5;
+}
+.ds-public-detail-body{padding:16px}
+.ds-public-meta-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-bottom:12px;
+}
+.ds-public-meta{
+  padding:11px 12px;
+  border-radius:16px;
+  border:1px solid rgba(15,23,42,.07);
+  background:#f8fafc;
+}
+.ds-public-meta span{
+  display:block;
+  color:#64748b;
+  font-size:9.5px;
+  font-weight:1000;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.ds-public-meta b{
+  display:block;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:1000;
+  line-height:1.35;
+}
+.ds-public-map-link{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:9px;
+  color:#2563eb;
+  text-decoration:none;
+  font-size:11px;
+  font-weight:1000;
+}
+.ds-public-disclaimer{
+  margin-top:12px;
+  padding:11px 12px;
+  border-radius:16px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#92400e;
+  font-size:11px;
+  font-weight:850;
+  line-height:1.5;
+}
+.ds-public-load-note{
+  padding:15px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px dashed rgba(100,116,139,.22);
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+  text-align:center;
+}
+@media(max-width:1280px){
+  .ds-public-commune-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:980px){
+  .ds-public-mark-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ds-public-forecast-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .ds-public-commune-grid,
+  .ds-public-mark-grid,
+  .ds-public-meta-grid{grid-template-columns:1fr}
+  .ds-public-forecast-grid{grid-template-columns:1fr 1fr}
+  .ds-public-nav-row{align-items:flex-start}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -8846,7 +9259,76 @@ body.slideshow-frame-mode section{
             </div>
           </section>
 
-          <section class="downstream-card">
+          
+          <!-- V86: Public flood-mark lookup by commune -->
+          <section class="downstream-card downstream-public-section" id="dsPublicLookup">
+            <div class="downstream-head">
+              <div class="downstream-title">
+                <div class="downstream-title-icon">📍</div>
+                <div>
+                  <h2>Tra cứu mức lũ theo khu vực</h2>
+                  <p>Người dân chọn xã, sau đó chọn mốc AVC gần khu vực cần tra cứu. Kết quả so sánh trực tiếp với đỉnh lũ năm 2025 tại trạm Hội Khách hoặc Ái Nghĩa.</p>
+                </div>
+              </div>
+              <div class="downstream-toolbar">
+                <span class="downstream-status" id="dsPublicStatus">Đang chờ</span>
+                <button type="button" onclick="loadDownstreamPublicCommunes(true)">Tải danh mục</button>
+              </div>
+            </div>
+
+            <div class="ds-public-intro">
+              <span>ℹ️</span>
+              <div>
+                <strong>70 mốc AVC được dùng để xác định khu vực tham chiếu.</strong>
+                Mực nước hiện tại và dự báo +4h, +6h, +12h vẫn là dự báo tại trạm Hội Khách hoặc Ái Nghĩa; hệ thống chỉ cho biết cao hơn/thấp hơn đỉnh lũ 2025 của trạm tham chiếu bao nhiêu cm, không coi đó là số đo trực tiếp tại từng mốc AVC.
+              </div>
+            </div>
+
+            <div id="dsPublicCommuneView" class="ds-public-view">
+              <div class="ds-public-commune-grid" id="dsPublicCommuneGrid">
+                <div class="ds-public-empty">Đang tải danh sách xã...</div>
+              </div>
+            </div>
+
+            <div id="dsPublicMarksView" class="ds-public-view" hidden>
+              <div class="ds-public-nav-row">
+                <button type="button" class="ds-public-back" onclick="resetDownstreamPublicCommune()">← Danh sách xã</button>
+                <div class="ds-public-heading">
+                  <b id="dsPublicCommuneTitle">--</b>
+                  <span id="dsPublicCommuneMeta">--</span>
+                </div>
+              </div>
+
+              <div class="ds-public-reference-box" id="dsPublicCommuneForecast">
+                <div class="ds-public-load-note">Chưa có dữ liệu dự báo tham chiếu.</div>
+              </div>
+
+              <div class="ds-public-search">
+                <input id="dsPublicMarkSearch" type="search" autocomplete="off"
+                       placeholder="🔎 Tìm AVC hoặc tên thôn / vị trí..."
+                       oninput="filterDownstreamPublicMarks(this.value)">
+              </div>
+
+              <div class="ds-public-mark-grid" id="dsPublicMarkGrid">
+                <div class="ds-public-empty">Chọn xã để xem danh sách mốc.</div>
+              </div>
+            </div>
+
+            <div id="dsPublicDetailView" class="ds-public-view" hidden>
+              <div class="ds-public-nav-row">
+                <button type="button" class="ds-public-back" onclick="backDownstreamPublicMarks()">← Mốc trong xã</button>
+                <div class="ds-public-heading">
+                  <b id="dsPublicDetailHeading">Chi tiết mốc</b>
+                  <span id="dsPublicDetailSub">--</span>
+                </div>
+              </div>
+              <div id="dsPublicMarkDetail">
+                <div class="ds-public-load-note">Chọn một mốc AVC để xem chi tiết.</div>
+              </div>
+            </div>
+          </section>
+
+<section class="downstream-card">
             <div class="downstream-head">
               <div class="downstream-title">
                 <div class="downstream-title-icon">📊</div>
@@ -15435,6 +15917,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     downstreamForecastRealtimeData = data;
     renderDownstreamStations(data);
     renderDownstreamHistoricalFlood(data);
+    refreshDownstreamPublicForecastViews();
     if(downstreamObservedLoaded){
       try{
         const historyRes = await fetch(dsApi(`/api/downstream-forecast?mode=observed-history&hours=${downstreamObservedHours}`), { cache: "no-store" });
@@ -15614,9 +16097,463 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(!startEl.value || startEl.value === "2025-09-01") startEl.value = toInput(start);
   }
 
+
+  /* ======================================================
+     PUBLIC FLOOD MARK LOOKUP - V86
+     Xã -> AVC -> dùng forecast đang hiển thị để so với đỉnh lũ 2025.
+     Không gọi forecast lại cho từng AVC.
+  ====================================================== */
+  const downstreamPublicState = {
+    loaded: false,
+    communes: [],
+    communeCache: new Map(),
+    selectedCommune: null,
+    selectedReference: null,
+    selectedMarks: [],
+    selectedMark: null
+  };
+
+  function dsPublicEscapeHtml(value){
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[ch]));
+  }
+
+  function dsPublicNormalize(value){
+    try{
+      return String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/đ/g, "d");
+    }catch(_e){
+      return String(value ?? "").toLowerCase();
+    }
+  }
+
+  function setDownstreamPublicStatus(message, cls=""){
+    const el = $("dsPublicStatus");
+    if(!el) return;
+    el.className = "downstream-status" + (cls ? " " + cls : "");
+    el.textContent = message;
+  }
+
+  function getDownstreamPublicStation(reference){
+    const code = reference?.station_code;
+    if(!code) return null;
+    const stations = Array.isArray(downstreamForecastRealtimeData?.stations)
+      ? downstreamForecastRealtimeData.stations
+      : [];
+    return stations.find(x => x.station_code === code) || null;
+  }
+
+  function dsPublicCompareClass(diffCm){
+    const d = Number(diffCm);
+    if(!Number.isFinite(d)) return "unknown";
+    if(d > 0) return "above";
+    if(d < 0) return "below";
+    return "near";
+  }
+
+  function dsPublicCompareText(diffCm){
+    const d = Number(diffCm);
+    if(!Number.isFinite(d)) return "Chưa có dữ liệu so sánh";
+    const abs = Math.abs(Math.round(d)).toLocaleString("vi-VN");
+    if(d > 0) return `Cao hơn lũ 2025 khoảng ${abs} cm`;
+    if(d < 0) return `Thấp hơn lũ 2025 khoảng ${abs} cm`;
+    return "Xấp xỉ đỉnh lũ 2025";
+  }
+
+  function dsPublicBuildForecastRows(reference){
+    const station = getDownstreamPublicStation(reference);
+    const refM = Number(reference?.flood_2025_level_m);
+    const refCm = Number.isFinite(refM) ? refM * 100 : null;
+
+    if(!station || !Number.isFinite(refCm)){
+      return null;
+    }
+
+    const forecastMap = dsForecastMap(station);
+    const values = [
+      { key:"current", label:"Hiện tại", valueCm:Number(station.current_water_level_cm), target_time:downstreamForecastRealtimeData?.forecast_time || null },
+      { key:"4h", label:"+4 giờ", valueCm:Number(forecastMap[4]), target_time:(station.forecasts || []).find(x => Number(x.horizon_hours) === 4)?.target_time || null },
+      { key:"6h", label:"+6 giờ", valueCm:Number(forecastMap[6]), target_time:(station.forecasts || []).find(x => Number(x.horizon_hours) === 6)?.target_time || null },
+      { key:"12h", label:"+12 giờ", valueCm:Number(forecastMap[12]), target_time:(station.forecasts || []).find(x => Number(x.horizon_hours) === 12)?.target_time || null }
+    ];
+
+    return values.map(row => {
+      const diffCm = Number.isFinite(row.valueCm) ? Math.round(row.valueCm - refCm) : null;
+      return {
+        ...row,
+        levelM: Number.isFinite(row.valueCm) ? row.valueCm / 100 : null,
+        diffCm,
+        compareClass: dsPublicCompareClass(diffCm),
+        compareText: dsPublicCompareText(diffCm)
+      };
+    });
+  }
+
+  function renderDownstreamPublicForecast(reference, compact=false){
+    const stationName = reference?.station_name || reference?.station_code || "--";
+    const refM = Number(reference?.flood_2025_level_m);
+    const rows = dsPublicBuildForecastRows(reference);
+
+    if(!rows){
+      return `
+        <div class="ds-public-reference-head">
+          <div class="ds-public-reference-title">
+            <b>Trạm tham chiếu: ${dsPublicEscapeHtml(stationName)}</b>
+            <span>Đỉnh lũ 2025: ${Number.isFinite(refM) ? fmtDsNumber(refM,2) + " m" : "--"}</span>
+          </div>
+        </div>
+        <div class="ds-public-load-note">
+          Dự báo chưa sẵn sàng trên trang. Bấm <b>Cập nhật</b> ở phần Dự báo mực nước hạ du để nạp kết quả mới nhất.
+        </div>
+      `;
+    }
+
+    return `
+      <div class="ds-public-reference-head">
+        <div class="ds-public-reference-title">
+          <b>Trạm tham chiếu: ${dsPublicEscapeHtml(stationName)}</b>
+          <span>${compact ? "Kết quả dùng chung cho khu vực mốc đã chọn." : "Mực nước dự báo tại trạm tham chiếu; không phải số đo trực tiếp tại AVC."}</span>
+        </div>
+        <div class="ds-public-reference-level">Đỉnh lũ 2025: ${fmtDsNumber(refM,2)} m</div>
+      </div>
+      <div class="ds-public-forecast-grid">
+        ${rows.map(row => `
+          <div class="ds-public-forecast-card ${row.compareClass}">
+            <span class="label">${row.label}</span>
+            <span class="level">${Number.isFinite(row.levelM) ? fmtDsNumber(row.levelM,2) + " m" : "--"}</span>
+            <span class="compare">${row.compareText}</span>
+          </div>
+        `).join("")}
+      </div>
+      <div class="ds-public-forecast-foot">
+        Thời điểm dự báo: ${fmtDsTime(downstreamForecastRealtimeData?.forecast_time)} ·
+        ${downstreamLoadedHistoricalSample
+          ? "⚠️ Đang dùng bộ dữ liệu quá khứ để kiểm thử, không dùng như dự báo hiện hành."
+          : "Nguồn: mô hình dự báo hạ du đang hiển thị trên dashboard. Trước khi công khai, cần nạp Số liệu hiện tại và cập nhật dự báo."}
+      </div>
+    `;
+  }
+
+  function renderDownstreamPublicCommunes(){
+    const grid = $("dsPublicCommuneGrid");
+    if(!grid) return;
+
+    const rows = Array.isArray(downstreamPublicState.communes)
+      ? downstreamPublicState.communes
+      : [];
+
+    if(!rows.length){
+      grid.innerHTML = `<div class="ds-public-empty">Chưa có danh sách xã.</div>`;
+      return;
+    }
+
+    grid.innerHTML = rows.map((row, idx) => `
+      <button type="button" class="ds-public-commune-card" data-ds-public-commune-index="${idx}">
+        <div class="ds-public-commune-top">
+          <span class="ds-public-commune-icon">🏘️</span>
+          <span class="ds-public-count">${Number(row.total_marks || 0)} mốc</span>
+        </div>
+        <span class="ds-public-commune-name">${dsPublicEscapeHtml(row.commune)}</span>
+        <span class="ds-public-commune-meta">
+          Tham chiếu ${dsPublicEscapeHtml(row.reference_station_name || row.reference_station || "--")}
+          · Lũ 2025 ${Number.isFinite(Number(row.reference_flood_2025_level_m)) ? fmtDsNumber(row.reference_flood_2025_level_m,2) + " m" : "--"}
+        </span>
+      </button>
+    `).join("");
+
+    grid.querySelectorAll("[data-ds-public-commune-index]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-ds-public-commune-index"));
+        const row = downstreamPublicState.communes[idx];
+        if(row?.commune) loadDownstreamPublicCommune(row.commune);
+      });
+    });
+  }
+
+  async function loadDownstreamPublicCommunes(force=false){
+    try{
+      if(downstreamPublicState.loaded && !force){
+        renderDownstreamPublicCommunes();
+        setDownstreamPublicStatus(`${downstreamPublicState.communes.length} xã`, "ok");
+        return downstreamPublicState.communes;
+      }
+
+      setDownstreamPublicStatus("Đang tải xã...");
+      const res = await fetch(
+        dsApi("/api/downstream-forecast?mode=public-communes"),
+        { cache:"no-store" }
+      );
+      const data = await res.json();
+
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const preferredOrder = ["Thượng Đức","Hà Nha","Đại Lộc","Vu Gia","Phú Thuận"];
+      const rank = new Map(preferredOrder.map((x,i) => [x,i]));
+      downstreamPublicState.communes = (Array.isArray(data.data) ? data.data : [])
+        .slice()
+        .sort((a,b) => (rank.get(a.commune) ?? 99) - (rank.get(b.commune) ?? 99));
+
+      downstreamPublicState.loaded = true;
+      renderDownstreamPublicCommunes();
+      setDownstreamPublicStatus(`${data.total_communes || downstreamPublicState.communes.length} xã · ${data.total_marks || 70} mốc`, "ok");
+      return downstreamPublicState.communes;
+    }catch(e){
+      console.error("public-communes", e);
+      const grid = $("dsPublicCommuneGrid");
+      if(grid) grid.innerHTML = `<div class="ds-public-empty">Không tải được danh mục xã: ${dsPublicEscapeHtml(e.message)}</div>`;
+      setDownstreamPublicStatus("Lỗi danh mục", "err");
+      return [];
+    }
+  }
+
+  function renderDownstreamPublicMarkList(rows){
+    const grid = $("dsPublicMarkGrid");
+    if(!grid) return;
+
+    const marks = Array.isArray(rows) ? rows : [];
+    if(!marks.length){
+      grid.innerHTML = `<div class="ds-public-empty">Không tìm thấy mốc phù hợp.</div>`;
+      return;
+    }
+
+    grid.innerHTML = marks.map((mark, idx) => `
+      <button type="button" class="ds-public-mark-card" data-ds-public-mark-code="${dsPublicEscapeHtml(mark.mark_code)}">
+        <div class="ds-public-mark-code">
+          <b>${dsPublicEscapeHtml(mark.mark_code)}</b>
+          <span>›</span>
+        </div>
+        <div class="ds-public-mark-village">${dsPublicEscapeHtml(mark.village || "Vị trí mốc lũ")}</div>
+        <div class="ds-public-mark-location">${dsPublicEscapeHtml(mark.location_desc || "Chưa có mô tả vị trí")}</div>
+      </button>
+    `).join("");
+
+    grid.querySelectorAll("[data-ds-public-mark-code]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        openDownstreamPublicMark(btn.getAttribute("data-ds-public-mark-code"));
+      });
+    });
+  }
+
+  function renderDownstreamPublicCommuneData(data){
+    const commune = data?.commune || {};
+    const reference = data?.reference || {};
+    const marks = Array.isArray(data?.marks) ? data.marks : [];
+
+    downstreamPublicState.selectedCommune = commune.name || null;
+    downstreamPublicState.selectedReference = reference;
+    downstreamPublicState.selectedMarks = marks;
+    downstreamPublicState.selectedMark = null;
+
+    const title = $("dsPublicCommuneTitle");
+    const meta = $("dsPublicCommuneMeta");
+    const forecast = $("dsPublicCommuneForecast");
+    const search = $("dsPublicMarkSearch");
+
+    if(title) title.textContent = `Xã ${commune.name || "--"}`;
+    if(meta) meta.textContent = `${commune.total_marks ?? marks.length} mốc · Tham chiếu ${reference.station_name || reference.station_code || "--"}`;
+    if(forecast) forecast.innerHTML = renderDownstreamPublicForecast(reference, false);
+    if(search) search.value = "";
+
+    renderDownstreamPublicMarkList(marks);
+
+    const communeView = $("dsPublicCommuneView");
+    const marksView = $("dsPublicMarksView");
+    const detailView = $("dsPublicDetailView");
+    if(communeView) communeView.hidden = true;
+    if(marksView) marksView.hidden = false;
+    if(detailView) detailView.hidden = true;
+
+    setDownstreamPublicStatus(`${commune.total_marks ?? marks.length} mốc · ${reference.station_name || "--"}`, "ok");
+  }
+
+  async function loadDownstreamPublicCommune(communeName, force=false){
+    const commune = String(communeName || "").trim();
+    if(!commune) return;
+
+    try{
+      setDownstreamPublicStatus(`Đang tải ${commune}...`);
+
+      if(!force && downstreamPublicState.communeCache.has(commune)){
+        const cached = downstreamPublicState.communeCache.get(commune);
+        renderDownstreamPublicCommuneData(cached);
+        return cached;
+      }
+
+      const url =
+        "/api/downstream-forecast?mode=public-commune" +
+        `&commune=${encodeURIComponent(commune)}` +
+        "&include_forecast=0";
+
+      const res = await fetch(dsApi(url), { cache:"no-store" });
+      const data = await res.json();
+
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      downstreamPublicState.communeCache.set(commune, data);
+      renderDownstreamPublicCommuneData(data);
+      return data;
+    }catch(e){
+      console.error("public-commune", e);
+      setDownstreamPublicStatus("Lỗi tải mốc", "err");
+      const grid = $("dsPublicMarkGrid");
+      if(grid) grid.innerHTML = `<div class="ds-public-empty">Không tải được mốc của xã ${dsPublicEscapeHtml(commune)}: ${dsPublicEscapeHtml(e.message)}</div>`;
+      return null;
+    }
+  }
+
+  function filterDownstreamPublicMarks(query){
+    const q = dsPublicNormalize(query).trim();
+    const rows = downstreamPublicState.selectedMarks || [];
+    if(!q){
+      renderDownstreamPublicMarkList(rows);
+      return;
+    }
+
+    const filtered = rows.filter(mark => {
+      const haystack = dsPublicNormalize([
+        mark.mark_code,
+        mark.village,
+        mark.location_desc
+      ].filter(Boolean).join(" "));
+      return haystack.includes(q);
+    });
+
+    renderDownstreamPublicMarkList(filtered);
+  }
+
+  function resetDownstreamPublicCommune(){
+    downstreamPublicState.selectedCommune = null;
+    downstreamPublicState.selectedReference = null;
+    downstreamPublicState.selectedMarks = [];
+    downstreamPublicState.selectedMark = null;
+
+    const communeView = $("dsPublicCommuneView");
+    const marksView = $("dsPublicMarksView");
+    const detailView = $("dsPublicDetailView");
+    if(communeView) communeView.hidden = false;
+    if(marksView) marksView.hidden = true;
+    if(detailView) detailView.hidden = true;
+
+    renderDownstreamPublicCommunes();
+    setDownstreamPublicStatus(`${downstreamPublicState.communes.length || 5} xã · 70 mốc`, "ok");
+  }
+
+  function backDownstreamPublicMarks(){
+    downstreamPublicState.selectedMark = null;
+    const marksView = $("dsPublicMarksView");
+    const detailView = $("dsPublicDetailView");
+    if(marksView) marksView.hidden = false;
+    if(detailView) detailView.hidden = true;
+  }
+
+  function openDownstreamPublicMark(markCode){
+    const code = String(markCode || "").trim().toUpperCase();
+    const mark = (downstreamPublicState.selectedMarks || [])
+      .find(x => String(x.mark_code || "").toUpperCase() === code);
+
+    if(!mark){
+      toast(`Không tìm thấy ${code}`);
+      return;
+    }
+
+    downstreamPublicState.selectedMark = mark;
+    renderDownstreamPublicMarkDetail(mark);
+
+    const marksView = $("dsPublicMarksView");
+    const detailView = $("dsPublicDetailView");
+    if(marksView) marksView.hidden = true;
+    if(detailView) detailView.hidden = false;
+
+    const section = $("dsPublicLookup");
+    if(section && typeof section.scrollIntoView === "function"){
+      section.scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+  }
+
+  function renderDownstreamPublicMarkDetail(mark){
+    const box = $("dsPublicMarkDetail");
+    if(!box) return;
+
+    const reference = downstreamPublicState.selectedReference || {};
+    const heading = $("dsPublicDetailHeading");
+    const sub = $("dsPublicDetailSub");
+    if(heading) heading.textContent = `${mark.mark_code || "AVC"} · ${mark.village || "Vị trí mốc lũ"}`;
+    if(sub) sub.textContent = `Xã ${downstreamPublicState.selectedCommune || "--"} · Tham chiếu ${reference.station_name || reference.station_code || "--"}`;
+
+    const lat = Number(mark.latitude);
+    const lon = Number(mark.longitude);
+    const mapLink = Number.isFinite(lat) && Number.isFinite(lon)
+      ? `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lon}`)}`
+      : "";
+
+    box.innerHTML = `
+      <div class="ds-public-detail-card">
+        <div class="ds-public-detail-top">
+          <div class="ds-public-detail-code">${dsPublicEscapeHtml(mark.mark_code || "--")}</div>
+          <div class="ds-public-detail-place">${dsPublicEscapeHtml(mark.village || "Vị trí mốc lũ")} · Xã ${dsPublicEscapeHtml(downstreamPublicState.selectedCommune || "--")}</div>
+          <div class="ds-public-detail-location">📍 ${dsPublicEscapeHtml(mark.location_desc || "Chưa có mô tả vị trí")}</div>
+          ${mapLink ? `<a class="ds-public-map-link" href="${mapLink}" target="_blank" rel="noopener noreferrer">🗺️ Mở vị trí mốc trên Google Maps</a>` : ""}
+        </div>
+        <div class="ds-public-detail-body">
+          <div class="ds-public-meta-grid">
+            <div class="ds-public-meta">
+              <span>Trạm tham chiếu</span>
+              <b>${dsPublicEscapeHtml(reference.station_name || reference.station_code || "--")}</b>
+            </div>
+            <div class="ds-public-meta">
+              <span>Đỉnh lũ 2025</span>
+              <b>${Number.isFinite(Number(reference.flood_2025_level_m)) ? fmtDsNumber(reference.flood_2025_level_m,2) + " m" : "--"}</b>
+            </div>
+            <div class="ds-public-meta">
+              <span>Tọa độ mốc</span>
+              <b>${Number.isFinite(lat) && Number.isFinite(lon) ? `${lat.toFixed(6)}, ${lon.toFixed(6)}` : "--"}</b>
+            </div>
+          </div>
+
+          <div class="ds-public-reference-box" style="margin-bottom:0">
+            ${renderDownstreamPublicForecast(reference, true)}
+          </div>
+
+          <div class="ds-public-disclaimer">
+            <b>Lưu ý:</b> các giá trị mực nước và chênh lệch so với lũ 2025 ở trên là tại trạm ${dsPublicEscapeHtml(reference.station_name || reference.station_code || "tham chiếu")}.
+            Mốc ${dsPublicEscapeHtml(mark.mark_code || "AVC")} chỉ dùng để xác định khu vực tra cứu; đây không phải dự báo độ sâu ngập trực tiếp tại vị trí mốc hoặc tại nhà dân.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function refreshDownstreamPublicForecastViews(){
+    const reference = downstreamPublicState.selectedReference;
+    if(reference){
+      const forecast = $("dsPublicCommuneForecast");
+      if(forecast) forecast.innerHTML = renderDownstreamPublicForecast(reference, false);
+    }
+    if(downstreamPublicState.selectedMark){
+      renderDownstreamPublicMarkDetail(downstreamPublicState.selectedMark);
+    }
+  }
+
+
   async function loadDownstreamForecastTab(force=false){
     if(downstreamForecastLoaded && !force) {
-      setTimeout(() => { if(downstreamBacktestChart) downstreamBacktestChart.resize(); if(downstreamObservedChart) downstreamObservedChart.resize(); }, 80);
+      loadDownstreamPublicCommunes(false).catch(() => {});
+      setTimeout(() => {
+        if(downstreamBacktestChart) downstreamBacktestChart.resize();
+        if(downstreamObservedChart) downstreamObservedChart.resize();
+      }, 80);
       return;
     }
 
@@ -15629,7 +16566,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         loadDownstreamSummary(),
         loadDownstreamBacktest(force),
         loadDownstreamObserved(force),
-        loadDownstreamBriefLatest(force)
+        loadDownstreamBriefLatest(force),
+        loadDownstreamPublicCommunes(false)
       ]);
       downstreamForecastLoaded = true;
       setDownstreamStatus("Đã cập nhật", "ok");
@@ -15639,6 +16577,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       toast("Lỗi dự báo hạ du: " + e.message);
     }
   }
+
+  window.loadDownstreamPublicCommunes = loadDownstreamPublicCommunes;
+  window.loadDownstreamPublicCommune = loadDownstreamPublicCommune;
+  window.filterDownstreamPublicMarks = filterDownstreamPublicMarks;
+  window.resetDownstreamPublicCommune = resetDownstreamPublicCommune;
+  window.backDownstreamPublicMarks = backDownstreamPublicMarks;
+  window.openDownstreamPublicMark = openDownstreamPublicMark;
 
   window.loadDownstreamForecastTab = loadDownstreamForecastTab;
   window.loadDownstreamBacktest = loadDownstreamBacktest;
