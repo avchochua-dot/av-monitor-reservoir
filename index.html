@@ -1,9 +1,12 @@
 
 
 
+
 <!doctype html>
 <html lang="vi">
 <head>
+  <!-- DATA QUERY FIX 2026-09-14: source-specific forecast queries + chart -3d range -->
+
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16882,84 +16885,342 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   async function loadData(){
     const btn=$("btnLoad");
-    btn.disabled=true; btn.innerText="...";
+    btn.disabled=true;
+    btn.innerText="...";
+
     try{
       const dateVal=$("day").value;
-      const [y,m,d]=dateVal.split('-');
-      const dSelected=new Date(Number(y),Number(m)-1,Number(d));
+      const [y,m,d]=dateVal.split('-').map(Number);
+
+      /*
+       * FIX 2026-09-14
+       * -------------------------------------------------------
+       * 1) Chart đang hiển thị selectedDate - 3 ngày, vì vậy
+       *    dữ liệu forecast/obs cũng phải tải từ -3 ngày.
+       *
+       * 2) KHÔNG lấy tất cả source của inflow_forecast trong
+       *    một query rồi mới lọc bằng JS. Cách cũ có thể vượt
+       *    giới hạn response ~1000 rows của Supabase/PostgREST,
+       *    làm mất các bản ghi cũ hơn (11-13/09).
+       *
+       * 3) Tách V7 / Mixed / AI thành các query riêng theo source.
+       *    Mỗi query chỉ vài trăm rows nên không bị truncate.
+       *
+       * 4) Forecast 7 ngày cho Overview chỉ lấy các source
+       *    production cần thiết, loại source test.
+       * -------------------------------------------------------
+       */
+
+      // Local midnight của ngày người dùng chọn.
+      const dSelected=new Date(y,m-1,d);
+
+      // Phần số liệu 24h/ngày đang dùng logic cũ, giữ nguyên.
       const tStart=dateVal+"T00:00:00Z";
       const tEnd=dateVal+"T23:59:59Z";
 
-      const t7DaysAgo=new Date(dSelected.getTime()-6*86400000).toISOString();
-      const tFcStart=new Date(dSelected.getTime()-1*86400000).toISOString();
-      const tFcEnd=new Date(dSelected.getTime()+10*86400000).toISOString();
+      // Dữ liệu 7 ngày quan trắc phục vụ MA24 / biểu đồ.
+      const t7DaysAgo=
+        new Date(dSelected.getTime()-6*86400000).toISOString();
+
+      // QUAN TRỌNG: renderChart() hiển thị từ selectedDate - 3 ngày.
+      const tFcStart=
+        new Date(dSelected.getTime()-3*86400000).toISOString();
+
+      // Giữ đủ horizon cho forecast và các tab hiện có.
+      const tFcEnd=
+        new Date(dSelected.getTime()+10*86400000).toISOString();
 
       const now=new Date();
-      const future7d=new Date(now.getTime()+7*24*3600*1000).toISOString();
+      const future7d=
+        new Date(now.getTime()+7*24*3600*1000).toISOString();
+
+      const productionSources=[
+        'rf2q_v7',
+        'rf2q_high_fast',
+        'rf2q_low_slow',
+        'rf2q_mixed_real_fc',
+        'rf2q_ai_v1'
+      ];
 
       const [
-        res1,res2,res4,res6,res7,res8,resLatest,resRainFc,resFcFuture,resRainFcFuture,resHec
+        res1,
+        resV7,
+        resMix,
+        resAI,
+        res4,
+        res6,
+        res7,
+        res8,
+        resLatest,
+        resRainFc,
+        resFcFuture,
+        resRainFcFuture,
+        resHec
       ] = await Promise.all([
-        sb.from('reservoir_hourly_data').select('*').gte('time',tStart).lte('time',tEnd).order('time',{ascending:true}),
-        sb.from('inflow_forecast').select('*').gte('forecast_time',tFcStart).lte('forecast_time',tFcEnd).order('created_at',{ascending:false}),
-        sb.from('reservoir_hourly_data').select('*').gte('time',tFcStart).lte('time',tEnd).order('time',{ascending:true}),
-        sb.from('v_current_storage').select('*').order('time',{ascending:false}).limit(1),
-        sb.from('reservoir_hourly_data').select('*').gte('time',t7DaysAgo).lte('time',tEnd).order('time',{ascending:true}),
-        sb.from('reservoir_hourly_data').select('*').gte('time',t7DaysAgo).lte('time',tEnd).order('time',{ascending:true}),
-        sb.from('reservoir_hourly_data').select('*').order('time',{ascending:false}).limit(24),
-        sb.from('rainfall_forecast').select('*').gte('forecast_time',tFcStart).lte('forecast_time',tFcEnd).order('created_at',{ascending:false}),
-        sb.from('inflow_forecast').select('*').gte('forecast_time',now.toISOString()).lte('forecast_time',future7d),
-        sb.from('rainfall_forecast').select('*').gte('forecast_time',now.toISOString()).lte('forecast_time',future7d),
-        sb.from('inflow_forecast_sql').select('*').gte('forecast_time',tFcStart).lte('forecast_time',tFcEnd).order('created_at', {ascending:false})
+
+        // 24h/ngày được chọn
+        sb.from('reservoir_hourly_data')
+          .select('*')
+          .gte('time',tStart)
+          .lte('time',tEnd)
+          .order('time',{ascending:true}),
+
+        // V7 - query riêng source để không bị giới hạn 1000 rows
+        sb.from('inflow_forecast')
+          .select('*')
+          .eq('source','rf2q_v7')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('forecast_time',{ascending:true}),
+
+        // MIXED production V23.8 - query riêng source
+        sb.from('inflow_forecast')
+          .select('*')
+          .eq('source','rf2q_mixed_real_fc')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('forecast_time',{ascending:true}),
+
+        // AI - query riêng source
+        sb.from('inflow_forecast')
+          .select('*')
+          .eq('source','rf2q_ai_v1')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('forecast_time',{ascending:true}),
+
+        // Q thực đo cho chart: phải bắt đầu cùng tFcStart (-3 ngày)
+        sb.from('reservoir_hourly_data')
+          .select('*')
+          .gte('time',tFcStart)
+          .lte('time',tEnd)
+          .order('time',{ascending:true}),
+
+        // Dung tích hiện tại
+        sb.from('v_current_storage')
+          .select('*')
+          .order('time',{ascending:false})
+          .limit(1),
+
+        // Dữ liệu quan trắc 7 ngày phục vụ MA24
+        sb.from('reservoir_hourly_data')
+          .select('*')
+          .gte('time',t7DaysAgo)
+          .lte('time',tEnd)
+          .order('time',{ascending:true}),
+
+        // Mưa quan trắc 7 ngày
+        sb.from('reservoir_hourly_data')
+          .select('*')
+          .gte('time',t7DaysAgo)
+          .lte('time',tEnd)
+          .order('time',{ascending:true}),
+
+        // 24 bản ghi mới nhất
+        sb.from('reservoir_hourly_data')
+          .select('*')
+          .order('time',{ascending:false})
+          .limit(24),
+
+        // Mưa dự báo cho vùng chart
+        sb.from('rainfall_forecast')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('created_at',{ascending:false}),
+
+        // Forecast 7 ngày cho Overview:
+        // chỉ lấy các source production, KHÔNG lấy source test.
+        sb.from('inflow_forecast')
+          .select('*')
+          .in('source',productionSources)
+          .gte('forecast_time',now.toISOString())
+          .lte('forecast_time',future7d)
+          .order('forecast_time',{ascending:true}),
+
+        // Mưa 7 ngày tới cho Overview
+        sb.from('rainfall_forecast')
+          .select('*')
+          .gte('forecast_time',now.toISOString())
+          .lte('forecast_time',future7d),
+
+        // HEC-HMS giữ nguyên bảng riêng
+        sb.from('inflow_forecast_sql')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('created_at',{ascending:false})
       ]);
 
-      state.hourly24h = getLatestUniqueData(res1.data,'time');
+      // Không để Supabase lỗi âm thầm rồi render thành chuỗi thiếu.
+      const queryChecks=[
+        ['reservoir_hourly_data 24h',res1],
+        ['forecast V7',resV7],
+        ['forecast Mixed',resMix],
+        ['forecast AI',resAI],
+        ['reservoir_hourly_data chart',res4],
+        ['v_current_storage',res6],
+        ['reservoir_hourly_data 7D',res7],
+        ['rain obs 7D',res8],
+        ['latest 24h',resLatest],
+        ['rainfall_forecast chart',resRainFc],
+        ['forecast future',resFcFuture],
+        ['rain future',resRainFcFuture],
+        ['HEC-HMS',resHec]
+      ];
 
-      const allForecasts = res2.data||[];
-      state.inflowFc_V7=getLatestUniqueData(allForecasts.filter(i=>i.source==='rf2q_v7'),'forecast_time');
-      state.inflowFc_Mix=getLatestUniqueData(allForecasts.filter(i=>i.source==='rf2q_mixed_real_fc'),'forecast_time');
-      state.inflowFc_AI=getLatestUniqueData(allForecasts.filter(i=>i.source==='rf2q_ai_v1'),'forecast_time');
+      queryChecks.forEach(([name,res])=>{
+        if(res && res.error){
+          throw new Error(
+            `${name}: ${res.error.message || 'Supabase query error'}`
+          );
+        }
+      });
 
-      state.inflowFc_HEC=getLatestUniqueData((resHec.data||[]), 'forecast_time');
+      state.hourly24h=
+        getLatestUniqueData(res1.data||[],'time');
 
-      state.rainFc = getLatestUniqueData(resRainFc.data,'forecast_time')
-        .map(i=>({forecast_time:i.forecast_time, rainfall_mm:Number(i.rainfall_mm)||0}));
+      // Mỗi model lấy trực tiếp từ query source riêng.
+      state.inflowFc_V7=
+        getLatestUniqueData(
+          resV7.data||[],
+          'forecast_time'
+        );
 
+      state.inflowFc_Mix=
+        getLatestUniqueData(
+          resMix.data||[],
+          'forecast_time'
+        );
+
+      state.inflowFc_AI=
+        getLatestUniqueData(
+          resAI.data||[],
+          'forecast_time'
+        );
+
+      state.inflowFc_HEC=
+        getLatestUniqueData(
+          resHec.data||[],
+          'forecast_time'
+        );
+
+      state.rainFc=
+        getLatestUniqueData(
+          resRainFc.data||[],
+          'forecast_time'
+        ).map(i=>({
+          forecast_time:i.forecast_time,
+          rainfall_mm:Number(i.rainfall_mm)||0
+        }));
+
+      /*
+       * fcEnsemble hiện được tab IN_FC_7D dùng chủ yếu với
+       * rf2q_ai_v1. Ghép 3 source chính để giữ tương thích với
+       * logic hiện tại mà không phải tải toàn bộ bảng.
+       */
       const mapFc={};
-      (res2.data||[]).forEach(i=>{
-        if(!mapFc[i.forecast_time]) mapFc[i.forecast_time]=[];
+
+      [
+        ...(resV7.data||[]),
+        ...(resMix.data||[]),
+        ...(resAI.data||[])
+      ].forEach(i=>{
+        if(!mapFc[i.forecast_time]){
+          mapFc[i.forecast_time]=[];
+        }
         mapFc[i.forecast_time].push(i);
       });
+
       state.fcEnsemble=mapFc;
 
-      state.hourly3D = getLatestUniqueData(res4.data,'time');
-      state.hourly7D_Obs = getLatestUniqueData(res7.data,'time');
-      state.rainObs7D = getLatestUniqueData(res8.data,'time');
-      state.rain24hRaw = getLatestUniqueData(res1.data,'time');
+      state.hourly3D=
+        getLatestUniqueData(res4.data||[],'time');
 
-      state.latest24h = (resLatest.data||[]).reverse();
-      state.storage = res6.data?res6.data[0]:null;
-      state.lastObs = state.latest24h.length?state.latest24h[state.latest24h.length-1]:null;
+      state.hourly7D_Obs=
+        getLatestUniqueData(res7.data||[],'time');
 
-      let rainCur = 0;
-      if(state.lastObs) rainCur = getRain(state.lastObs);
-      state.rainAtHour = rainCur;
-      state.rain24hSum = state.rain24hRaw.reduce((s,r)=>s+getRain(r),0);
+      state.rainObs7D=
+        getLatestUniqueData(res8.data||[],'time');
 
-      renderOverview(resFcFuture.data, resRainFcFuture.data);
+      state.rain24hRaw=
+        getLatestUniqueData(res1.data||[],'time');
+
+      state.latest24h=
+        (resLatest.data||[]).slice().reverse();
+
+      state.storage=
+        (res6.data&&res6.data.length)
+          ? res6.data[0]
+          : null;
+
+      state.lastObs=
+        state.latest24h.length
+          ? state.latest24h[state.latest24h.length-1]
+          : null;
+
+      let rainCur=0;
+      if(state.lastObs){
+        rainCur=getRain(state.lastObs);
+      }
+
+      state.rainAtHour=rainCur;
+      state.rain24hSum=
+        state.rain24hRaw.reduce(
+          (s,r)=>s+getRain(r),
+          0
+        );
+
+      // Log kỹ thuật để kiểm tra trực tiếp trên Console nếu cần.
+      console.info('[A Vuong chart data]',{
+        selectedDate:dateVal,
+        forecastFrom:tFcStart,
+        forecastTo:tFcEnd,
+        obsRows:state.hourly3D.length,
+        v7Rows:state.inflowFc_V7.length,
+        mixedRows:state.inflowFc_Mix.length,
+        aiRows:state.inflowFc_AI.length,
+        rainForecastRows:state.rainFc.length
+      });
+
+      renderOverview(
+        resFcFuture.data||[],
+        resRainFcFuture.data||[]
+      );
+
       renderChart();
 
-      const activePane = document.querySelector('.tab-pane.active');
-      if(activePane && activePane.id==='tab-data') loadTableData();
-      if(activePane && activePane.id==='tab-forecast') loadForecasts();
-      if(activePane && activePane.id==='tab-downstreamforecast') loadDownstreamForecastTab(true);
-      if(activePane && activePane.id==='tab-notif') loadAIBulletins();
+      const activePane=
+        document.querySelector('.tab-pane.active');
+
+      if(activePane&&activePane.id==='tab-data'){
+        loadTableData();
+      }
+
+      if(activePane&&activePane.id==='tab-forecast'){
+        loadForecasts();
+      }
+
+      if(
+        activePane&&
+        activePane.id==='tab-downstreamforecast'
+      ){
+        loadDownstreamForecastTab(true);
+      }
+
+      if(activePane&&activePane.id==='tab-notif'){
+        loadAIBulletins();
+      }
 
       toast("Đã cập nhật dữ liệu");
-    } catch(e){
-      console.error(e);
-      toast("Lỗi kết nối");
-    } finally {
+
+    }catch(e){
+      console.error('[loadData]',e);
+      toast(
+        "Lỗi tải dữ liệu: "+
+        (e?.message||"Không xác định")
+      );
+    }finally{
       btn.disabled=false;
       btn.innerText="Tải lại";
     }
