@@ -1,11 +1,13 @@
 
+<!-- HEC-LITE V3.2 HISTORY+CURRENT FIX: preserve original chart layout; history from grid lead4 + current production cycle -->
 
 
 
 <!doctype html>
 <html lang="vi">
 <head>
-  <!-- DATA QUERY FIX 2026-09-14: source-specific forecast queries + chart -3d range -->
+  <!-- WEB HEC-LITE V3.2 CURRENT-CYCLE FIX 2026-09-15 -->
+<!-- DATA QUERY FIX 2026-09-14: source-specific forecast queries + chart -3d range -->
 
   <meta charset="utf-8" />
   <!-- ✅ Website-style viewport: cho phép zoom, không khóa user scaling -->
@@ -12569,7 +12571,7 @@ body.slideshow-frame-mode section{
     IN_OBS_FC_V7:{name:"Q Về vs DB (V7)",hint:"Thực tế vs Mô hình V7",color:'34, 197, 94'},
     IN_OBS_FC_MIX:{name:"Q Về vs DB (Mixed)",hint:"Thực tế vs Mô hình Mixed (Mưa thực + DB)",color:'233, 30, 99'},
     IN_OBS_FC_AI:{name:"Q Về vs DB (AI)",hint:"Thực tế vs Mô hình AI V1 (Tự học)",color:'156, 39, 176'},
-    IN_OBS_FC_HEC:{name:"Q Về vs HEC-HMS",hint:"Thực tế vs Mô hình HEC-HMS",color:C.HEC},
+    IN_OBS_FC_HEC:{name:"Q Về vs HEC-HMS",hint:"Thực tế vs HEC-HMS Lite V3.2",color:C.HEC},
     IN_FC_7D:{name:"Q Dự báo",hint:"Dự báo 7 ngày tới (Ensemble)",color:C.IF},
     RF_DAILY_FC:{name:"Mưa Ngày",hint:"Mưa ngày & Lũy kế",color:C.RN},
     RF_HOURLY_ACC:{name:"Mưa Giờ",hint:"Mưa giờ & Lũy kế",color:C.RN},
@@ -12578,7 +12580,7 @@ body.slideshow-frame-mode section{
 
   const state = {
     hourly24h:[], hourly3D:[], hourly7D_Obs:[],
-    inflowFc_V7:[], inflowFc_Mix:[], inflowFc_AI:[], inflowFc_HEC:[],
+    inflowFc_V7:[], inflowFc_Mix:[], inflowFc_AI:[], inflowFc_HEC:[], hecIssueTime:null,
     rainFc:[], rainObs7D:[], rain24hRaw:[], latest24h:[],
     fcEnsemble:{}, lastObs:null, rainAtHour:0, rain24hSum:0, storage:null
   };
@@ -16955,6 +16957,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         resRainFc,
         resFcFuture,
         resRainFcFuture,
+        resHecHist,
         resHec
       ] = await Promise.all([
 
@@ -17044,9 +17047,19 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           .gte('forecast_time',now.toISOString())
           .lte('forecast_time',future7d),
 
-        // HEC-HMS giữ nguyên bảng riêng
+        // HEC-Lite lịch sử: backtest OPERATIONAL đúng bộ tham số production
+        // L4 / Runoff 2.1 / Recession 0.985, cố định lead 4h.
+        // Chỉ dùng để hiển thị phần lịch sử trên chart.
+        sb.from('v_hec_lite_chart_history')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('forecast_time',{ascending:true}),
+
+        // HEC-HMS production: cycle hiện tại / tương lai
         sb.from('inflow_forecast_sql')
           .select('*')
+          .eq('source','sql_hec_hms_lite')
           .gte('forecast_time',tFcStart)
           .lte('forecast_time',tFcEnd)
           .order('created_at',{ascending:false})
@@ -17066,6 +17079,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         ['rainfall_forecast chart',resRainFc],
         ['forecast future',resFcFuture],
         ['rain future',resRainFcFuture],
+        ['HEC-Lite history',resHecHist],
         ['HEC-HMS',resHec]
       ];
 
@@ -17099,11 +17113,72 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           'forecast_time'
         );
 
-      state.inflowFc_HEC=
-        getLatestUniqueData(
-          resHec.data||[],
-          'forecast_time'
+      const hecCycle=
+        selectLatestHecLiteCycle(
+          resHec.data||[]
         );
+
+      /*
+        Ghép HEC-Lite lịch sử + cycle production mới nhất.
+
+        - Lịch sử: grid backtest OPERATIONAL, đúng cấu hình
+          L4 / R2.1 / K0.985, cố định lead 4h.
+        - Hiện tại/tương lai: cycle production mới nhất.
+
+        Cycle production được ưu tiên tại các timestamp trùng nhau.
+        Không thay đổi cửa sổ chart, trục Y, màu, legend hay layout.
+      */
+      const hecIssueMs=
+        hecCycle.issueTime
+          ? new Date(hecCycle.issueTime).getTime()
+          : Infinity;
+
+      const hecMergedMap=new Map();
+
+      (resHecHist.data||[])
+        .filter(r=>{
+          const ms=new Date(r.forecast_time).getTime();
+          return Number.isFinite(ms) && ms < hecIssueMs;
+        })
+        .forEach(r=>{
+          hecMergedMap.set(
+            r.forecast_time,
+            {
+              ...r,
+              source:'sql_hec_hms_lite',
+              created_at:r.generated_at||r.issue_time||r.forecast_time,
+              features:{
+                model:'HEC-HMS Lite V3.2 Historical Backtest',
+                model_version:'v3.2',
+                issue_time:r.issue_time,
+                lead_hour:r.lead_hour,
+                lag_hours:r.lag_hours,
+                k_runoff_base:r.k_runoff_base,
+                k_recession:r.k_recession,
+                history_backtest:true
+              }
+            }
+          );
+        });
+
+      hecCycle.rows.forEach(r=>{
+        hecMergedMap.set(
+          r.forecast_time,
+          r
+        );
+      });
+
+      state.inflowFc_HEC=
+        Array.from(hecMergedMap.values())
+          .sort(
+            (a,b)=>
+              new Date(a.forecast_time)
+              -
+              new Date(b.forecast_time)
+          );
+
+      state.hecIssueTime=
+        hecCycle.issueTime;
 
       state.rainFc=
         getLatestUniqueData(
@@ -17180,6 +17255,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         v7Rows:state.inflowFc_V7.length,
         mixedRows:state.inflowFc_Mix.length,
         aiRows:state.inflowFc_AI.length,
+        hecRows:state.inflowFc_HEC.length,
+        hecHistoryRows:(resHecHist.data||[]).length,
+        hecIssueTime:state.hecIssueTime,
         rainForecastRows:state.rainFc.length
       });
 
@@ -17224,6 +17302,66 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       btn.disabled=false;
       btn.innerText="Tải lại";
     }
+  }
+
+
+  /*
+    HEC-Lite V3.2 DISPLAY RULE
+    --------------------------
+    inflow_forecast_sql còn có thể chứa các điểm HEC lịch sử từ các
+    forecast-cycle cũ. Tab HEC chỉ được phép hiển thị MỘT cycle mới nhất.
+
+    Chọn:
+      source        = sql_hec_hms_lite
+      model_version = v3.2 (nếu metadata có)
+      issue_time    = lớn nhất trong response
+
+    Nhờ vậy đường Q HEC trên Web/PWA bắt đầu đúng tại issue_time hiện tại
+    và không nối nhầm với hydrograph HEC cũ trước thời điểm phát hành.
+  */
+  function selectLatestHecLiteCycle(rows){
+    const src=(rows||[]).filter(
+      r=>r && r.source==='sql_hec_hms_lite'
+    );
+
+    const v32=src.filter(r=>{
+      const f=r.features||{};
+      return (
+        f.model_version==='v3.2' ||
+        String(f.model||'').includes('V3.2')
+      );
+    });
+
+    const pool=v32.length?v32:src;
+
+    let latestIssue=null;
+    let latestMs=-Infinity;
+
+    pool.forEach(r=>{
+      const issue=r?.features?.issue_time;
+      if(!issue) return;
+
+      const ms=new Date(issue).getTime();
+
+      if(Number.isFinite(ms) && ms>latestMs){
+        latestMs=ms;
+        latestIssue=issue;
+      }
+    });
+
+    const selected=latestIssue
+      ? pool.filter(
+          r=>r?.features?.issue_time===latestIssue
+        )
+      : pool;
+
+    return {
+      issueTime:latestIssue,
+      rows:getLatestUniqueData(
+        selected,
+        'forecast_time'
+      )
+    };
   }
 
   function getLatestUniqueData(arr,k){
@@ -17650,7 +17788,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           tension: 0.4
         },
         {
-          label:'Q Dự báo',
+          label:currentTab.includes('HEC')?'Q HEC-Lite V3.2':'Q Dự báo',
           data:all.map(t=>{
             const i=fc.find(x=>x.forecast_time===t);
             return i?getFlowFc(i):null;
