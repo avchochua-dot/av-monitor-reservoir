@@ -25,18 +25,10 @@ import numpy as np
 import pandas as pd
 import requests
 from supabase import create_client
+import os
 
-
-# ============================================================
-# 1. ĐIỀN THÔNG TIN SUPABASE TẠI ĐÂY
-# ============================================================
-
-SUPABASE_URL = "https://ycthhachfxczwkburnfa.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljdGhoYWNoZnhjendrYnVybmZhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjQ4Nzk1MCwiZXhwIjoyMDgyMDYzOTUwfQ.j6ZvpLQ2MsZ6ExvYFJ1mrx2HDJVCrl9Y_04zm64xhEI"
-
-# Ví dụ:
-# SUPABASE_URL = "https://xxxxxxxxxxxx.supabase.co"
-# SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...."
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
 # ============================================================
 # 2. CẤU HÌNH CHUNG
