@@ -2,33 +2,55 @@
 # -*- coding: utf-8 -*-
 
 """
-A VUONG - MULTI MODEL RAINFALL COLLECTOR
-FULL VERSION - NHẬP SUPABASE URL/KEY TRỰC TIẾP TRONG FILE
+A VUONG - MULTI MODEL RAINFALL COLLECTOR V2 (RESILIENT)
 
-Luồng:
-1) Lấy mưa 10 ngày từ 6 model Open-Meteo cho 7 điểm AV01..AV07
-2) Ghi raw vào public.rainfall_forecast_multi
-3) Tính lead_hour
-4) Chỉ giữ lead_hour >= 1 cho tầng basin
-5) Trung bình 7 điểm theo từng model
-6) Tính mean/median/std/min/max của 6 model
-7) Ghi vào public.rainfall_basin_hourly
-8) Ghi log vào public.weather_collect_log
+Mục tiêu:
+1) Lấy precipitation 10 ngày từ 6 model Open-Meteo cho 7 điểm AV01..AV07
+2) Retry khi timeout / lỗi tạm thời
+3) Lưu RAW vào public.rainfall_forecast_multi
+4) Tính lead_hour và chỉ dùng lead_hour >= 1 cho tầng basin
+5) Trung bình lưu vực theo từng model
+6) Ghi số điểm thực tế tham gia trung bình của từng model
+7) Tính ensemble mean / median / std / min / max
+8) Ensemble guard:
+   - >= 4 model: publish rain_mean
+   - < 4 model: rain_mean = NULL, quality = BAD
+9) Đánh dấu quality:
+   - GOOD    : đủ 6 model và mỗi model dùng đủ 7 điểm
+   - PARTIAL : vẫn đủ điều kiện publish nhưng có thiếu điểm/model
+   - BAD     : < 4 model khả dụng
+10) Ghi log vào public.weather_collect_log
+
+Lưu ý:
+- run_time hiện dùng như issue hour của collector, KHÔNG phải model initialization time thật.
+- collected_at là thời điểm collector thực sự tải dữ liệu.
+- model_run_time để dành cho giai đoạn lấy cycle thật của từng NWP.
 """
 
+import os
 import sys
 import time
+import random
 import traceback
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from supabase import create_client
-import os
+
+
+# ============================================================
+# 1. SUPABASE - DÙNG GITHUB SECRETS / ENVIRONMENT VARIABLES
+# ============================================================
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 # ============================================================
 # 2. CẤU HÌNH CHUNG
@@ -36,12 +58,19 @@ SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-FORECAST_DAYS = 10
-REQUEST_TIMEOUT = 60
-REQUEST_SLEEP_SEC = 0.25
-UPSERT_CHUNK_SIZE = 500
+FORECAST_DAYS = int(os.getenv("FORECAST_DAYS", "10"))
+REQUEST_CONNECT_TIMEOUT = int(os.getenv("REQUEST_CONNECT_TIMEOUT", "15"))
+REQUEST_READ_TIMEOUT = int(os.getenv("REQUEST_READ_TIMEOUT", "90"))
 
-BASIN_ID = "AVUONG"
+REQUEST_SLEEP_SEC = float(os.getenv("REQUEST_SLEEP_SEC", "0.35"))
+MAX_APP_ATTEMPTS = int(os.getenv("MAX_APP_ATTEMPTS", "3"))
+UPSERT_CHUNK_SIZE = int(os.getenv("UPSERT_CHUNK_SIZE", "500"))
+
+BASIN_ID = os.getenv("BASIN_ID", "AVUONG")
+
+EXPECTED_POINTS = 7
+EXPECTED_MODELS = 6
+MIN_MODELS_FOR_ENSEMBLE = 4
 
 
 # ============================================================
@@ -81,6 +110,15 @@ MODEL_TO_COLUMN = {
     "JMA_GSM": "rain_jma",
 }
 
+MODEL_TO_POINT_COLUMN = {
+    "ECMWF_IFS": "points_ecmwf",
+    "GFS": "points_gfs",
+    "ICON": "points_icon",
+    "ECMWF_AIFS": "points_aifs",
+    "CMA_GRAPES": "points_cma",
+    "JMA_GSM": "points_jma",
+}
+
 RAIN_COLUMNS = [
     "rain_ecmwf",
     "rain_gfs",
@@ -90,35 +128,44 @@ RAIN_COLUMNS = [
     "rain_jma",
 ]
 
-
-# ============================================================
-# 5. KIỂM TRA CẤU HÌNH SUPABASE
-# ============================================================
-
-if (
-    not SUPABASE_URL
-    or not SUPABASE_KEY
-    or "DAN_URL" in SUPABASE_URL
-    or "DAN_SERVICE" in SUPABASE_KEY
-):
-    raise RuntimeError(
-        "\nCHƯA ĐIỀN SUPABASE.\n"
-        "Hãy sửa 2 dòng ở đầu file:\n"
-        'SUPABASE_URL = "https://....supabase.co"\n'
-        'SUPABASE_KEY = "service_role_key..."\n'
-    )
-
-if not SUPABASE_URL.startswith("https://"):
-    raise RuntimeError(
-        "SUPABASE_URL không hợp lệ. "
-        "Phải có dạng https://xxxxxxxx.supabase.co"
-    )
-
-sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+POINT_COUNT_COLUMNS = [
+    "points_ecmwf",
+    "points_gfs",
+    "points_icon",
+    "points_aifs",
+    "points_cma",
+    "points_jma",
+]
 
 
 # ============================================================
-# 6. HÀM THỜI GIAN
+# 5. HTTP SESSION + RETRY
+# ============================================================
+
+retry_strategy = Retry(
+    total=2,
+    connect=2,
+    read=2,
+    status=2,
+    backoff_factor=1.5,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"],
+    raise_on_status=False,
+)
+
+adapter = HTTPAdapter(
+    max_retries=retry_strategy,
+    pool_connections=20,
+    pool_maxsize=20,
+)
+
+SESSION = requests.Session()
+SESSION.mount("https://", adapter)
+SESSION.mount("http://", adapter)
+
+
+# ============================================================
+# 6. HELPERS
 # ============================================================
 
 def utc_now():
@@ -137,11 +184,28 @@ def iso_utc(dt):
     return dt.astimezone(timezone.utc).isoformat()
 
 
+def chunked(items, size):
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
+def num_or_none(value):
+    if value is None or pd.isna(value):
+        return None
+    return float(value)
+
+
+def int_or_zero(value):
+    if value is None or pd.isna(value):
+        return 0
+    return int(value)
+
+
 # ============================================================
-# 7. LẤY DỮ LIỆU OPEN-METEO
+# 7. FETCH 1 ĐIỂM x 1 MODEL
 # ============================================================
 
-def fetch_forecast(
+def fetch_forecast_once(
     point,
     model_name,
     model_code,
@@ -157,16 +221,18 @@ def fetch_forecast(
         "forecast_days": FORECAST_DAYS,
     }
 
-    response = requests.get(
+    response = SESSION.get(
         OPEN_METEO_URL,
         params=params,
-        timeout=REQUEST_TIMEOUT,
+        timeout=(
+            REQUEST_CONNECT_TIMEOUT,
+            REQUEST_READ_TIMEOUT
+        ),
     )
 
     response.raise_for_status()
 
     data = response.json()
-
     hourly = data.get("hourly", {})
 
     times = hourly.get("time", [])
@@ -203,71 +269,93 @@ def fetch_forecast(
         )
 
         rows.append({
-            "run_time":
-                iso_utc(issue_time),
-
-            "forecast_time":
-                iso_utc(forecast_time),
-
-            "point_id":
-                point["id"],
-
-            "model":
-                model_name,
-
-            "latitude":
-                float(point["lat"]),
-
-            "longitude":
-                float(point["lon"]),
-
-            "precipitation_mm":
-                float(p or 0.0),
-
-            "lead_hour":
-                lead_hour,
-
-            "collected_at":
-                iso_utc(collected_at),
+            "run_time": iso_utc(issue_time),
+            "forecast_time": iso_utc(forecast_time),
+            "point_id": point["id"],
+            "model": model_name,
+            "latitude": float(point["lat"]),
+            "longitude": float(point["lon"]),
+            "precipitation_mm": float(p or 0.0),
+            "lead_hour": lead_hour,
+            "collected_at": iso_utc(collected_at),
         })
 
     return rows
 
 
 # ============================================================
-# 8. CHIA CHUNK
+# 8. APP-LEVEL RETRY
 # ============================================================
 
-def chunked(items, size):
+def fetch_forecast_with_retry(
+    point,
+    model_name,
+    model_code,
+    issue_time,
+    collected_at
+):
+    last_error = None
 
-    for i in range(
-        0,
-        len(items),
-        size
+    for attempt in range(
+        1,
+        MAX_APP_ATTEMPTS + 1
     ):
-        yield items[i:i + size]
+        try:
+            rows = fetch_forecast_once(
+                point=point,
+                model_name=model_name,
+                model_code=model_code,
+                issue_time=issue_time,
+                collected_at=collected_at,
+            )
+
+            if attempt > 1:
+                print(
+                    f"[RECOVERED] {point['id']} {model_name} "
+                    f"success at attempt {attempt}"
+                )
+
+            return rows
+
+        except Exception as exc:
+            last_error = exc
+
+            print(
+                f"[RETRY] {point['id']} {model_name} "
+                f"attempt {attempt}/{MAX_APP_ATTEMPTS}: {exc}"
+            )
+
+            if attempt < MAX_APP_ATTEMPTS:
+                wait_sec = (
+                    4 * attempt
+                    + random.uniform(0.5, 2.0)
+                )
+
+                time.sleep(wait_sec)
+
+    raise last_error
 
 
 # ============================================================
-# 9. GHI RAW SUPABASE
+# 9. UPSERT RAW
 # ============================================================
 
 def upsert_raw(rows):
-
     total = 0
 
     for chunk in chunked(
         rows,
         UPSERT_CHUNK_SIZE
     ):
-
-        sb.table(
-            "rainfall_forecast_multi"
-        ).upsert(
-            chunk,
-            on_conflict=
-            "run_time,forecast_time,point_id,model"
-        ).execute()
+        (
+            sb.table("rainfall_forecast_multi")
+            .upsert(
+                chunk,
+                on_conflict=
+                "run_time,forecast_time,point_id,model",
+            )
+            .execute()
+        )
 
         total += len(chunk)
 
@@ -280,7 +368,7 @@ def upsert_raw(rows):
 
 
 # ============================================================
-# 10. TÍNH MƯA TRUNG BÌNH LƯU VỰC
+# 10. BUILD BASIN DATAFRAME
 # ============================================================
 
 def build_basin_dataframe(raw_rows):
@@ -323,14 +411,14 @@ def build_basin_dataframe(raw_rows):
         df["lead_hour"].max()
     )
 
-    # Chỉ lấy tương lai
+    # Chỉ giữ tương lai
     df_future = df[
         df["lead_hour"] >= 1
     ].copy()
 
     if df_future.empty:
         raise RuntimeError(
-            "Không có dòng forecast future."
+            "Không có forecast future."
         )
 
     print(
@@ -342,7 +430,10 @@ def build_basin_dataframe(raw_rows):
         df_future["lead_hour"].max()
     )
 
-    # Trung bình 7 điểm theo từng model
+    # --------------------------------------------------------
+    # Trung bình mưa theo model
+    # --------------------------------------------------------
+
     basin_model = (
         df_future
         .groupby(
@@ -354,12 +445,23 @@ def build_basin_dataframe(raw_rows):
             ],
             as_index=False
         )
-        ["precipitation_mm"]
-        .mean()
+        .agg(
+            precipitation_mm=(
+                "precipitation_mm",
+                "mean"
+            ),
+            point_count=(
+                "point_id",
+                "nunique"
+            ),
+        )
     )
 
-    # Pivot 6 model
-    pivot = (
+    # --------------------------------------------------------
+    # Pivot rain values
+    # --------------------------------------------------------
+
+    rain_pivot = (
         basin_model
         .pivot_table(
             index=[
@@ -381,21 +483,69 @@ def build_basin_dataframe(raw_rows):
         )
     )
 
-    # Nếu model nào lỗi thì vẫn tạo cột
-    for col in RAIN_COLUMNS:
+    # --------------------------------------------------------
+    # Pivot point counts
+    # --------------------------------------------------------
 
+    point_pivot = (
+        basin_model
+        .pivot_table(
+            index=[
+                "run_time",
+                "forecast_time",
+                "lead_hour"
+            ],
+            columns="model",
+            values="point_count",
+            aggfunc="max"
+        )
+        .reset_index()
+        .rename_axis(
+            None,
+            axis=1
+        )
+        .rename(
+            columns=MODEL_TO_POINT_COLUMN
+        )
+    )
+
+    pivot = rain_pivot.merge(
+        point_pivot,
+        on=[
+            "run_time",
+            "forecast_time",
+            "lead_hour"
+        ],
+        how="left"
+    )
+
+    # --------------------------------------------------------
+    # Bảo đảm đủ cột
+    # --------------------------------------------------------
+
+    for col in RAIN_COLUMNS:
         if col not in pivot.columns:
             pivot[col] = np.nan
 
-    # Số model hiện có
+    for col in POINT_COUNT_COLUMNS:
+        if col not in pivot.columns:
+            pivot[col] = 0
+
+    # --------------------------------------------------------
+    # model_count
+    # --------------------------------------------------------
+
     pivot["model_count"] = (
         pivot[RAIN_COLUMNS]
         .notna()
         .sum(axis=1)
     )
 
-    # Ensemble statistics
-    pivot["rain_mean"] = (
+    # --------------------------------------------------------
+    # Ensemble statistics raw
+    # --------------------------------------------------------
+
+    pivot["rain_mean_raw"] = (
         pivot[RAIN_COLUMNS]
         .mean(
             axis=1,
@@ -436,6 +586,66 @@ def build_basin_dataframe(raw_rows):
         )
     )
 
+    # --------------------------------------------------------
+    # Ensemble guard
+    # --------------------------------------------------------
+
+    pivot["rain_mean"] = np.where(
+        pivot["model_count"]
+        >= MIN_MODELS_FOR_ENSEMBLE,
+        pivot["rain_mean_raw"],
+        np.nan
+    )
+
+    # --------------------------------------------------------
+    # Quality
+    # GOOD:
+    #   6 model và mọi model có đủ 7 điểm
+    # PARTIAL:
+    #   >= 4 model nhưng thiếu điểm hoặc thiếu model
+    # BAD:
+    #   < 4 model
+    # --------------------------------------------------------
+
+    def classify_quality(row):
+
+        if (
+            int(row["model_count"])
+            < MIN_MODELS_FOR_ENSEMBLE
+        ):
+            return "BAD"
+
+        all_points_full = True
+
+        for col in POINT_COUNT_COLUMNS:
+            count = int_or_zero(
+                row.get(col)
+            )
+
+            # Nếu model không tồn tại ở giờ đó,
+            # count = 0, nhưng model_count sẽ phản ánh.
+            if count > 0 and count < EXPECTED_POINTS:
+                all_points_full = False
+
+        if (
+            int(row["model_count"])
+            == EXPECTED_MODELS
+            and all_points_full
+            and all(
+                int_or_zero(row.get(col))
+                == EXPECTED_POINTS
+                for col in POINT_COUNT_COLUMNS
+            )
+        ):
+            return "GOOD"
+
+        return "PARTIAL"
+
+    pivot["quality"] = pivot.apply(
+        classify_quality,
+        axis=1
+    )
+
     pivot["basin_id"] = BASIN_ID
 
     return (
@@ -447,29 +657,13 @@ def build_basin_dataframe(raw_rows):
 
 
 # ============================================================
-# 11. CONVERT NUMERIC
-# ============================================================
-
-def num_or_none(value):
-
-    if value is None:
-        return None
-
-    if pd.isna(value):
-        return None
-
-    return float(value)
-
-
-# ============================================================
-# 12. BUILD BASIN ROWS
+# 11. BUILD BASIN ROWS
 # ============================================================
 
 def build_basin_rows(
     pivot,
     collected_at
 ):
-
     rows = []
 
     for _, r in pivot.iterrows():
@@ -494,6 +688,7 @@ def build_basin_rows(
                     r["lead_hour"]
                 ),
 
+            # 6 model
             "rain_ecmwf":
                 num_or_none(
                     r.get("rain_ecmwf")
@@ -524,6 +719,7 @@ def build_basin_rows(
                     r.get("rain_jma")
                 ),
 
+            # Ensemble
             "rain_mean":
                 num_or_none(
                     r.get("rain_mean")
@@ -549,9 +745,45 @@ def build_basin_rows(
                     r.get("rain_max")
                 ),
 
+            # Counts
             "model_count":
-                int(
-                    r["model_count"]
+                int_or_zero(
+                    r.get("model_count")
+                ),
+
+            "points_ecmwf":
+                int_or_zero(
+                    r.get("points_ecmwf")
+                ),
+
+            "points_gfs":
+                int_or_zero(
+                    r.get("points_gfs")
+                ),
+
+            "points_icon":
+                int_or_zero(
+                    r.get("points_icon")
+                ),
+
+            "points_aifs":
+                int_or_zero(
+                    r.get("points_aifs")
+                ),
+
+            "points_cma":
+                int_or_zero(
+                    r.get("points_cma")
+                ),
+
+            "points_jma":
+                int_or_zero(
+                    r.get("points_jma")
+                ),
+
+            "quality":
+                str(
+                    r.get("quality")
                 ),
 
             "collected_at":
@@ -564,7 +796,7 @@ def build_basin_rows(
 
 
 # ============================================================
-# 13. GHI BASIN SUPABASE
+# 12. UPSERT BASIN
 # ============================================================
 
 def upsert_basin(rows):
@@ -576,13 +808,17 @@ def upsert_basin(rows):
         UPSERT_CHUNK_SIZE
     ):
 
-        sb.table(
-            "rainfall_basin_hourly"
-        ).upsert(
-            chunk,
-            on_conflict=
-            "forecast_time,run_time,basin_id"
-        ).execute()
+        (
+            sb.table(
+                "rainfall_basin_hourly"
+            )
+            .upsert(
+                chunk,
+                on_conflict=
+                "forecast_time,run_time,basin_id"
+            )
+            .execute()
+        )
 
         total += len(chunk)
 
@@ -595,7 +831,7 @@ def upsert_basin(rows):
 
 
 # ============================================================
-# 14. GHI LOG
+# 13. LOG
 # ============================================================
 
 def write_log(
@@ -608,9 +844,7 @@ def write_log(
     status,
     message
 ):
-
     row = {
-
         "started_at":
             iso_utc(started_at),
 
@@ -639,30 +873,29 @@ def write_log(
     }
 
     try:
+        (
+            sb.table(
+                "weather_collect_log"
+            )
+            .insert(row)
+            .execute()
+        )
 
-        sb.table(
-            "weather_collect_log"
-        ).insert(
-            row
-        ).execute()
-
-    except Exception as e:
-
+    except Exception as exc:
         print(
             "[WARN] Không ghi được log:",
-            e
+            exc
         )
 
 
 # ============================================================
-# 15. MAIN
+# 14. MAIN
 # ============================================================
 
 def main():
 
     started_at = utc_now()
 
-    # Issue time = giờ UTC hiện tại làm tròn
     issue_time = floor_to_utc_hour(
         started_at
     )
@@ -672,11 +905,16 @@ def main():
     print("=" * 72)
     print(
         "A VUONG MULTI-MODEL "
-        "RAINFALL COLLECTOR"
+        "RAINFALL COLLECTOR V2"
     )
     print(
         "Issue time:",
         iso_utc(issue_time)
+    )
+    print(
+        "Expected calls:",
+        EXPECTED_POINTS
+        * EXPECTED_MODELS
     )
     print("=" * 72)
 
@@ -688,7 +926,7 @@ def main():
     failures = []
 
     # --------------------------------------------------------
-    # FETCH 7 POINTS x 6 MODELS
+    # FETCH
     # --------------------------------------------------------
 
     for point in POINTS:
@@ -700,12 +938,14 @@ def main():
 
             try:
 
-                rows = fetch_forecast(
-                    point,
-                    model_name,
-                    model_code,
-                    issue_time,
-                    collected_at
+                rows = (
+                    fetch_forecast_with_retry(
+                        point=point,
+                        model_name=model_name,
+                        model_code=model_code,
+                        issue_time=issue_time,
+                        collected_at=collected_at
+                    )
                 )
 
                 all_rows.extend(
@@ -715,19 +955,19 @@ def main():
                 success_calls += 1
 
                 print(
-                    "OK",
+                    "[OK]",
                     point["id"],
                     model_name,
                     len(rows)
                 )
 
-            except Exception as e:
+            except Exception as exc:
 
                 failed_calls += 1
 
                 msg = (
                     f"{point['id']} "
-                    f"{model_name}: {e}"
+                    f"{model_name}: {exc}"
                 )
 
                 failures.append(
@@ -735,10 +975,11 @@ def main():
                 )
 
                 print(
-                    "ERROR",
+                    "[FAILED]",
                     msg
                 )
 
+            # tránh dồn request quá nhanh
             time.sleep(
                 REQUEST_SLEEP_SEC
             )
@@ -748,10 +989,9 @@ def main():
     # --------------------------------------------------------
 
     if not all_rows:
-
         raise RuntimeError(
-            "Không lấy được dữ liệu "
-            "từ bất kỳ model nào."
+            "Không lấy được dữ liệu từ "
+            "bất kỳ model nào."
         )
 
     print(
@@ -760,7 +1000,7 @@ def main():
     )
 
     # --------------------------------------------------------
-    # UPLOAD RAW
+    # RAW -> SUPABASE
     # --------------------------------------------------------
 
     raw_uploaded = upsert_raw(
@@ -781,10 +1021,32 @@ def main():
     )
 
     # --------------------------------------------------------
-    # HIỂN THỊ QC
+    # QC
     # --------------------------------------------------------
 
-    print("\n===== MODEL SUMMARY =====")
+    print(
+        "\n===== CALL SUMMARY ====="
+    )
+
+    print(
+        "Success:",
+        success_calls,
+        "/",
+        EXPECTED_POINTS
+        * EXPECTED_MODELS
+    )
+
+    print(
+        "Failed:",
+        failed_calls,
+        "/",
+        EXPECTED_POINTS
+        * EXPECTED_MODELS
+    )
+
+    print(
+        "\n===== MODEL SUMMARY ====="
+    )
 
     print(
         df.groupby(
@@ -804,6 +1066,18 @@ def main():
     )
 
     print(
+        "\n===== QUALITY SUMMARY ====="
+    )
+
+    print(
+        pivot["quality"]
+        .value_counts(
+            dropna=False
+        )
+        .to_string()
+    )
+
+    print(
         "\n===== BASIN PREVIEW ====="
     )
 
@@ -819,13 +1093,20 @@ def main():
         "rain_mean",
         "rain_std",
         "model_count",
+        "points_ecmwf",
+        "points_gfs",
+        "points_icon",
+        "points_aifs",
+        "points_cma",
+        "points_jma",
+        "quality",
     ]
 
     print(
         pivot[
             preview_cols
         ]
-        .head(12)
+        .head(15)
         .round(4)
         .to_string(
             index=False
@@ -833,7 +1114,7 @@ def main():
     )
 
     # --------------------------------------------------------
-    # UPLOAD BASIN
+    # BASIN -> SUPABASE
     # --------------------------------------------------------
 
     basin_rows = build_basin_rows(
@@ -851,13 +1132,19 @@ def main():
 
     finished_at = utc_now()
 
+    # Status tổng job
     if failed_calls == 0:
-
         status = "OK"
-
-    else:
-
+    elif success_calls >= 30:
         status = "PARTIAL"
+    else:
+        status = "DEGRADED"
+
+    quality_counts = (
+        pivot["quality"]
+        .value_counts()
+        .to_dict()
+    )
 
     message = (
         f"issue_time={iso_utc(issue_time)}; "
@@ -865,11 +1152,11 @@ def main():
         f"future_rows={len(df_future)}; "
         f"basin_uploaded={basin_uploaded}; "
         f"success_calls={success_calls}; "
-        f"failed_calls={failed_calls}"
+        f"failed_calls={failed_calls}; "
+        f"quality={quality_counts}"
     )
 
     if failures:
-
         message += (
             "; failures="
             +
@@ -879,14 +1166,14 @@ def main():
         )
 
     write_log(
-        started_at,
-        finished_at,
-        raw_uploaded,
-        basin_uploaded,
-        success_calls,
-        failed_calls,
-        status,
-        message
+        started_at=started_at,
+        finished_at=finished_at,
+        raw_rows=raw_uploaded,
+        basin_rows=basin_uploaded,
+        success_calls=success_calls,
+        failed_calls=failed_calls,
+        status=status,
+        message=message,
     )
 
     print("=" * 72)
@@ -896,43 +1183,55 @@ def main():
         raw_uploaded
     )
     print(
+        "FUTURE rows:",
+        len(df_future)
+    )
+    print(
         "BASIN uploaded:",
         basin_uploaded
     )
     print(
         "Success calls:",
         success_calls,
-        "/ 42"
+        "/",
+        EXPECTED_POINTS
+        * EXPECTED_MODELS
     )
     print(
         "Failed calls:",
         failed_calls,
-        "/ 42"
+        "/",
+        EXPECTED_POINTS
+        * EXPECTED_MODELS
+    )
+    print(
+        "Quality:",
+        quality_counts
+    )
+    print(
+        "Finished:",
+        iso_utc(finished_at)
     )
     print("=" * 72)
 
-    # Tối đa 12 request lỗi
-    if failed_calls > 12:
-
+    # Cho GitHub Action fail nếu hệ thống xuống quá thấp
+    if success_calls < 30:
         return 2
 
     return 0
 
 
 # ============================================================
-# 16. RUN
+# 15. RUN
 # ============================================================
 
 if __name__ == "__main__":
 
     try:
-
         sys.exit(
             main()
         )
 
     except Exception:
-
         traceback.print_exc()
-
         sys.exit(1)
