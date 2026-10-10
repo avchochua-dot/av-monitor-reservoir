@@ -1752,7 +1752,7 @@ aside.sidebar{
 }
 
 
-/* ================== V8 FINAL OVERVIEW UI ================== */
+/* ================== V8 FINAL OVERVIEW UI + MAP7 FIX V7 + FLOOD QC V8 ================== */
 .admin-mini{display:none!important}
 .v8-overview{display:grid;gap:14px}
 .v8-card{background:#fff;border:1px solid rgba(15,23,42,.085);border-radius:20px;box-shadow:0 12px 34px rgba(15,23,42,.065)}
@@ -9484,6 +9484,46 @@ aside.sidebar{
 #tab-floodreport .fr3-date-group select{width:auto!important}
 </style>
 
+
+<style id="overview-map-v7-style">
+
+/* ===== OVERVIEW MAP V7 — stable Leaflet viewport + 7 station markers ===== */
+#overviewProMap{width:100%!important;height:100%!important;min-height:280px;background:#dbeafe}
+#overviewProMap .leaflet-container{font-family:Arial,Helvetica,sans-serif}
+.overview-station-divicon,.overview-infra-divicon{background:transparent!important;border:0!important}
+.overview-station-marker{
+  width:42px;height:42px;display:flex;align-items:center;justify-content:center
+}
+.overview-station-dot{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  color:#fff;border:3px solid #fff;
+  box-shadow:0 7px 18px rgba(30,64,175,.30);
+  font-size:9px;font-weight:1000;letter-spacing:-.15px
+}
+.overview-infra-marker{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;color:#f97316;border:2px solid #fff;
+  box-shadow:0 5px 13px rgba(15,23,42,.23);
+  font-size:14px;font-weight:1000
+}
+.overview-map-tooltip{
+  border:1px solid rgba(15,23,42,.10)!important;
+  border-radius:8px!important;
+  box-shadow:0 7px 18px rgba(15,23,42,.14)!important;
+  color:#1e293b!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  padding:5px 7px!important
+}
+#overviewProMap .leaflet-control-zoom{
+  border:1px solid rgba(15,23,42,.12)!important;
+  box-shadow:0 5px 14px rgba(15,23,42,.10)!important
+}
+
+</style>
 </head>
 <body>
 
@@ -10346,7 +10386,7 @@ aside.sidebar{
           <section class="fr3-card">
             <div class="fr3-header">
               <div class="fr3-title-wrap">
-                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V6.1</span></div>
+                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8</span></div>
                 <div class="fr3-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, xác định các mốc đặc trưng và lập báo cáo nhanh cho lãnh đạo.</div>
               </div>
 
@@ -18071,6 +18111,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(pane) pane.classList.add('active');
     setActiveNav(name);
 
+    if(name==='overview' && typeof initMap==='function') { initMap(); if(typeof refreshOverviewMap==='function') refreshOverviewMap(); }
     if(name==='data') loadTableData();
     if(name==='windyrain') loadWindyRainData();
     if(name==='openmeteorarain') loadOpenMeteoRainData();
@@ -20772,19 +20813,195 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(note) note.innerHTML=`🌧️ Trung bình 24h theo 3 nguồn: <b>${avg.toFixed(2)} mm</b> &nbsp; • &nbsp; Lớn nhất: <b>${max.toFixed(2)} mm</b>`;
   }
 
-  function initMap(){
-    if(window.__v8Map || !window.L || !document.getElementById("overviewProMap")) return;
-    window.__v8Map=true;
-    const map=L.map("overviewProMap",{zoomControl:true,attributionControl:false}).setView([15.88,107.56],10);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(map);
-    const pts=[["NM A Vương",15.779525,107.682545,"🏭"],["Đập tràn",15.799722,107.616670,"📍"],["Tr.Tiểu học & TH b.trú Dang",15.828689,107.559727,"📍"],["UBND xã Tây Giang",15.885485,107.492530,"📍"],["Đồn biên phòng A Nông",15.961613,107.467560,"📍"],["Kiểm lâm A Tép",15.995892,107.510803,"📍"],["UBND xã A Vương",15.928032,107.532143,"📍"],["Tr.Tiểu học b.trú A Vương",15.943821,107.566262,"📍"],["Tr.Tiểu học A Rooih",15.867412,107.613960,"📍"]];
-    const bounds=[];
-    pts.forEach(p=>{
-      bounds.push([p[1],p[2]]);
-      const icon=L.divIcon({className:"",html:`<div style="display:flex;align-items:center;gap:6px"><span style="width:28px;height:28px;border-radius:999px;background:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 8px 18px rgba(15,23,42,.25);font-size:12px">${p[3]}</span><span style="background:white;border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:850;white-space:nowrap;box-shadow:0 8px 18px rgba(15,23,42,.15)">${p[0]}</span></div>`,iconSize:[1,1],iconAnchor:[14,14]});
-      L.marker([p[1],p[2]],{icon}).addTo(map);
+  function fitOverviewMap(force=true){
+    const map = window.__overviewMap;
+    const bounds = window.__overviewStationBounds;
+    const el = document.getElementById("overviewProMap");
+    if(!map || !bounds || !el) return;
+
+    // Do not fit while the tab/card has no real size yet.
+    const rect = el.getBoundingClientRect();
+    if(rect.width < 120 || rect.height < 120){
+      if(force) setTimeout(()=>fitOverviewMap(false),180);
+      return;
+    }
+
+    try{
+      map.invalidateSize({pan:false,debounceMoveend:true});
+      map.fitBounds(bounds,{
+        paddingTopLeft:[28,28],
+        paddingBottomRight:[28,28],
+        maxZoom:12,
+        animate:false
+      });
+    }catch(e){
+      console.warn("Overview map fit error:", e);
+    }
+  }
+
+  function refreshOverviewMap(){
+    // Dashboard/sidebar transitions can change the card size after the tab is visible.
+    [0,120,320,650].forEach(delay=>{
+      setTimeout(()=>{
+        if(window.__overviewMap){
+          try{ window.__overviewMap.invalidateSize({pan:false,debounceMoveend:true}); }catch(e){}
+          if(delay===120 || delay===650) fitOverviewMap(false);
+        }
+      },delay);
     });
-    setTimeout(()=>{map.invalidateSize();map.fitBounds(L.latLngBounds(bounds).pad(.18));},300);
+  }
+
+  function initMap(){
+    const el=document.getElementById("overviewProMap");
+    if(!window.L || !el) return;
+
+    // Existing map: never recreate it; just repair size and re-fit the 7 stations.
+    if(window.__overviewMap){
+      refreshOverviewMap();
+      return;
+    }
+
+    const map=L.map("overviewProMap",{
+      zoomControl:true,
+      attributionControl:false,
+      preferCanvas:true,
+      zoomSnap:.25,
+      zoomDelta:.5
+    });
+
+    window.__overviewMap=map;
+
+    // Neutral temporary center. Real viewport is set from the 7-station bounds below.
+    map.setView([15.91,107.545],11);
+
+    const tile=L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        minZoom:7,
+        maxZoom:18,
+        updateWhenIdle:false,
+        keepBuffer:4,
+        crossOrigin:true
+      }
+    ).addTo(map);
+
+    // If one tile has a transient network error, Leaflet will continue loading the rest.
+    tile.on("tileerror",e=>{
+      console.warn("OSM tile load error:", e?.tile?.src || "");
+    });
+
+    // Seven station locations used for viewport fit.
+    // Infrastructure points are shown separately and DO NOT enlarge the fit bounds.
+    const stations=[
+      ["AV01","Tr.Tiểu học & TH b.trú Dang",15.828689,107.559727],
+      ["AV02","UBND xã Tây Giang",15.885485,107.492530],
+      ["AV03","Đồn biên phòng A Nông",15.961613,107.467560],
+      ["AV04","Kiểm lâm A Tép",15.995892,107.510803],
+      ["AV05","UBND xã A Vương",15.928032,107.532143],
+      ["AV06","Tr.Tiểu học b.trú A Vương",15.943821,107.566262],
+      ["AV07","Tr.Tiểu học A Rooih",15.867412,107.613960]
+    ];
+
+    const infrastructure=[
+      ["NM A Vương",15.779525,107.682545,"🏭"],
+      ["Đập tràn",15.799722,107.616670,"◆"]
+    ];
+
+    const stationLatLngs=[];
+
+    stations.forEach(([code,name,lat,lng])=>{
+      stationLatLngs.push([lat,lng]);
+
+      const icon=L.divIcon({
+        className:"overview-station-divicon",
+        html:`
+          <div class="overview-station-marker">
+            <span class="overview-station-dot">${code}</span>
+          </div>`,
+        iconSize:[42,42],
+        iconAnchor:[21,21],
+        popupAnchor:[0,-20]
+      });
+
+      L.marker([lat,lng],{icon,title:`${code} - ${name}`})
+        .addTo(map)
+        .bindTooltip(`<b>${code}</b> · ${name}`,{
+          direction:"top",
+          offset:[0,-18],
+          opacity:.96,
+          sticky:true,
+          className:"overview-map-tooltip"
+        })
+        .bindPopup(`
+          <div style="min-width:180px;font-family:Arial,sans-serif">
+            <div style="font-size:13px;font-weight:900;color:#1d4ed8">${code}</div>
+            <div style="font-size:12px;font-weight:800;color:#1e293b;margin-top:3px">${name}</div>
+            <div style="font-size:10px;color:#64748b;margin-top:5px">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+          </div>
+        `);
+    });
+
+    infrastructure.forEach(([name,lat,lng,symbol])=>{
+      const icon=L.divIcon({
+        className:"overview-infra-divicon",
+        html:`<div class="overview-infra-marker">${symbol}</div>`,
+        iconSize:[30,30],
+        iconAnchor:[15,15],
+        popupAnchor:[0,-14]
+      });
+      L.marker([lat,lng],{icon,title:name})
+        .addTo(map)
+        .bindTooltip(name,{direction:"top",offset:[0,-12],className:"overview-map-tooltip"});
+    });
+
+    window.__overviewStationBounds=L.latLngBounds(stationLatLngs);
+
+
+    if(!document.getElementById("overviewMapFitBtn")){
+      const btn=document.createElement("button");
+      btn.id="overviewMapFitBtn";
+      btn.type="button";
+      btn.textContent="◎ 7 trạm";
+      btn.title="Căn lại bản đồ theo 7 trạm";
+      btn.style.cssText="position:absolute;right:10px;bottom:10px;z-index:500;background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:9px;padding:6px 9px;font:800 10px Arial;color:#1d4ed8;box-shadow:0 5px 14px rgba(15,23,42,.10);cursor:pointer";
+      btn.addEventListener("click",()=>fitOverviewMap(true));
+      const parent=el.parentElement;
+      if(parent){
+        const cs=getComputedStyle(parent);
+        if(cs.position==="static") parent.style.position="relative";
+        parent.appendChild(btn);
+      }
+    }
+
+    // Initial fit only after the dashboard has laid out the card.
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        refreshOverviewMap();
+      });
+    });
+
+    // ResizeObserver fixes map tiles/viewport after sidebar, browser and responsive layout changes.
+    if(window.ResizeObserver){
+      const ro=new ResizeObserver(()=>{
+        clearTimeout(window.__overviewMapResizeTimer);
+        window.__overviewMapResizeTimer=setTimeout(()=>{
+          if(window.__overviewMap){
+            try{ window.__overviewMap.invalidateSize({pan:false,debounceMoveend:true}); }catch(e){}
+          }
+        },90);
+      });
+      ro.observe(el);
+      window.__overviewMapResizeObserver=ro;
+    }
+
+    // Re-fit when the browser window itself changes size.
+    if(!window.__overviewMapWindowBound){
+      window.__overviewMapWindowBound=true;
+      window.addEventListener("resize",()=>{
+        clearTimeout(window.__overviewMapWindowTimer);
+        window.__overviewMapWindowTimer=setTimeout(refreshOverviewMap,140);
+      });
+    }
   }
 
 
@@ -20857,7 +21074,11 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   setTimeout(init,800);
   document.addEventListener("click",e=>{
     const tab=e.target.closest?.("[data-tab]");
-    if(tab?.dataset?.tab==="overview"){setTimeout(init,250);setTimeout(updateNews,1200);}
+    if(tab?.dataset?.tab==="overview"){
+      setTimeout(()=>{initMap();refreshOverviewMap();},80);
+      setTimeout(refreshOverviewMap,420);
+      setTimeout(updateNews,1200);
+    }
     if(tab?.dataset?.tab==="forecast"){setTimeout(updateNews,1500);}
   });
 })();
@@ -30126,12 +30347,28 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         .select("time,water_level,inflow,turbine_flow,spillway_flow,rainfallreal,reservoir_id")
         .gte("time",s).lte("time",e).order("time",{ascending:true}).range(from,from+999);
       if(RID)q=q.eq("reservoir_id",RID);
-      const {data,error}=await q;if(error)throw error;
-      const a=data||[];all=all.concat(a);
+
+      const {data,error}=await q;
+      if(error)throw error;
+      const a=data||[];
+      all=all.concat(a);
+
       if(a.length<1000)break;
-      from+=1000;if(from>30000)throw new Error("Khoảng báo cáo quá lớn.");
+      from+=1000;
+      if(from>30000)throw new Error("Khoảng báo cáo quá lớn.");
     }
-    const m=new Map();all.forEach(r=>m.set(String(r.time),r));
+
+    // Chuẩn hóa timestamp về đúng slot giờ UTC.
+    const m=new Map();
+    all.forEach(r=>{
+      const t=ms(r.time);
+      if(t===null)return;
+      const d=new Date(t);
+      d.setUTCMinutes(0,0,0);
+      const key=d.toISOString();
+      m.set(key,{...r,__hour_key:key});
+    });
+
     return [...m.values()].sort((a,b)=>(ms(a.time)||0)-(ms(b.time)||0));
   }
 
@@ -30152,25 +30389,157 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     return {value,time:row?.time||null};
   }
 
+
+  function hourKeyUTC(v){
+    const t=ms(v);
+    if(t===null)return null;
+    const d=new Date(t);
+    d.setUTCMinutes(0,0,0);
+    return d.toISOString();
+  }
+
+  function buildHourlyGrid(s,e){
+    const sMs=ms(s),eMs=ms(e);
+    if(sMs===null||eMs===null||eMs<sMs)return [];
+    const out=[];
+    for(let t=sMs;t<=eMs;t+=H)out.push(new Date(t).toISOString());
+    return out;
+  }
+
+  async function diagnoseMissingHours(missingHours){
+    const result=[];
+    if(!missingHours?.length)return result;
+
+    for(const iso of missingHours.slice(0,12)){
+      try{
+        const t0=new Date(ms(iso));
+        const t1=new Date(ms(iso)+H-1);
+        const {data,error}=await sb.from("reservoir_hourly_data")
+          .select("time,reservoir_id")
+          .gte("time",t0.toISOString())
+          .lte("time",t1.toISOString())
+          .order("time",{ascending:true})
+          .limit(20);
+
+        if(error)throw error;
+
+        if(Array.isArray(data)&&data.length){
+          result.push({
+            hour:iso,
+            found:true,
+            rows:data.map(r=>({time:r.time,reservoir_id:r.reservoir_id??null}))
+          });
+        }else{
+          result.push({hour:iso,found:false,rows:[]});
+        }
+      }catch(err){
+        result.push({hour:iso,found:null,error:err.message||String(err),rows:[]});
+      }
+    }
+    return result;
+  }
+
+  function formatMissingHours(list){
+    if(!list?.length)return "0";
+    const shown=list.slice(0,6).map(x=>label(x)).join(", ");
+    return list.length>6?`${shown} … (+${list.length-6})`:shown;
+  }
+
+  function formatMissingDiagnosis(diag){
+    if(!diag?.length)return "";
+    return diag.map(d=>{
+      if(d.found===false)return `${label(d.hour)}: không có bản ghi`;
+      if(d.found===null)return `${label(d.hour)}: lỗi kiểm tra`;
+      const ids=[...new Set((d.rows||[]).map(r=>String(r.reservoir_id??"NULL")))];
+      return `${label(d.hour)}: có dữ liệu, reservoir_id=${ids.join("/")}`;
+    }).join(" | ");
+  }
+
   function compute(a,s,e){
     if(!a.length)throw new Error("Không có dữ liệu trong khoảng đã chọn.");
-    const expected=Math.floor((ms(e)-ms(s))/H+1e-9)+1;
-    const miss=f=>a.reduce((x,r)=>x+(num(r[f])===null?1:0),0);
-    let gaps=0;for(let i=0;i<a.length-1;i++)if((ms(a[i+1].time)-ms(a[i].time))>1.5*H)gaps++;
-    const missing={water_level:miss("water_level"),inflow:miss("inflow"),turbine_flow:miss("turbine_flow"),spillway_flow:miss("spillway_flow"),rainfallreal:miss("rainfallreal")};
-    const q=extreme(a,"inflow"),wl=extreme(a,"water_level"),rainMax=extreme(a,"rainfallreal"),turb=extreme(a,"turbine_flow"),spill=extreme(a,"spillway_flow");
-    const first=a.find(r=>num(r.water_level)!==null),last=[...a].reverse().find(r=>num(r.water_level)!==null),w0=num(first?.water_level),w1=num(last?.water_level);
+
+    const grid=buildHourlyGrid(s,e);
+    const slotMap=new Map();
+    a.forEach(r=>{
+      const k=hourKeyUTC(r.time);
+      if(k)slotMap.set(k,r);
+    });
+
+    const missingHours=grid.filter(k=>!slotMap.has(k));
+    const actual=grid.length-missingHours.length;
+    const expected=grid.length;
+    const coverage=expected?actual/expected*100:0;
+
+    const miss=f=>{
+      let n=0;
+      grid.forEach(k=>{
+        const r=slotMap.get(k);
+        if(r&&num(r[f])===null)n++;
+      });
+      return n;
+    };
+
+    const missing={
+      water_level:miss("water_level"),
+      inflow:miss("inflow"),
+      turbine_flow:miss("turbine_flow"),
+      spillway_flow:miss("spillway_flow"),
+      rainfallreal:miss("rainfallreal")
+    };
+
+    const sortedSlots=[...slotMap.keys()].sort((x,y)=>ms(x)-ms(y));
+    let gaps=0;
+    const gapList=[];
+    for(let i=1;i<sortedSlots.length;i++){
+      const dh=(ms(sortedSlots[i])-ms(sortedSlots[i-1]))/H;
+      if(dh>1.5){
+        gaps++;
+        gapList.push({from:sortedSlots[i-1],to:sortedSlots[i],hours:dh});
+      }
+    }
+
+    const q=extreme(a,"inflow"),
+          wl=extreme(a,"water_level"),
+          rainMax=extreme(a,"rainfallreal"),
+          turb=extreme(a,"turbine_flow"),
+          spill=extreme(a,"spillway_flow");
+
+    const first=a.find(r=>num(r.water_level)!==null),
+          last=[...a].reverse().find(r=>num(r.water_level)!==null),
+          w0=num(first?.water_level),
+          w1=num(last?.water_level);
+
     const rain=a.map(r=>num(r.rainfallreal)).filter(x=>x!==null).reduce((x,y)=>x+y,0);
-    const vin=integrate(a,"inflow"),vt=integrate(a,"turbine_flow"),vs=integrate(a,"spillway_flow"),balance=vin.million-vt.million-vs.million;
-    const mh=Math.max(0,expected-a.length),mc=Object.values(missing).reduce((x,y)=>x+y,0);
+    const vin=integrate(a,"inflow"),
+          vt=integrate(a,"turbine_flow"),
+          vs=integrate(a,"spillway_flow"),
+          balance=vin.million-vt.million-vs.million;
+
+    const mh=missingHours.length;
+    const mc=Object.values(missing).reduce((x,y)=>x+y,0);
+
     let qc=(mh||mc||gaps)?"WARNING":"GOOD";
     if(a.length<2||missing.inflow>=Math.max(1,Math.floor(a.length*.2)))qc="BAD";
-    return {s,e,duration:(ms(e)-ms(s))/H,expected,actual:a.length,mh,mc,gaps,missing,q,wl,rainMax,turb,spill,w0,w1,delta:(w0!==null&&w1!==null)?w1-w0:null,rain,vin,vt,vs,balance,qc};
+
+    return {
+      s,e,
+      duration:(ms(e)-ms(s))/H,
+      expected,actual,coverage,
+      mh,missingHours,
+      mc,gaps,gapList,missing,
+      q,wl,rainMax,turb,spill,
+      w0,w1,
+      delta:(w0!==null&&w1!==null)?w1-w0:null,
+      rain,vin,vt,vs,balance,qc
+    };
   }
 
   function summary(m){
     let s=`Số liệu tính từ ${narrative(m.s)} đến ${narrative(m.e)}: tổng lượng mưa ${fmt(m.rain,1)} mm; Q về max ${fmt(m.q.value,2)} m³/s lúc ${narrative(m.q.time)}; mực nước hồ lớn nhất ${fmt(m.wl.value,2)} m lúc ${narrative(m.wl.time)}. Tổng V nước về ${fmt(m.vin.million,2)} triệu m³, V chạy máy ${fmt(m.vt.million,2)} triệu m³, V xả tràn ${fmt(m.vs.million,2)} triệu m³; cân bằng nước sơ bộ (Vvề − Vmáy − Vxả) ${fmt(m.balance,2)} triệu m³.`;
-    if(m.qc!=="GOOD")s+=` QC ${m.qc}: thiếu ${m.mh} mốc giờ, ${m.mc} ô dữ liệu và ${m.gaps} gap >1,5 giờ.`;
+    if(m.qc!=="GOOD"){
+      s+=` QC ${m.qc}: thiếu ${m.mh} mốc giờ, ${m.mc} ô dữ liệu và ${m.gaps} gap >1,5 giờ.`;
+      if(m.missingHours?.length)s+=` Giờ thiếu: ${formatMissingHours(m.missingHours)}.`;
+    }
     return s;
   }
 
@@ -30196,7 +30565,14 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     $("fr3LoadedChip").textContent=`Đã tải ${m.actual} giờ`;
 
     const state=m.qc==="GOOD"?"good":m.qc==="WARNING"?"warn":"bad";
-    status(`QC ${m.qc}: kỳ ${fmt(m.duration,0)} giờ; dự kiến ${m.expected} mốc, có ${m.actual}; thiếu theo lưới ${m.mh}; gap >1,5 giờ ${m.gaps}; tổng ô dữ liệu thiếu ${m.mc}. Thời gian tích phân Q về ${fmt(m.vin.hours,1)} giờ.`,state);
+    const missText=m.missingHours?.length?` Giờ thiếu: ${formatMissingHours(m.missingHours)}.`:"";
+    const diagText=m.missingDiag?.length?` Kiểm tra chéo: ${formatMissingDiagnosis(m.missingDiag)}.`:"";
+    status(
+      `QC ${m.qc}: ${m.expected} mốc giờ dự kiến; ${m.actual} mốc có dữ liệu; độ phủ ${fmt(m.coverage,1)}%; ` +
+      `thiếu ${m.mh} giờ; gap >1,5 giờ ${m.gaps}; tổng ô dữ liệu thiếu ${m.mc}; ` +
+      `thời gian tích phân Q về ${fmt(m.vin.hours,1)} giờ.` + missText + diagText,
+      state
+    );
   }
 
   function renderTable(a,m){
@@ -30248,24 +30624,31 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   }
 
   async function renderOperation(s,e){
-    const a=part(s),b=part(e);if(!a||!b)throw new Error("Không xác định được năm báo cáo.");
-    const years=[];for(let y=+a.y;y<=+b.y;y++)years.push(y);
-    const ops=[],lims=[];
-    for(const y of years){
-      const j=await fr3FetchJson(`/api/operation-chart?year=${y}`);
-      (Array.isArray(j.operations)?j.operations:[]).forEach(r=>ops.push(r));
-      let ls=Array.isArray(j.limits)?j.limits:[];
-      if(!ls.length)ls=await fr3FetchFallbackLimits(y);
-      ls.forEach(r=>lims.push({...r,__year:y}));
+    const a=part(s);
+    if(!a)throw new Error("Không xác định được năm báo cáo.");
+    const y=+a.y;
+
+    const j=await fr3FetchJson(`/api/operation-chart?year=${y}`);
+    const ops=Array.isArray(j.operations)?j.operations:[];
+    let lims=Array.isArray(j.limits)?j.limits:[];
+    if(!lims.length)lims=await fr3FetchFallbackLimits(y);
+
+    const daily=fr3SummarizeDailyOperations(ops);
+    const limitMap=fr3LevelLimitMapByMonthDay(
+      (lims||[]).map(r=>({...r,__year:y})),
+      y
+    );
+
+    const ks=[];
+    const d0=new Date(Date.UTC(y,0,1));
+    const d1=new Date(Date.UTC(y,11,31));
+    for(let d=new Date(d0);d<=d1;d.setUTCDate(d.getUTCDate()+1)){
+      ks.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`);
     }
 
-    const daily=fr3SummarizeDailyOperations(ops),limitMap={};
-    for(const y of years){
-      const map=fr3LevelLimitMapByMonthDay(lims.filter(r=>(r.__year||y)===y),y);
-      Object.assign(limitMap,map);
-    }
+    const L=ks.map(dayLabel);
+    const lim=(k,f)=>num(limitMap[k]?.[f]);
 
-    const ks=keysBetween(s,e),L=ks.map(dayLabel),lim=(k,f)=>num(limitMap[k]?.[f]);
     if(OP_CHART)OP_CHART.destroy();
 
     OP_CHART=new Chart($("fr3OperationChart"),{
@@ -30274,25 +30657,26 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
         {type:"line",label:"MNGHT",data:ks.map(k=>lim(k,"mnght")),yAxisID:"yl",borderColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
         {type:"line",label:"MNĐL",data:ks.map(k=>lim(k,"mndl")),yAxisID:"yl",borderColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
         {type:"line",label:"MNTrL",data:ks.map(k=>lim(k,"mntrl")),yAxisID:"yl",borderColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNH",data:ks.map(k=>daily[k]?.water_level??null),yAxisID:"yl",borderColor:"#3b82f6",borderWidth:4,pointRadius:2,tension:.25},
-        {type:"line",label:"Q về",data:ks.map(k=>daily[k]?.inflowMax??null),yAxisID:"yq",borderColor:"#ef4444",borderWidth:2,pointRadius:0,tension:.18},
-        {type:"line",label:"Q chạy máy",data:ks.map(k=>daily[k]?.turbineMax??null),yAxisID:"yq",borderColor:"#f59e0b",borderWidth:2,pointRadius:0,tension:.18},
-        {type:"line",label:"Q xả",data:ks.map(k=>daily[k]?.spillwayMax??null),yAxisID:"yq",borderColor:"#7c3aed",borderWidth:2.3,pointRadius:0,tension:.18}
+        {type:"line",label:"MNH",data:ks.map(k=>daily[k]?.water_level??null),yAxisID:"yl",borderColor:"#3b82f6",borderWidth:4,pointRadius:1.5,tension:.25,spanGaps:false},
+        {type:"line",label:"Q về",data:ks.map(k=>daily[k]?.inflowMax??null),yAxisID:"yq",borderColor:"#ef4444",borderWidth:2,pointRadius:0,tension:.18,spanGaps:false},
+        {type:"line",label:"Q chạy máy",data:ks.map(k=>daily[k]?.turbineMax??null),yAxisID:"yq",borderColor:"#f59e0b",borderWidth:2,pointRadius:0,tension:.18,spanGaps:false},
+        {type:"line",label:"Q xả",data:ks.map(k=>daily[k]?.spillwayMax??null),yAxisID:"yq",borderColor:"#7c3aed",borderWidth:2.3,pointRadius:0,tension:.18,spanGaps:false}
       ]},
       options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
         plugins:{
-          title:{display:true,text:"BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG",color:"#f2b705",font:{size:16,weight:"900"}},
+          title:{display:true,text:`BIỂU ĐỒ ĐIỀU PHỐI VẬN HÀNH HỒ CHỨA THỦY ĐIỆN A VƯƠNG NĂM ${y}`,color:"#f2b705",font:{size:16,weight:"900"}},
           legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:10,font:{weight:"700"}}}
         },
         scales:{
-          x:{ticks:{autoSkip:true,maxTicksLimit:24,color:"#64748b"},grid:{color:"rgba(15,23,42,.055)"},title:{display:true,text:"Thời gian",color:"#06b6d4",font:{weight:"900"}}},
+          x:{ticks:{autoSkip:true,maxTicksLimit:28,color:"#64748b",maxRotation:45,minRotation:45},grid:{color:"rgba(15,23,42,.055)"},title:{display:true,text:"Thời gian",color:"#06b6d4",font:{weight:"900"}}},
           yl:{position:"left",min:340,max:383,ticks:{stepSize:5,color:"#3b82f6"},title:{display:true,text:"Mực nước hồ (m)",color:"#3b82f6",font:{weight:"900"}},grid:{color:"rgba(15,23,42,.08)"}},
           yq:{position:"right",min:0,max:2500,ticks:{color:"#92400e"},title:{display:true,text:"Lưu lượng (m³/s)",color:"#92400e",font:{weight:"900"}},grid:{drawOnChartArea:false}}
         }
       }
     });
 
-    $("fr3OperationNote").textContent=`Biểu đồ điều phối lấy trực tiếp từ /api/operation-chart cho ${ks.length} ngày trong kỳ báo cáo.`;
+    $("fr3OperationNote").textContent=
+      `Biểu đồ điều phối hiển thị nguyên năm ${y}, dùng cùng API và cùng quy tắc tổng hợp ngày với tab “Biểu đồ điều phối”. Khoảng đợt lũ chỉ áp dụng cho biểu đồ diễn biến theo giờ và phần tính toán báo cáo.`;
   }
 
   async function calculate(){
@@ -30305,7 +30689,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
       b.disabled=true;b.textContent="Đang tổng hợp...";enable(false);status("Đang tải số liệu giờ...");
       if(!RID)await latest();
 
-      ROWS=await fetchHourly(s,e);MET=compute(ROWS,s,e);
+      ROWS=await fetchHourly(s,e);MET=compute(ROWS,s,e);MET.missingDiag=await diagnoseMissingHours(MET.missingHours);
       renderMetrics(MET);renderTable(ROWS,MET);renderFloodChart(ROWS);
 
       let opWarning = "";
@@ -30348,7 +30732,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     const wb=XLSX.utils.book_new(),m=MET;
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
       ["BÁO CÁO SAU ĐỢT LŨ - HỒ A VƯƠNG"],
-      ["Từ",label(m.s)],["Đến",label(m.e)],["QC",m.qc],
+      ["Từ",label(m.s)],["Đến",label(m.e)],["QC",m.qc],["Số mốc dự kiến",m.expected],["Số mốc có dữ liệu",m.actual],["Độ phủ (%)",m.coverage],["Giờ thiếu",formatMissingHours(m.missingHours)],
       ["Tổng mưa (mm)",m.rain],["Q về max",m.q.value],["Thời điểm Q max",label(m.q.time)],
       ["MNH max",m.wl.value],["V nước về (triệu m3)",m.vin.million],["V qua máy (triệu m3)",m.vt.million],
       ["V xả tràn (triệu m3)",m.vs.million],["Cân bằng dòng chảy (triệu m3)",m.balance],
@@ -30461,9 +30845,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
 
       <div class="fr3-pdf-section">3. Kiểm soát chất lượng dữ liệu</div>
       <div class="fr3-pdf-box">
-        <b>QC ${m.qc}</b> • Kỳ báo cáo ${fmt(m.duration,0)} giờ • Dự kiến ${m.expected} mốc • Có ${m.actual} bản ghi •
-        Thiếu theo lưới ${m.mh} • Gap &gt;1,5 giờ ${m.gaps} • Tổng ô dữ liệu thiếu ${m.mc}.<br>
-        <b>Lưu ý nghiệp vụ:</b> “Cân bằng nước sơ bộ” được tính theo Vvề − Vmáy − Vxả; chưa đồng nhất với thay đổi dung tích hồ nếu chưa xét quan hệ Z–V và các thành phần cân bằng nước khác.
+        <b>QC ${m.qc}</b> • Số mốc giờ dự kiến ${m.expected} • Mốc nhận được ${m.actual} • Độ phủ ${fmt(m.coverage,1)}% • Timestamp thiếu ${m.mh} • Gap &gt;1,5 giờ ${m.gaps} • Tổng ô dữ liệu thiếu ${m.mc}.<br>
+        ${m.missingHours?.length?`<br><b>Timestamp thiếu:</b> ${formatMissingHours(m.missingHours)}.`:""}${m.missingDiag?.length?`<br><b>Kiểm tra chéo Supabase:</b> ${formatMissingDiagnosis(m.missingDiag)}.`:""}<br><b>Lưu ý nghiệp vụ:</b> “Cân bằng nước sơ bộ” được tính theo Vvề − Vmáy − Vxả; chưa đồng nhất với thay đổi dung tích hồ nếu chưa xét quan hệ Z–V và các thành phần cân bằng nước khác.
       </div>
     `));
 
