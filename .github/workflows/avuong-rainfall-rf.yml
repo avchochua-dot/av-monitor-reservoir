@@ -2,6 +2,7 @@ name: A Vuong Rainfall + RF Forecast
 
 on:
   workflow_dispatch:
+
   schedule:
     - cron: "15 * * * *"
 
@@ -9,32 +10,56 @@ permissions:
   contents: read
 
 concurrency:
-  group: avuong-rainfall-rf
+  group: avuong-rainfall-rf-production
   cancel-in-progress: false
 
 jobs:
-  collect-and-predict:
+  collect-rainfall-and-predict-inflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     env:
+      # ======================================================
+      # SUPABASE
+      # ======================================================
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      # Nếu bảng reservoir_hourly_data có nhiều hồ:
+      # RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
+
+      # ======================================================
+      # RAINFALL
+      # ======================================================
       FORECAST_DAYS: "10"
       BASIN_ID: "AVUONG"
 
+      # ======================================================
+      # RANDOM FOREST
+      # ======================================================
       RF_MODEL_DIR: "models/rf_v1"
       RF_SOURCE: "rf_v1"
       RF_MODEL_VERSION: "RF_V1_PERFECT_RAIN"
+
+      # GitHub Release chứa 5 model
+      RF_RELEASE_TAG: "rf-v1"
+
+      # Không dùng forecast mưa quá cũ
       MAX_RAIN_RUN_AGE_HOURS: "12"
 
-      # Nếu Supabase có nhiều hồ, tạo secret RESERVOIR_ID rồi bỏ comment dòng dưới:
-      # RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
-
     steps:
+
+      # ======================================================
+      # 1. CHECKOUT
+      # ======================================================
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+
+      # ======================================================
+      # 2. SETUP PYTHON
+      # ======================================================
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -45,35 +70,52 @@ jobs:
             scripts/requirements.txt
             scripts/requirements_rf_live.txt
 
-      - name: Install dependencies
+
+      # ======================================================
+      # 3. INSTALL DEPENDENCIES
+      # ======================================================
+
+      - name: Install Python dependencies
+        shell: bash
         run: |
+          set -euo pipefail
+
           python -m pip install --upgrade pip
+
           pip install -r scripts/requirements.txt
           pip install -r scripts/requirements_rf_live.txt
+
+
+      # ======================================================
+      # 4. VALIDATE SECRETS
+      # ======================================================
 
       - name: Validate required secrets
         shell: bash
         run: |
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "ERROR: Missing SUPABASE_URL secret"
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "ERROR: Missing GitHub secret SUPABASE_URL"
             exit 1
           fi
 
-          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY secret"
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "ERROR: Missing GitHub secret SUPABASE_SERVICE_ROLE_KEY"
             exit 1
           fi
 
-          echo "Required Supabase secrets are available."
+          echo "Supabase secrets are available."
 
-      - name: Validate RF model files
+
+      # ======================================================
+      # 5. VALIDATE METADATA
+      # ======================================================
+
+      - name: Validate RF metadata files
         shell: bash
         run: |
-          test -f models/rf_v1/rf_h01.joblib
-          test -f models/rf_v1/rf_h03.joblib
-          test -f models/rf_v1/rf_h06.joblib
-          test -f models/rf_v1/rf_h12.joblib
-          test -f models/rf_v1/rf_h24.joblib
+          set -euo pipefail
 
           test -f models/rf_v1/rf_h01_meta.json
           test -f models/rf_v1/rf_h03_meta.json
@@ -81,16 +123,150 @@ jobs:
           test -f models/rf_v1/rf_h12_meta.json
           test -f models/rf_v1/rf_h24_meta.json
 
-          echo "RF model artifacts are present."
+          echo "RF metadata files are present."
 
-      - name: Collect multi-model rainfall forecast
+
+      # ======================================================
+      # 6. RESTORE MODEL CACHE
+      # ======================================================
+
+      - name: Restore RF model cache
+        id: rf-model-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            models/rf_v1/rf_h01.joblib
+            models/rf_v1/rf_h03.joblib
+            models/rf_v1/rf_h06.joblib
+            models/rf_v1/rf_h12.joblib
+            models/rf_v1/rf_h24.joblib
+
+          key: avuong-rf-models-${{ runner.os }}-rf-v1
+
+
+      # ======================================================
+      # 7. DOWNLOAD MODELS IF CACHE MISS
+      # ======================================================
+
+      - name: Download RF models from GitHub Release
+        if: steps.rf-model-cache.outputs.cache-hit != 'true'
+
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        shell: bash
+
         run: |
+          set -euo pipefail
+
+          mkdir -p models/rf_v1
+
+          echo "Cache miss."
+          echo "Downloading models from release ${RF_RELEASE_TAG}"
+
+          gh release download "${RF_RELEASE_TAG}" \
+            --pattern "rf_h01.joblib" \
+            --pattern "rf_h03.joblib" \
+            --pattern "rf_h06.joblib" \
+            --pattern "rf_h12.joblib" \
+            --pattern "rf_h24.joblib" \
+            --dir models/rf_v1 \
+            --clobber
+
+          echo ""
+          echo "Downloaded RF model files:"
+          ls -lh models/rf_v1/*.joblib
+
+
+      # ======================================================
+      # 8. VALIDATE FULL RF ARTIFACTS
+      # ======================================================
+
+      - name: Validate RF model artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s models/rf_v1/rf_h01.joblib
+          test -s models/rf_v1/rf_h03.joblib
+          test -s models/rf_v1/rf_h06.joblib
+          test -s models/rf_v1/rf_h12.joblib
+          test -s models/rf_v1/rf_h24.joblib
+
+          test -f models/rf_v1/rf_h01_meta.json
+          test -f models/rf_v1/rf_h03_meta.json
+          test -f models/rf_v1/rf_h06_meta.json
+          test -f models/rf_v1/rf_h12_meta.json
+          test -f models/rf_v1/rf_h24_meta.json
+
+          echo ""
+          echo "All RF artifacts are ready."
+          echo ""
+
+          ls -lh models/rf_v1
+
+
+      # ======================================================
+      # 9. COLLECT RAINFALL
+      # ======================================================
+
+      - name: Collect A Vuong multi-model rainfall forecast
+        shell: bash
+        run: |
+          set -euo pipefail
+
           python scripts/avuong_multimodel_collector.py
 
-      - name: Run RF inflow predictor
+
+      # ======================================================
+      # 10. RUN RF PREDICTOR
+      # ======================================================
+
+      - name: Run A Vuong RF inflow predictor
+        shell: bash
         run: |
+          set -euo pipefail
+
           python scripts/rf_predict.py
 
-      - name: Finished
+
+      # ======================================================
+      # 11. SUMMARY
+      # ======================================================
+
+      - name: Workflow summary
+        if: always()
+
+        shell: bash
+
         run: |
-          echo "A Vuong rainfall collector + RF predictor completed."
+          echo ""
+          echo "=============================================="
+          echo "A VUONG RAINFALL + RF WORKFLOW"
+          echo "=============================================="
+
+          echo "Rainfall collector:"
+          echo "  scripts/avuong_multimodel_collector.py"
+
+          echo ""
+          echo "RF predictor:"
+          echo "  scripts/rf_predict.py"
+
+          echo ""
+          echo "RF model release:"
+          echo "  ${RF_RELEASE_TAG}"
+
+          echo ""
+          echo "RF model directory:"
+          echo "  ${RF_MODEL_DIR}"
+
+          echo ""
+          echo "RF source:"
+          echo "  ${RF_SOURCE}"
+
+          echo ""
+          echo "RF model version:"
+          echo "  ${RF_MODEL_VERSION}"
+
+          echo ""
+          echo "=============================================="
