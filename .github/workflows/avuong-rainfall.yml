@@ -1,0 +1,57 @@
+name: A Vuong Rainfall Collector
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-rainfall-collector
+  cancel-in-progress: false
+
+jobs:
+  collect-rainfall:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FORECAST_DAYS: "10"
+      BASIN_ID: "AVUONG"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "ERROR: Missing SUPABASE_URL secret"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY secret"
+            exit 1
+          fi
+          echo "Supabase secrets are available."
+
+      - name: Run A Vuong multi-model rainfall collector
+        run: |
+          python scripts/avuong_multimodel_collector.py
