@@ -9567,6 +9567,71 @@ aside.sidebar{
 }
 </style>
 
+
+
+<style id="overview-map-v85-fullscreen-fix">
+/* ===== V8.5 FULLSCREEN MAP FIX =====
+   Normal dashboard card stays 356px.
+   In fullscreen, both wrapper and Leaflet map fill the viewport. */
+
+#overviewProMap:fullscreen,
+#overviewProMap:-webkit-full-screen,
+.v8-map:fullscreen,
+.v8-map:-webkit-full-screen{
+  width:100vw !important;
+  height:100vh !important;
+  min-height:100vh !important;
+  max-height:none !important;
+  margin:0 !important;
+  border-radius:0 !important;
+  background:#dbeafe !important;
+}
+
+/* If fullscreen is applied to a parent/card rather than the map itself */
+:fullscreen #overviewProMap,
+:-webkit-full-screen #overviewProMap,
+:fullscreen .v8-map,
+:-webkit-full-screen .v8-map{
+  width:100% !important;
+  height:100% !important;
+  min-height:100% !important;
+  max-height:none !important;
+  margin:0 !important;
+  border-radius:0 !important;
+}
+
+/* Fullscreen host/card must allow the map to use all available height */
+:fullscreen .v8-map,
+:-webkit-full-screen .v8-map{
+  flex:1 1 auto !important;
+}
+
+/* Prevent any inherited fixed-height rules from winning */
+body.map-fullscreen-active #overviewProMap,
+body.map-fullscreen-active .v8-map{
+  height:100vh !important;
+  min-height:100vh !important;
+  max-height:none !important;
+  width:100vw !important;
+  margin:0 !important;
+  border-radius:0 !important;
+}
+</style>
+
+
+
+<style id="overview-map-v87-cool-tone">
+/* V8.7: keep the stable Esri Topographic basemap, but cool its color palette
+   so it blends better with the dashboard. Markers and labels are NOT filtered. */
+#overviewProMap .leaflet-tile-pane img.leaflet-tile{
+  filter:
+    saturate(.82)
+    hue-rotate(8deg)
+    brightness(1.06)
+    contrast(.96);
+}
+</style>
+
 </head>
 <body>
 
@@ -10429,7 +10494,7 @@ aside.sidebar{
           <section class="fr3-card">
             <div class="fr3-header">
               <div class="fr3-title-wrap">
-                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.4.1</span></div>
+                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.7.1</span></div>
                 <div class="fr3-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, xác định các mốc đặc trưng và lập báo cáo nhanh cho lãnh đạo.</div>
               </div>
 
@@ -20882,7 +20947,48 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
-  function refreshOverviewMap(){
+  
+  function refreshOverviewMapFullscreen(){
+    const fsEl=document.fullscreenElement || document.webkitFullscreenElement;
+    const mapEl=document.getElementById("overviewProMap");
+    const mapWrap=mapEl?.closest(".v8-map") || mapEl?.parentElement;
+
+    const isMapFullscreen=!!(
+      fsEl && (
+        fsEl===mapEl ||
+        fsEl===mapWrap ||
+        fsEl.contains?.(mapEl)
+      )
+    );
+
+    document.body.classList.toggle("map-fullscreen-active",isMapFullscreen);
+
+    // Leaflet must recalculate its pixel size only AFTER fullscreen layout settles.
+    [0,80,220,500].forEach(delay=>{
+      setTimeout(()=>{
+        if(window.__overviewMap){
+          try{
+            window.__overviewMap.invalidateSize({
+              pan:false,
+              debounceMoveend:true,
+              animate:false
+            });
+          }catch(e){}
+          if(delay===220 || delay===500){
+            try{fitOverviewMap(false);}catch(e){}
+          }
+        }
+      },delay);
+    });
+  }
+
+  if(!window.__overviewFullscreenBound){
+    window.__overviewFullscreenBound=true;
+    document.addEventListener("fullscreenchange",refreshOverviewMapFullscreen);
+    document.addEventListener("webkitfullscreenchange",refreshOverviewMapFullscreen);
+  }
+
+function refreshOverviewMap(){
     // Dashboard/sidebar transitions can change the card size after the tab is visible.
     [0,120,320,650].forEach(delay=>{
       setTimeout(()=>{
@@ -20918,7 +21024,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     map.setView([15.91,107.545],11);
 
     // Basemap for Overview:
-    // Use Esri World Topographic Map directly — no CARTO API key required.
+    // Stable no-key basemap: Esri World Topographic Map.
+    // A light cool-tone CSS filter is applied below for a softer blue/green dashboard look.
     const activeTile=L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
       {
