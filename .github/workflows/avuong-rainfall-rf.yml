@@ -1,0 +1,96 @@
+name: A Vuong Rainfall + RF Forecast
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-rainfall-rf
+  cancel-in-progress: false
+
+jobs:
+  collect-and-predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      FORECAST_DAYS: "10"
+      BASIN_ID: "AVUONG"
+
+      RF_MODEL_DIR: "models/rf_v1"
+      RF_SOURCE: "rf_v1"
+      RF_MODEL_VERSION: "RF_V1_PERFECT_RAIN"
+      MAX_RAIN_RUN_AGE_HOURS: "12"
+
+      # Nếu Supabase có nhiều hồ, tạo secret RESERVOIR_ID rồi bỏ comment dòng dưới:
+      # RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            scripts/requirements.txt
+            scripts/requirements_rf_live.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install -r scripts/requirements_rf_live.txt
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "ERROR: Missing SUPABASE_URL secret"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY secret"
+            exit 1
+          fi
+
+          echo "Required Supabase secrets are available."
+
+      - name: Validate RF model files
+        shell: bash
+        run: |
+          test -f models/rf_v1/rf_h01.joblib
+          test -f models/rf_v1/rf_h03.joblib
+          test -f models/rf_v1/rf_h06.joblib
+          test -f models/rf_v1/rf_h12.joblib
+          test -f models/rf_v1/rf_h24.joblib
+
+          test -f models/rf_v1/rf_h01_meta.json
+          test -f models/rf_v1/rf_h03_meta.json
+          test -f models/rf_v1/rf_h06_meta.json
+          test -f models/rf_v1/rf_h12_meta.json
+          test -f models/rf_v1/rf_h24_meta.json
+
+          echo "RF model artifacts are present."
+
+      - name: Collect multi-model rainfall forecast
+        run: |
+          python scripts/avuong_multimodel_collector.py
+
+      - name: Run RF inflow predictor
+        run: |
+          python scripts/rf_predict.py
+
+      - name: Finished
+        run: |
+          echo "A Vuong rainfall collector + RF predictor completed."
