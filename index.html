@@ -10429,7 +10429,7 @@ aside.sidebar{
           <section class="fr3-card">
             <div class="fr3-header">
               <div class="fr3-title-wrap">
-                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.3.1</span></div>
+                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.4.1</span></div>
                 <div class="fr3-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, xác định các mốc đặc trưng và lập báo cáo nhanh cho lãnh đạo.</div>
               </div>
 
@@ -20917,58 +20917,23 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     // Neutral temporary center. Real viewport is set from the mapped locations below.
     map.setView([15.91,107.545],11);
 
-    // Basemap: avoid direct OpenStreetMap standard tiles here.
-    // CARTO first; automatically falls back to Esri if several tiles fail.
-    const tileSources=[
+    // Basemap for Overview:
+    // Use Esri World Topographic Map directly — no CARTO API key required.
+    const activeTile=L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
       {
-        name:"CARTO Positron",
-        url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        options:{
-          subdomains:"abcd",
-          minZoom:7,
-          maxZoom:19,
-          updateWhenIdle:false,
-          keepBuffer:4,
-          crossOrigin:true,
-          attribution:"&copy; OpenStreetMap contributors &copy; CARTO"
-        }
-      },
-      {
-        name:"Esri World Topographic Map",
-        url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-        options:{
-          minZoom:7,
-          maxZoom:18,
-          updateWhenIdle:false,
-          keepBuffer:4,
-          crossOrigin:true,
-          attribution:"Tiles &copy; Esri"
-        }
+        minZoom:7,
+        maxZoom:18,
+        updateWhenIdle:false,
+        keepBuffer:4,
+        crossOrigin:true,
+        attribution:"Tiles &copy; Esri"
       }
-    ];
+    ).addTo(map);
 
-    let activeTile=null;
-    let tileSourceIndex=0;
-    let tileErrorCount=0;
-
-    function loadOverviewTileSource(index){
-      if(activeTile){
-        try{map.removeLayer(activeTile);}catch(_){}
-      }
-      tileErrorCount=0;
-      const src=tileSources[index];
-      activeTile=L.tileLayer(src.url,src.options).addTo(map);
-
-      activeTile.on("tileerror",()=>{
-        tileErrorCount++;
-        if(tileErrorCount>=3 && tileSourceIndex<tileSources.length-1){
-          tileSourceIndex++;
-          loadOverviewTileSource(tileSourceIndex);
-        }
-      });
-    }
-
-    loadOverviewTileSource(tileSourceIndex);
+    activeTile.on("tileerror",e=>{
+      console.warn("Overview basemap tile load error:", e?.tile?.src || "");
+    });
 
     // Monitoring locations and reservoir infrastructure shown on the overview map.
     const stations=[
