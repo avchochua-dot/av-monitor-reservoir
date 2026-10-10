@@ -9524,6 +9524,49 @@ aside.sidebar{
 }
 
 </style>
+
+
+<style id="overview-map-v83-fix">
+/* ===== OVERVIEW MAP V8.3 FIX =====
+   Keep Leaflet strictly inside the existing dashboard card. */
+.v8-map{
+  height:356px !important;
+  min-height:356px !important;
+  max-height:356px !important;
+  margin-top:14px !important;
+  border-radius:16px !important;
+  overflow:hidden !important;
+  position:relative !important;
+  box-sizing:border-box !important;
+}
+
+#overviewProMap{
+  display:block !important;
+  width:100% !important;
+  height:356px !important;
+  min-height:356px !important;
+  max-height:356px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:16px !important;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+  background:#dbeafe !important;
+}
+
+#overviewProMap.leaflet-container{
+  overflow:hidden !important;
+}
+
+#overviewProMap .leaflet-map-pane,
+#overviewProMap .leaflet-pane,
+#overviewProMap .leaflet-tile-pane{
+  max-width:none !important;
+  max-height:none !important;
+}
+</style>
+
 </head>
 <body>
 
@@ -10386,7 +10429,7 @@ aside.sidebar{
           <section class="fr3-card">
             <div class="fr3-header">
               <div class="fr3-title-wrap">
-                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8</span></div>
+                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.3.1</span></div>
                 <div class="fr3-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, xác định các mốc đặc trưng và lập báo cáo nhanh cho lãnh đạo.</div>
               </div>
 
@@ -20829,9 +20872,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     try{
       map.invalidateSize({pan:false,debounceMoveend:true});
       map.fitBounds(bounds,{
-        paddingTopLeft:[28,28],
-        paddingBottomRight:[28,28],
-        maxZoom:12,
+        paddingTopLeft:[24,24],
+        paddingBottomRight:[24,24],
+        maxZoom:11.75,
         animate:false
       });
     }catch(e){
@@ -20855,7 +20898,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const el=document.getElementById("overviewProMap");
     if(!window.L || !el) return;
 
-    // Existing map: never recreate it; just repair size and re-fit the 7 stations.
+    // Existing map: never recreate it; just repair size and re-fit the map.
     if(window.__overviewMap){
       refreshOverviewMap();
       return;
@@ -20871,27 +20914,63 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
     window.__overviewMap=map;
 
-    // Neutral temporary center. Real viewport is set from the 7-station bounds below.
+    // Neutral temporary center. Real viewport is set from the mapped locations below.
     map.setView([15.91,107.545],11);
 
-    const tile=L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    // Basemap: avoid direct OpenStreetMap standard tiles here.
+    // CARTO first; automatically falls back to Esri if several tiles fail.
+    const tileSources=[
       {
-        minZoom:7,
-        maxZoom:18,
-        updateWhenIdle:false,
-        keepBuffer:4,
-        crossOrigin:true
+        name:"CARTO Positron",
+        url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        options:{
+          subdomains:"abcd",
+          minZoom:7,
+          maxZoom:19,
+          updateWhenIdle:false,
+          keepBuffer:4,
+          crossOrigin:true,
+          attribution:"&copy; OpenStreetMap contributors &copy; CARTO"
+        }
+      },
+      {
+        name:"Esri World Topographic Map",
+        url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        options:{
+          minZoom:7,
+          maxZoom:18,
+          updateWhenIdle:false,
+          keepBuffer:4,
+          crossOrigin:true,
+          attribution:"Tiles &copy; Esri"
+        }
       }
-    ).addTo(map);
+    ];
 
-    // If one tile has a transient network error, Leaflet will continue loading the rest.
-    tile.on("tileerror",e=>{
-      console.warn("OSM tile load error:", e?.tile?.src || "");
-    });
+    let activeTile=null;
+    let tileSourceIndex=0;
+    let tileErrorCount=0;
 
-    // Seven station locations used for viewport fit.
-    // Infrastructure points are shown separately and DO NOT enlarge the fit bounds.
+    function loadOverviewTileSource(index){
+      if(activeTile){
+        try{map.removeLayer(activeTile);}catch(_){}
+      }
+      tileErrorCount=0;
+      const src=tileSources[index];
+      activeTile=L.tileLayer(src.url,src.options).addTo(map);
+
+      activeTile.on("tileerror",()=>{
+        tileErrorCount++;
+        if(tileErrorCount>=3 && tileSourceIndex<tileSources.length-1){
+          tileSourceIndex++;
+          loadOverviewTileSource(tileSourceIndex);
+        }
+      });
+    }
+
+    loadOverviewTileSource(tileSourceIndex);
+
+    // Monitoring locations and reservoir infrastructure shown on the overview map.
     const stations=[
       ["AV01","Tr.Tiểu học & TH b.trú Dang",15.828689,107.559727],
       ["AV02","UBND xã Tây Giang",15.885485,107.492530],
@@ -20908,9 +20987,11 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     ];
 
     const stationLatLngs=[];
+    const allOverviewLatLngs=[];
 
     stations.forEach(([code,name,lat,lng])=>{
       stationLatLngs.push([lat,lng]);
+      allOverviewLatLngs.push([lat,lng]);
 
       const icon=L.divIcon({
         className:"overview-station-divicon",
@@ -20942,6 +21023,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     });
 
     infrastructure.forEach(([name,lat,lng,symbol])=>{
+      allOverviewLatLngs.push([lat,lng]);
       const icon=L.divIcon({
         className:"overview-infra-divicon",
         html:`<div class="overview-infra-marker">${symbol}</div>`,
@@ -20954,24 +21036,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         .bindTooltip(name,{direction:"top",offset:[0,-12],className:"overview-map-tooltip"});
     });
 
-    window.__overviewStationBounds=L.latLngBounds(stationLatLngs);
+    window.__overviewStationBounds=L.latLngBounds(allOverviewLatLngs);
 
 
-    if(!document.getElementById("overviewMapFitBtn")){
-      const btn=document.createElement("button");
-      btn.id="overviewMapFitBtn";
-      btn.type="button";
-      btn.textContent="◎ 7 trạm";
-      btn.title="Căn lại bản đồ theo 7 trạm";
-      btn.style.cssText="position:absolute;right:10px;bottom:10px;z-index:500;background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:9px;padding:6px 9px;font:800 10px Arial;color:#1d4ed8;box-shadow:0 5px 14px rgba(15,23,42,.10);cursor:pointer";
-      btn.addEventListener("click",()=>fitOverviewMap(true));
-      const parent=el.parentElement;
-      if(parent){
-        const cs=getComputedStyle(parent);
-        if(cs.position==="static") parent.style.position="relative";
-        parent.appendChild(btn);
-      }
-    }
+    
 
     // Initial fit only after the dashboard has laid out the card.
     requestAnimationFrame(()=>{
@@ -20987,8 +21055,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         window.__overviewMapResizeTimer=setTimeout(()=>{
           if(window.__overviewMap){
             try{ window.__overviewMap.invalidateSize({pan:false,debounceMoveend:true}); }catch(e){}
+            fitOverviewMap(false);
           }
-        },90);
+        },120);
       });
       ro.observe(el);
       window.__overviewMapResizeObserver=ro;
