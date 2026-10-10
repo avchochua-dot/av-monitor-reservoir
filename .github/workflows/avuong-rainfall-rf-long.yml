@@ -2,8 +2,20 @@ name: A Vuong Rainfall + RF Forecast + Long H120
 
 on:
   workflow_dispatch:
+    inputs:
+      force_predict:
+        description: "Force RF V1 + Long-H120 even if issue_time has not advanced"
+        required: false
+        default: false
+        type: boolean
+
+  # GitHub cron uses UTC.
+  # Run every hour at minute 05.
+  # At minute 10, retry once only when a newer observed Q hour is available
+  # than the latest Long-H120 issue_time.
   schedule:
-    - cron: "15 * * * *"
+    - cron: "5 * * * *"
+    - cron: "10 * * * *"
 
 permissions:
   contents: read
@@ -21,8 +33,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      # Nếu reservoir_hourly_data có nhiều hồ:
-      # RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
+      # Nếu reservoir_hourly_data có nhiều hồ, tạo secret RESERVOIR_ID.
+      RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
 
       FORECAST_DAYS: "10"
       BASIN_ID: "AVUONG"
@@ -59,11 +71,8 @@ jobs:
           set -euo pipefail
 
           python -m pip install --upgrade pip
-
           pip install -r scripts/requirements.txt
           pip install -r scripts/requirements_rf_live.txt
-
-          # Pin đúng environment đã train Long-H120 trong Colab
           pip install -r scripts/requirements_long_live.txt
 
       - name: Print Python ML runtime
@@ -100,7 +109,133 @@ jobs:
 
           echo "Supabase secrets are available."
 
+      # ----------------------------------------------------------
+      # HH:05
+      # Always refresh rainfall once per hour.
+      # Manual runs also refresh rainfall.
+      # ----------------------------------------------------------
+      - name: Collect rainfall at minute 05
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Collecting A Vuong multi-model rainfall forecast..."
+          python scripts/avuong_multimodel_collector.py
+
+      # ----------------------------------------------------------
+      # Gate:
+      # Forecast only when the newest observed hour is newer than
+      # the latest Long-H120 issue_time.
+      #
+      # This is intentionally NOT based on the wall-clock hour.
+      # It avoids creating a forecast for an hour whose observed Q
+      # has not arrived yet.
+      # ----------------------------------------------------------
+      - name: Check for a new observed hour
+        id: forecast-gate
+        shell: bash
+        env:
+          FORCE_PREDICT: ${{ github.event_name == 'workflow_dispatch' && inputs.force_predict || false }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from supabase import create_client
+
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          reservoir_id = (os.environ.get("RESERVOIR_ID") or "").strip()
+          force = str(os.environ.get("FORCE_PREDICT", "false")).lower() == "true"
+
+          sb = create_client(url, key)
+
+          # Latest observed operation row.
+          q = (
+              sb.table("reservoir_hourly_data")
+              .select("time,reservoir_id")
+              .order("time", desc=True)
+              .limit(50 if reservoir_id else 1)
+          )
+
+          if reservoir_id:
+              q = q.eq("reservoir_id", reservoir_id)
+
+          obs_rows = q.execute().data or []
+          latest_obs = obs_rows[0]["time"] if obs_rows else None
+
+          # Latest completed Long-H120 issue.
+          fc_rows = (
+              sb.table("inflow_forecast_long_ensemble")
+              .select("issue_time")
+              .order("issue_time", desc=True)
+              .limit(1)
+              .execute()
+              .data
+              or []
+          )
+          latest_issue = fc_rows[0]["issue_time"] if fc_rows else None
+
+          def parse_dt(v):
+              if not v:
+                  return None
+              return datetime.fromisoformat(str(v).replace("Z", "+00:00")).astimezone(timezone.utc)
+
+          obs_dt = parse_dt(latest_obs)
+          issue_dt = parse_dt(latest_issue)
+
+          if force:
+              need_predict = True
+              reason = "manual force_predict=true"
+          elif obs_dt is None:
+              need_predict = False
+              reason = "no observed reservoir_hourly_data available"
+          elif issue_dt is None:
+              need_predict = True
+              reason = "no Long-H120 forecast exists yet"
+          elif obs_dt > issue_dt:
+              need_predict = True
+              reason = "new observed hour is available"
+          else:
+              need_predict = False
+              reason = "latest observed hour has not advanced beyond latest Long-H120 issue_time"
+
+          print("Latest observed time :", latest_obs)
+          print("Latest Long issue    :", latest_issue)
+          print("Need prediction      :", need_predict)
+          print("Reason               :", reason)
+
+          output = os.environ["GITHUB_OUTPUT"]
+          with open(output, "a", encoding="utf-8") as f:
+              f.write(f"need_predict={'true' if need_predict else 'false'}\n")
+              f.write(f"latest_obs={latest_obs or ''}\n")
+              f.write(f"latest_issue={latest_issue or ''}\n")
+              f.write(f"reason={reason}\n")
+          PY
+
+      # ----------------------------------------------------------
+      # HH:10 retry:
+      # If the :05 run found no new observed hour, the :10 scheduled
+      # workflow checks again. When the new Q hour has arrived,
+      # refresh rainfall once more before prediction.
+      # ----------------------------------------------------------
+      - name: Refresh rainfall on minute-10 retry
+        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_predict == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "New observed hour arrived by minute 10."
+          echo "Refreshing rainfall before retry prediction..."
+          python scripts/avuong_multimodel_collector.py
+
+      # ----------------------------------------------------------
+      # Model preparation only when a prediction is actually needed.
+      # This avoids downloading/loading the large RF artifacts on a
+      # :10 retry where no new observed hour has arrived.
+      # ----------------------------------------------------------
       - name: Validate RF V1 metadata files
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -114,6 +249,7 @@ jobs:
           echo "RF V1 metadata files are present."
 
       - name: Restore RF V1 model cache
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         id: rf-model-cache
         uses: actions/cache@v4
         with:
@@ -126,7 +262,7 @@ jobs:
           key: avuong-rf-models-${{ runner.os }}-rf-v1
 
       - name: Download RF V1 models from GitHub Release
-        if: steps.rf-model-cache.outputs.cache-hit != 'true'
+        if: steps.forecast-gate.outputs.need_predict == 'true' && steps.rf-model-cache.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -147,6 +283,7 @@ jobs:
           ls -lh models/rf_v1/*.joblib
 
       - name: Validate model artifacts
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -163,6 +300,7 @@ jobs:
           echo "All model artifacts are present."
 
       - name: Smoke test Long-H120 model load
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -177,23 +315,31 @@ jobs:
           print("Model class:", type(model))
           PY
 
-      - name: Collect A Vuong multi-model rainfall forecast
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/avuong_multimodel_collector.py
-
       - name: Run RF V1 inflow predictor
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python scripts/rf_predict.py
 
       - name: Run Long-H120 six-scenario inflow predictor
+        if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python scripts/rf_predict_long_h120.py
+
+      - name: No new observed hour - prediction skipped
+        if: steps.forecast-gate.outputs.need_predict != 'true'
+        shell: bash
+        run: |
+          echo "No new observed Q hour is available."
+          echo "Latest observed : ${{ steps.forecast-gate.outputs.latest_obs }}"
+          echo "Latest forecast : ${{ steps.forecast-gate.outputs.latest_issue }}"
+          echo "Reason          : ${{ steps.forecast-gate.outputs.reason }}"
+          echo ""
+          echo "At minute 05: the minute-10 schedule will check once more."
+          echo "At minute 10: no further retry is made until next hour."
 
       - name: Workflow summary
         if: always()
@@ -203,9 +349,15 @@ jobs:
           echo "===================================================="
           echo "A VUONG RAINFALL + RF + LONG-H120"
           echo "===================================================="
-          echo "Rainfall : 6 NWP models x 7 basin points"
-          echo "RF V1    : H01/H03/H06/H12/H24"
-          echo "Long     : H01-H120 hourly"
-          echo "Scenario : ECMWF/GFS/ICON/AIFS/CMA/JMA"
-          echo "Ensemble : Mean / P50 / P10 / P90 / Min / Max"
+          echo "Event              : ${{ github.event_name }}"
+          echo "Schedule           : ${{ github.event.schedule }}"
+          echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
+          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_issue }}"
+          echo "Need prediction    : ${{ steps.forecast-gate.outputs.need_predict }}"
+          echo "Gate reason        : ${{ steps.forecast-gate.outputs.reason }}"
+          echo "Rainfall           : 6 NWP models x 7 basin points"
+          echo "RF V1              : H01/H03/H06/H12/H24"
+          echo "Long               : H01-H120 hourly"
+          echo "Scenario           : ECMWF/GFS/ICON/AIFS/CMA/JMA"
+          echo "Ensemble           : Mean / P50 / P10 / P90 / Min / Max"
           echo "===================================================="
