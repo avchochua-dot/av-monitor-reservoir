@@ -7,8 +7,8 @@ A Vuong shadow evaluator V2.
 Mục tiêu:
 - Khi Q thực đã xuất hiện, đối chiếu forecast đã phát hành trước đó.
 - V1/V2 hiện chấm:
-  + LONG_H120_P50
-  + LSTM_H120_P50
+  + LONG_H120_CENTER (ưu tiên P50, fallback median/mean)
+  + LSTM_H120_CENTER (ưu tiên P50, fallback median/mean)
 - Lưu từng forecast verification vào forecast_shadow_eval.
 - Views Supabase tự tổng hợp MAE/RMSE/Bias theo lead.
 
@@ -94,18 +94,89 @@ def get_latest_observations(limit: int = 1000) -> pd.DataFrame:
           .reset_index(drop=True)
     )
 
+def detect_forecast_schema(table: str) -> Dict[str, str | None]:
+    """
+    Đọc 1 bản ghi bằng select=* để tự nhận diện cột forecast trung tâm.
+    Ưu tiên P50, sau đó median, mean.
+    """
+    rows = get_rows(
+        table,
+        {
+            "select": "*",
+            "order": "forecast_time.desc",
+            "limit": "1",
+        },
+    )
+    if not rows:
+        raise RuntimeError(f"{table} không có dữ liệu để nhận diện schema")
+
+    columns = list(rows[0].keys())
+    lower_map = {str(c).lower(): c for c in columns}
+
+    def pick(candidates):
+        for name in candidates:
+            if name.lower() in lower_map:
+                return lower_map[name.lower()]
+        return None
+
+    issue_col = pick(["issue_time", "run_time"])
+    forecast_col = pick(["forecast_time", "time"])
+    lead_col = pick(["lead_hour", "lead", "horizon"])
+    q_col = pick([
+        "q_p50",
+        "q_median",
+        "q_mean",
+        "q_forecast",
+        "q_pred",
+        "forecast_q",
+    ])
+    version_col = pick(["model_version", "version"])
+
+    print(f"{table} columns:", columns)
+    print(f"{table} detected issue   :", issue_col)
+    print(f"{table} detected forecast:", forecast_col)
+    print(f"{table} detected lead    :", lead_col)
+    print(f"{table} detected Q center:", q_col)
+    print(f"{table} detected version :", version_col)
+
+    if not issue_col or not forecast_col or not lead_col or not q_col:
+        raise RuntimeError(
+            f"Không nhận diện đủ schema forecast cho {table}. "
+            f"Columns hiện có: {columns}"
+        )
+
+    return {
+        "issue": str(issue_col),
+        "forecast": str(forecast_col),
+        "lead": str(lead_col),
+        "q": str(q_col),
+        "version": str(version_col) if version_col else None,
+    }
+
+
 def fetch_forecast_rows(
     table: str,
     obs_min: pd.Timestamp,
     obs_max: pd.Timestamp
 ) -> pd.DataFrame:
 
+    schema = detect_forecast_schema(table)
+
+    select_cols = [
+        schema["issue"],
+        schema["forecast"],
+        schema["lead"],
+        schema["q"],
+    ]
+    if schema["version"]:
+        select_cols.append(schema["version"])
+
     rows = get_rows(
         table,
         {
-            "select": "issue_time,forecast_time,lead_hour,q_p50,model_version",
-            "forecast_time": f"gte.{obs_min.isoformat()}",
-            "order": "forecast_time.asc",
+            "select": ",".join(select_cols),
+            schema["forecast"]: f"gte.{obs_min.isoformat()}",
+            "order": f"{schema['forecast']}.asc",
             "limit": "20000",
         },
     )
@@ -114,6 +185,22 @@ def fetch_forecast_rows(
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
+
+    # Chuẩn hóa về tên nội bộ cố định để phần evaluator phía sau không phụ thuộc schema thật.
+    rename_map = {
+        schema["issue"]: "issue_time",
+        schema["forecast"]: "forecast_time",
+        schema["lead"]: "lead_hour",
+        schema["q"]: "q_center",
+    }
+    if schema["version"]:
+        rename_map[schema["version"]] = "model_version"
+
+    df = df.rename(columns=rename_map)
+
+    if "model_version" not in df.columns:
+        df["model_version"] = None
+
     df["issue_time"] = pd.to_datetime(
         df["issue_time"], utc=True, errors="coerce"
     )
@@ -123,15 +210,16 @@ def fetch_forecast_rows(
     df["lead_hour"] = pd.to_numeric(
         df["lead_hour"], errors="coerce"
     )
-    df["q_p50"] = pd.to_numeric(
-        df["q_p50"], errors="coerce"
+    df["q_center"] = pd.to_numeric(
+        df["q_center"], errors="coerce"
     )
 
     df = df.dropna(
-        subset=["issue_time", "forecast_time", "lead_hour", "q_p50"]
+        subset=["issue_time", "forecast_time", "lead_hour", "q_center"]
     )
 
     return df[df["forecast_time"] <= obs_max].copy()
+
 
 def build_eval_rows(
     model_name: str,
@@ -155,7 +243,7 @@ def build_eval_rows(
             continue
 
         q_obs = float(obs_map[ft])
-        q_fc = float(r.q_p50)
+        q_fc = float(r.q_center)
         err = q_fc - q_obs
 
         out.append({
