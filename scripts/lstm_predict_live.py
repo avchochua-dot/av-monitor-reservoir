@@ -159,24 +159,85 @@ def get_latest_rain_run() -> Tuple[pd.Timestamp, List[Dict[str, Any]]]:
         selected=[r for r in selected if int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
     return latest, selected
 
-def detect_obs_columns() -> Tuple[str,str,str]:
-    candidates = [
-        ("time","inflow","rain"),
-        ("time","q_ve","rain"),
-        ("time","qin","rain"),
-        ("datetime","inflow","rain"),
+def detect_obs_columns() -> Tuple[str, str, str]:
+    """
+    Tự nhận diện tên cột thật của reservoir_hourly_data.
+
+    Không giả định cố định time/inflow/rain nữa.
+    Đọc 1 bản ghi bằng select=* rồi dò alias.
+    """
+
+    params = {
+        "select": "*",
+        "limit": "1",
+    }
+    if RESERVOIR_ID:
+        params["reservoir_id"] = f"eq.{RESERVOIR_ID}"
+
+    rows = supabase_get(TABLE_OBS, params)
+    if not rows:
+        raise RuntimeError("reservoir_hourly_data không có bản ghi để nhận diện schema")
+
+    columns = list(rows[0].keys())
+    lower_map = {str(c).lower(): c for c in columns}
+
+    time_aliases = [
+        "time",
+        "datetime",
+        "timestamp",
+        "date_time",
+        "observed_at",
+        "measurement_time",
+        "recorded_at",
+        "data_time",
     ]
-    for time_col,q_col,rain_col in candidates:
-        params={"select":f"{time_col},{q_col},{rain_col}","order":f"{time_col}.desc","limit":"1"}
-        if RESERVOIR_ID:
-            params["reservoir_id"]=f"eq.{RESERVOIR_ID}"
-        try:
-            rows=supabase_get(TABLE_OBS, params)
-            if rows:
-                return time_col,q_col,rain_col
-        except Exception:
-            pass
-    raise RuntimeError("Không tự nhận diện được cột time/inflow/rain trong reservoir_hourly_data")
+
+    q_aliases = [
+        "inflow",
+        "q_ve",
+        "qve",
+        "qin",
+        "q_in",
+        "flow",
+        "q",
+        "flow_in",
+        "inflow_cms",
+    ]
+
+    rain_aliases = [
+        "rain",
+        "rainfall",
+        "rain_mm",
+        "rain_hour",
+        "rain_1h",
+        "mua",
+        "mua_gio",
+        "rain_observed",
+        "rain_obs",
+    ]
+
+    def pick(alias_list):
+        for alias in alias_list:
+            if alias.lower() in lower_map:
+                return lower_map[alias.lower()]
+        return None
+
+    time_col = pick(time_aliases)
+    q_col = pick(q_aliases)
+    rain_col = pick(rain_aliases)
+
+    print("reservoir_hourly_data columns:", columns)
+    print("Detected time column:", time_col)
+    print("Detected Q column   :", q_col)
+    print("Detected rain column:", rain_col)
+
+    if not time_col or not q_col or not rain_col:
+        raise RuntimeError(
+            "Không tự nhận diện đủ time/Q/rain trong reservoir_hourly_data. "
+            f"Columns hiện có: {columns}"
+        )
+
+    return str(time_col), str(q_col), str(rain_col)
 
 def get_observed_history(issue_time: pd.Timestamp, lookback_hours: int) -> pd.DataFrame:
     time_col,q_col,rain_col = detect_obs_columns()
