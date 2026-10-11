@@ -1,6 +1,7 @@
 
 
 
+
 <!-- HEC-LITE V3.2 HISTORY+CURRENT FIX: preserve original chart layout; history from grid lead4 + current production cycle -->
 
 
@@ -495,7 +496,7 @@
        ========================= */
     #tab-chart .tabs{
       display: grid;
-      /* 13 nút => hàng 1 có 7 nút, hàng 2 có 6 nút */
+      /* 14 nút => 2 hàng, mỗi hàng 7 nút */
       grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 6px;
       margin-bottom: 10px;
@@ -2228,6 +2229,7 @@ aside.sidebar::after{
 /* Accent colors by tab */
 .nav-link[data-tab="overview"]{--nav-accent:#2563eb;--nav-soft:rgba(37,99,235,.12)}
 .nav-link[data-tab="chart"]{--nav-accent:#2563eb;--nav-soft:rgba(37,99,235,.11)}
+.nav-link[data-tab="modeleval"]{--nav-accent:#059669;--nav-soft:rgba(5,150,105,.12)}
 .nav-link[data-tab="forecast"]{--nav-accent:#16a34a;--nav-soft:rgba(22,163,74,.12)}
 .nav-link[data-tab="data"]{--nav-accent:#8b5cf6;--nav-soft:rgba(139,92,246,.13)}
 .nav-link[data-tab="rain"]{--nav-accent:#0ea5e9;--nav-soft:rgba(14,165,233,.13)}
@@ -9624,7 +9626,6 @@ body.map-fullscreen-active .v8-map{
   min-height:32px;
 }
 #tab-chart .long-scenario-mini-btn{
-  display:inline-flex !important;
   align-items:center !important;
   justify-content:center !important;
   text-align:center !important;
@@ -9817,6 +9818,135 @@ body.map-fullscreen-active .v8-map{
 }
 </style>
 
+
+<style id="lstm-h120-dashboard-addon">
+#tab-chart #lstmH120DataCard .long-data-title{color:#6d28d9}
+#tab-chart #lstmH120DataCard .long-panel-chip.forecast{background:rgba(124,58,237,.08)!important;border-color:rgba(124,58,237,.20)!important;color:#6d28d9!important}
+#tab-chart #lstmH120DataCard .row-issue td{background:rgba(124,58,237,.055)!important}
+#tab-chart #lstmH120DataCard .rain-mean{color:#7c3aed!important}
+#lstmScenarioToggleBtn{border-color:rgba(124,58,237,.22)!important;color:#6d28d9!important;background:rgba(124,58,237,.06)!important}
+</style>
+
+<style id="shadow-eval-dashboard-style">
+  /* =========================================================
+     MODEL SHADOW EVALUATION DASHBOARD
+     ========================================================= */
+  .shadow-page{display:flex;flex-direction:column;gap:14px}
+  .shadow-hero{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    padding:18px 20px;border-radius:22px;border:1px solid var(--line);
+    background:linear-gradient(135deg,#ffffff 0%,#f8fbff 58%,#f0fdf4 100%);
+    box-shadow:var(--shadow-card)
+  }
+  .shadow-hero h2{margin:4px 0 6px;font-size:20px;color:#0f172a;font-weight:1000}
+  .shadow-hero p{margin:0;color:#64748b;font-size:12px;font-weight:800;line-height:1.5}
+  .shadow-kicker{font-size:11px;font-weight:1000;color:#2563eb;text-transform:uppercase;letter-spacing:.7px}
+  .shadow-refresh{
+    flex:0 0 auto;width:auto;padding:9px 14px;border-radius:14px;border:1px solid rgba(37,99,235,.22);
+    background:#fff;color:#2563eb;font-weight:1000;cursor:pointer
+  }
+  .shadow-status{
+    display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;
+    font-size:11px;font-weight:1000;border:1px solid rgba(245,158,11,.24);
+    background:#fffbeb;color:#b45309;margin-top:10px
+  }
+  .shadow-status.ready{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .shadow-status::before{content:"";width:8px;height:8px;border-radius:99px;background:currentColor}
+
+  .shadow-kpi-grid{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px
+  }
+  .shadow-kpi{
+    border:1px solid var(--line);border-radius:18px;background:#fff;padding:13px 14px;
+    box-shadow:0 8px 22px rgba(15,23,42,.05);min-height:106px
+  }
+  .shadow-kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:1000}
+  .shadow-kpi .value{font-size:22px;line-height:1.1;margin-top:8px;font-weight:1000;color:#0f172a}
+  .shadow-kpi .sub{margin-top:6px;font-size:10px;color:#64748b;font-weight:800;line-height:1.35}
+  .shadow-kpi.long .value{color:#0284c7}
+  .shadow-kpi.lstm .value{color:#7c3aed}
+  .shadow-kpi.rf .value{color:#0ea5e9}
+  .shadow-kpi.persist .value{color:#64748b}
+  .shadow-kpi.fair .value{color:#059669}
+  .shadow-kpi.obs .value{color:#2563eb;font-size:17px}
+
+  .shadow-wait{
+    display:flex;align-items:flex-start;gap:10px;border:1px solid #fde68a;background:#fffbeb;
+    border-radius:16px;padding:12px 14px;color:#92400e;font-size:11px;font-weight:850;line-height:1.5
+  }
+  .shadow-wait.ready{border-color:#a7f3d0;background:#ecfdf5;color:#065f46}
+  .shadow-wait b{font-weight:1000}
+
+  .shadow-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .shadow-card{
+    border:1px solid var(--line);border-radius:20px;background:#fff;padding:14px;
+    box-shadow:var(--shadow-card);overflow:hidden
+  }
+  .shadow-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .shadow-card-title{font-size:13px;font-weight:1000;color:#172033}
+  .shadow-card-sub{font-size:10px;color:#64748b;font-weight:800;margin-top:3px}
+  .shadow-chip{
+    flex:0 0 auto;padding:6px 9px;border-radius:999px;font-size:10px;font-weight:1000;
+    background:#eef4ff;color:#2563eb;border:1px solid #cfe0ff
+  }
+  .shadow-chart-wrap{height:300px;position:relative}
+  .shadow-chart-wrap canvas{height:300px!important}
+
+  .shadow-table-wrap{
+    border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:390px;background:#fff
+  }
+  .shadow-table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:11px}
+  .shadow-table th{
+    position:sticky;top:0;z-index:2;background:#f1f5f9;color:#475569;padding:8px 8px;
+    border-bottom:1px solid #cbd5e1;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.35px
+  }
+  .shadow-table td{
+    padding:8px 8px;border-bottom:1px solid #edf2f7;text-align:center;font-weight:800;color:#334155
+  }
+  .shadow-table td:first-child{text-align:left;font-weight:1000;position:static;background:transparent;border-right:0;width:auto}
+  .shadow-rank{display:inline-flex;min-width:25px;height:22px;align-items:center;justify-content:center;border-radius:999px;font-weight:1000}
+  .shadow-rank.r1{background:#dcfce7;color:#047857}
+  .shadow-rank.r2{background:#eff6ff;color:#1d4ed8}
+  .shadow-rank.r3{background:#fff7ed;color:#c2410c}
+  .shadow-rank.r4{background:#f1f5f9;color:#64748b}
+  .shadow-empty{padding:28px 16px!important;color:#64748b!important;text-align:center!important;font-weight:900!important}
+
+  .shadow-model-dot{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:6px;vertical-align:1px}
+  .shadow-model-dot.long{background:#0284c7}.shadow-model-dot.lstm{background:#7c3aed}
+  .shadow-model-dot.rf{background:#0ea5e9}.shadow-model-dot.persist{background:#64748b}
+  .shadow-confidence{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:72px;padding:4px 8px;border-radius:999px;
+    font-size:9px;font-weight:1000;line-height:1;border:1px solid transparent
+  }
+  .shadow-confidence.vlow{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+  .shadow-confidence.low{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+  .shadow-confidence.med{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+  .shadow-confidence.good{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .shadow-phase{
+    display:inline-flex;align-items:center;gap:7px;padding:7px 11px;
+    border-radius:999px;font-size:10px;font-weight:1000;
+    border:1px solid #fde68a;background:#fffbeb;color:#b45309;
+    margin-left:8px;vertical-align:middle
+  }
+  .shadow-phase.early{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
+  .shadow-phase.active{border-color:#a7f3d0;background:#ecfdf5;color:#047857}
+  .shadow-phase.ready{border-color:#99f6e4;background:#f0fdfa;color:#0f766e}
+
+
+  @media(max-width:1280px){
+    .shadow-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media(max-width:900px){
+    .shadow-grid-2{grid-template-columns:1fr}
+    .shadow-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:560px){
+    .shadow-kpi-grid{grid-template-columns:1fr}
+    .shadow-hero{flex-direction:column}
+  }
+</style>
+
 </head>
 <body>
 
@@ -9894,6 +10024,10 @@ body.map-fullscreen-active .v8-map{
           <a class="nav-link" data-tab="forecast">
           <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
           Dự báo
+        </a>
+          <a class="nav-link" data-tab="modeleval">
+          <svg viewBox="0 0 24 24"><path d="M4 19h16v2H4v-2zM6 17V9h3v8H6zm5 0V4h3v13h-3zm5 0v-6h3v6h-3z"/></svg>
+          Đánh giá mô hình
         </a>
         </div>
 
@@ -10168,12 +10302,8 @@ body.map-fullscreen-active .v8-map{
               <canvas id="chart"></canvas>
             </div>
             <div class="long-chart-mini-actions">
-              <button type="button"
-                      class="long-scenario-mini-btn"
-                      id="longScenarioToggleBtn"
-                      onclick="toggleLongScenarios()">
-                Ẩn 6 kịch bản
-              </button>
+              <button type="button" class="long-scenario-mini-btn" id="longScenarioToggleBtn" onclick="toggleLongScenarios()">Ẩn 6 kịch bản</button>
+              <button type="button" class="long-scenario-mini-btn" id="lstmScenarioToggleBtn" onclick="toggleLstmScenarios()" style="display:none">Ẩn 7 kịch bản</button>
             </div>
           </div>
         </section>
@@ -10331,7 +10461,202 @@ body.map-fullscreen-active .v8-map{
             thống kê đã hiệu chỉnh. H000 chỉ là điểm nối Q thực tại thời điểm phát hành.
           </div>
         </section>
+
+        <section class="card long-data-card" id="lstmH120DataCard" style="display:none">
+          <div class="long-data-head">
+            <div>
+              <div class="long-data-title">Số liệu LSTM-H120</div>
+              <div class="long-data-sub" id="lstmH120TableInfo">Q thực gần thời điểm phát hành + dự báo H01…H120 + 7 kịch bản mưa.</div>
+            </div>
+            <div class="long-data-actions">
+              <button type="button" class="long-action-btn excel" onclick="exportLstmH120Excel()">📥 Xuất Excel</button>
+            </div>
+          </div>
+
+          <div class="long-panel past-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Số liệu đã qua</div>
+                <div class="long-panel-sub">24 mốc giờ gần nhất trước thời điểm phát hành. Q thực và mưa thực lấy từ quan trắc; forecast lịch sử lấy đúng issue LSTM đã phát hành trước đó, thiếu thì hiển thị “-”.</div>
+              </div>
+              <span class="long-panel-chip" id="lstmPastCount">0 dòng</span>
+            </div>
+            <div class="long-table-wrap past-table-wrap">
+              <table class="long-table aligned-long-table past-table" id="lstmPastTable">
+                <colgroup>
+                  <col class="col-time"><col class="col-lead"><col class="col-q-real"><col class="col-q-min"><col class="col-q-max">
+                  <col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-rain">
+                </colgroup>
+                <thead><tr>
+                  <th>Thời gian</th><th>Lead</th><th>Q thực</th><th>Q Min</th><th>Q Max</th>
+                  <th>Q ECMWF</th><th>Q GFS</th><th>Q ICON</th><th>Q AIFS</th><th>Q CMA</th><th>Q JMA</th><th>Q O-M Best</th><th>Mưa thực</th>
+                </tr></thead>
+                <tbody id="lstmPastTableBody"><tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Đang tải số liệu đã qua...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="long-panel forecast-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Kết quả dự báo LSTM-H120</div>
+                <div class="long-panel-sub">H000 là điểm nối phát hành; H001–H120 là dự báo từng giờ. LSTM chạy shadow với 7 kịch bản mưa.</div>
+              </div>
+              <span class="long-panel-chip forecast" id="lstmForecastCount">0 dòng</span>
+            </div>
+            <div class="long-table-wrap forecast-table-wrap">
+              <table class="long-table aligned-long-table forecast-table" id="lstmForecastTable">
+                <colgroup>
+                  <col class="col-time"><col class="col-lead"><col class="col-q-real"><col class="col-q-min"><col class="col-q-max">
+                  <col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-rain">
+                </colgroup>
+                <thead><tr>
+                  <th>Thời gian</th><th>Lead</th><th>Q thực</th><th>Q Min</th><th>Q Max</th>
+                  <th>Q ECMWF</th><th>Q GFS</th><th>Q ICON</th><th>Q AIFS</th><th>Q CMA</th><th>Q JMA</th><th>Q O-M Best</th><th>Mưa mean</th>
+                </tr></thead>
+                <tbody id="lstmForecastTableBody"><tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Đang chờ dữ liệu dự báo LSTM-H120...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="long-data-note">
+            LSTM P50 là đường dự báo trung tâm. <b>P25–P75</b> là dải đồng thuận chính và <b>Min–Max</b> là dải kịch bản toàn phần rất nhạt.
+            7 kịch bản gồm ECMWF, GFS, ICON, AIFS, CMA, JMA và OpenMeteo Best. Mô hình đang ở chế độ <b>SHADOW</b>.
+          </div>
+        </section>
 </div>
+
+
+      <!-- TAB: MODEL SHADOW EVALUATION -->
+      <div id="tab-modeleval" class="tab-pane">
+        <section class="shadow-page">
+
+          <div class="shadow-hero">
+            <div>
+              <div class="shadow-kicker">Shadow validation • A Vương</div>
+              <h2>Đánh giá mô hình dự báo Q</h2>
+              <p>So sánh Persistence, RF V1, Long-H120 và LSTM-H120. Bảng Fair4 chỉ xếp hạng khi cả 4 mô hình cùng có dự báo tại đúng forecast_time và cùng lead.</p>
+              <div class="shadow-status" id="shadowFairStatus">Đang kiểm tra dữ liệu...</div>
+              <span class="shadow-phase" id="shadowPhaseBadge">SHADOW WARM-UP</span>
+            </div>
+            <button class="shadow-refresh" type="button" onclick="loadShadowDashboard(true)">↻ Cập nhật</button>
+          </div>
+
+          <div class="shadow-kpi-grid">
+            <div class="shadow-kpi obs">
+              <div class="label">Q thực mới nhất</div>
+              <div class="value" id="shadowLatestObs">--</div>
+              <div class="sub" id="shadowLatestObsQ">Chưa tải dữ liệu</div>
+            </div>
+            <div class="shadow-kpi long">
+              <div class="label">Long-H120</div>
+              <div class="value" id="shadowLongN">0</div>
+              <div class="sub" id="shadowLongMae">MAE tổng: --</div>
+            </div>
+            <div class="shadow-kpi lstm">
+              <div class="label">LSTM-H120</div>
+              <div class="value" id="shadowLstmN">0</div>
+              <div class="sub" id="shadowLstmMae">MAE tổng: --</div>
+            </div>
+            <div class="shadow-kpi rf">
+              <div class="label">RF V1</div>
+              <div class="value" id="shadowRfN">0</div>
+              <div class="sub" id="shadowRfMae">MAE tổng: --</div>
+            </div>
+            <div class="shadow-kpi persist">
+              <div class="label">Persistence</div>
+              <div class="value" id="shadowPersistN">0</div>
+              <div class="sub" id="shadowPersistMae">MAE tổng: --</div>
+            </div>
+            <div class="shadow-kpi fair">
+              <div class="label">Horizon Fair4 có mẫu</div>
+              <div class="value" id="shadowFairHorizonCount">0/5</div>
+              <div class="sub" id="shadowFairSampleText">Chờ Q thực tương lai</div>
+            </div>
+          </div>
+
+          <div class="shadow-wait" id="shadowWaitBox">
+            <div>⏳</div>
+            <div><b>Chưa có mẫu Fair4 chung.</b> Dashboard vẫn hiển thị thống kê shadow hiện có; khi Q thực đi tới các forecast_time của cycle mới, bảng xếp hạng công bằng sẽ tự xuất hiện.</div>
+          </div>
+
+          <div class="shadow-grid-2">
+            <section class="shadow-card">
+              <div class="shadow-card-head">
+                <div>
+                  <div class="shadow-card-title">MAE theo horizon</div>
+                  <div class="shadow-card-sub" id="shadowMaeMode">Tạm hiển thị số liệu shadow hiện có; sẽ tự chuyển sang Fair4 khi có mẫu chung.</div>
+                </div>
+                <span class="shadow-chip">H01 • H03 • H06 • H12 • H24</span>
+              </div>
+              <div class="shadow-chart-wrap"><canvas id="shadowMaeChart"></canvas></div>
+            </section>
+
+            <section class="shadow-card">
+              <div class="shadow-card-head">
+                <div>
+                  <div class="shadow-card-title">Long-H120 vs LSTM-H120</div>
+                  <div class="shadow-card-sub" id="shadowPairMode">So sánh theo các horizon có dữ liệu kiểm chứng.</div>
+                </div>
+                <span class="shadow-chip">đến H120</span>
+              </div>
+              <div class="shadow-chart-wrap"><canvas id="shadowPairChart"></canvas></div>
+            </section>
+          </div>
+
+          <section class="shadow-card">
+            <div class="shadow-card-head">
+              <div>
+                <div class="shadow-card-title">Bảng xếp hạng Fair4</div>
+                <div class="shadow-card-sub">Chỉ dùng các mẫu cùng forecast_time + cùng lead + đủ cả 4 mô hình. Hạng 1 = MAE nhỏ nhất.</div>
+              </div>
+              <span class="shadow-chip" id="shadowFairRowsChip">0 dòng</span>
+            </div>
+            <div class="shadow-table-wrap">
+              <table class="shadow-table">
+                <thead>
+                  <tr>
+                    <th>Lead</th><th>Hạng</th><th>Mô hình</th><th>n chung</th>
+                    <th>MAE</th><th>RMSE</th><th>Bias</th><th>Độ tin cậy</th><th>Từ</th><th>Đến</th>
+                  </tr>
+                </thead>
+                <tbody id="shadowFairBody">
+                  <tr><td colspan="10" class="shadow-empty">Đang tải...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="shadow-card">
+            <div class="shadow-card-head">
+              <div>
+                <div class="shadow-card-title">Số liệu shadow hiện có</div>
+                <div class="shadow-card-sub">Bảng này cho phép theo dõi ngay từ hôm nay, nhưng chưa dùng để kết luận mô hình nào tốt hơn nếu n khác nhau.</div>
+              </div>
+              <span class="shadow-chip" id="shadowRawRowsChip">0 dòng</span>
+            </div>
+            <div class="shadow-table-wrap">
+              <table class="shadow-table">
+                <thead>
+                  <tr>
+                    <th>Lead</th><th>Mô hình</th><th>n</th><th>MAE</th><th>RMSE</th><th>Bias</th><th>Độ tin cậy</th>
+                    <th>Kiểm chứng đầu</th><th>Kiểm chứng cuối</th>
+                  </tr>
+                </thead>
+                <tbody id="shadowRawBody">
+                  <tr><td colspan="9" class="shadow-empty">Đang tải...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="shadow-wait" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">
+            <div>ℹ️</div>
+            <div><b>Nguyên tắc sử dụng:</b> chưa promote/blend mô hình chỉ vì MAE tạm thời thấp. Ưu tiên bảng Fair4, theo dõi đủ mẫu theo H01/H03/H06/H12/H24; Long/LSTM tiếp tục theo dõi H48/H72/H120 khi Q thực đi tới.</div>
+          </div>
+
+        </section>
+      </div>
 
       <!-- TAB: Forecast -->
       <div id="tab-forecast" class="tab-pane">
@@ -14190,6 +14515,7 @@ body.map-fullscreen-active .v8-map{
   const tabMeta = {
     // Long-H120 đặt đầu tiên: P50 hourly H01-H120 + dải P10-P90 + 6 scenario.
     IN_OBS_FC_LONG_H120:{name:"Q Long H120",hint:"Thực tế vs Long-H120 (P50 + P25–P75 + Min–Max, H01…H120)",color:'2, 132, 199'},
+    IN_OBS_FC_LSTM_H120:{name:"Q LSTM H120",hint:"Thực tế vs LSTM-H120 (P50 + P25–P75 + Min–Max, 7 kịch bản, H01…H120)",color:'124, 58, 237'},
 
     // Giữ RF V1 để benchmark/shadow.
     IN_OBS_FC_RF_V1:{name:"Q RF V1",hint:"Thực tế vs Random Forest V1 (H01/H03/H06/H12/H24)",color:'14, 165, 233'},
@@ -14217,6 +14543,12 @@ body.map-fullscreen-active .v8-map{
     inflowFc_LONG:[],
     inflowFc_LONG_SCENARIO:[],
     longIssueTime:null,
+
+    inflowFc_LSTM:[],
+    inflowFc_LSTM_SCENARIO:[],
+    lstmIssueTime:null,
+    lstmHistoryRows:[],
+    lstmHistoryError:null,
 
     // Forecast archive gần nhất trước issue hiện tại:
     // dùng cho khung "Số liệu đã qua".
@@ -18512,6 +18844,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
     if(name==='notif') loadAIBulletins();
     if(name==='chart' && chart) chart.resize();
+    if(name==='modeleval' && typeof loadShadowDashboard==='function') loadShadowDashboard(false);
 
     history.replaceState(null, '', '#'+name);
   }
@@ -18544,12 +18877,16 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         document.querySelectorAll("#tab-chart .tab").forEach(x=>x.classList.remove("active"));
         t.classList.add("active");
         currentTab=k;
+        updateForecastDetailVisibility();
         renderChart();
         renderRain6ModelChart();
         renderLongH120Table();
+        renderLstmH120Table();
       };
       tc.appendChild(t);
     });
+
+    updateForecastDetailVisibility();
 
     // Set date default
     const d=new Date();
@@ -18677,6 +19014,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         resAI,
         resLONG,
         resLONGScenario,
+        resLSTM,
+        resLSTMScenario,
         resRFV1,
         res4,
         res6,
@@ -18736,6 +19075,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           .lte('forecast_time',tFcEnd)
           .order('lead_hour',{ascending:true})
           .order('rain_model',{ascending:true}),
+
+        // LSTM H120 ensemble latest.
+        sb.from('v_inflow_forecast_lstm_latest')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('lead_hour',{ascending:true}),
+
+        // LSTM 7 rainfall scenarios latest.
+        sb.from('v_inflow_forecast_lstm_scenario_latest')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('lead_hour',{ascending:true})
+          .order('rain_scenario',{ascending:true}),
 
         // RF V1 live - giữ lại để benchmark.
         sb.from('v_inflow_forecast_rf_latest')
@@ -18834,6 +19188,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         ['forecast AI',resAI],
         ['forecast Long-H120 ensemble',resLONG],
         ['forecast Long-H120 scenarios',resLONGScenario],
+        ['forecast LSTM-H120 ensemble',resLSTM],
+        ['forecast LSTM-H120 scenarios',resLSTMScenario],
         ['forecast RF V1',resRFV1],
         ['reservoir_hourly_data chart',res4],
         ['v_current_storage',res6],
@@ -18898,6 +19254,15 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           if(la!==lb) return la-lb;
           return String(a.rain_model||'').localeCompare(String(b.rain_model||''));
         });
+
+      const lstmRows=(resLSTM.data||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+      state.lstmIssueTime=lstmRows.length?(lstmRows[0].issue_time||null):null;
+      state.inflowFc_LSTM=lstmRows;
+      state.inflowFc_LSTM_SCENARIO=(resLSTMScenario.data||[]).slice().sort((a,b)=>{
+        const la=Number(a.lead_hour||0), lb=Number(b.lead_hour||0);
+        if(la!==lb) return la-lb;
+        return String(a.rain_scenario||'').localeCompare(String(b.rain_scenario||''));
+      });
 
       // RF V1: view đã bảo đảm chỉ có cycle mới nhất.
       const rfV1Rows=(resRFV1.data||[])
@@ -19080,6 +19445,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       // Tải archive 24 giờ gần nhất cho bảng "Số liệu đã qua".
       // Nếu archive lỗi, dashboard vẫn render Q thực và để forecast là "-".
       await loadLongHistoryArchive(state.longIssueTime);
+      await loadLstmHistoryArchive(state.lstmIssueTime);
 
       console.info('[A Vuong chart data]',{
         selectedDate:dateVal,
@@ -19092,6 +19458,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         longRows:state.inflowFc_LONG.length,
         longScenarioRows:state.inflowFc_LONG_SCENARIO.length,
         longIssueTime:state.longIssueTime,
+        lstmRows:state.inflowFc_LSTM.length,
+        lstmScenarioRows:state.inflowFc_LSTM_SCENARIO.length,
+        lstmIssueTime:state.lstmIssueTime,
         rfV1Rows:state.inflowFc_RF_V1.length,
         rfV1IssueTime:state.rfV1IssueTime,
         rfV1ForecastTimes:state.inflowFc_RF_V1.map(r=>r.forecast_time),
@@ -19108,9 +19477,11 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         resRainFcFuture.data||[]
       );
 
+      updateForecastDetailVisibility();
       renderChart();
       renderRain6ModelChart();
       renderLongH120Table();
+      renderLstmH120Table();
 
       const activePane=
         document.querySelector('.tab-pane.active');
@@ -19453,6 +19824,22 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   }
 
 
+
+  // =========================================================
+  // LONG / LSTM DETAIL VISIBILITY
+  // =========================================================
+  function updateForecastDetailVisibility(){
+    const isLong=currentTab==='IN_OBS_FC_LONG_H120';
+    const isLstm=currentTab==='IN_OBS_FC_LSTM_H120';
+    const longCard=$("longH120DataCard");
+    const lstmCard=$("lstmH120DataCard");
+    const longBtn=$("longScenarioToggleBtn");
+    const lstmBtn=$("lstmScenarioToggleBtn");
+    if(longCard) longCard.style.display=isLong?'block':'none';
+    if(lstmCard) lstmCard.style.display=isLstm?'block':'none';
+    if(longBtn) longBtn.style.display=isLong?'inline-flex':'none';
+    if(lstmBtn) lstmBtn.style.display=isLstm?'inline-flex':'none';
+  }
 
   // =========================================================
   // LONG-H120 UI HELPERS
@@ -20379,14 +20766,170 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
   ensureLongTooltipPositioner();
 
-  function renderChart(){
-    const scenarioMiniBtn=$("longScenarioToggleBtn");
-    if(scenarioMiniBtn){
-      scenarioMiniBtn.style.display=
-        currentTab==='IN_OBS_FC_LONG_H120'
-          ? 'inline-flex'
-          : 'none';
+
+  // =========================================================
+  // LSTM-H120 UI / TABLE / HISTORY / EXPORT
+  // =========================================================
+  let lstmScenarioVisible=true;
+
+  function buildLstmScenarioLookup(){
+    const out={};
+    (state.inflowFc_LSTM_SCENARIO||[]).forEach(r=>{
+      const key=new Date(r.forecast_time).getTime();
+      if(!Number.isFinite(key)) return;
+      if(!out[key]) out[key]={};
+      out[key][String(r.rain_scenario||'')]=Number(r.q_forecast);
+    });
+    return out;
+  }
+
+  async function loadLstmHistoryArchive(issueTime){
+    state.lstmHistoryRows=[];
+    state.lstmHistoryError=null;
+    if(!sb||!issueTime) return;
+
+    const issueMs=new Date(issueTime).getTime();
+    if(!Number.isFinite(issueMs)) return;
+    const histStartMs=issueMs-24*3600000;
+    const issueSearchStartMs=histStartMs-12*3600000;
+
+    try{
+      const res=await sb.from('inflow_forecast_lstm_ensemble')
+        .select('*')
+        .gte('forecast_time',new Date(histStartMs).toISOString())
+        .lt('forecast_time',new Date(issueMs).toISOString())
+        .gte('issue_time',new Date(issueSearchStartMs).toISOString())
+        .lt('issue_time',new Date(issueMs).toISOString())
+        .order('forecast_time',{ascending:true})
+        .order('issue_time',{ascending:false})
+        .limit(1000);
+
+      if(res.error) throw res.error;
+
+      const best=new Map();
+      (res.data||[]).forEach(r=>{
+        const fm=new Date(r.forecast_time).getTime(), im=new Date(r.issue_time).getTime();
+        if(!Number.isFinite(fm)||!Number.isFinite(im)||fm<histStartMs||fm>=issueMs||im>fm||im>=issueMs) return;
+        const prev=best.get(fm);
+        if(!prev||im>new Date(prev.issue_time).getTime()) best.set(fm,r);
+      });
+
+      const selected=[...best.values()].sort((a,b)=>new Date(a.forecast_time)-new Date(b.forecast_time)).slice(-24);
+      state.lstmHistoryRows=await Promise.all(selected.map(async r=>{
+        let scenarios={};
+        try{
+          const sc=await sb.from('inflow_forecast_lstm_scenario')
+            .select('rain_scenario,q_forecast')
+            .eq('issue_time',r.issue_time)
+            .eq('forecast_time',r.forecast_time);
+          if(!sc.error) (sc.data||[]).forEach(s=>scenarios[String(s.rain_scenario||'')]=Number(s.q_forecast));
+        }catch(_){}
+        return {...r,scenarios};
+      }));
+    }catch(err){
+      state.lstmHistoryRows=[];
+      state.lstmHistoryError=err?.message||String(err);
+      console.warn('[LSTM-H120 history archive]',err);
     }
+  }
+
+  function renderLstmH120Table(){
+    const pastTb=$("lstmPastTableBody"), fcTb=$("lstmForecastTableBody");
+    if(!pastTb||!fcTb) return;
+
+    const fc=(state.inflowFc_LSTM||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+    if(!fc.length){
+      pastTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Chưa có dữ liệu LSTM-H120.</td></tr>';
+      fcTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Chưa có dữ liệu LSTM-H120.</td></tr>';
+      return;
+    }
+
+    const scenario=buildLstmScenarioLookup();
+    const rain=getLongRainLookup();
+    const issueMs=new Date(fc[0].issue_time).getTime();
+    const qNow=Number(fc[0].q_now);
+
+    const info=$("lstmH120TableInfo");
+    if(info) info.textContent=`Phát hành: ${longTimeLabel(fc[0].issue_time)} • Q hiện tại: ${longFmt(qNow)} m³/s • Run mưa: ${longTimeLabel(fc[0].rainfall_run_time)} • 7 kịch bản • H01–H120 • SHADOW`;
+
+    const obsHistory=(state.hourly7D_Obs||[])
+      .filter(r=>{const t=new Date(r.time).getTime();return Number.isFinite(t)&&t<issueMs;})
+      .sort((a,b)=>new Date(a.time)-new Date(b.time)).slice(-24);
+
+    const histMap=new Map((state.lstmHistoryRows||[]).map(r=>[new Date(r.forecast_time).getTime(),r]));
+    const pastCount=$("lstmPastCount");
+    if(pastCount) pastCount.textContent=`${obsHistory.length} dòng`;
+
+    if(!obsHistory.length){
+      pastTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Không có số liệu đã qua trước thời điểm phát hành.</td></tr>';
+    }else{
+      pastTb.innerHTML=obsHistory.map(obs=>{
+        const h=histMap.get(new Date(obs.time).getTime())||null, sc=h?.scenarios||{};
+        return `<tr class="row-past">
+          <td>${longTimeLabel(obs.time)}</td><td>${h?`H${String(h.lead_hour??'').padStart(3,'0')}`:'-'}</td><td class="q-real">${longFmt(obs.inflow)}</td>
+          <td>${longFmt(h?.q_min)}</td><td>${longFmt(h?.q_max)}</td><td>${longFmt(sc.ECMWF_IFS)}</td><td>${longFmt(sc.GFS)}</td><td>${longFmt(sc.ICON)}</td>
+          <td>${longFmt(sc.ECMWF_AIFS)}</td><td>${longFmt(sc.CMA_GRAPES)}</td><td>${longFmt(sc.JMA_GSM)}</td><td>${longFmt(sc.OPENMETEO_BEST)}</td>
+          <td class="rain-observed">${longFmt(getRain(obs),1)}</td></tr>`;
+      }).join('');
+    }
+
+    if(state.lstmHistoryError&&pastCount){
+      pastCount.textContent=`${obsHistory.length} dòng • forecast archive chưa đủ`;
+      pastCount.title=state.lstmHistoryError;
+    }
+
+    let html=`<tr class="row-issue">
+      <td>${longTimeLabel(fc[0].issue_time)}</td><td>H000</td><td class="q-real">${longFmt(qNow)}</td>
+      ${Array(9).fill(`<td>${longFmt(qNow)}</td>`).join('')}<td>-</td></tr>`;
+
+    fc.forEach(r=>{
+      const ms=new Date(r.forecast_time).getTime(), sc=scenario[ms]||{}, rr=rain[ms]||{};
+      html+=`<tr class="row-forecast">
+        <td>${longTimeLabel(r.forecast_time)}</td><td>H${String(r.lead_hour||'').padStart(3,'0')}</td><td>-</td>
+        <td>${longFmt(r.q_min)}</td><td>${longFmt(r.q_max)}</td><td>${longFmt(sc.ECMWF_IFS)}</td><td>${longFmt(sc.GFS)}</td><td>${longFmt(sc.ICON)}</td>
+        <td>${longFmt(sc.ECMWF_AIFS)}</td><td>${longFmt(sc.CMA_GRAPES)}</td><td>${longFmt(sc.JMA_GSM)}</td><td>${longFmt(sc.OPENMETEO_BEST)}</td>
+        <td class="rain-mean">${longFmt(rr.rain_mean??rr.rainfall_mm,2)}</td></tr>`;
+    });
+
+    fcTb.innerHTML=html;
+    const c=$("lstmForecastCount"); if(c) c.textContent=`${fc.length+1} dòng`;
+  }
+
+  function toggleLstmScenarios(){
+    lstmScenarioVisible=!lstmScenarioVisible;
+    const btn=$("lstmScenarioToggleBtn");
+    if(btn) btn.textContent=lstmScenarioVisible?'Ẩn 7 kịch bản':'Hiện 7 kịch bản';
+    if(currentTab==='IN_OBS_FC_LSTM_H120') renderChart();
+  }
+
+  async function exportLstmH120Excel(){
+    try{
+      const fc=(state.inflowFc_LSTM||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+      if(!fc.length){toast('Chưa có dữ liệu LSTM-H120 để xuất Excel.');return;}
+      if(typeof ExcelJS==='undefined'){toast('Không tải được thư viện ExcelJS.');return;}
+      const scMap=buildLstmScenarioLookup(), wb=new ExcelJS.Workbook(), ws=wb.addWorksheet('LSTM_H120');
+      ws.addRow(['A VƯƠNG - LSTM H120 SHADOW']);
+      ws.addRow(['Issue time',longTimeLabel(fc[0].issue_time)]);
+      ws.addRow(['Rainfall run',longTimeLabel(fc[0].rainfall_run_time)]);
+      ws.addRow(['Model version',fc[0].model_version||'LSTM_H120_V1']);
+      ws.addRow([]);
+      ws.addRow(['Thời gian','Lead','Q thực','P50','P25','P75','Q Min','Q Max','Q ECMWF','Q GFS','Q ICON','Q AIFS','Q CMA','Q JMA','Q OpenMeteo Best']);
+      fc.forEach(r=>{
+        const sc=scMap[new Date(r.forecast_time).getTime()]||{};
+        ws.addRow([longTimeLabel(r.forecast_time),`H${String(r.lead_hour||'').padStart(3,'0')}`,null,Number(r.q_p50??r.q_median),Number(r.q_p25),Number(r.q_p75),Number(r.q_min),Number(r.q_max),sc.ECMWF_IFS??null,sc.GFS??null,sc.ICON??null,sc.ECMWF_AIFS??null,sc.CMA_GRAPES??null,sc.JMA_GSM??null,sc.OPENMETEO_BEST??null]);
+      });
+      ws.columns.forEach((c,i)=>c.width=i===0?20:14);
+      ws.getRow(6).font={bold:true,color:{argb:'FFFFFFFF'}};
+      ws.getRow(6).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF334155'}};
+      const buf=await wb.xlsx.writeBuffer();
+      const safe=String(fc[0].issue_time||'').replace(/[:.]/g,'-').replace(/[TZ+]/g,'_');
+      saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`A_Vuong_LSTM_H120_${safe}.xlsx`);
+      toast('Đã xuất Excel LSTM-H120.');
+    }catch(err){console.error(err);toast('Lỗi xuất Excel LSTM-H120: '+err.message);}
+  }
+
+  function renderChart(){
+    updateForecastDetailVisibility();
 
     if(chart) chart.destroy();
     const ctx=$("chart").getContext("2d");
@@ -20546,19 +21089,25 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       const isLONG=currentTab.includes('LONG_H120');
+      const isLSTM=currentTab.includes('LSTM_H120');
       const isRFV1=currentTab.includes('RF_V1');
 
-      let longIssueMs=null;
-      let longQNow=null;
+      let longIssueMs=null, longQNow=null, forecastIssueMs=null, forecastQNow=null;
 
       if(isLONG && state.inflowFc_LONG.length){
         longIssueMs=new Date(state.inflowFc_LONG[0].issue_time).getTime();
         longQNow=Number(state.inflowFc_LONG[0].q_now);
+        forecastIssueMs=longIssueMs; forecastQNow=longQNow;
+      }
+      if(isLSTM && state.inflowFc_LSTM.length){
+        forecastIssueMs=new Date(state.inflowFc_LSTM[0].issue_time).getTime();
+        forecastQNow=Number(state.inflowFc_LSTM[0].q_now);
       }
 
       let fc=[];
 
       if(isLONG) fc=state.inflowFc_LONG;
+      else if(isLSTM) fc=state.inflowFc_LSTM;
       else if(isRFV1) fc=state.inflowFc_RF_V1;
       else if(currentTab.includes('V7')) fc=state.inflowFc_V7;
       else if(currentTab.includes('MIX')) fc=state.inflowFc_Mix;
@@ -20588,7 +21137,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // RF/Long dùng mưa mới 6 mô hình; tab cũ giữ nguồn legacy.
-      const rainSource=(isLONG||isRFV1) ? state.rainFcRFV1 : state.rainFc;
+      const rainSource=(isLONG||isLSTM||isRFV1) ? state.rainFcRFV1 : state.rainFc;
 
       const rainByMs=new Map();
       (rainSource||[]).forEach(r=>{
@@ -20598,7 +21147,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       let all=[];
 
-      if(isLONG||isRFV1){
+      if(isLONG||isLSTM||isRFV1){
         // Tạo timeline hourly đầy đủ:
         // - Q thực/MA24
         // - mưa dự báo từng giờ
@@ -21006,6 +21555,92 @@ if(r.rainfall_run_time){
       // =====================================================
       // RF V1 benchmark
       // =====================================================
+      else if(isLSTM){
+        const scenarioStyle={
+          ECMWF_IFS:{label:'LSTM ECMWF',color:'#2563eb'},
+          GFS:{label:'LSTM GFS',color:'#f59e0b'},
+          ICON:{label:'LSTM ICON',color:'#10b981'},
+          ECMWF_AIFS:{label:'LSTM AIFS',color:'#8b5cf6'},
+          CMA_GRAPES:{label:'LSTM CMA',color:'#ef4444'},
+          JMA_GSM:{label:'LSTM JMA',color:'#06b6d4'},
+          OPENMETEO_BEST:{label:'LSTM OpenMeteo Best',color:'#db2777'}
+        };
+        const scenarioMaps={}; Object.keys(scenarioStyle).forEach(n=>scenarioMaps[n]=new Map());
+        (state.inflowFc_LSTM_SCENARIO||[]).forEach(r=>{
+          const ms=toMs(r.forecast_time), n=String(r.rain_scenario||'');
+          if(ms!==null&&scenarioMaps[n]) scenarioMaps[n].set(ms,r);
+        });
+
+        datasets.push({
+          label:'LSTM Q Min',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)?forecastQNow:(fcByMs.get(ms)?Number(fcByMs.get(ms).q_min):null)),
+          borderColor:'rgba(124,58,237,.03)',backgroundColor:'rgba(124,58,237,.02)',borderWidth:0,pointRadius:0,tension:.18,order:8
+        });
+        datasets.push({
+          label:'LSTM Dải Min–Max',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)?forecastQNow:(fcByMs.get(ms)?Number(fcByMs.get(ms).q_max):null)),
+          borderColor:'rgba(124,58,237,.07)',backgroundColor:'rgba(124,58,237,.045)',borderWidth:.5,pointRadius:0,tension:.18,fill:'-1',order:9
+        });
+        datasets.push({
+          label:'LSTM P25',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p25):null;}),
+          borderColor:'rgba(124,58,237,.08)',backgroundColor:'rgba(124,58,237,.04)',borderWidth:.5,pointRadius:0,tension:.18,order:6
+        });
+        datasets.push({
+          label:'LSTM Dải P25–P75',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p75):null;}),
+          borderColor:'rgba(124,58,237,.18)',backgroundColor:'rgba(124,58,237,.12)',borderWidth:.8,pointRadius:0,tension:.18,fill:'-1',order:7
+        });
+        datasets.push({
+          label:'LSTM-H120 P50',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p50??r.q_median):null;}),
+          borderColor:'rgb(124,58,237)',backgroundColor:'rgba(124,58,237,.10)',borderWidth:2.6,borderDash:[7,4],borderCapStyle:'round',
+          pointRadius:0,pointHoverRadius:4,tension:.28,cubicInterpolationMode:'monotone',spanGaps:false,fill:false,order:3
+        });
+
+        Object.entries(scenarioStyle).forEach(([name,style])=>{
+          const map=scenarioMaps[name];
+          datasets.push({
+            label:style.label,
+            data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=map.get(ms); return r?Number(r.q_forecast):null;}),
+            borderColor:style.color,borderWidth:1.1,borderDash:[5,4],borderCapStyle:'round',pointRadius:0,pointHoverRadius:3,tension:.28,
+            cubicInterpolationMode:'monotone',spanGaps:false,fill:false,hidden:!lstmScenarioVisible,order:4
+          });
+        });
+
+        opts.plugins.legend={
+          position:'top',
+          labels:{
+            color:'#334155',font:{size:11,weight:'700'},boxWidth:12,
+            filter:(item)=>!['LSTM P25','LSTM Q Min'].includes(item.text),
+            generateLabels:(c)=>Chart.defaults.plugins.legend.labels.generateLabels(c)
+              .filter(i=>!['LSTM P25','LSTM Q Min'].includes(i.text))
+              .map(i=>{const v=c.isDatasetVisible(i.datasetIndex);i.hidden=false;if(!v){i.fontColor='rgba(100,116,139,.38)';i.strokeStyle='rgba(148,163,184,.35)';i.fillStyle='rgba(203,213,225,.28)';}return i;})
+          },
+          onClick:(e,item,legend)=>{const c=legend.chart,idx=item.datasetIndex;c.setDatasetVisibility(idx,!c.isDatasetVisible(idx));c.update();}
+        };
+
+        opts.plugins.tooltip={
+          position:'longRightOffset',mode:'index',intersect:false,caretSize:5,caretPadding:14,
+          titleFont:{size:11,weight:'700'},bodyFont:{size:10},footerFont:{size:10},padding:8,boxWidth:9,boxHeight:9,
+          filter:(item)=>!['LSTM P25','LSTM Q Min'].includes(String(item.dataset?.label||'')),
+          callbacks:{afterBody:(items)=>{
+            if(!items||!items.length) return [];
+            const ms=all[items[0].dataIndex],r=fcByMs.get(ms),lines=[];
+            if(r){
+              lines.push(`Lead: H${String(r.lead_hour||'').padStart(3,'0')}`);
+              if(r.q_p10!=null&&r.q_p90!=null) lines.push(`P10–P90: ${Number(r.q_p10).toFixed(2)} – ${Number(r.q_p90).toFixed(2)} m³/s`);
+              if(r.q_p25!=null&&r.q_p75!=null) lines.push(`P25–P75: ${Number(r.q_p25).toFixed(2)} – ${Number(r.q_p75).toFixed(2)} m³/s`);
+              if(r.q_min!=null&&r.q_max!=null) lines.push(`Min–Max: ${Number(r.q_min).toFixed(2)} – ${Number(r.q_max).toFixed(2)} m³/s`);
+              if(r.rainfall_run_time) lines.push(`Run mưa: ${formatToVNTime(r.rainfall_run_time)}`);
+              if(r.scenario_count!=null) lines.push(`Kịch bản Q: ${r.scenario_count}`);
+              if(r.status) lines.push(`Trạng thái: ${r.status}`);
+            }
+            return lines;
+          }}
+        };
+      }
+
       else if(isRFV1){
         datasets.push({
           label:'RF V1 (H01/H03/H06/H12/H24)',
@@ -21154,12 +21789,9 @@ if(r.rainfall_run_time){
       }
 
       // Vạch phân cách Thực đo / Dự báo.
-      if(isLONG && Number.isFinite(longIssueMs)){
-        const issueIndex=all.indexOf(longIssueMs);
-        opts.plugins.longIssueLine={
-          enabled:issueIndex>=0,
-          issueIndex
-        };
+      if((isLONG||isLSTM) && Number.isFinite(forecastIssueMs)){
+        const issueIndex=all.indexOf(forecastIssueMs);
+        opts.plugins.longIssueLine={enabled:issueIndex>=0,issueIndex};
       }
 
       datasets.push({
@@ -21178,8 +21810,8 @@ if(r.rainfall_run_time){
       datasets.push({
         type:'bar',
         label:
-          (isLONG||isRFV1)
-            ? 'Mưa dự báo 6 mô hình (mean)'
+          (isLONG||isLSTM||isRFV1)
+            ? 'Mưa dự báo 6 NWP (mean)'
             : 'Mưa giờ dự báo',
 
         data:rainFcData,
@@ -31840,6 +32472,356 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   window.fr3Excel=excel;
   window.fr3Pdf=pdf;
 })();
+</script>
+
+
+<script id="shadow-eval-dashboard-js">
+let shadowMaeChartInstance = null;
+let shadowPairChartInstance = null;
+let shadowDashboardLoaded = false;
+
+function shadowFmtNum(v, digits=2){
+  const n = Number(v);
+  return Number.isFinite(n)
+    ? n.toLocaleString('vi-VN',{minimumFractionDigits:digits,maximumFractionDigits:digits})
+    : '--';
+}
+function shadowFmtTime(v){
+  if(!v) return '--';
+  const d = new Date(v);
+  if(Number.isNaN(d.getTime())) return '--';
+  return d.toLocaleString('vi-VN',{
+    hour:'2-digit',minute:'2-digit',
+    day:'2-digit',month:'2-digit',year:'numeric',
+    hour12:false,timeZone:'UTC'
+  });
+}
+function shadowModelLabel(name){
+  const map = {
+    'LONG_H120_P50':'Long-H120',
+    'LSTM_H120_P50':'LSTM-H120',
+    'RF_V1':'RF V1',
+    'PERSISTENCE':'Persistence'
+  };
+  return map[name] || name || '--';
+}
+function shadowModelClass(name){
+  if(name==='LONG_H120_P50') return 'long';
+  if(name==='LSTM_H120_P50') return 'lstm';
+  if(name==='RF_V1') return 'rf';
+  return 'persist';
+}
+function shadowSetText(id, value){
+  const el=document.getElementById(id);
+  if(el) el.textContent=value;
+}
+
+function shadowConfidence(n){
+  n=Number(n||0);
+  if(n<5) return {text:'Rất thấp', cls:'vlow'};
+  if(n<10) return {text:'Thấp', cls:'low'};
+  if(n<30) return {text:'Trung bình', cls:'med'};
+  return {text:'Tốt', cls:'good'};
+}
+function shadowConfidenceHtml(n){
+  const c=shadowConfidence(n);
+  return `<span class="shadow-confidence ${c.cls}">${c.text}</span>`;
+}
+function shadowSetPhase(fairHorizons, fairRows){
+  const el=document.getElementById('shadowPhaseBadge');
+  if(!el) return;
+  const hCount=Number(fairHorizons||0);
+  const rows=Number(fairRows||0);
+
+  el.className='shadow-phase';
+  if(hCount===0){
+    el.textContent='SHADOW WARM-UP';
+  }else if(hCount<5){
+    el.textContent='EARLY FAIR BENCHMARK';
+    el.classList.add('early');
+  }else if(rows < 40){
+    el.textContent='FAIR BENCHMARK ACTIVE';
+    el.classList.add('active');
+  }else{
+    el.textContent='MODEL SELECTION READY';
+    el.classList.add('ready');
+  }
+}
+
+async function loadShadowDashboard(force=false){
+  if(shadowDashboardLoaded && !force){
+    setTimeout(()=>{
+      if(shadowMaeChartInstance) shadowMaeChartInstance.resize();
+      if(shadowPairChartInstance) shadowPairChartInstance.resize();
+    },80);
+    return;
+  }
+
+  shadowSetText('shadowFairStatus','Đang tải dữ liệu...');
+  const statusEl=document.getElementById('shadowFairStatus');
+  if(statusEl) statusEl.classList.remove('ready');
+
+  try{
+    const [
+      resSummary,
+      resRaw,
+      resFair,
+      resPair,
+      resObs
+    ] = await Promise.all([
+      sb.from('v_forecast_shadow_summary').select('*').order('model_name',{ascending:true}),
+      sb.from('v_forecast_shadow_key_horizons').select('*').order('lead_hour',{ascending:true}).order('model_name',{ascending:true}),
+      sb.from('v_forecast_shadow_fair4_metrics').select('*').order('lead_hour',{ascending:true}).order('mae_rank',{ascending:true}),
+      sb.from('v_forecast_shadow_fair_long_lstm_metrics').select('*').order('lead_hour',{ascending:true}).order('mae_rank',{ascending:true}),
+      sb.from('reservoir_hourly_data').select('time,inflow').order('time',{ascending:false}).limit(1)
+    ]);
+
+    const errs=[resSummary.error,resRaw.error,resFair.error,resPair.error,resObs.error].filter(Boolean);
+    if(errs.length){
+      console.warn('Shadow dashboard query warnings:',errs);
+    }
+
+    const summary=resSummary.data||[];
+    const raw=resRaw.data||[];
+    const fair=resFair.data||[];
+    const pair=resPair.data||[];
+    const obs=(resObs.data||[])[0]||null;
+
+    if(obs){
+      shadowSetText('shadowLatestObs',shadowFmtTime(obs.time));
+      shadowSetText('shadowLatestObsQ','Q = '+shadowFmtNum(obs.inflow,2)+' m³/s');
+    }else{
+      shadowSetText('shadowLatestObs','--');
+      shadowSetText('shadowLatestObsQ','Chưa có Q thực');
+    }
+
+    const smap=Object.fromEntries(summary.map(r=>[r.model_name,r]));
+    const applyModel=(name,nId,maeId)=>{
+      const r=smap[name];
+      shadowSetText(nId,r?String(r.n||0):'0');
+      shadowSetText(maeId,'MAE tổng: '+(r?shadowFmtNum(r.mae,2):'--')+' m³/s');
+    };
+    applyModel('LONG_H120_P50','shadowLongN','shadowLongMae');
+    applyModel('LSTM_H120_P50','shadowLstmN','shadowLstmMae');
+    applyModel('RF_V1','shadowRfN','shadowRfMae');
+    applyModel('PERSISTENCE','shadowPersistN','shadowPersistMae');
+
+    const fairHorizons=[...new Set(fair.map(r=>Number(r.lead_hour)).filter(Number.isFinite))];
+    const fairSamplesByLead={};
+    fair.forEach(r=>{
+      const h=Number(r.lead_hour);
+      fairSamplesByLead[h]=Math.max(fairSamplesByLead[h]||0,Number(r.n_common||0));
+    });
+    const totalCommon=Object.values(fairSamplesByLead).reduce((a,b)=>a+b,0);
+
+    shadowSetText('shadowFairHorizonCount',fairHorizons.length+'/5');
+    shadowSetText('shadowFairSampleText',
+      fair.length ? (totalCommon+' mẫu chung theo horizon') : 'Chờ Q thực tương lai'
+    );
+
+    shadowSetPhase(fairHorizons.length, totalCommon);
+
+    const wait=document.getElementById('shadowWaitBox');
+    if(fair.length){
+      if(statusEl){
+        statusEl.textContent='Fair4 đã có dữ liệu kiểm chứng chung';
+        statusEl.classList.add('ready');
+      }
+      if(wait){
+        wait.classList.add('ready');
+        wait.innerHTML='<div>✅</div><div><b>Fair4 đã bắt đầu có mẫu chung.</b> Bảng xếp hạng bên dưới đang so sánh các mô hình trên cùng forecast_time và cùng lead.</div>';
+      }
+    }else{
+      if(statusEl){
+        statusEl.textContent='Đang chờ mẫu Fair4 đầu tiên';
+        statusEl.classList.remove('ready');
+      }
+      if(wait){
+        wait.classList.remove('ready');
+        wait.innerHTML='<div>⏳</div><div><b>Chưa có mẫu Fair4 chung.</b> Dashboard vẫn hiển thị thống kê shadow hiện có; khi Q thực đi tới các forecast_time của cycle mới, bảng xếp hạng công bằng sẽ tự xuất hiện.</div>';
+      }
+    }
+
+    renderShadowFairTable(fair);
+    renderShadowRawTable(raw);
+    renderShadowMaeChart(fair.length ? fair : raw, fair.length>0);
+    renderShadowPairChart(pair.length ? pair : raw, pair.length>0);
+
+    shadowDashboardLoaded=true;
+  }catch(err){
+    console.error('loadShadowDashboard error',err);
+    shadowSetText('shadowFairStatus','Lỗi tải dashboard: '+(err?.message||err));
+    const body=document.getElementById('shadowFairBody');
+    if(body) body.innerHTML='<tr><td colspan="10" class="shadow-empty">Không tải được dữ liệu đánh giá mô hình.</td></tr>';
+  }
+}
+
+function renderShadowFairTable(rows){
+  const body=document.getElementById('shadowFairBody');
+  if(!body) return;
+  shadowSetText('shadowFairRowsChip',(rows||[]).length+' dòng');
+
+  if(!rows || !rows.length){
+    body.innerHTML='<tr><td colspan="9" class="shadow-empty">Chưa có mẫu chung đủ 4 mô hình. Khi Q thực đi tới forecast_time của cycle đồng bộ, bảng này sẽ tự có dữ liệu.</td></tr>';
+    return;
+  }
+
+  body.innerHTML=rows.map(r=>{
+    const rank=Number(r.mae_rank||0);
+    return `<tr>
+      <td>H${String(r.lead_hour).padStart(2,'0')}</td>
+      <td><span class="shadow-rank r${Math.min(Math.max(rank,1),4)}">${rank||'-'}</span></td>
+      <td style="text-align:left"><span class="shadow-model-dot ${shadowModelClass(r.model_name)}"></span>${shadowModelLabel(r.model_name)}</td>
+      <td>${r.n_common??0}</td>
+      <td>${shadowFmtNum(r.mae,2)}</td>
+      <td>${shadowFmtNum(r.rmse,2)}</td>
+      <td>${shadowFmtNum(r.bias,2)}</td>
+      <td>${shadowConfidenceHtml(r.n_common)}</td>
+      <td>${shadowFmtTime(r.first_verified_time)}</td>
+      <td>${shadowFmtTime(r.last_verified_time)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderShadowRawTable(rows){
+  const body=document.getElementById('shadowRawBody');
+  if(!body) return;
+  shadowSetText('shadowRawRowsChip',(rows||[]).length+' dòng');
+
+  if(!rows || !rows.length){
+    body.innerHTML='<tr><td colspan="9" class="shadow-empty">Chưa có số liệu shadow.</td></tr>';
+    return;
+  }
+
+  body.innerHTML=rows.map(r=>`<tr>
+    <td>H${String(r.lead_hour).padStart(2,'0')}</td>
+    <td style="text-align:left"><span class="shadow-model-dot ${shadowModelClass(r.model_name)}"></span>${shadowModelLabel(r.model_name)}</td>
+    <td>${r.n??0}</td>
+    <td>${shadowFmtNum(r.mae,2)}</td>
+    <td>${shadowFmtNum(r.rmse,2)}</td>
+    <td>${shadowFmtNum(r.bias,2)}</td>
+    <td>${shadowConfidenceHtml(r.n)}</td>
+    <td>${shadowFmtTime(r.first_verified_time)}</td>
+    <td>${shadowFmtTime(r.last_verified_time)}</td>
+  </tr>`).join('');
+}
+
+function shadowBuildDataset(rows, modelName, leads, valueField){
+  const map=new Map(
+    (rows||[])
+      .filter(r=>r.model_name===modelName)
+      .map(r=>[
+        Number(r.lead_hour),
+        {
+          value:Number(r[valueField]),
+          n:Number(r.n_common ?? r.n ?? 0),
+          mae:Number(r.mae),
+          rmse:Number(r.rmse),
+          bias:Number(r.bias)
+        }
+      ])
+  );
+  return leads.map(h=>map.has(h)?map.get(h):null);
+}
+function shadowChartValues(metaArray){
+  return (metaArray||[]).map(x=>x && Number.isFinite(x.value) ? x.value : null);
+}
+
+function renderShadowMaeChart(rows,isFair){
+  const canvas=document.getElementById('shadowMaeChart');
+  if(!canvas || typeof Chart==='undefined') return;
+
+  const leads=[1,3,6,12,24];
+  const labels=leads.map(h=>'H'+String(h).padStart(2,'0'));
+  shadowSetText('shadowMaeMode',
+    isFair
+      ? 'Fair4: cùng forecast_time, cùng lead, đủ 4 mô hình.'
+      : 'Tạm hiển thị số liệu shadow hiện có; chưa dùng để kết luận vì n giữa các mô hình khác nhau.'
+  );
+
+  if(shadowMaeChartInstance) shadowMaeChartInstance.destroy();
+  shadowMaeChartInstance=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        (()=>{const m=shadowBuildDataset(rows,'PERSISTENCE',leads,'mae');return {label:'Persistence',data:shadowChartValues(m),_meta:m,borderColor:'#64748b',backgroundColor:'#64748b',tension:.3,spanGaps:false};})(),
+        (()=>{const m=shadowBuildDataset(rows,'RF_V1',leads,'mae');return {label:'RF V1',data:shadowChartValues(m),_meta:m,borderColor:'#0ea5e9',backgroundColor:'#0ea5e9',tension:.3,spanGaps:false};})(),
+        (()=>{const m=shadowBuildDataset(rows,'LONG_H120_P50',leads,'mae');return {label:'Long-H120',data:shadowChartValues(m),_meta:m,borderColor:'#0284c7',backgroundColor:'#0284c7',tension:.3,spanGaps:false};})(),
+        (()=>{const m=shadowBuildDataset(rows,'LSTM_H120_P50',leads,'mae');return {label:'LSTM-H120',data:shadowChartValues(m),_meta:m,borderColor:'#7c3aed',backgroundColor:'#7c3aed',tension:.3,spanGaps:false};})()
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:10,weight:'bold'}}},
+        tooltip:{
+          callbacks:{
+            title:(items)=>items?.[0]?.label||'',
+            label:(ctx)=>{
+              const m=ctx.dataset?._meta?.[ctx.dataIndex];
+              if(!m) return `${ctx.dataset.label}: --`;
+              const c=shadowConfidence(m.n);
+              return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+            }
+          }
+        }
+      },
+      scales:{
+        y:{beginAtZero:true,title:{display:true,text:'MAE (m³/s)',font:{weight:'bold'}},grid:{color:'rgba(148,163,184,.16)'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
+
+function renderShadowPairChart(rows,isFair){
+  const canvas=document.getElementById('shadowPairChart');
+  if(!canvas || typeof Chart==='undefined') return;
+
+  const leads=[1,3,6,12,24,48,72,120];
+  const labels=leads.map(h=>'H'+String(h).padStart(2,'0'));
+  shadowSetText('shadowPairMode',
+    isFair
+      ? 'Fair Long–LSTM: chỉ các forecast_time có đủ cả 2 mô hình.'
+      : 'Tạm hiển thị số liệu shadow hiện có; các horizon xa sẽ xuất hiện khi đủ Q thực.'
+  );
+
+  if(shadowPairChartInstance) shadowPairChartInstance.destroy();
+  shadowPairChartInstance=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        (()=>{const m=shadowBuildDataset(rows,'LONG_H120_P50',leads,'mae');return {label:'Long-H120',data:shadowChartValues(m),_meta:m,borderColor:'#0284c7',backgroundColor:'#0284c7',tension:.3,spanGaps:false};})(),
+        (()=>{const m=shadowBuildDataset(rows,'LSTM_H120_P50',leads,'mae');return {label:'LSTM-H120',data:shadowChartValues(m),_meta:m,borderColor:'#7c3aed',backgroundColor:'#7c3aed',tension:.3,spanGaps:false};})()
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:10,weight:'bold'}}},
+        tooltip:{
+          callbacks:{
+            title:(items)=>items?.[0]?.label||'',
+            label:(ctx)=>{
+              const m=ctx.dataset?._meta?.[ctx.dataIndex];
+              if(!m) return `${ctx.dataset.label}: --`;
+              const c=shadowConfidence(m.n);
+              return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+            }
+          }
+        }
+      },
+      scales:{
+        y:{beginAtZero:true,title:{display:true,text:'MAE (m³/s)',font:{weight:'bold'}},grid:{color:'rgba(148,163,184,.16)'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
 </script>
 
 </body>
