@@ -7527,7 +7527,7 @@ body.slideshow-frame-mode section{
 
 
     /* =========================================================
-       LONG-H120 PRODUCTION TABLE / EXPORT
+       LONG-H120 PRODUCTION TABLE / EXPORT — CLEAN BASE
        ========================================================= */
     #tab-chart .long-data-card{
       margin-top:14px;
@@ -7580,74 +7580,6 @@ body.slideshow-frame-mode section{
       background:#ecfdf5;
       border-color:#a7f3d0;
     }
-    #tab-chart .long-table-wrap{
-      max-height:520px;
-      overflow:auto;
-      border:1px solid rgba(15,23,42,.08);
-      border-radius:12px;
-      background:#fff;
-    }
-    #tab-chart .long-table{
-      width:100%;
-      min-width:1380px;
-      border-collapse:separate;
-      border-spacing:0;
-      font-size:11px;
-    }
-    #tab-chart .long-table th{
-      position:sticky;
-      top:0;
-      z-index:3;
-      background:#f8fafc;
-      color:#475569;
-      font-weight:1000;
-      padding:9px 8px;
-      border-bottom:1px solid #cbd5e1;
-      text-align:center;
-      white-space:nowrap;
-    }
-    #tab-chart .long-table td{
-      padding:8px;
-      border-bottom:1px solid #eef2f7;
-      text-align:right;
-      white-space:nowrap;
-      color:#334155;
-    }
-    #tab-chart .long-table td:first-child,
-    #tab-chart .long-table td:nth-child(2){
-      text-align:left;
-    }
-    #tab-chart .long-table tr.row-observed{
-      background:#fbfdff;
-    }
-    #tab-chart .long-table tr.row-issue{
-      background:#eff6ff;
-      font-weight:900;
-    }
-    #tab-chart .long-table tr.row-forecast:hover{
-      background:#f8fafc;
-    }
-    #tab-chart .long-table .q-real{
-      color:#075985;
-      font-weight:900;
-    }
-    #tab-chart .long-table .q-p50{
-      color:#0284c7;
-      font-weight:1000;
-    }
-    #tab-chart .long-table .rain-cell{
-      color:#7c3aed;
-      font-weight:850;
-    }
-    #tab-chart .long-table .separator td{
-      text-align:left!important;
-      background:#e0f2fe;
-      color:#0369a1;
-      font-weight:1000;
-      text-transform:uppercase;
-      letter-spacing:.45px;
-      padding:8px 10px;
-    }
     #tab-chart .long-data-note{
       margin-top:8px;
       color:#64748b;
@@ -7655,62 +7587,6 @@ body.slideshow-frame-mode section{
       line-height:1.45;
       font-weight:700;
     }
-
-
-    /* Sticky 3 cột đầu của bảng Long-H120 */
-    #tab-chart .long-table th:nth-child(1),
-    #tab-chart .long-table td:nth-child(1){
-      position:sticky;
-      left:0;
-      z-index:4;
-      background:inherit;
-      min-width:150px;
-    }
-
-    #tab-chart .long-table th:nth-child(2),
-    #tab-chart .long-table td:nth-child(2){
-      position:sticky;
-      left:150px;
-      z-index:4;
-      background:inherit;
-      min-width:135px;
-    }
-
-    #tab-chart .long-table th:nth-child(3),
-    #tab-chart .long-table td:nth-child(3){
-      position:sticky;
-      left:285px;
-      z-index:4;
-      background:inherit;
-      min-width:72px;
-      box-shadow:5px 0 8px rgba(15,23,42,.04);
-    }
-
-    #tab-chart .long-table th:nth-child(-n+3){
-      z-index:6;
-      background:#f8fafc;
-    }
-
-    #tab-chart .long-table tr.row-issue td:nth-child(-n+3){
-      background:#eff6ff;
-    }
-
-    #tab-chart .long-table tr.row-observed td:nth-child(-n+3){
-      background:#fbfdff;
-    }
-
-    #tab-chart .long-table tr.row-forecast td:nth-child(-n+3){
-      background:#fff;
-    }
-
-    #tab-chart .long-table tr.row-forecast:hover td{
-      background:#f8fafc;
-    }
-
-    #tab-chart .long-table tr.separator td{
-      position:static!important;
-    }
-
 
 
 /* =========================================================
@@ -9681,6 +9557,266 @@ body.map-fullscreen-active .v8-map{
 }
 </style>
 
+
+
+<style id="v93-chart-native-fix">
+/* Thanh Điều khiển 1 hàng, không tác động tới canvas/Chart.js */
+#tab-chart .chart-control-compact{
+  padding:10px 14px !important;
+}
+#tab-chart .chart-control-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+}
+#tab-chart .chart-control-title{
+  margin-right:6px;
+  color:var(--text-main);
+  font-size:14px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+#tab-chart .chart-control-inline label{
+  margin:0;
+  color:var(--text-muted);
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+#tab-chart .chart-control-inline input[type="date"]{
+  width:180px !important;
+  min-width:180px !important;
+  height:38px !important;
+  min-height:38px !important;
+  margin:0 !important;
+  padding:0 10px !important;
+}
+#tab-chart .chart-control-inline button{
+  width:auto !important;
+  min-width:110px !important;
+  height:38px !important;
+  min-height:38px !important;
+  margin:0 !important;
+  padding:0 16px !important;
+  white-space:nowrap !important;
+}
+@media(max-width:760px){
+  #tab-chart .chart-control-inline{flex-wrap:wrap;}
+  #tab-chart .chart-control-inline input[type="date"]{
+    width:155px !important;
+    min-width:155px !important;
+  }
+}
+</style>
+
+
+<style id="v99-long-table-layout-fix">
+/* ============================================================
+   V9.9 — LONG-H120 TABLE LAYOUT FIX
+   ============================================================ */
+
+#tab-chart .long-chart-mini-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  margin-top:6px;
+  min-height:32px;
+}
+#tab-chart .long-scenario-mini-btn{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  width:124px !important;
+  min-width:124px !important;
+  height:34px !important;
+  min-height:34px !important;
+  padding:0 12px !important;
+  margin:0 !important;
+  border:1px solid rgba(37,99,235,.22) !important;
+  border-radius:999px !important;
+  background:#f8fbff !important;
+  color:#2563eb !important;
+  box-shadow:none !important;
+  font-size:10px !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+
+#tab-chart .long-panel{
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+  margin-top:10px;
+}
+#tab-chart .long-panel-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 12px;
+  background:#f8fafc;
+  border-bottom:1px solid rgba(15,23,42,.07);
+}
+#tab-chart .long-panel-title{
+  color:#334155;
+  font-size:11.5px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.3px;
+}
+#tab-chart .long-panel-sub{
+  color:#64748b;
+  font-size:9.7px;
+  font-weight:700;
+  margin-top:2px;
+}
+#tab-chart .long-panel-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#2563eb;
+  font-size:9.4px;
+  font-weight:900;
+  white-space:nowrap;
+}
+#tab-chart .long-panel-chip.forecast{
+  background:#ecfdf5;
+  border-color:#a7f3d0;
+  color:#047857;
+}
+
+#tab-chart .past-table-wrap{
+  max-height:420px;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+}
+#tab-chart .forecast-table-wrap{
+  max-height:520px;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+}
+
+#tab-chart .aligned-long-table{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  table-layout:fixed !important;
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+  font-variant-numeric:tabular-nums;
+  box-sizing:border-box !important;
+}
+
+/* Colgroup — tổng đúng 100% */
+#tab-chart .aligned-long-table col.col-time{width:14% !important;}
+#tab-chart .aligned-long-table col.col-lead{width:6% !important;}
+#tab-chart .aligned-long-table col.col-q-real{width:8% !important;}
+#tab-chart .aligned-long-table col.col-q-min{width:7% !important;}
+#tab-chart .aligned-long-table col.col-q-max{width:7% !important;}
+#tab-chart .aligned-long-table col.col-model{width:8% !important;}
+#tab-chart .aligned-long-table col.col-rain{width:10% !important;}
+
+/* Reset dứt điểm mọi sticky ngang / left / min-width cũ */
+#tab-chart .aligned-long-table th,
+#tab-chart .aligned-long-table td{
+  position:static !important;
+  left:auto !important;
+  right:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  width:auto !important;
+  box-shadow:none !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  vertical-align:middle !important;
+}
+
+/* Chỉ header sticky theo chiều dọc */
+#tab-chart .aligned-long-table thead th{
+  position:sticky !important;
+  top:0 !important;
+  z-index:3 !important;
+  background:#f8fafc !important;
+  color:#475569;
+  text-align:center !important;
+  font-size:9px !important;
+  font-weight:1000 !important;
+  line-height:1.1 !important;
+  padding:8px 5px !important;
+  border-bottom:1px solid #cbd5e1;
+}
+
+#tab-chart .aligned-long-table tbody td{
+  color:#334155;
+  text-align:right !important;
+  font-size:9.8px !important;
+  line-height:1.15 !important;
+  padding:8px 6px !important;
+  border-bottom:1px solid #eef2f7;
+}
+
+#tab-chart .aligned-long-table thead th:first-child,
+#tab-chart .aligned-long-table tbody td:first-child{
+  text-align:left !important;
+  padding-left:10px !important;
+}
+#tab-chart .aligned-long-table thead th:nth-child(2),
+#tab-chart .aligned-long-table tbody td:nth-child(2){
+  text-align:center !important;
+}
+
+#tab-chart .aligned-long-table td.q-real{
+  color:#0369a1 !important;
+  font-weight:1000 !important;
+}
+#tab-chart .aligned-long-table td.rain-observed{
+  color:#16a34a !important;
+  font-weight:1000 !important;
+}
+#tab-chart .aligned-long-table td.rain-mean{
+  color:#7c3aed !important;
+  font-weight:900 !important;
+}
+#tab-chart .past-table tr.row-past:nth-child(even),
+#tab-chart .forecast-table tr.row-forecast:nth-child(even){
+  background:#fbfdff;
+}
+#tab-chart .forecast-table tr.row-issue{
+  background:#eff6ff !important;
+  font-weight:900 !important;
+}
+
+@media(max-width:1280px){
+  #tab-chart .aligned-long-table thead th{
+    font-size:8.3px !important;
+    padding:7px 3px !important;
+  }
+  #tab-chart .aligned-long-table tbody td{
+    font-size:9.1px !important;
+    padding:7px 3px !important;
+  }
+}
+@media(max-width:1000px){
+  #tab-chart .past-table-wrap,
+  #tab-chart .forecast-table-wrap{
+    overflow-x:auto !important;
+  }
+  #tab-chart .aligned-long-table{
+    min-width:980px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -10015,13 +10151,12 @@ body.map-fullscreen-active .v8-map{
 
       <!-- TAB: Chart -->
       <div id="tab-chart" class="tab-pane">
-        <section class="card control-card">
-          <div class="cardHead"><b>Điều khiển</b></div>
-          <div class="cardBody">
-            <div class="row">
-              <div class="control"><label>Ngày xem</label><input id="day" type="date"></div>
-              <div class="control" style="flex:0; min-width: 150px;"><label>&nbsp;</label><button id="btnLoad" onclick="loadData()">Tải lại</button></div>
-            </div>
+        <section class="card control-card chart-control-compact">
+          <div class="chart-control-inline">
+            <div class="chart-control-title">Điều khiển</div>
+            <label for="day">Ngày xem</label>
+            <input id="day" type="date">
+            <button id="btnLoad" onclick="loadData()">↻ Tải lại</button>
           </div>
         </section>
 
@@ -10031,6 +10166,14 @@ body.map-fullscreen-active .v8-map{
             <div class="tabs" id="tabs"></div>
             <div class="chartWrap">
               <canvas id="chart"></canvas>
+            </div>
+            <div class="long-chart-mini-actions">
+              <button type="button"
+                      class="long-scenario-mini-btn"
+                      id="longScenarioToggleBtn"
+                      onclick="toggleLongScenarios()">
+                Ẩn 6 kịch bản
+              </button>
             </div>
           </div>
         </section>
@@ -10057,18 +10200,13 @@ body.map-fullscreen-active .v8-map{
         <section class="card long-data-card" id="longH120DataCard">
           <div class="long-data-head">
             <div>
-              <div class="long-data-title">Bảng số liệu Long-H120</div>
+              <div class="long-data-title">Số liệu Long-H120</div>
               <div class="long-data-sub" id="longH120TableInfo">
                 Q thực gần thời điểm phát hành + dự báo H01…H120 + 6 kịch bản mưa.
               </div>
             </div>
 
             <div class="long-data-actions">
-              <button type="button" class="long-action-btn" id="longScenarioToggleBtn"
-                      onclick="toggleLongScenarios()">
-                Hiện 6 kịch bản Q
-              </button>
-
               <button type="button" class="long-action-btn excel"
                       onclick="exportLongH120Excel()">
                 📥 Xuất Excel
@@ -10076,44 +10214,121 @@ body.map-fullscreen-active .v8-map{
             </div>
           </div>
 
-          <div class="long-table-wrap">
-            <table class="long-table">
-              <thead>
-                <tr>
-                  <th>Thời gian</th>
-                  <th>Loại</th>
-                  <th>Lead</th>
-                  <th>Q thực</th>
-                  <th>P50</th>
-                  <th>P10</th>
-                  <th>P90</th>
-                  <th>Q Mean</th>
-                  <th>Q Min</th>
-                  <th>Q Max</th>
-                  <th>Q ECMWF</th>
-                  <th>Q GFS</th>
-                  <th>Q ICON</th>
-                  <th>Q AIFS</th>
-                  <th>Q CMA</th>
-                  <th>Q JMA</th>
-                  <th>Mưa mean</th>
-                </tr>
-              </thead>
-              <tbody id="longH120TableBody">
-                <tr>
-                  <td colspan="17" style="text-align:center;padding:20px;color:#64748b">
-                    Đang chờ dữ liệu Long-H120...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- KHUNG 1: SỐ LIỆU ĐÃ QUA -->
+          <div class="long-panel past-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Số liệu đã qua</div>
+                <div class="long-panel-sub">
+                  24 mốc giờ gần nhất trước thời điểm phát hành. Q thực và mưa thực lấy từ quan trắc; forecast lịch sử lấy đúng issue đã phát hành trước đó, thiếu thì hiển thị “-”.
+                </div>
+              </div>
+              <span class="long-panel-chip" id="longPastCount">0 dòng</span>
+            </div>
+
+            <div class="long-table-wrap past-table-wrap">
+              <table class="long-table aligned-long-table past-table" id="longPastTable">
+                <colgroup>
+                  <col class="col-time">
+                  <col class="col-lead">
+                  <col class="col-q-real">
+                  <col class="col-q-min">
+                  <col class="col-q-max">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-rain">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Lead</th>
+                    <th>Q thực</th>
+                    <th>Q Min</th>
+                    <th>Q Max</th>
+                    <th>Q ECMWF</th>
+                    <th>Q GFS</th>
+                    <th>Q ICON</th>
+                    <th>Q AIFS</th>
+                    <th>Q CMA</th>
+                    <th>Q JMA</th>
+                    <th>Mưa thực</th>
+</tr>
+                </thead>
+                <tbody id="longPastTableBody">
+                  <tr>
+                    <td colspan="12" style="text-align:center;padding:18px;color:#64748b">
+                      Đang tải số liệu đã qua...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- KHUNG 2: DỰ BÁO LONG-H120 -->
+          <div class="long-panel forecast-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Kết quả dự báo Long-H120</div>
+                <div class="long-panel-sub">
+                  H000 là điểm nối phát hành; H001–H120 là dự báo từng giờ.
+                </div>
+              </div>
+              <span class="long-panel-chip forecast" id="longForecastCount">0 dòng</span>
+            </div>
+
+            <div class="long-table-wrap forecast-table-wrap">
+              <table class="long-table aligned-long-table forecast-table" id="longForecastTable">
+                <colgroup>
+                  <col class="col-time">
+                  <col class="col-lead">
+                  <col class="col-q-real">
+                  <col class="col-q-min">
+                  <col class="col-q-max">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-model">
+                  <col class="col-rain">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Lead</th>
+                    <th>Q thực</th>
+                    <th>Q Min</th>
+                    <th>Q Max</th>
+                    <th>Q ECMWF</th>
+                    <th>Q GFS</th>
+                    <th>Q ICON</th>
+                    <th>Q AIFS</th>
+                    <th>Q CMA</th>
+                    <th>Q JMA</th>
+                    <th>Mưa mean</th>
+</tr>
+                </thead>
+                <tbody id="longForecastTableBody">
+                  <tr>
+                    <td colspan="12" style="text-align:center;padding:18px;color:#64748b">
+                      Đang chờ dữ liệu dự báo Long-H120...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div class="long-data-note">
-            P50 là đường dự báo trung tâm. Biểu đồ dùng <b>P25–P75</b> làm dải đồng thuận chính và
-            <b>Min–Max</b> làm dải kịch bản toàn phần rất nhạt. P10/P90 vẫn được giữ trong bảng, tooltip và Excel.
-            Đây là dải kịch bản sinh từ 6 nguồn mưa NWP, chưa phải khoảng tin cậy thống kê đã hiệu chỉnh.
-            Các giá trị nối ngắn trong Q thực chỉ dùng cho hiển thị; dữ liệu gốc Supabase không bị thay đổi.
+            P50 là đường dự báo trung tâm. <b>P25–P75</b> là dải đồng thuận chính và
+            <b>Min–Max</b> là dải kịch bản toàn phần rất nhạt. P10/P90 vẫn được giữ trong bảng,
+            tooltip và Excel. Các dải được sinh từ 6 nguồn mưa NWP, chưa phải khoảng tin cậy
+            thống kê đã hiệu chỉnh. H000 chỉ là điểm nối Q thực tại thời điểm phát hành.
           </div>
         </section>
 </div>
@@ -10543,7 +10758,7 @@ body.map-fullscreen-active .v8-map{
           <section class="fr3-card">
             <div class="fr3-header">
               <div class="fr3-title-wrap">
-                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V8.9.1</span></div>
+                <div class="fr3-title">BÁO CÁO SAU ĐỢT LŨ <span style="display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:1000;vertical-align:middle">EXECUTIVE V9.9</span></div>
                 <div class="fr3-sub">Tổng hợp dữ liệu vận hành hồ từ Supabase, xác định các mốc đặc trưng và lập báo cáo nhanh cho lãnh đạo.</div>
               </div>
 
@@ -14002,6 +14217,11 @@ body.map-fullscreen-active .v8-map{
     inflowFc_LONG:[],
     inflowFc_LONG_SCENARIO:[],
     longIssueTime:null,
+
+    // Forecast archive gần nhất trước issue hiện tại:
+    // dùng cho khung "Số liệu đã qua".
+    longHistoryRows:[],
+    longHistoryError:null,
 
     // RF V1 benchmark/shadow
     inflowFc_RF_V1:[], rfV1IssueTime:null,
@@ -18857,6 +19077,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         );
 
       // Log kỹ thuật để kiểm tra trực tiếp trên Console nếu cần.
+      // Tải archive 24 giờ gần nhất cho bảng "Số liệu đã qua".
+      // Nếu archive lỗi, dashboard vẫn render Q thực và để forecast là "-".
+      await loadLongHistoryArchive(state.longIssueTime);
+
       console.info('[A Vuong chart data]',{
         selectedDate:dateVal,
         forecastFrom:tFcStart,
@@ -19233,7 +19457,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
   // =========================================================
   // LONG-H120 UI HELPERS
   // =========================================================
-  let longScenarioVisible = false;
+  let longScenarioVisible = true;
 
   const longIssueLinePlugin = {
     id: 'longIssueLine',
@@ -19332,21 +19556,138 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     return out;
   }
 
+
+  // =========================================================
+  // LONG-H120 HISTORY ARCHIVE FOR "SỐ LIỆU ĐÃ QUA"
+  // ---------------------------------------------------------
+  // Mỗi timestamp đã qua:
+  // - Q thực: reservoir_hourly_data
+  // - ensemble: issue gần timestamp nhất nhưng issue_time <= forecast_time
+  // - 6 scenario: lấy đúng issue_time + forecast_time đã chọn
+  // - rain mean: lấy đúng rainfall_run_time nếu có
+  //
+  // Lỗi archive KHÔNG làm hỏng dashboard: khung quá khứ vẫn hiện Q thực,
+  // các cột forecast thiếu sẽ là "-".
+  // =========================================================
+  async function loadLongHistoryArchive(issueTime){
+    state.longHistoryRows=[];
+    state.longHistoryError=null;
+
+    if(!sb || !issueTime) return;
+
+    const issueMs=new Date(issueTime).getTime();
+    if(!Number.isFinite(issueMs)) return;
+
+    const histStartMs=issueMs-24*3600000;
+    const issueSearchStartMs=histStartMs-12*3600000;
+
+    try{
+      const res=await sb
+        .from('inflow_forecast_long_ensemble')
+        .select('*')
+        .gte('forecast_time',new Date(histStartMs).toISOString())
+        .lt('forecast_time',new Date(issueMs).toISOString())
+        .gte('issue_time',new Date(issueSearchStartMs).toISOString())
+        .lt('issue_time',new Date(issueMs).toISOString())
+        .order('forecast_time',{ascending:true})
+        .order('issue_time',{ascending:false})
+        .limit(1000);
+
+      if(res.error) throw res.error;
+
+      // Chọn 1 forecast lịch sử tốt nhất cho mỗi target time:
+      // issue gần target nhất, nhưng không được phát hành sau target.
+      const bestByForecastMs=new Map();
+
+      (res.data||[]).forEach(r=>{
+        const fm=new Date(r.forecast_time).getTime();
+        const im=new Date(r.issue_time).getTime();
+
+        if(!Number.isFinite(fm)||!Number.isFinite(im)) return;
+        if(fm<histStartMs || fm>=issueMs) return;
+        if(im>fm || im>=issueMs) return;
+
+        const prev=bestByForecastMs.get(fm);
+        if(!prev || im>new Date(prev.issue_time).getTime()){
+          bestByForecastMs.set(fm,r);
+        }
+      });
+
+      const chosen=[...bestByForecastMs.values()]
+        .sort((a,b)=>new Date(a.forecast_time)-new Date(b.forecast_time));
+
+      // Chỉ tối đa 24 target giờ.
+      const selected=chosen.slice(-24);
+
+      const enriched=await Promise.all(selected.map(async r=>{
+        let scenarios={};
+        let rainMean=null;
+
+        try{
+          const scRes=await sb
+            .from('inflow_forecast_long_scenario')
+            .select('rain_model,q_forecast')
+            .eq('issue_time',r.issue_time)
+            .eq('forecast_time',r.forecast_time);
+
+          if(!scRes.error){
+            (scRes.data||[]).forEach(s=>{
+              scenarios[String(s.rain_model||'')]=Number(s.q_forecast);
+            });
+          }
+        }catch(_){}
+
+        try{
+          if(r.rainfall_run_time){
+            const rainRes=await sb
+              .from('rainfall_basin_hourly')
+              .select('rain_mean')
+              .eq('basin_id','AVUONG')
+              .eq('run_time',r.rainfall_run_time)
+              .eq('forecast_time',r.forecast_time)
+              .limit(1);
+
+            if(!rainRes.error && rainRes.data && rainRes.data.length){
+              const rv=Number(rainRes.data[0].rain_mean);
+              if(Number.isFinite(rv)) rainMean=rv;
+            }
+          }
+        }catch(_){}
+
+        return {
+          ...r,
+          scenarios,
+          rain_mean_history:rainMean
+        };
+      }));
+
+      state.longHistoryRows=enriched;
+
+    }catch(err){
+      state.longHistoryRows=[];
+      state.longHistoryError=err?.message||String(err);
+      console.warn('[Long-H120 history archive]',err);
+    }
+  }
+
   function renderLongH120Table(){
-    const tb=$("longH120TableBody");
-    if(!tb) return;
+    const pastTb=$("longPastTableBody");
+    const fcTb=$("longForecastTableBody");
+    if(!pastTb || !fcTb) return;
 
     const fc=(state.inflowFc_LONG||[])
       .slice()
       .sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
 
     if(!fc.length){
-      tb.innerHTML=`
-        <tr>
-          <td colspan="17" style="text-align:center;padding:20px;color:#64748b">
-            Chưa có dữ liệu Long-H120.
-          </td>
-        </tr>`;
+      pastTb.innerHTML=`
+        <tr><td colspan="12" style="text-align:center;padding:18px;color:#64748b">
+          Chưa có dữ liệu Long-H120.
+        </td></tr>`;
+      fcTb.innerHTML=`
+        <tr><td colspan="12" style="text-align:center;padding:18px;color:#64748b">
+          Chưa có dữ liệu Long-H120.
+        </td></tr>`;
       return;
     }
 
@@ -19366,47 +19707,72 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         `H01–H120`;
     }
 
-    // Lấy tối đa 24 giờ thực đo trước issue time.
-    const history=(state.hourly7D_Obs||[])
+    // ===========================
+    // KHUNG 1: SỐ LIỆU ĐÃ QUA
+    // ===========================
+    const obsHistory=(state.hourly7D_Obs||[])
       .filter(r=>{
         const t=new Date(r.time).getTime();
-        return Number.isFinite(t) && t<=issueMs && t>=issueMs-24*3600000;
+        return Number.isFinite(t) && t<issueMs;
       })
-      .sort((a,b)=>new Date(a.time)-new Date(b.time));
+      .sort((a,b)=>new Date(a.time)-new Date(b.time))
+      .slice(-24);
 
-    let html=`
-      <tr class="separator">
-        <td colspan="17">Lịch sử thực đo gần thời điểm phát hành</td>
-      </tr>`;
+    const histForecastMap=new Map(
+      (state.longHistoryRows||[]).map(r=>[
+        new Date(r.forecast_time).getTime(),
+        r
+      ])
+    );
 
-    history.forEach(r=>{
-      html+=`
-        <tr class="row-observed">
-          <td>${longTimeLabel(r.time)}</td>
-          <td>Thực đo</td>
-          <td>-</td>
-          <td class="q-real">${longFmt(r.inflow)}</td>
-          <td>-</td><td>-</td><td>-</td>
-          <td>-</td><td>-</td><td>-</td>
-          <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-          <td class="rain-cell">${longFmt(getRain(r),1)}</td>
-        </tr>`;
-    });
+    const pastCount=$("longPastCount");
+    if(pastCount) pastCount.textContent=`${obsHistory.length} dòng`;
 
-    html+=`
-      <tr class="separator">
-        <td colspan="17">Kết quả dự báo Long-H120</td>
-      </tr>
+    if(!obsHistory.length){
+      pastTb.innerHTML=`
+        <tr><td colspan="12" style="text-align:center;padding:18px;color:#64748b">
+          Không có số liệu đã qua trước thời điểm phát hành.
+        </td></tr>`;
+    }else{
+      pastTb.innerHTML=obsHistory.map(obs=>{
+        const ms=new Date(obs.time).getTime();
+        const h=histForecastMap.get(ms)||null;
+        const sc=h?.scenarios||{};
+        const rainObs=getRain(obs);
 
+        return `
+          <tr class="row-past">
+            <td>${longTimeLabel(obs.time)}</td>
+            <td>${h ? `H${String(h.lead_hour??'').padStart(3,'0')}` : '-'}</td>
+            <td class="q-real">${longFmt(obs.inflow)}</td>
+            <td>${longFmt(h?.q_min)}</td>
+            <td>${longFmt(h?.q_max)}</td>
+            <td>${longFmt(sc.ECMWF_IFS)}</td>
+            <td>${longFmt(sc.GFS)}</td>
+            <td>${longFmt(sc.ICON)}</td>
+            <td>${longFmt(sc.ECMWF_AIFS)}</td>
+            <td>${longFmt(sc.CMA_GRAPES)}</td>
+            <td>${longFmt(sc.JMA_GSM)}</td>
+            <td class="rain-observed">${longFmt(rainObs,1)}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    if(state.longHistoryError && pastCount){
+      pastCount.textContent=`${obsHistory.length} dòng • forecast archive chưa đủ`;
+      pastCount.title=state.longHistoryError;
+    }else if(pastCount){
+      pastCount.title='';
+    }
+
+    // ===========================
+    // KHUNG 2: KẾT QUẢ DỰ BÁO
+    // ===========================
+    let forecastHtml=`
       <tr class="row-issue">
         <td>${longTimeLabel(fc[0].issue_time)}</td>
-        <td>Phát hành / điểm nối</td>
         <td>H000</td>
         <td class="q-real">${longFmt(qNow)}</td>
-        <td class="q-p50">${longFmt(qNow)}</td>
-        <td>${longFmt(qNow)}</td>
-        <td>${longFmt(qNow)}</td>
-        <td>${longFmt(qNow)}</td>
         <td>${longFmt(qNow)}</td>
         <td>${longFmt(qNow)}</td>
         <td>${longFmt(qNow)}</td>
@@ -19422,18 +19788,12 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const ms=new Date(r.forecast_time).getTime();
       const sc=scenario[ms]||{};
       const rr=rain[ms]||{};
-      const p50=Number(r.q_central ?? r.q_median);
 
-      html+=`
+      forecastHtml+=`
         <tr class="row-forecast">
           <td>${longTimeLabel(r.forecast_time)}</td>
-          <td>Dự báo</td>
           <td>H${String(r.lead_hour||'').padStart(3,'0')}</td>
           <td>-</td>
-          <td class="q-p50">${longFmt(p50)}</td>
-          <td>${longFmt(r.q_p10)}</td>
-          <td>${longFmt(r.q_p90)}</td>
-          <td>${longFmt(r.q_mean)}</td>
           <td>${longFmt(r.q_min)}</td>
           <td>${longFmt(r.q_max)}</td>
           <td>${longFmt(sc.ECMWF_IFS)}</td>
@@ -19442,11 +19802,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           <td>${longFmt(sc.ECMWF_AIFS)}</td>
           <td>${longFmt(sc.CMA_GRAPES)}</td>
           <td>${longFmt(sc.JMA_GSM)}</td>
-          <td class="rain-cell">${longFmt(rr.rain_mean ?? rr.rainfall_mm,2)}</td>
+          <td class="rain-mean">${longFmt(rr.rain_mean ?? rr.rainfall_mm,2)}</td>
         </tr>`;
     });
 
-    tb.innerHTML=html;
+    fcTb.innerHTML=forecastHtml;
+
+    const fcCount=$("longForecastCount");
+    if(fcCount) fcCount.textContent=`${fc.length+1} dòng`;
   }
 
   function toggleLongScenarios(){
@@ -19455,8 +19818,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const btn=$("longScenarioToggleBtn");
     if(btn){
       btn.textContent=longScenarioVisible
-        ? 'Ẩn 6 kịch bản Q'
-        : 'Hiện 6 kịch bản Q';
+        ? 'Ẩn 6 kịch bản'
+        : 'Hiện 6 kịch bản';
     }
 
     if(currentTab==='IN_OBS_FC_LONG_H120'){
@@ -19529,6 +19892,55 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           Number(r.rainfall_model_count ?? rr.model_count ?? 0)
         ]);
       });
+
+      // -----------------------------------------------------
+      // Sheet 2: Past_24h
+      // Q thực + forecast archive đã phát hành trước đó.
+      // -----------------------------------------------------
+      const wsPast=wb.addWorksheet('Past_24h');
+
+      wsPast.addRow([
+        'Time','Lead','Q observed',
+        'P50','P10','P90','Q mean','Q min','Q max',
+        'ECMWF_IFS','GFS','ICON','ECMWF_AIFS','CMA_GRAPES','JMA_GSM',
+        'Rain observed'
+      ]);
+
+      const histMap=new Map(
+        (state.longHistoryRows||[]).map(r=>[
+          new Date(r.forecast_time).getTime(),
+          r
+        ])
+      );
+
+      (state.hourly7D_Obs||[])
+        .filter(r=>new Date(r.time).getTime()<new Date(issue.issue_time).getTime())
+        .sort((a,b)=>new Date(a.time)-new Date(b.time))
+        .slice(-24)
+        .forEach(obs=>{
+          const ms=new Date(obs.time).getTime();
+          const h=histMap.get(ms)||null;
+          const sc=h?.scenarios||{};
+
+          wsPast.addRow([
+            longTimeLabel(obs.time),
+            h ? Number(h.lead_hour) : null,
+            numOrNull(obs.inflow),
+            h ? numOrNull(h.q_central ?? h.q_median) : null,
+            h ? numOrNull(h.q_p10) : null,
+            h ? numOrNull(h.q_p90) : null,
+            h ? numOrNull(h.q_mean) : null,
+            h ? numOrNull(h.q_min) : null,
+            h ? numOrNull(h.q_max) : null,
+            numOrNull(sc.ECMWF_IFS),
+            numOrNull(sc.GFS),
+            numOrNull(sc.ICON),
+            numOrNull(sc.ECMWF_AIFS),
+            numOrNull(sc.CMA_GRAPES),
+            numOrNull(sc.JMA_GSM),
+            numOrNull(getRain(obs))
+          ]);
+        });
 
       // -----------------------------------------------------
       // Sheet 2: Q_Scenarios
@@ -19622,7 +20034,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       wsM.addRow(['Uncertainty display','P25-P75 main band; Min-Max outer band; P10/P90 retained in data']);
 
       // Style / format cho 4 sheet.
-      [ws,wsQ,wsR,wsM].forEach(sheet=>{
+      [ws,wsPast,wsQ,wsR,wsM].forEach(sheet=>{
         sheet.views=[{state:'frozen',ySplit:sheet===ws?8:1}];
 
         sheet.columns.forEach((col,idx)=>{
@@ -19853,6 +20265,17 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
             }
           },
           tooltip:{
+            position:'longRightOffset',
+            mode:'index',
+            intersect:false,
+            caretSize:5,
+            caretPadding:14,
+            titleFont:{size:11,weight:'700'},
+            bodyFont:{size:10},
+            footerFont:{size:10},
+            padding:8,
+            boxWidth:9,
+            boxHeight:9,
             callbacks:{
               title:(items)=>{
                 if(!items||!items.length) return '';
@@ -19907,7 +20330,64 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     });
   }
 
+
+  // =========================================================
+  // LONG-H120 TOOLTIP POSITION
+  // Dùng tooltip native Chart.js, chỉ đổi vị trí:
+  // ưu tiên lệch phải khỏi con trỏ; sát mép phải thì tự đảo trái.
+  // =========================================================
+  function ensureLongTooltipPositioner(){
+    if(!window.Chart || !Chart.Tooltip || !Chart.Tooltip.positioners) return;
+    if(Chart.Tooltip.positioners.longRightOffset) return;
+
+    Chart.Tooltip.positioners.longRightOffset = function(items, eventPosition){
+      const chart = this.chart;
+      const area = chart?.chartArea;
+      if(!area) return {x:eventPosition.x, y:eventPosition.y, xAlign:'left', yAlign:'center'};
+
+      const gap = 32;
+      const tooltipWidth = Number(this.width || 285);
+      const tooltipHeight = Number(this.height || 220);
+
+      const rightSpace = area.right - eventPosition.x;
+      const leftSpace  = eventPosition.x - area.left;
+
+      let x, xAlign;
+
+      // Prefer right side, but make sure the entire tooltip clears the hovered point.
+      if(rightSpace >= tooltipWidth + gap + 12){
+        x = eventPosition.x + gap;
+        xAlign = 'left';
+      }else{
+        x = eventPosition.x - gap;
+        xAlign = 'right';
+      }
+
+      // Keep vertically inside chart area.
+      let y = eventPosition.y;
+      const halfH = tooltipHeight / 2;
+      y = Math.max(area.top + halfH + 8, Math.min(y, area.bottom - halfH - 8));
+
+      return {
+        x,
+        y,
+        xAlign,
+        yAlign:'center'
+      };
+    };
+  }
+
+  ensureLongTooltipPositioner();
+
   function renderChart(){
+    const scenarioMiniBtn=$("longScenarioToggleBtn");
+    if(scenarioMiniBtn){
+      scenarioMiniBtn.style.display=
+        currentTab==='IN_OBS_FC_LONG_H120'
+          ? 'inline-flex'
+          : 'none';
+    }
+
     if(chart) chart.destroy();
     const ctx=$("chart").getContext("2d");
     $("chartRange").textContent=tabMeta[currentTab].hint;
@@ -20315,7 +20795,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
             return r ? Number(r.q_max) : null;
           }),
           borderColor:'rgba(14,165,233,0.06)',
-          backgroundColor:'rgba(14,165,233,0.055)',
+          backgroundColor:'rgba(14,165,233,0.045)',
           borderWidth:0.5,
           pointRadius:0,
           tension:0.18,
@@ -20350,7 +20830,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
             return vals.length ? longPercentile(vals,0.75) : null;
           }),
           borderColor:'rgba(2,132,199,0.16)',
-          backgroundColor:'rgba(2,132,199,0.16)',
+          backgroundColor:'rgba(2,132,199,0.12)',
           borderWidth:0.8,
           pointRadius:0,
           tension:0.18,
@@ -20369,12 +20849,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           }),
           borderColor:'rgb(2,132,199)',
           backgroundColor:'rgba(2,132,199,0.10)',
-          borderWidth:2.8,
-          borderDash:[10,6],
+          borderWidth:2.6,
+          borderDash:[7,4],
           borderCapStyle:'round',
           pointRadius:0,
-          pointHoverRadius:5,
-          tension:0.18,
+          pointHoverRadius:4,
+          tension:0.28,
+          cubicInterpolationMode:'monotone',
           spanGaps:false,
           fill:false,
           order:3
@@ -20392,10 +20873,13 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
               return r ? Number(r.q_forecast) : null;
             }),
             borderColor:style.color,
-            borderWidth:1.5,
+            borderWidth:1.15,
             borderDash:[5,4],
+            borderCapStyle:'round',
             pointRadius:0,
-            tension:0.18,
+            pointHoverRadius:3,
+            tension:0.28,
+            cubicInterpolationMode:'monotone',
             spanGaps:false,
             fill:false,
             hidden:!longScenarioVisible,
@@ -20403,8 +20887,67 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           });
         });
 
+        // Legend Long-H120:
+        // - dùng legend native của Chart.js để không phá layout/canvas;
+        // - khi ẩn chỉ fade nhẹ, không gạch ngang;
+        // - bỏ dataset kỹ thuật Q Min và P25 khỏi legend.
+        opts.plugins.legend={
+          position:'top',
+          labels:{
+            color:'#334155',
+            font:{size:11,weight:'700'},
+            boxWidth:12,
+            filter:(item)=>!['P10','P25','Q Min'].includes(item.text),
+            generateLabels:(chart)=>{
+              const base=Chart.defaults.plugins.legend.labels.generateLabels(chart);
+
+              return base
+                .filter(item=>!['P10','P25','Q Min'].includes(item.text))
+                .map(item=>{
+                  const visible=chart.isDatasetVisible(item.datasetIndex);
+
+                  // hidden=false để Chart.js không vẽ gạch ngang chữ.
+                  item.hidden=false;
+
+                  if(!visible){
+                    item.fontColor='rgba(100,116,139,0.38)';
+                    item.strokeStyle='rgba(148,163,184,0.35)';
+                    item.fillStyle='rgba(203,213,225,0.28)';
+                  }
+
+                  return item;
+                });
+            }
+          },
+          onClick:(e,item,legend)=>{
+            const chart=legend.chart;
+            const index=item.datasetIndex;
+            const visible=chart.isDatasetVisible(index);
+
+            chart.setDatasetVisibility(index,!visible);
+            chart.update();
+          }
+        };
+
         // Tooltip kỹ thuật cho Long-H120.
+        // Giữ nguyên tooltip native + toàn bộ Lead/P50/P25-P75/Min-Max/Run mưa/QC.
+        // Chỉ thay vị trí để không che đỉnh biểu đồ.
         opts.plugins.tooltip={
+          position:'longRightOffset',
+          mode:'index',
+          intersect:false,
+          caretSize:5,
+          caretPadding:14,
+          titleFont:{size:11,weight:'700'},
+          bodyFont:{size:10},
+          footerFont:{size:10},
+          padding:8,
+          boxWidth:9,
+          boxHeight:9,
+          filter:(tooltipItem)=>{
+            const label=String(tooltipItem.dataset?.label||'');
+            return !['P10','P25','Q Min'].includes(label);
+          },
           callbacks:{
             afterBody:(items)=>{
               if(!items||!items.length) return [];
@@ -20419,13 +20962,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
                 lines.push(
                   `Lead: H${String(r.lead_hour||'').padStart(3,'0')}`
                 );
-
-                if(r.q_central!=null || r.q_median!=null){
-                  const p50=Number(r.q_central ?? r.q_median);
-                  lines.push(`P50: ${p50.toFixed(2)} m³/s`);
-                }
-
-                if(r.q_p10!=null && r.q_p90!=null){
+if(r.q_p10!=null && r.q_p90!=null){
                   lines.push(
                     `P10–P90: ${Number(r.q_p10).toFixed(2)} – ${Number(r.q_p90).toFixed(2)} m³/s`
                   );
@@ -20443,12 +20980,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
                     `Min–Max: ${Number(r.q_min).toFixed(2)} – ${Number(r.q_max).toFixed(2)} m³/s`
                   );
                 }
-
-                if(r.scenario_count!=null){
-                  lines.push(`Scenario Q: ${r.scenario_count}`);
-                }
-
-                if(r.rainfall_run_time){
+if(r.rainfall_run_time){
                   lines.push(
                     `Run mưa: ${formatToVNTime(r.rainfall_run_time)}`
                   );
@@ -30784,11 +31316,56 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   }
 
   function summary(m){
-    let s=`Số liệu tính từ ${narrative(m.s)} đến ${narrative(m.e)}: tổng lượng mưa ${fmt(m.rain,1)} mm; Q về max ${fmt(m.q.value,2)} m³/s lúc ${narrative(m.q.time)}; mực nước hồ lớn nhất ${fmt(m.wl.value,2)} m lúc ${narrative(m.wl.time)}. Tổng V nước về ${fmt(m.vin.million,2)} triệu m³, V chạy máy ${fmt(m.vt.million,2)} triệu m³, V xả tràn ${fmt(m.vs.million,2)} triệu m³; cân bằng nước sơ bộ (Vvề − Vmáy − Vxả) ${fmt(m.balance,2)} triệu m³.`;
-    if(m.qc!=="GOOD"){
-      s+=` QC ${m.qc}: thiếu ${m.mh} mốc giờ, ${m.mc} ô dữ liệu và ${m.gaps} gap >1,5 giờ.`;
-      if(m.missingHours?.length)s+=` Giờ thiếu: ${formatMissingHours(m.missingHours)}.`;
+    const wlStart = m.w0;
+    const wlEnd   = m.w1;
+    const delta   = m.delta;
+
+    const wlTrend = delta===null
+      ? ""
+      : ` Mực nước hồ từ ${fmt(wlStart,2)} m lên ${fmt(wlEnd,2)} m, ${delta>=0?"tăng":"giảm"} ${fmt(Math.abs(delta),2)} m; mực nước lớn nhất ${fmt(m.wl.value,2)} m lúc ${narrative(m.wl.time)}.`;
+
+    const rainPeak = m.rainMax?.value!==null && m.rainMax?.value!==undefined
+      ? `, mưa giờ lớn nhất ${fmt(m.rainMax.value,1)} mm lúc ${narrative(m.rainMax.time)}`
+      : "";
+
+    let operationComment = "";
+    const vin = Number(m.vin?.million);
+    const vt  = Number(m.vt?.million);
+    const vs  = Number(m.vs?.million);
+    const bal = Number(m.balance);
+
+    if(Number.isFinite(vs) && Math.abs(vs) < 0.005){
+      operationComment += " Trong đợt hồ không xả tràn.";
+    }else if(Number.isFinite(vs) && vs > 0){
+      operationComment += ` Trong đợt hồ có xả tràn, tổng lượng xả khoảng ${fmt(vs,2)} triệu m³.`;
     }
+
+    if(Number.isFinite(vin) && vin > 0 && Number.isFinite(bal)){
+      const pct = bal / vin * 100;
+      if(pct >= 0){
+        operationComment += ` Cân bằng nước sơ bộ cho thấy khoảng ${fmt(bal,2)} triệu m³, tương đương ${fmt(pct,1)}% lượng nước về, chưa qua nhà máy/xả tràn trong kỳ tính toán.`;
+      }
+    }
+
+    let s =
+      `Số liệu tính từ ${narrative(m.s)} đến ${narrative(m.e)}: ` +
+      `tổng lượng mưa lưu vực ${fmt(m.rain,1)} mm${rainPeak}; ` +
+      `Q về hồ lớn nhất ${fmt(m.q.value,2)} m³/s lúc ${narrative(m.q.time)}.` +
+      wlTrend +
+      ` Tổng lượng nước về hồ khoảng ${fmt(m.vin.million,2)} triệu m³, ` +
+      `qua nhà máy ${fmt(m.vt.million,2)} triệu m³, ` +
+      `xả tràn ${fmt(m.vs.million,2)} triệu m³; ` +
+      `cân bằng nước sơ bộ (Vvề − Vmáy − Vxả) ${fmt(m.balance,2)} triệu m³.` +
+      operationComment;
+
+    // Chỉ đưa QC vào nội dung lãnh đạo khi dữ liệu có vấn đề.
+    if(m.qc!=="GOOD"){
+      s += ` Lưu ý chất lượng dữ liệu: QC ${m.qc}, thiếu ${m.mh} mốc giờ, ${m.mc} ô dữ liệu và ${m.gaps} khoảng gián đoạn lớn hơn 1,5 giờ.`;
+      if(m.missingHours?.length){
+        s += ` Giờ thiếu: ${formatMissingHours(m.missingHours)}.`;
+      }
+    }
+
     return s;
   }
 
@@ -30972,7 +31549,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     const t="Báo cáo nhanh:\n"+summary(MET);
     try{await navigator.clipboard.writeText(t)}
     catch(e){const x=document.createElement("textarea");x.value=t;document.body.appendChild(x);x.select();document.execCommand("copy");x.remove()}
-    status("Đã copy báo cáo nhanh.","good");
+    status("Đã copy báo cáo nhanh dành cho lãnh đạo.","good");
   }
 
   function excel(){
@@ -30982,10 +31559,14 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
       ["BÁO CÁO SAU ĐỢT LŨ - HỒ A VƯƠNG"],
       ["Từ",label(m.s)],["Đến",label(m.e)],["QC",m.qc],["Số mốc dự kiến",m.expected],["Số mốc có dữ liệu",m.actual],["Độ phủ (%)",m.coverage],["Giờ thiếu",formatMissingHours(m.missingHours)],
-      ["Tổng mưa (mm)",m.rain],["Q về max",m.q.value],["Thời điểm Q max",label(m.q.time)],
-      ["MNH max",m.wl.value],["V nước về (triệu m3)",m.vin.million],["V qua máy (triệu m3)",m.vt.million],
-      ["V xả tràn (triệu m3)",m.vs.million],["Cân bằng dòng chảy (triệu m3)",m.balance],
-      ["Báo cáo nhanh",summary(m)]
+      ["Tổng mưa (mm)",m.rain],
+      ["Mưa giờ lớn nhất (mm)",m.rainMax?.value],["Thời điểm mưa giờ lớn nhất",label(m.rainMax?.time)],
+      ["Q về max (m3/s)",m.q.value],["Thời điểm Q max",label(m.q.time)],
+      ["MNH đầu kỳ (m)",m.w0],["MNH cuối kỳ (m)",m.w1],["Biến đổi MNH (m)",m.delta],
+      ["MNH max (m)",m.wl.value],["Thời điểm MNH max",label(m.wl.time)],
+      ["V nước về (triệu m3)",m.vin.million],["V qua máy (triệu m3)",m.vt.million],
+      ["V xả tràn (triệu m3)",m.vs.million],["Cân bằng dòng chảy sơ bộ (triệu m3)",m.balance],
+      ["Báo cáo nhanh lãnh đạo",summary(m)]
     ]),"Tong_hop");
 
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ROWS.map(r=>({
