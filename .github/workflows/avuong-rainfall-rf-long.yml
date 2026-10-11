@@ -173,11 +173,15 @@ jobs:
           python scripts/avuong_openmeteo_best_collector.py
 
       # ==========================================================
-      # 7. FORECAST GATE
+      # 7. FORECAST GATE V2 - LONG & LSTM ĐỘC LẬP
       # ==========================================================
-      # Chỉ forecast khi Q quan trắc giờ mới đã xuất hiện.
-      # Không forecast theo giờ đồng hồ nếu Q thực đo chưa tới.
-      - name: Check for a new observed hour
+      # Mỗi mô hình có issue_time riêng:
+      # - Long-H120 kiểm tra latest Long issue_time
+      # - LSTM-H120 kiểm tra latest LSTM issue_time
+      #
+      # Nhờ vậy nếu Long đã chạy tới 19h nhưng LSTM vẫn ở 14h,
+      # workflow vẫn bắt buộc chạy lại LSTM cho giờ 19h.
+      - name: Check new observed hour for Long and LSTM independently
         id: forecast-gate
         shell: bash
         env:
@@ -197,7 +201,9 @@ jobs:
 
           sb = create_client(url, key)
 
-          # Latest observed reservoir row.
+          # -------------------------------------------------------
+          # 1. Latest observed reservoir hour
+          # -------------------------------------------------------
           q = (
               sb.table("reservoir_hourly_data")
               .select("time,reservoir_id")
@@ -211,8 +217,10 @@ jobs:
           obs_rows = q.execute().data or []
           latest_obs = obs_rows[0]["time"] if obs_rows else None
 
-          # Latest completed Long-H120 issue.
-          fc_rows = (
+          # -------------------------------------------------------
+          # 2. Latest Long-H120 issue
+          # -------------------------------------------------------
+          long_rows = (
               sb.table("inflow_forecast_long_ensemble")
               .select("issue_time")
               .order("issue_time", desc=True)
@@ -221,7 +229,27 @@ jobs:
               .data
               or []
           )
-          latest_issue = fc_rows[0]["issue_time"] if fc_rows else None
+          latest_long_issue = (
+              long_rows[0]["issue_time"]
+              if long_rows else None
+          )
+
+          # -------------------------------------------------------
+          # 3. Latest LSTM-H120 issue
+          # -------------------------------------------------------
+          lstm_rows = (
+              sb.table("inflow_forecast_lstm_ensemble")
+              .select("issue_time")
+              .order("issue_time", desc=True)
+              .limit(1)
+              .execute()
+              .data
+              or []
+          )
+          latest_lstm_issue = (
+              lstm_rows[0]["issue_time"]
+              if lstm_rows else None
+          )
 
           def parse_dt(v):
               if not v:
@@ -231,40 +259,71 @@ jobs:
               ).astimezone(timezone.utc)
 
           obs_dt = parse_dt(latest_obs)
-          issue_dt = parse_dt(latest_issue)
+          long_dt = parse_dt(latest_long_issue)
+          lstm_dt = parse_dt(latest_lstm_issue)
 
+          # -------------------------------------------------------
+          # 4. Independent decisions
+          # -------------------------------------------------------
           if force:
-              need_predict = True
-              reason = "manual force_predict=true"
-          elif obs_dt is None:
-              need_predict = False
-              reason = "no observed reservoir_hourly_data available"
-          elif issue_dt is None:
-              need_predict = True
-              reason = "no Long-H120 forecast exists yet"
-          elif obs_dt > issue_dt:
-              need_predict = True
-              reason = "new observed hour is available"
-          else:
-              need_predict = False
-              reason = (
-                  "latest observed hour has not advanced "
-                  "beyond latest Long-H120 issue_time"
-              )
+              need_long = True
+              need_lstm = True
+              long_reason = "manual force_predict=true"
+              lstm_reason = "manual force_predict=true"
 
+          elif obs_dt is None:
+              need_long = False
+              need_lstm = False
+              long_reason = "no observed reservoir_hourly_data available"
+              lstm_reason = "no observed reservoir_hourly_data available"
+
+          else:
+              if long_dt is None:
+                  need_long = True
+                  long_reason = "no Long-H120 forecast exists yet"
+              elif obs_dt > long_dt:
+                  need_long = True
+                  long_reason = "observed hour is newer than Long-H120 issue_time"
+              else:
+                  need_long = False
+                  long_reason = "Long-H120 is already current"
+
+              if lstm_dt is None:
+                  need_lstm = True
+                  lstm_reason = "no LSTM-H120 forecast exists yet"
+              elif obs_dt > lstm_dt:
+                  need_lstm = True
+                  lstm_reason = "observed hour is newer than LSTM-H120 issue_time"
+              else:
+                  need_lstm = False
+                  lstm_reason = "LSTM-H120 is already current"
+
+          need_any = need_long or need_lstm
+
+          print("========================================================")
+          print("FORECAST GATE V2")
+          print("========================================================")
           print("Latest observed time :", latest_obs)
-          print("Latest Long issue    :", latest_issue)
-          print("Need prediction      :", need_predict)
-          print("Reason               :", reason)
+          print("Latest Long issue    :", latest_long_issue)
+          print("Latest LSTM issue    :", latest_lstm_issue)
+          print("")
+          print("Need Long            :", need_long)
+          print("Long reason          :", long_reason)
+          print("Need LSTM            :", need_lstm)
+          print("LSTM reason          :", lstm_reason)
+          print("Need any forecast    :", need_any)
+          print("========================================================")
 
           output = os.environ["GITHUB_OUTPUT"]
           with open(output, "a", encoding="utf-8") as f:
-              f.write(
-                  f"need_predict={'true' if need_predict else 'false'}\n"
-              )
+              f.write(f"need_long={'true' if need_long else 'false'}\n")
+              f.write(f"need_lstm={'true' if need_lstm else 'false'}\n")
+              f.write(f"need_any={'true' if need_any else 'false'}\n")
               f.write(f"latest_obs={latest_obs or ''}\n")
-              f.write(f"latest_issue={latest_issue or ''}\n")
-              f.write(f"reason={reason}\n")
+              f.write(f"latest_long_issue={latest_long_issue or ''}\n")
+              f.write(f"latest_lstm_issue={latest_lstm_issue or ''}\n")
+              f.write(f"long_reason={long_reason}\n")
+              f.write(f"lstm_reason={lstm_reason}\n")
           PY
 
       # ==========================================================
@@ -273,7 +332,7 @@ jobs:
       # Nếu Q giờ mới chỉ tới sau phút 05, phút 10 sẽ check lại.
       # Nếu cần forecast, refresh CẢ 2 nguồn mưa trước khi chạy model.
       - name: Refresh 6-model rainfall on minute-10 retry
-        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_predict == 'true'
+        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_any == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -281,7 +340,7 @@ jobs:
           python scripts/avuong_multimodel_collector.py
 
       - name: Refresh Open-Meteo Best Match on minute-10 retry
-        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_predict == 'true'
+        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_any == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -292,7 +351,7 @@ jobs:
       # 9. MODEL PREPARATION
       # ==========================================================
       - name: Validate RF V1 metadata files
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -306,7 +365,7 @@ jobs:
           echo "RF V1 metadata files are present."
 
       - name: Restore RF V1 model cache
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true'
         id: rf-model-cache
         uses: actions/cache@v4
         with:
@@ -319,7 +378,7 @@ jobs:
           key: avuong-rf-models-${{ runner.os }}-rf-v1
 
       - name: Download RF V1 models from GitHub Release
-        if: steps.forecast-gate.outputs.need_predict == 'true' && steps.rf-model-cache.outputs.cache-hit != 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true' && steps.rf-model-cache.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -339,31 +398,36 @@ jobs:
 
           ls -lh models/rf_v1/*.joblib
 
-      - name: Validate all model artifacts
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+      - name: Validate RF and Long-H120 artifacts
+        if: steps.forecast-gate.outputs.need_long == 'true'
         shell: bash
         run: |
           set -euo pipefail
 
-          # RF V1
           test -s models/rf_v1/rf_h01.joblib
           test -s models/rf_v1/rf_h03.joblib
           test -s models/rf_v1/rf_h06.joblib
           test -s models/rf_v1/rf_h12.joblib
           test -s models/rf_v1/rf_h24.joblib
 
-          # HGB Long-H120
           test -s models/long_h120/long_h120.joblib
           test -f models/long_h120/long_h120_meta.json
 
-          # LSTM H120
+          echo "RF + Long-H120 artifacts are present."
+
+      - name: Validate LSTM H120 artifacts
+        if: steps.forecast-gate.outputs.need_lstm == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
           test -s models/lstm_h120_v1/lstm_h120.keras
           test -s models/lstm_h120_v1/lstm_h120_scalers.joblib
 
-          echo "All model artifacts are present."
+          echo "LSTM H120 artifacts are present."
 
       - name: Smoke test Long-H120 model load
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -379,7 +443,7 @@ jobs:
           PY
 
       - name: Smoke test LSTM H120 model load
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_lstm == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -409,21 +473,21 @@ jobs:
       # 10. FORECASTS
       # ==========================================================
       - name: Run RF V1 inflow predictor
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python scripts/rf_predict.py
 
       - name: Run Long-H120 six-scenario inflow predictor
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_long == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python scripts/rf_predict_long_h120.py
 
       - name: Run LSTM H120 seven-scenario shadow predictor
-        if: steps.forecast-gate.outputs.need_predict == 'true'
+        if: steps.forecast-gate.outputs.need_lstm == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -432,17 +496,16 @@ jobs:
       # ==========================================================
       # 11. SKIP NOTICE
       # ==========================================================
-      - name: No new observed hour - prediction skipped
-        if: steps.forecast-gate.outputs.need_predict != 'true'
+      - name: No model needs a new forecast
+        if: steps.forecast-gate.outputs.need_any != 'true'
         shell: bash
         run: |
-          echo "No new observed Q hour is available."
-          echo "Latest observed : ${{ steps.forecast-gate.outputs.latest_obs }}"
-          echo "Latest forecast : ${{ steps.forecast-gate.outputs.latest_issue }}"
-          echo "Reason          : ${{ steps.forecast-gate.outputs.reason }}"
-          echo ""
-          echo "At minute 05: the minute-10 schedule will check once more."
-          echo "At minute 10: no further retry is made until next hour."
+          echo "No model needs a new forecast."
+          echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
+          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_long_issue }}"
+          echo "Latest LSTM issue  : ${{ steps.forecast-gate.outputs.latest_lstm_issue }}"
+          echo "Long reason        : ${{ steps.forecast-gate.outputs.long_reason }}"
+          echo "LSTM reason        : ${{ steps.forecast-gate.outputs.lstm_reason }}"
 
       # ==========================================================
       # 12. SUMMARY
@@ -458,9 +521,13 @@ jobs:
           echo "Event              : ${{ github.event_name }}"
           echo "Schedule           : ${{ github.event.schedule }}"
           echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
-          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_issue }}"
-          echo "Need prediction    : ${{ steps.forecast-gate.outputs.need_predict }}"
-          echo "Gate reason        : ${{ steps.forecast-gate.outputs.reason }}"
+          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_long_issue }}"
+          echo "Latest LSTM issue  : ${{ steps.forecast-gate.outputs.latest_lstm_issue }}"
+          echo "Need Long          : ${{ steps.forecast-gate.outputs.need_long }}"
+          echo "Need LSTM          : ${{ steps.forecast-gate.outputs.need_lstm }}"
+          echo "Need any           : ${{ steps.forecast-gate.outputs.need_any }}"
+          echo "Long reason        : ${{ steps.forecast-gate.outputs.long_reason }}"
+          echo "LSTM reason        : ${{ steps.forecast-gate.outputs.lstm_reason }}"
           echo ""
           echo "Rainfall source 1  : 6 explicit NWP x 7 basin points"
           echo "                    ECMWF / GFS / ICON / AIFS / CMA / JMA"
