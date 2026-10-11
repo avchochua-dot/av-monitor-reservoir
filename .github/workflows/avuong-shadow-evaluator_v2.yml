@@ -1,9 +1,10 @@
-name: A Vuong Shadow Forecast Evaluator
+name: A Vuong Shadow Forecast Evaluator V4
 
 on:
   workflow_dispatch:
   schedule:
-    # Chạy sau pipeline dự báo khoảng 15 phút.
+    # Main forecast pipeline runs at :05 and retry at :10.
+    # Evaluate after both have had time to finish.
     - cron: "20 * * * *"
 
 permissions:
@@ -22,6 +23,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BASIN_ID: "AVUONG"
+      SHADOW_OBS_LIMIT: "2000"
 
     steps:
       - name: Checkout repository
@@ -39,7 +41,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
-      - name: Run A Vuong shadow evaluator
+      - name: Run A Vuong four-model fair shadow evaluator
         shell: bash
         run: |
           set -euo pipefail
