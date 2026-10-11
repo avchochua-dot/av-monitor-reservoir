@@ -1,542 +1,491 @@
-name: A Vuong Rainfall + RF Forecast + Long H120 + LSTM 7 Scenario
-
-on:
-  workflow_dispatch:
-    inputs:
-      force_predict:
-        description: "Force RF V1 + Long-H120 + LSTM even if issue_time has not advanced"
-        required: false
-        default: false
-        type: boolean
-
-  # GitHub cron uses UTC.
-  # HH:05 = run chính.
-  # HH:10 = retry 1 lần nếu đến phút 10 mới có Q quan trắc giờ mới.
-  schedule:
-    - cron: "5 * * * *"
-    - cron: "10 * * * *"
-
-permissions:
-  contents: read
-
-concurrency:
-  group: avuong-rainfall-rf-long-lstm-openmeteo7-production
-  cancel-in-progress: false
-
-jobs:
-  collect-rainfall-and-predict-inflow:
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
-
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Nếu reservoir_hourly_data có nhiều hồ, tạo secret RESERVOIR_ID.
-      RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
-
-      FORECAST_DAYS: "10"
-      BASIN_ID: "AVUONG"
-
-      # ==========================================================
-      # RF V1
-      # ==========================================================
-      RF_MODEL_DIR: "models/rf_v1"
-      RF_SOURCE: "rf_v1"
-      RF_MODEL_VERSION: "RF_V1_PERFECT_RAIN"
-      RF_RELEASE_TAG: "rf-v1"
-
-      # ==========================================================
-      # LONG H120 - HGB
-      # ==========================================================
-      LONG_MODEL_DIR: "models/long_h120"
-      LONG_SOURCE: "long_h120"
-      LONG_MODEL_VERSION: "LONG_H120_V1_PERFECT_RAIN"
-      LONG_MAX_LEAD: "120"
-
-      # ==========================================================
-      # LSTM H120 - SHADOW
-      # 7 kịch bản:
-      # ECMWF / GFS / ICON / AIFS / CMA / JMA / OPENMETEO_BEST
-      # ==========================================================
-      LSTM_MODEL_DIR: "models/lstm_h120_v1"
-      LSTM_SOURCE: "lstm_h120_v1"
-      LSTM_MODEL_VERSION: "LSTM_H120_V1_PERFECT_RAIN"
-      LSTM_MAX_LEAD: "120"
-      LSTM_LOOKBACK_HOURS: "168"
-
-      MAX_RAIN_RUN_AGE_HOURS: "12"
-
-    steps:
-      # ==========================================================
-      # 1. CHECKOUT
-      # ==========================================================
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # ==========================================================
-      # 2. PYTHON
-      # ==========================================================
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: |
-            scripts/requirements.txt
-            scripts/requirements_rf_live.txt
-            scripts/requirements_long_live.txt
-            scripts/requirements_lstm_live.txt
-
-      # ==========================================================
-      # 3. INSTALL
-      # ==========================================================
-      - name: Install Python dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python -m pip install --upgrade pip
-
-          pip install -r scripts/requirements.txt
-          pip install -r scripts/requirements_rf_live.txt
-          pip install -r scripts/requirements_long_live.txt
-          pip install -r scripts/requirements_lstm_live.txt
-
-      # ==========================================================
-      # 4. RUNTIME
-      # ==========================================================
-      - name: Print Python ML runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python - <<'PY'
-          import sys
-          import numpy
-          import pandas
-          import sklearn
-          import joblib
-          import tensorflow as tf
-
-          print("Python       :", sys.version)
-          print("numpy        :", numpy.__version__)
-          print("pandas       :", pandas.__version__)
-          print("scikit-learn :", sklearn.__version__)
-          print("joblib       :", joblib.__version__)
-          print("TensorFlow   :", tf.__version__)
-          print("GPU          :", tf.config.list_physical_devices("GPU"))
-          PY
-
-      # ==========================================================
-      # 5. SECRETS
-      # ==========================================================
-      - name: Validate required secrets
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ -z "${SUPABASE_URL:-}" ]; then
-            echo "ERROR: Missing GitHub secret SUPABASE_URL"
-            exit 1
-          fi
-
-          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-            echo "ERROR: Missing GitHub secret SUPABASE_SERVICE_ROLE_KEY"
-            exit 1
-          fi
-
-          echo "Supabase secrets are available."
-
-      # ==========================================================
-      # 6. HH:05 / MANUAL - REFRESH RAINFALL
-      # ==========================================================
-      # Collector 1:
-      # 6 NWP riêng biệt qua Open-Meteo:
-      # ECMWF/GFS/ICON/AIFS/CMA/JMA
-      - name: Collect 6-model rainfall at minute 05
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Collecting 6-model A Vuong rainfall forecast..."
-          python scripts/avuong_multimodel_collector.py
-
-      # Collector 2:
-      # Open-Meteo default / Best Match, 7 điểm AV01-AV07 -> basin hourly H001-H120.
-      - name: Collect Open-Meteo Best Match at minute 05
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Collecting Open-Meteo Best Match rainfall..."
-          python scripts/avuong_openmeteo_best_collector.py
-
-      # ==========================================================
-      # 7. FORECAST GATE V2 - LONG & LSTM ĐỘC LẬP
-      # ==========================================================
-      # Mỗi mô hình có issue_time riêng:
-      # - Long-H120 kiểm tra latest Long issue_time
-      # - LSTM-H120 kiểm tra latest LSTM issue_time
-      #
-      # Nhờ vậy nếu Long đã chạy tới 19h nhưng LSTM vẫn ở 14h,
-      # workflow vẫn bắt buộc chạy lại LSTM cho giờ 19h.
-      - name: Check new observed hour for Long and LSTM independently
-        id: forecast-gate
-        shell: bash
-        env:
-          FORCE_PREDICT: ${{ github.event_name == 'workflow_dispatch' && inputs.force_predict || false }}
-        run: |
-          set -euo pipefail
-
-          python - <<'PY'
-          import os
-          from datetime import datetime, timezone
-          from supabase import create_client
-
-          url = os.environ["SUPABASE_URL"]
-          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-          reservoir_id = (os.environ.get("RESERVOIR_ID") or "").strip()
-          force = str(os.environ.get("FORCE_PREDICT", "false")).lower() == "true"
-
-          sb = create_client(url, key)
-
-          # -------------------------------------------------------
-          # 1. Latest observed reservoir hour
-          # -------------------------------------------------------
-          q = (
-              sb.table("reservoir_hourly_data")
-              .select("time,reservoir_id")
-              .order("time", desc=True)
-              .limit(50 if reservoir_id else 1)
-          )
-
-          if reservoir_id:
-              q = q.eq("reservoir_id", reservoir_id)
-
-          obs_rows = q.execute().data or []
-          latest_obs = obs_rows[0]["time"] if obs_rows else None
-
-          # -------------------------------------------------------
-          # 2. Latest Long-H120 issue
-          # -------------------------------------------------------
-          long_rows = (
-              sb.table("inflow_forecast_long_ensemble")
-              .select("issue_time")
-              .order("issue_time", desc=True)
-              .limit(1)
-              .execute()
-              .data
-              or []
-          )
-          latest_long_issue = (
-              long_rows[0]["issue_time"]
-              if long_rows else None
-          )
-
-          # -------------------------------------------------------
-          # 3. Latest LSTM-H120 issue
-          # -------------------------------------------------------
-          lstm_rows = (
-              sb.table("inflow_forecast_lstm_ensemble")
-              .select("issue_time")
-              .order("issue_time", desc=True)
-              .limit(1)
-              .execute()
-              .data
-              or []
-          )
-          latest_lstm_issue = (
-              lstm_rows[0]["issue_time"]
-              if lstm_rows else None
-          )
-
-          def parse_dt(v):
-              if not v:
-                  return None
-              return datetime.fromisoformat(
-                  str(v).replace("Z", "+00:00")
-              ).astimezone(timezone.utc)
-
-          obs_dt = parse_dt(latest_obs)
-          long_dt = parse_dt(latest_long_issue)
-          lstm_dt = parse_dt(latest_lstm_issue)
-
-          # -------------------------------------------------------
-          # 4. Independent decisions
-          # -------------------------------------------------------
-          if force:
-              need_long = True
-              need_lstm = True
-              long_reason = "manual force_predict=true"
-              lstm_reason = "manual force_predict=true"
-
-          elif obs_dt is None:
-              need_long = False
-              need_lstm = False
-              long_reason = "no observed reservoir_hourly_data available"
-              lstm_reason = "no observed reservoir_hourly_data available"
-
-          else:
-              if long_dt is None:
-                  need_long = True
-                  long_reason = "no Long-H120 forecast exists yet"
-              elif obs_dt > long_dt:
-                  need_long = True
-                  long_reason = "observed hour is newer than Long-H120 issue_time"
-              else:
-                  need_long = False
-                  long_reason = "Long-H120 is already current"
-
-              if lstm_dt is None:
-                  need_lstm = True
-                  lstm_reason = "no LSTM-H120 forecast exists yet"
-              elif obs_dt > lstm_dt:
-                  need_lstm = True
-                  lstm_reason = "observed hour is newer than LSTM-H120 issue_time"
-              else:
-                  need_lstm = False
-                  lstm_reason = "LSTM-H120 is already current"
-
-          need_any = need_long or need_lstm
-
-          print("========================================================")
-          print("FORECAST GATE V2")
-          print("========================================================")
-          print("Latest observed time :", latest_obs)
-          print("Latest Long issue    :", latest_long_issue)
-          print("Latest LSTM issue    :", latest_lstm_issue)
-          print("")
-          print("Need Long            :", need_long)
-          print("Long reason          :", long_reason)
-          print("Need LSTM            :", need_lstm)
-          print("LSTM reason          :", lstm_reason)
-          print("Need any forecast    :", need_any)
-          print("========================================================")
-
-          output = os.environ["GITHUB_OUTPUT"]
-          with open(output, "a", encoding="utf-8") as f:
-              f.write(f"need_long={'true' if need_long else 'false'}\n")
-              f.write(f"need_lstm={'true' if need_lstm else 'false'}\n")
-              f.write(f"need_any={'true' if need_any else 'false'}\n")
-              f.write(f"latest_obs={latest_obs or ''}\n")
-              f.write(f"latest_long_issue={latest_long_issue or ''}\n")
-              f.write(f"latest_lstm_issue={latest_lstm_issue or ''}\n")
-              f.write(f"long_reason={long_reason}\n")
-              f.write(f"lstm_reason={lstm_reason}\n")
-          PY
-
-      # ==========================================================
-      # 8. HH:10 RETRY
-      # ==========================================================
-      # Nếu Q giờ mới chỉ tới sau phút 05, phút 10 sẽ check lại.
-      # Nếu cần forecast, refresh CẢ 2 nguồn mưa trước khi chạy model.
-      - name: Refresh 6-model rainfall on minute-10 retry
-        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_any == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Minute-10 retry: refreshing 6-model rainfall..."
-          python scripts/avuong_multimodel_collector.py
-
-      - name: Refresh Open-Meteo Best Match on minute-10 retry
-        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_any == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Minute-10 retry: refreshing Open-Meteo Best Match..."
-          python scripts/avuong_openmeteo_best_collector.py
-
-      # ==========================================================
-      # 9. MODEL PREPARATION
-      # ==========================================================
-      - name: Validate RF V1 metadata files
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          test -f models/rf_v1/rf_h01_meta.json
-          test -f models/rf_v1/rf_h03_meta.json
-          test -f models/rf_v1/rf_h06_meta.json
-          test -f models/rf_v1/rf_h12_meta.json
-          test -f models/rf_v1/rf_h24_meta.json
-
-          echo "RF V1 metadata files are present."
-
-      - name: Restore RF V1 model cache
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        id: rf-model-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            models/rf_v1/rf_h01.joblib
-            models/rf_v1/rf_h03.joblib
-            models/rf_v1/rf_h06.joblib
-            models/rf_v1/rf_h12.joblib
-            models/rf_v1/rf_h24.joblib
-          key: avuong-rf-models-${{ runner.os }}-rf-v1
-
-      - name: Download RF V1 models from GitHub Release
-        if: steps.forecast-gate.outputs.need_long == 'true' && steps.rf-model-cache.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mkdir -p models/rf_v1
-
-          gh release download "${RF_RELEASE_TAG}" \
-            --pattern "rf_h01.joblib" \
-            --pattern "rf_h03.joblib" \
-            --pattern "rf_h06.joblib" \
-            --pattern "rf_h12.joblib" \
-            --pattern "rf_h24.joblib" \
-            --dir models/rf_v1 \
-            --clobber
-
-          ls -lh models/rf_v1/*.joblib
-
-      - name: Validate RF and Long-H120 artifacts
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          test -s models/rf_v1/rf_h01.joblib
-          test -s models/rf_v1/rf_h03.joblib
-          test -s models/rf_v1/rf_h06.joblib
-          test -s models/rf_v1/rf_h12.joblib
-          test -s models/rf_v1/rf_h24.joblib
-
-          test -s models/long_h120/long_h120.joblib
-          test -f models/long_h120/long_h120_meta.json
-
-          echo "RF + Long-H120 artifacts are present."
-
-      - name: Validate LSTM H120 artifacts
-        if: steps.forecast-gate.outputs.need_lstm == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          test -s models/lstm_h120_v1/lstm_h120.keras
-          test -s models/lstm_h120_v1/lstm_h120_scalers.joblib
-
-          echo "LSTM H120 artifacts are present."
-
-      - name: Smoke test Long-H120 model load
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python - <<'PY'
-          import joblib
-
-          path = "models/long_h120/long_h120.joblib"
-          model = joblib.load(path)
-
-          print("Long-H120 model loaded successfully.")
-          print("Model class:", type(model))
-          PY
-
-      - name: Smoke test LSTM H120 model load
-        if: steps.forecast-gate.outputs.need_lstm == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python - <<'PY'
-          import joblib
-          import tensorflow as tf
-
-          model_path = "models/lstm_h120_v1/lstm_h120.keras"
-          scaler_path = "models/lstm_h120_v1/lstm_h120_scalers.joblib"
-
-          model = tf.keras.models.load_model(
-              model_path,
-              compile=False
-          )
-          scalers = joblib.load(scaler_path)
-
-          print("LSTM H120 loaded successfully.")
-          print("Model class :", type(model))
-          print("Input shape :", model.input_shape)
-          print("Output shape:", model.output_shape)
-          print("Lookback    :", scalers.get("lookback_hours"))
-          print("Horizon     :", scalers.get("horizon_hours"))
-          PY
-
-      # ==========================================================
-      # 10. FORECASTS
-      # ==========================================================
-      - name: Run RF V1 inflow predictor
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/rf_predict.py
-
-      - name: Run Long-H120 six-scenario inflow predictor
-        if: steps.forecast-gate.outputs.need_long == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/rf_predict_long_h120.py
-
-      - name: Run LSTM H120 seven-scenario shadow predictor
-        if: steps.forecast-gate.outputs.need_lstm == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/lstm_predict_live.py
-
-      # ==========================================================
-      # 11. SKIP NOTICE
-      # ==========================================================
-      - name: No model needs a new forecast
-        if: steps.forecast-gate.outputs.need_any != 'true'
-        shell: bash
-        run: |
-          echo "No model needs a new forecast."
-          echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
-          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_long_issue }}"
-          echo "Latest LSTM issue  : ${{ steps.forecast-gate.outputs.latest_lstm_issue }}"
-          echo "Long reason        : ${{ steps.forecast-gate.outputs.long_reason }}"
-          echo "LSTM reason        : ${{ steps.forecast-gate.outputs.lstm_reason }}"
-
-      # ==========================================================
-      # 12. SUMMARY
-      # ==========================================================
-      - name: Workflow summary
-        if: always()
-        shell: bash
-        run: |
-          echo ""
-          echo "=============================================================="
-          echo "A VUONG RAINFALL + RF + LONG-H120 + LSTM 7 SCENARIO"
-          echo "=============================================================="
-          echo "Event              : ${{ github.event_name }}"
-          echo "Schedule           : ${{ github.event.schedule }}"
-          echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
-          echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_long_issue }}"
-          echo "Latest LSTM issue  : ${{ steps.forecast-gate.outputs.latest_lstm_issue }}"
-          echo "Need Long          : ${{ steps.forecast-gate.outputs.need_long }}"
-          echo "Need LSTM          : ${{ steps.forecast-gate.outputs.need_lstm }}"
-          echo "Need any           : ${{ steps.forecast-gate.outputs.need_any }}"
-          echo "Long reason        : ${{ steps.forecast-gate.outputs.long_reason }}"
-          echo "LSTM reason        : ${{ steps.forecast-gate.outputs.lstm_reason }}"
-          echo ""
-          echo "Rainfall source 1  : 6 explicit NWP x 7 basin points"
-          echo "                    ECMWF / GFS / ICON / AIFS / CMA / JMA"
-          echo "Rainfall source 2  : Open-Meteo Best Match x 7 basin points"
-          echo ""
-          echo "RF V1              : H01/H03/H06/H12/H24"
-          echo "Long H120          : H01-H120 hourly, 6 NWP scenarios"
-          echo "LSTM shadow        : H01-H120 hourly, 7 rainfall scenarios"
-          echo "LSTM scenarios     : ECMWF/GFS/ICON/AIFS/CMA/JMA/OPENMETEO_BEST"
-          echo "LSTM ensemble      : Mean/P50/P10/P90/P25/P75/Min/Max"
-          echo "Expected LSTM rows : 840 scenario + 120 ensemble"
-          echo "=============================================================="
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+A VUONG - LSTM H120 LIVE PREDICTOR (SHADOW)
+"""
+
+from __future__ import annotations
+import math, os, sys, traceback
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import joblib
+import numpy as np
+import pandas as pd
+import requests
+import tensorflow as tf
+
+SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+BASIN_ID = os.getenv("BASIN_ID", "AVUONG")
+RESERVOIR_ID = os.getenv("RESERVOIR_ID", "").strip()
+
+LSTM_SOURCE = os.getenv("LSTM_SOURCE", "lstm_h120_v1")
+LSTM_MODEL_VERSION = os.getenv("LSTM_MODEL_VERSION", "LSTM_H120_V1_PERFECT_RAIN")
+LSTM_MODEL_DIR = Path(os.getenv("LSTM_MODEL_DIR", "models/lstm_h120_v1"))
+LSTM_MAX_LEAD = int(os.getenv("LSTM_MAX_LEAD", "120"))
+LSTM_LOOKBACK_HOURS = int(os.getenv("LSTM_LOOKBACK_HOURS", "168"))
+MAX_RAIN_RUN_AGE_HOURS = float(os.getenv("MAX_RAIN_RUN_AGE_HOURS", "12"))
+
+MODEL_PATH = LSTM_MODEL_DIR / "lstm_h120.keras"
+SCALER_PATH = LSTM_MODEL_DIR / "lstm_h120_scalers.joblib"
+
+TABLE_OBS = "reservoir_hourly_data"
+TABLE_RAIN = "rainfall_basin_hourly"
+TABLE_RAIN_OMB = "rainfall_openmeteo_best_hourly"
+TABLE_SCENARIO = "inflow_forecast_lstm_scenario"
+TABLE_ENSEMBLE = "inflow_forecast_lstm_ensemble"
+TABLE_LOG = "lstm_forecast_run_log"
+
+REQUEST_TIMEOUT = 45
+UPSERT_BATCH = 500
+
+RAIN_COLUMNS = {
+    "ECMWF_IFS": "rain_ecmwf",
+    "GFS": "rain_gfs",
+    "ICON": "rain_icon",
+    "ECMWF_AIFS": "rain_aifs",
+    "CMA_GRAPES": "rain_cma",
+    "JMA_GSM": "rain_jma",
+}
+
+PAST_FEATURES = [
+    "flow","rain","flow_diff_1h","flow_mean_6h","flow_mean_24h",
+    "rain_sum_6h","rain_sum_24h","hour_sin","hour_cos","doy_sin","doy_cos"
+]
+FUTURE_FEATURES = [
+    "future_rain","future_rain_cum","lead_norm","hour_sin","hour_cos","doy_sin","doy_cos"
+]
+
+SESSION = requests.Session()
+SESSION.headers.update({
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+})
+
+def api_url(table: str) -> str:
+    return f"{SUPABASE_URL}/rest/v1/{table}"
+
+def supabase_get(table: str, params: Dict[str, str]) -> List[Dict[str, Any]]:
+    r = SESSION.get(api_url(table), params=params, timeout=REQUEST_TIMEOUT)
+    if not r.ok:
+        raise RuntimeError(f"GET {table} failed {r.status_code}: {r.text[:1200]}")
+    return r.json()
+
+def supabase_insert(table: str, rows: List[Dict[str, Any]], upsert_on_conflict: Optional[str]=None) -> None:
+    if not rows:
+        return
+    headers = dict(SESSION.headers)
+    if upsert_on_conflict:
+        headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+    for i in range(0, len(rows), UPSERT_BATCH):
+        chunk = rows[i:i+UPSERT_BATCH]
+        params = {}
+        if upsert_on_conflict:
+            params["on_conflict"] = upsert_on_conflict
+        r = SESSION.post(api_url(table), params=params, headers=headers, json=chunk, timeout=REQUEST_TIMEOUT)
+        if not r.ok:
+            raise RuntimeError(f"POST {table} failed {r.status_code}: {r.text[:1800]}")
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+def parse_ts(v: Any) -> pd.Timestamp:
+    t = pd.Timestamp(v)
+    return t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
+
+def iso_utc(v: Any) -> str:
+    return parse_ts(v).isoformat()
+
+def finite_or_none(v: Any) -> Optional[float]:
+    try:
+        x=float(v)
+    except Exception:
+        return None
+    return x if math.isfinite(x) else None
+
+@dataclass
+class Artifacts:
+    model: tf.keras.Model
+    past_scaler: Any
+    future_scaler: Any
+    target_scaler: Any
+    lookback_hours: int
+    horizon_hours: int
+
+def load_artifacts() -> Artifacts:
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(MODEL_PATH)
+    if not SCALER_PATH.exists():
+        raise FileNotFoundError(SCALER_PATH)
+    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    s = joblib.load(SCALER_PATH)
+    if list(s.get("past_features", [])) != PAST_FEATURES:
+        raise RuntimeError("past_features mismatch")
+    if list(s.get("future_features", [])) != FUTURE_FEATURES:
+        raise RuntimeError("future_features mismatch")
+    lookback = int(s.get("lookback_hours", LSTM_LOOKBACK_HOURS))
+    horizon = int(s.get("horizon_hours", LSTM_MAX_LEAD))
+    if lookback != LSTM_LOOKBACK_HOURS or horizon < LSTM_MAX_LEAD:
+        raise RuntimeError(f"artifact shape mismatch: lookback={lookback}, horizon={horizon}")
+    return Artifacts(model, s["past_scaler"], s["future_scaler"], s["target_scaler"], lookback, horizon)
+
+def get_latest_rain_run() -> Tuple[pd.Timestamp, List[Dict[str, Any]]]:
+    rows = supabase_get(TABLE_RAIN, {
+        "select":"forecast_time,run_time,basin_id,lead_hour,rain_ecmwf,rain_gfs,rain_icon,rain_aifs,rain_cma,rain_jma,rain_mean,model_count,quality",
+        "basin_id":f"eq.{BASIN_ID}",
+        "lead_hour":"gte.1",
+        "order":"run_time.desc,lead_hour.asc",
+        "limit":"1000",
+    })
+    if not rows:
+        raise RuntimeError("Không có rainfall_basin_hourly")
+    latest = max(parse_ts(r["run_time"]) for r in rows)
+    selected = [r for r in rows if parse_ts(r["run_time"]) == latest and int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
+    selected.sort(key=lambda r:int(r["lead_hour"]))
+    if len(selected) < LSTM_MAX_LEAD:
+        selected = supabase_get(TABLE_RAIN, {
+            "select":"forecast_time,run_time,basin_id,lead_hour,rain_ecmwf,rain_gfs,rain_icon,rain_aifs,rain_cma,rain_jma,rain_mean,model_count,quality",
+            "basin_id":f"eq.{BASIN_ID}",
+            "run_time":f"eq.{iso_utc(latest)}",
+            "lead_hour":"gte.1",
+            "order":"lead_hour.asc",
+            "limit":"300",
+        })
+        selected=[r for r in selected if int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
+    return latest, selected
+
+
+def get_latest_openmeteo_best(issue_time: pd.Timestamp) -> pd.DataFrame:
+    rows = supabase_get(
+        TABLE_RAIN_OMB,
+        {
+            "select": "forecast_time,run_time,lead_hour,rain_openmeteo_best,point_count,quality",
+            "basin_id": f"eq.{BASIN_ID}",
+            "order": "run_time.desc,lead_hour.asc",
+            "limit": "500",
+        },
+    )
+    if not rows:
+        raise RuntimeError("Không có rainfall_openmeteo_best_hourly")
+
+    runs = sorted({parse_ts(r["run_time"]) for r in rows}, reverse=True)
+    chosen_run = None
+    chosen = None
+
+    for rt in runs:
+        subset = [r for r in rows if parse_ts(r["run_time"]) == rt]
+        df = pd.DataFrame(subset)
+        df["forecast_time"] = pd.to_datetime(df["forecast_time"], utc=True, errors="coerce")
+        df = df.dropna(subset=["forecast_time"]).sort_values("forecast_time").set_index("forecast_time")
+        expected = pd.date_range(
+            start=issue_time + pd.Timedelta(hours=1),
+            periods=LSTM_MAX_LEAD,
+            freq="h",
+            tz="UTC",
+        )
+        aligned = df.reindex(expected)
+        vals = pd.to_numeric(aligned["rain_openmeteo_best"], errors="coerce")
+        if vals.notna().all():
+            chosen_run = rt
+            chosen = aligned
+            break
+
+    if chosen is None:
+        raise RuntimeError("Không tìm thấy OpenMeteo Best run phủ đủ H001-H120 theo issue_time")
+
+    print(f"OpenMeteo Best run : {chosen_run}")
+    return chosen
+
+def detect_obs_columns() -> Tuple[str, str, str]:
+    """
+    Tự nhận diện tên cột thật của reservoir_hourly_data.
+
+    Không giả định cố định time/inflow/rain nữa.
+    Đọc 1 bản ghi bằng select=* rồi dò alias.
+    """
+
+    params = {
+        "select": "*",
+        "limit": "1",
+    }
+    if RESERVOIR_ID:
+        params["reservoir_id"] = f"eq.{RESERVOIR_ID}"
+
+    rows = supabase_get(TABLE_OBS, params)
+    if not rows:
+        raise RuntimeError("reservoir_hourly_data không có bản ghi để nhận diện schema")
+
+    columns = list(rows[0].keys())
+    lower_map = {str(c).lower(): c for c in columns}
+
+    time_aliases = [
+        "time",
+        "datetime",
+        "timestamp",
+        "date_time",
+        "observed_at",
+        "measurement_time",
+        "recorded_at",
+        "data_time",
+    ]
+
+    q_aliases = [
+        "inflow",
+        "q_ve",
+        "qve",
+        "qin",
+        "q_in",
+        "flow",
+        "q",
+        "flow_in",
+        "inflow_cms",
+    ]
+
+    rain_aliases = [
+        "rain",
+        "rainfall",
+        "rainfallreal",
+        "rainfall_real",
+        "rain_mm",
+        "rain_hour",
+        "rain_1h",
+        "mua",
+        "mua_gio",
+        "rain_observed",
+        "rain_obs",
+    ]
+
+    def pick(alias_list):
+        for alias in alias_list:
+            if alias.lower() in lower_map:
+                return lower_map[alias.lower()]
+        return None
+
+    time_col = pick(time_aliases)
+    q_col = pick(q_aliases)
+    rain_col = pick(rain_aliases)
+
+    print("reservoir_hourly_data columns:", columns)
+    print("Detected time column:", time_col)
+    print("Detected Q column   :", q_col)
+    print("Detected rain column:", rain_col)
+
+    if not time_col or not q_col or not rain_col:
+        raise RuntimeError(
+            "Không tự nhận diện đủ time/Q/rain trong reservoir_hourly_data. "
+            f"Columns hiện có: {columns}"
+        )
+
+    return str(time_col), str(q_col), str(rain_col)
+
+def get_latest_observed_time() -> pd.Timestamp:
+    time_col, _, _ = detect_obs_columns()
+    params = {
+        "select": time_col,
+        "order": f"{time_col}.desc",
+        "limit": "1",
+    }
+    if RESERVOIR_ID:
+        params["reservoir_id"] = f"eq.{RESERVOIR_ID}"
+
+    rows = supabase_get(TABLE_OBS, params)
+    if not rows:
+        raise RuntimeError("Không có dữ liệu quan trắc để xác định issue_time")
+
+    ts = pd.to_datetime(rows[0][time_col], utc=True, errors="coerce")
+    if pd.isna(ts):
+        raise RuntimeError(f"Không parse được latest observed time: {rows[0].get(time_col)}")
+
+    return pd.Timestamp(ts)
+
+
+def get_observed_history(issue_time: pd.Timestamp, lookback_hours: int) -> pd.DataFrame:
+    time_col,q_col,rain_col = detect_obs_columns()
+    start = issue_time - pd.Timedelta(hours=lookback_hours+12)
+    params={
+        "select":f"{time_col},{q_col},{rain_col}",
+        time_col:f"gte.{iso_utc(start)}",
+        "order":f"{time_col}.asc",
+        "limit":str(lookback_hours+60),
+    }
+    if RESERVOIR_ID:
+        params["reservoir_id"]=f"eq.{RESERVOIR_ID}"
+    rows=supabase_get(TABLE_OBS, params)
+    if not rows:
+        raise RuntimeError("Không có quan trắc lookback")
+    df=pd.DataFrame(rows)
+    df["datetime"]=pd.to_datetime(df[time_col], utc=True, errors="coerce")
+    df["flow"]=pd.to_numeric(df[q_col], errors="coerce")
+    df["rain"]=pd.to_numeric(df[rain_col], errors="coerce")
+    df=(df.dropna(subset=["datetime"]).sort_values("datetime").drop_duplicates("datetime", keep="last").set_index("datetime"))
+    df=df[df.index<=issue_time].copy()
+    if df.empty:
+        raise RuntimeError("Không có quan trắc <= issue candidate")
+    issue_time=df.index.max()
+    expected=pd.date_range(end=issue_time, periods=lookback_hours, freq="h", tz="UTC")
+    df=df.reindex(expected)
+    df["flow"]=df["flow"].interpolate(method="time", limit=3, limit_area="inside")
+    df["rain"]=df["rain"].interpolate(method="time", limit=3, limit_area="inside")
+    if df[["flow","rain"]].isna().any().any():
+        raise RuntimeError(f"Lookback thiếu: flow={int(df.flow.isna().sum())}, rain={int(df.rain.isna().sum())}")
+    df["flow"]=df["flow"].clip(lower=0)
+    df["rain"]=df["rain"].clip(lower=0)
+    df["flow_diff_1h"]=df["flow"].diff().fillna(0.0)
+    df["flow_mean_6h"]=df["flow"].rolling(6,min_periods=1).mean()
+    df["flow_mean_24h"]=df["flow"].rolling(24,min_periods=1).mean()
+    df["rain_sum_6h"]=df["rain"].rolling(6,min_periods=1).sum()
+    df["rain_sum_24h"]=df["rain"].rolling(24,min_periods=1).sum()
+    hour=df.index.hour.to_numpy(float)
+    doy=df.index.dayofyear.to_numpy(float)
+    df["hour_sin"]=np.sin(2*np.pi*hour/24)
+    df["hour_cos"]=np.cos(2*np.pi*hour/24)
+    df["doy_sin"]=np.sin(2*np.pi*doy/365.25)
+    df["doy_cos"]=np.cos(2*np.pi*doy/365.25)
+    return df
+
+def align_rain_to_issue(rows: List[Dict[str,Any]], issue_time: pd.Timestamp) -> pd.DataFrame:
+    df=pd.DataFrame(rows)
+    df["forecast_time"]=pd.to_datetime(df["forecast_time"], utc=True, errors="coerce")
+    df=(df.dropna(subset=["forecast_time"]).sort_values("forecast_time").drop_duplicates("forecast_time",keep="last").set_index("forecast_time"))
+    expected=pd.date_range(start=issue_time+pd.Timedelta(hours=1), periods=LSTM_MAX_LEAD, freq="h", tz="UTC")
+    return df.reindex(expected)
+
+def build_future_tensor(index: pd.DatetimeIndex, rain_values: np.ndarray) -> np.ndarray:
+    rain=np.asarray(rain_values,dtype=float)
+    if len(rain)!=LSTM_MAX_LEAD or np.isnan(rain).any():
+        raise ValueError("future rain H001-H120 không đầy đủ")
+    rain=np.clip(rain,0,None)
+    lead=np.arange(1,LSTM_MAX_LEAD+1,dtype=float)
+    hour=index.hour.to_numpy(float)
+    doy=index.dayofyear.to_numpy(float)
+    return np.column_stack([
+        rain,np.cumsum(rain),lead/LSTM_MAX_LEAD,
+        np.sin(2*np.pi*hour/24),np.cos(2*np.pi*hour/24),
+        np.sin(2*np.pi*doy/365.25),np.cos(2*np.pi*doy/365.25),
+    ]).astype(np.float32)
+
+def predict_scenario(a:Artifacts, xpast:np.ndarray, future_index:pd.DatetimeIndex, rain:np.ndarray)->np.ndarray:
+    fraw=build_future_tensor(future_index,rain)
+    fscaled=a.future_scaler.transform(fraw).astype(np.float32)[None,:,:]
+    pred=a.model.predict({"past_sequence":xpast,"future_rain_sequence":fscaled},verbose=0)
+    q=a.target_scaler.inverse_transform(pred[0,:LSTM_MAX_LEAD,0].reshape(-1,1)).reshape(-1)
+    return np.maximum(q,0.0)
+
+def build_output(issue_time, rain_run, q_now, preds):
+    times=pd.date_range(start=issue_time+pd.Timedelta(hours=1), periods=LSTM_MAX_LEAD, freq="h", tz="UTC")
+    names=list(preds.keys())
+    scenario_rows=[]
+    ensemble_rows=[]
+    for lead in range(1,LSTM_MAX_LEAD+1):
+        ft=times[lead-1]
+        vals=np.array([preds[n][lead-1] for n in names],dtype=float)
+        for n in names:
+            scenario_rows.append({
+                "issue_time":iso_utc(issue_time),"forecast_time":iso_utc(ft),"lead_hour":lead,
+                "basin_id":BASIN_ID,"source":LSTM_SOURCE,"model_version":LSTM_MODEL_VERSION,
+                "rain_scenario":n,"rainfall_run_time":iso_utc(rain_run),"q_now":finite_or_none(q_now),
+                "q_forecast":finite_or_none(preds[n][lead-1]),"scenario_count":len(names),"status":"SHADOW",
+                "created_at":iso_utc(utcnow()),
+            })
+        ensemble_rows.append({
+            "issue_time":iso_utc(issue_time),"forecast_time":iso_utc(ft),"lead_hour":lead,
+            "basin_id":BASIN_ID,"source":LSTM_SOURCE,"model_version":LSTM_MODEL_VERSION,
+            "rainfall_run_time":iso_utc(rain_run),"q_now":finite_or_none(q_now),
+            "q_mean":finite_or_none(vals.mean()),"q_median":finite_or_none(np.median(vals)),
+            "q_p10":finite_or_none(np.quantile(vals,.10)),"q_p25":finite_or_none(np.quantile(vals,.25)),
+            "q_p50":finite_or_none(np.quantile(vals,.50)),"q_p75":finite_or_none(np.quantile(vals,.75)),
+            "q_p90":finite_or_none(np.quantile(vals,.90)),"q_min":finite_or_none(vals.min()),
+            "q_max":finite_or_none(vals.max()),"q_std":finite_or_none(vals.std(ddof=0)),
+            "scenario_count":len(names),"status":"SHADOW","created_at":iso_utc(utcnow()),
+        })
+    return scenario_rows,ensemble_rows
+
+def write_log(started,status,issue,rain_run,q_now,scenario_rows,ensemble_rows,message):
+    row={
+        "started_at":iso_utc(started),"finished_at":iso_utc(utcnow()),"basin_id":BASIN_ID,
+        "source":LSTM_SOURCE,"model_version":LSTM_MODEL_VERSION,
+        "issue_time":iso_utc(issue) if issue is not None else None,
+        "rainfall_run_time":iso_utc(rain_run) if rain_run is not None else None,
+        "q_now":finite_or_none(q_now),"scenario_rows":scenario_rows,"ensemble_rows":ensemble_rows,
+        "status":status,"message":message[:4000],"created_at":iso_utc(utcnow()),
+    }
+    try:
+        supabase_insert(TABLE_LOG,[row])
+    except Exception as e:
+        print("WARNING log:",e)
+
+def main():
+    started=utcnow()
+    issue=rain_run=None
+    q_now=None
+    print("="*78)
+    print("A VUONG LSTM H120 LIVE - SHADOW")
+    print("="*78)
+    try:
+        a=load_artifacts()
+        print("Model/scaler: OK")
+        rain_run,rain_rows=get_latest_rain_run()
+        age=(utcnow()-rain_run.to_pydatetime()).total_seconds()/3600
+        if age>MAX_RAIN_RUN_AGE_HOURS:
+            raise RuntimeError(f"Rain run stale: {age:.2f}h")
+
+        # Issue time bám theo giờ Q quan trắc mới nhất,
+        # không khóa theo rainfall run.
+        latest_obs = get_latest_observed_time()
+        past = get_observed_history(latest_obs, a.lookback_hours)
+        issue = past.index.max()
+        q_now = float(past["flow"].iloc[-1])
+
+        print("Latest observed:", latest_obs)
+        print("Issue selected :", issue)
+        print("Rain run       :", rain_run)
+
+        # Rain run chỉ cần còn phủ đủ H001-H120 tính từ issue_time.
+        aligned=align_rain_to_issue(rain_rows,issue)
+        for n,col in RAIN_COLUMNS.items():
+            miss=int(pd.to_numeric(aligned[col],errors="coerce").isna().sum())
+            if miss:
+                raise RuntimeError(f"{n} thiếu {miss} giờ trong H001-H120")
+        xpast=a.past_scaler.transform(past[PAST_FEATURES].to_numpy(dtype=float)).astype(np.float32)[None,:,:]
+        preds={}
+        for n,col in RAIN_COLUMNS.items():
+            rain=pd.to_numeric(aligned[col],errors="coerce").to_numpy(dtype=float)
+            preds[n]=predict_scenario(a,xpast,aligned.index,rain)
+            print(f"{n:12s} H001={preds[n][0]:.2f} H024={preds[n][23]:.2f} H072={preds[n][71]:.2f} H120={preds[n][119]:.2f}")
+
+        omb = get_latest_openmeteo_best(issue)
+        omb_rain = pd.to_numeric(omb["rain_openmeteo_best"], errors="coerce").to_numpy(dtype=float)
+        preds["OPENMETEO_BEST"] = predict_scenario(a, xpast, omb.index, omb_rain)
+        print(
+            f"{'OPENMETEO_BEST':12s} "
+            f"H001={preds['OPENMETEO_BEST'][0]:.2f} "
+            f"H024={preds['OPENMETEO_BEST'][23]:.2f} "
+            f"H072={preds['OPENMETEO_BEST'][71]:.2f} "
+            f"H120={preds['OPENMETEO_BEST'][119]:.2f}"
+        )
+
+        srows,erows=build_output(issue,rain_run,q_now,preds)
+        supabase_insert(TABLE_SCENARIO,srows,"issue_time,forecast_time,source,rain_scenario")
+        supabase_insert(TABLE_ENSEMBLE,erows,"issue_time,forecast_time,source")
+        write_log(started,"OK",issue,rain_run,q_now,len(srows),len(erows),"LSTM shadow forecast completed")
+        print("="*78)
+        print("STATUS: OK")
+        print("Issue time    :",issue)
+        print("Rain run      :",rain_run)
+        print("Q now         :",q_now)
+        print("Scenario rows :",len(srows))
+        print("Ensemble rows :",len(erows))
+        print("="*78)
+    except Exception as e:
+        write_log(started,"ERROR",issue,rain_run,q_now,0,0,f"{type(e).__name__}: {e}")
+        traceback.print_exc()
+        raise
+
+if __name__=="__main__":
+    main()
