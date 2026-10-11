@@ -1,4 +1,4 @@
-name: A Vuong Rainfall + RF Forecast + Long H120 + LSTM Shadow
+name: A Vuong Rainfall + RF Forecast + Long H120 + LSTM 7 Scenario
 
 on:
   workflow_dispatch:
@@ -10,9 +10,8 @@ on:
         type: boolean
 
   # GitHub cron uses UTC.
-  # Run every hour at minute 05.
-  # At minute 10, retry once only when a newer observed Q hour is available
-  # than the latest Long-H120 issue_time.
+  # HH:05 = run chính.
+  # HH:10 = retry 1 lần nếu đến phút 10 mới có Q quan trắc giờ mới.
   schedule:
     - cron: "5 * * * *"
     - cron: "10 * * * *"
@@ -21,13 +20,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: avuong-rainfall-rf-long-production
+  group: avuong-rainfall-rf-long-lstm-openmeteo7-production
   cancel-in-progress: false
 
 jobs:
   collect-rainfall-and-predict-inflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -39,17 +38,27 @@ jobs:
       FORECAST_DAYS: "10"
       BASIN_ID: "AVUONG"
 
+      # ==========================================================
+      # RF V1
+      # ==========================================================
       RF_MODEL_DIR: "models/rf_v1"
       RF_SOURCE: "rf_v1"
       RF_MODEL_VERSION: "RF_V1_PERFECT_RAIN"
       RF_RELEASE_TAG: "rf-v1"
 
+      # ==========================================================
+      # LONG H120 - HGB
+      # ==========================================================
       LONG_MODEL_DIR: "models/long_h120"
       LONG_SOURCE: "long_h120"
       LONG_MODEL_VERSION: "LONG_H120_V1_PERFECT_RAIN"
       LONG_MAX_LEAD: "120"
 
+      # ==========================================================
       # LSTM H120 - SHADOW
+      # 7 kịch bản:
+      # ECMWF / GFS / ICON / AIFS / CMA / JMA / OPENMETEO_BEST
+      # ==========================================================
       LSTM_MODEL_DIR: "models/lstm_h120_v1"
       LSTM_SOURCE: "lstm_h120_v1"
       LSTM_MODEL_VERSION: "LSTM_H120_V1_PERFECT_RAIN"
@@ -59,9 +68,15 @@ jobs:
       MAX_RAIN_RUN_AGE_HOURS: "12"
 
     steps:
+      # ==========================================================
+      # 1. CHECKOUT
+      # ==========================================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ==========================================================
+      # 2. PYTHON
+      # ==========================================================
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -73,20 +88,29 @@ jobs:
             scripts/requirements_long_live.txt
             scripts/requirements_lstm_live.txt
 
+      # ==========================================================
+      # 3. INSTALL
+      # ==========================================================
       - name: Install Python dependencies
         shell: bash
         run: |
           set -euo pipefail
 
           python -m pip install --upgrade pip
+
           pip install -r scripts/requirements.txt
           pip install -r scripts/requirements_rf_live.txt
           pip install -r scripts/requirements_long_live.txt
           pip install -r scripts/requirements_lstm_live.txt
 
+      # ==========================================================
+      # 4. RUNTIME
+      # ==========================================================
       - name: Print Python ML runtime
         shell: bash
         run: |
+          set -euo pipefail
+
           python - <<'PY'
           import sys
           import numpy
@@ -104,6 +128,9 @@ jobs:
           print("GPU          :", tf.config.list_physical_devices("GPU"))
           PY
 
+      # ==========================================================
+      # 5. SECRETS
+      # ==========================================================
       - name: Validate required secrets
         shell: bash
         run: |
@@ -121,28 +148,35 @@ jobs:
 
           echo "Supabase secrets are available."
 
-      # ----------------------------------------------------------
-      # HH:05
-      # Always refresh rainfall once per hour.
-      # Manual runs also refresh rainfall.
-      # ----------------------------------------------------------
-      - name: Collect rainfall at minute 05
+      # ==========================================================
+      # 6. HH:05 / MANUAL - REFRESH RAINFALL
+      # ==========================================================
+      # Collector 1:
+      # 6 NWP riêng biệt qua Open-Meteo:
+      # ECMWF/GFS/ICON/AIFS/CMA/JMA
+      - name: Collect 6-model rainfall at minute 05
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
         shell: bash
         run: |
           set -euo pipefail
-          echo "Collecting A Vuong multi-model rainfall forecast..."
+          echo "Collecting 6-model A Vuong rainfall forecast..."
           python scripts/avuong_multimodel_collector.py
 
-      # ----------------------------------------------------------
-      # Gate:
-      # Forecast only when the newest observed hour is newer than
-      # the latest Long-H120 issue_time.
-      #
-      # This is intentionally NOT based on the wall-clock hour.
-      # It avoids creating a forecast for an hour whose observed Q
-      # has not arrived yet.
-      # ----------------------------------------------------------
+      # Collector 2:
+      # Open-Meteo default / Best Match, 7 điểm AV01-AV07 -> basin hourly H001-H120.
+      - name: Collect Open-Meteo Best Match at minute 05
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Collecting Open-Meteo Best Match rainfall..."
+          python scripts/avuong_openmeteo_best_collector.py
+
+      # ==========================================================
+      # 7. FORECAST GATE
+      # ==========================================================
+      # Chỉ forecast khi Q quan trắc giờ mới đã xuất hiện.
+      # Không forecast theo giờ đồng hồ nếu Q thực đo chưa tới.
       - name: Check for a new observed hour
         id: forecast-gate
         shell: bash
@@ -163,7 +197,7 @@ jobs:
 
           sb = create_client(url, key)
 
-          # Latest observed operation row.
+          # Latest observed reservoir row.
           q = (
               sb.table("reservoir_hourly_data")
               .select("time,reservoir_id")
@@ -192,7 +226,9 @@ jobs:
           def parse_dt(v):
               if not v:
                   return None
-              return datetime.fromisoformat(str(v).replace("Z", "+00:00")).astimezone(timezone.utc)
+              return datetime.fromisoformat(
+                  str(v).replace("Z", "+00:00")
+              ).astimezone(timezone.utc)
 
           obs_dt = parse_dt(latest_obs)
           issue_dt = parse_dt(latest_issue)
@@ -211,7 +247,10 @@ jobs:
               reason = "new observed hour is available"
           else:
               need_predict = False
-              reason = "latest observed hour has not advanced beyond latest Long-H120 issue_time"
+              reason = (
+                  "latest observed hour has not advanced "
+                  "beyond latest Long-H120 issue_time"
+              )
 
           print("Latest observed time :", latest_obs)
           print("Latest Long issue    :", latest_issue)
@@ -220,32 +259,38 @@ jobs:
 
           output = os.environ["GITHUB_OUTPUT"]
           with open(output, "a", encoding="utf-8") as f:
-              f.write(f"need_predict={'true' if need_predict else 'false'}\n")
+              f.write(
+                  f"need_predict={'true' if need_predict else 'false'}\n"
+              )
               f.write(f"latest_obs={latest_obs or ''}\n")
               f.write(f"latest_issue={latest_issue or ''}\n")
               f.write(f"reason={reason}\n")
           PY
 
-      # ----------------------------------------------------------
-      # HH:10 retry:
-      # If the :05 run found no new observed hour, the :10 scheduled
-      # workflow checks again. When the new Q hour has arrived,
-      # refresh rainfall once more before prediction.
-      # ----------------------------------------------------------
-      - name: Refresh rainfall on minute-10 retry
+      # ==========================================================
+      # 8. HH:10 RETRY
+      # ==========================================================
+      # Nếu Q giờ mới chỉ tới sau phút 05, phút 10 sẽ check lại.
+      # Nếu cần forecast, refresh CẢ 2 nguồn mưa trước khi chạy model.
+      - name: Refresh 6-model rainfall on minute-10 retry
         if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          echo "New observed hour arrived by minute 10."
-          echo "Refreshing rainfall before retry prediction..."
+          echo "Minute-10 retry: refreshing 6-model rainfall..."
           python scripts/avuong_multimodel_collector.py
 
-      # ----------------------------------------------------------
-      # Model preparation only when a prediction is actually needed.
-      # This avoids downloading/loading the large RF artifacts on a
-      # :10 retry where no new observed hour has arrived.
-      # ----------------------------------------------------------
+      - name: Refresh Open-Meteo Best Match on minute-10 retry
+        if: github.event.schedule == '10 * * * *' && steps.forecast-gate.outputs.need_predict == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Minute-10 retry: refreshing Open-Meteo Best Match..."
+          python scripts/avuong_openmeteo_best_collector.py
+
+      # ==========================================================
+      # 9. MODEL PREPARATION
+      # ==========================================================
       - name: Validate RF V1 metadata files
         if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
@@ -294,21 +339,24 @@ jobs:
 
           ls -lh models/rf_v1/*.joblib
 
-      - name: Validate model artifacts
+      - name: Validate all model artifacts
         if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
 
+          # RF V1
           test -s models/rf_v1/rf_h01.joblib
           test -s models/rf_v1/rf_h03.joblib
           test -s models/rf_v1/rf_h06.joblib
           test -s models/rf_v1/rf_h12.joblib
           test -s models/rf_v1/rf_h24.joblib
 
+          # HGB Long-H120
           test -s models/long_h120/long_h120.joblib
           test -f models/long_h120/long_h120_meta.json
 
+          # LSTM H120
           test -s models/lstm_h120_v1/lstm_h120.keras
           test -s models/lstm_h120_v1/lstm_h120_scalers.joblib
 
@@ -343,7 +391,10 @@ jobs:
           model_path = "models/lstm_h120_v1/lstm_h120.keras"
           scaler_path = "models/lstm_h120_v1/lstm_h120_scalers.joblib"
 
-          model = tf.keras.models.load_model(model_path, compile=False)
+          model = tf.keras.models.load_model(
+              model_path,
+              compile=False
+          )
           scalers = joblib.load(scaler_path)
 
           print("LSTM H120 loaded successfully.")
@@ -354,6 +405,9 @@ jobs:
           print("Horizon     :", scalers.get("horizon_hours"))
           PY
 
+      # ==========================================================
+      # 10. FORECASTS
+      # ==========================================================
       - name: Run RF V1 inflow predictor
         if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
@@ -368,13 +422,16 @@ jobs:
           set -euo pipefail
           python scripts/rf_predict_long_h120.py
 
-      - name: Run LSTM H120 shadow predictor
+      - name: Run LSTM H120 seven-scenario shadow predictor
         if: steps.forecast-gate.outputs.need_predict == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python scripts/lstm_predict_live.py
 
+      # ==========================================================
+      # 11. SKIP NOTICE
+      # ==========================================================
       - name: No new observed hour - prediction skipped
         if: steps.forecast-gate.outputs.need_predict != 'true'
         shell: bash
@@ -387,24 +444,32 @@ jobs:
           echo "At minute 05: the minute-10 schedule will check once more."
           echo "At minute 10: no further retry is made until next hour."
 
+      # ==========================================================
+      # 12. SUMMARY
+      # ==========================================================
       - name: Workflow summary
         if: always()
         shell: bash
         run: |
           echo ""
-          echo "===================================================="
-          echo "A VUONG RAINFALL + RF + LONG-H120 + LSTM SHADOW"
-          echo "===================================================="
+          echo "=============================================================="
+          echo "A VUONG RAINFALL + RF + LONG-H120 + LSTM 7 SCENARIO"
+          echo "=============================================================="
           echo "Event              : ${{ github.event_name }}"
           echo "Schedule           : ${{ github.event.schedule }}"
           echo "Latest observed    : ${{ steps.forecast-gate.outputs.latest_obs }}"
           echo "Latest Long issue  : ${{ steps.forecast-gate.outputs.latest_issue }}"
           echo "Need prediction    : ${{ steps.forecast-gate.outputs.need_predict }}"
           echo "Gate reason        : ${{ steps.forecast-gate.outputs.reason }}"
-          echo "Rainfall           : 6 NWP models x 7 basin points"
+          echo ""
+          echo "Rainfall source 1  : 6 explicit NWP x 7 basin points"
+          echo "                    ECMWF / GFS / ICON / AIFS / CMA / JMA"
+          echo "Rainfall source 2  : Open-Meteo Best Match x 7 basin points"
+          echo ""
           echo "RF V1              : H01/H03/H06/H12/H24"
-          echo "Long               : H01-H120 hourly"
-          echo "LSTM shadow        : H01-H120 hourly"
-          echo "Scenario           : ECMWF/GFS/ICON/AIFS/CMA/JMA"
-          echo "Ensemble           : Mean / P50 / P10 / P90 / Min / Max"
-          echo "===================================================="
+          echo "Long H120          : H01-H120 hourly, 6 NWP scenarios"
+          echo "LSTM shadow        : H01-H120 hourly, 7 rainfall scenarios"
+          echo "LSTM scenarios     : ECMWF/GFS/ICON/AIFS/CMA/JMA/OPENMETEO_BEST"
+          echo "LSTM ensemble      : Mean/P50/P10/P90/P25/P75/Min/Max"
+          echo "Expected LSTM rows : 840 scenario + 120 ensemble"
+          echo "=============================================================="
