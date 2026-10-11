@@ -35,6 +35,7 @@ SCALER_PATH = LSTM_MODEL_DIR / "lstm_h120_scalers.joblib"
 
 TABLE_OBS = "reservoir_hourly_data"
 TABLE_RAIN = "rainfall_basin_hourly"
+TABLE_RAIN_OMB = "rainfall_openmeteo_best_hourly"
 TABLE_SCENARIO = "inflow_forecast_lstm_scenario"
 TABLE_ENSEMBLE = "inflow_forecast_lstm_ensemble"
 TABLE_LOG = "lstm_forecast_run_log"
@@ -158,6 +159,48 @@ def get_latest_rain_run() -> Tuple[pd.Timestamp, List[Dict[str, Any]]]:
         })
         selected=[r for r in selected if int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
     return latest, selected
+
+
+def get_latest_openmeteo_best(issue_time: pd.Timestamp) -> pd.DataFrame:
+    rows = supabase_get(
+        TABLE_RAIN_OMB,
+        {
+            "select": "forecast_time,run_time,lead_hour,rain_openmeteo_best,point_count,quality",
+            "basin_id": f"eq.{BASIN_ID}",
+            "order": "run_time.desc,lead_hour.asc",
+            "limit": "500",
+        },
+    )
+    if not rows:
+        raise RuntimeError("Không có rainfall_openmeteo_best_hourly")
+
+    runs = sorted({parse_ts(r["run_time"]) for r in rows}, reverse=True)
+    chosen_run = None
+    chosen = None
+
+    for rt in runs:
+        subset = [r for r in rows if parse_ts(r["run_time"]) == rt]
+        df = pd.DataFrame(subset)
+        df["forecast_time"] = pd.to_datetime(df["forecast_time"], utc=True, errors="coerce")
+        df = df.dropna(subset=["forecast_time"]).sort_values("forecast_time").set_index("forecast_time")
+        expected = pd.date_range(
+            start=issue_time + pd.Timedelta(hours=1),
+            periods=LSTM_MAX_LEAD,
+            freq="h",
+            tz="UTC",
+        )
+        aligned = df.reindex(expected)
+        vals = pd.to_numeric(aligned["rain_openmeteo_best"], errors="coerce")
+        if vals.notna().all():
+            chosen_run = rt
+            chosen = aligned
+            break
+
+    if chosen is None:
+        raise RuntimeError("Không tìm thấy OpenMeteo Best run phủ đủ H001-H120 theo issue_time")
+
+    print(f"OpenMeteo Best run : {chosen_run}")
+    return chosen
 
 def detect_obs_columns() -> Tuple[str, str, str]:
     """
@@ -315,7 +358,7 @@ def predict_scenario(a:Artifacts, xpast:np.ndarray, future_index:pd.DatetimeInde
 
 def build_output(issue_time, rain_run, q_now, preds):
     times=pd.date_range(start=issue_time+pd.Timedelta(hours=1), periods=LSTM_MAX_LEAD, freq="h", tz="UTC")
-    names=list(RAIN_COLUMNS.keys())
+    names=list(preds.keys())
     scenario_rows=[]
     ensemble_rows=[]
     for lead in range(1,LSTM_MAX_LEAD+1):
@@ -326,7 +369,7 @@ def build_output(issue_time, rain_run, q_now, preds):
                 "issue_time":iso_utc(issue_time),"forecast_time":iso_utc(ft),"lead_hour":lead,
                 "basin_id":BASIN_ID,"source":LSTM_SOURCE,"model_version":LSTM_MODEL_VERSION,
                 "rain_scenario":n,"rainfall_run_time":iso_utc(rain_run),"q_now":finite_or_none(q_now),
-                "q_forecast":finite_or_none(preds[n][lead-1]),"scenario_count":6,"status":"SHADOW",
+                "q_forecast":finite_or_none(preds[n][lead-1]),"scenario_count":len(names),"status":"SHADOW",
                 "created_at":iso_utc(utcnow()),
             })
         ensemble_rows.append({
@@ -338,7 +381,7 @@ def build_output(issue_time, rain_run, q_now, preds):
             "q_p50":finite_or_none(np.quantile(vals,.50)),"q_p75":finite_or_none(np.quantile(vals,.75)),
             "q_p90":finite_or_none(np.quantile(vals,.90)),"q_min":finite_or_none(vals.min()),
             "q_max":finite_or_none(vals.max()),"q_std":finite_or_none(vals.std(ddof=0)),
-            "scenario_count":6,"status":"SHADOW","created_at":iso_utc(utcnow()),
+            "scenario_count":len(names),"status":"SHADOW","created_at":iso_utc(utcnow()),
         })
     return scenario_rows,ensemble_rows
 
@@ -384,6 +427,18 @@ def main():
             rain=pd.to_numeric(aligned[col],errors="coerce").to_numpy(dtype=float)
             preds[n]=predict_scenario(a,xpast,aligned.index,rain)
             print(f"{n:12s} H001={preds[n][0]:.2f} H024={preds[n][23]:.2f} H072={preds[n][71]:.2f} H120={preds[n][119]:.2f}")
+
+        omb = get_latest_openmeteo_best(issue)
+        omb_rain = pd.to_numeric(omb["rain_openmeteo_best"], errors="coerce").to_numpy(dtype=float)
+        preds["OPENMETEO_BEST"] = predict_scenario(a, xpast, omb.index, omb_rain)
+        print(
+            f"{'OPENMETEO_BEST':12s} "
+            f"H001={preds['OPENMETEO_BEST'][0]:.2f} "
+            f"H024={preds['OPENMETEO_BEST'][23]:.2f} "
+            f"H072={preds['OPENMETEO_BEST'][71]:.2f} "
+            f"H120={preds['OPENMETEO_BEST'][119]:.2f}"
+        )
+
         srows,erows=build_output(issue,rain_run,q_now,preds)
         supabase_insert(TABLE_SCENARIO,srows,"issue_time,forecast_time,source,rain_scenario")
         supabase_insert(TABLE_ENSEMBLE,erows,"issue_time,forecast_time,source")
