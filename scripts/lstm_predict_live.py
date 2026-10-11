@@ -284,6 +284,27 @@ def detect_obs_columns() -> Tuple[str, str, str]:
 
     return str(time_col), str(q_col), str(rain_col)
 
+def get_latest_observed_time() -> pd.Timestamp:
+    time_col, _, _ = detect_obs_columns()
+    params = {
+        "select": time_col,
+        "order": f"{time_col}.desc",
+        "limit": "1",
+    }
+    if RESERVOIR_ID:
+        params["reservoir_id"] = f"eq.{RESERVOIR_ID}"
+
+    rows = supabase_get(TABLE_OBS, params)
+    if not rows:
+        raise RuntimeError("Không có dữ liệu quan trắc để xác định issue_time")
+
+    ts = pd.to_datetime(rows[0][time_col], utc=True, errors="coerce")
+    if pd.isna(ts):
+        raise RuntimeError(f"Không parse được latest observed time: {rows[0].get(time_col)}")
+
+    return pd.Timestamp(ts)
+
+
 def get_observed_history(issue_time: pd.Timestamp, lookback_hours: int) -> pd.DataFrame:
     time_col,q_col,rain_col = detect_obs_columns()
     start = issue_time - pd.Timedelta(hours=lookback_hours+12)
@@ -413,9 +434,19 @@ def main():
         age=(utcnow()-rain_run.to_pydatetime()).total_seconds()/3600
         if age>MAX_RAIN_RUN_AGE_HOURS:
             raise RuntimeError(f"Rain run stale: {age:.2f}h")
-        past=get_observed_history(rain_run,a.lookback_hours)
-        issue=past.index.max()
-        q_now=float(past["flow"].iloc[-1])
+
+        # Issue time bám theo giờ Q quan trắc mới nhất,
+        # không khóa theo rainfall run.
+        latest_obs = get_latest_observed_time()
+        past = get_observed_history(latest_obs, a.lookback_hours)
+        issue = past.index.max()
+        q_now = float(past["flow"].iloc[-1])
+
+        print("Latest observed:", latest_obs)
+        print("Issue selected :", issue)
+        print("Rain run       :", rain_run)
+
+        # Rain run chỉ cần còn phủ đủ H001-H120 tính từ issue_time.
         aligned=align_rain_to_issue(rain_rows,issue)
         for n,col in RAIN_COLUMNS.items():
             miss=int(pd.to_numeric(aligned[col],errors="coerce").isna().sum())
