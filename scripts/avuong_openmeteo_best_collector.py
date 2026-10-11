@@ -76,7 +76,7 @@ def main() -> None:
             "hourly": "precipitation",
             "timezone": "UTC",
             # Request one extra hour because current-hour value may be included.
-            "forecast_hours": 121,
+            "forecast_hours": 169,
         }
 
         r = requests.get(OPEN_METEO_URL, params=params, timeout=45)
@@ -89,10 +89,10 @@ def main() -> None:
         df = pd.DataFrame({"forecast_time": times, "precipitation_mm": rain})
         df = df[df["forecast_time"] > run_time].copy()
         df["lead_hour"] = ((df["forecast_time"] - run_time) / pd.Timedelta(hours=1)).astype(int)
-        df = df[(df["lead_hour"] >= 1) & (df["lead_hour"] <= 120)].copy()
+        df = df[(df["lead_hour"] >= 1) & (df["lead_hour"] <= 168)].copy()
 
-        if len(df) < 120:
-            raise RuntimeError(f"{point_id}: only {len(df)} future hourly values, expected 120")
+        if len(df) < 168:
+            raise RuntimeError(f"{point_id}: only {len(df)} future hourly values, expected 168")
 
         for row in df.itertuples(index=False):
             point_rows.append({
@@ -111,8 +111,8 @@ def main() -> None:
         print(f"{point_id}: {len(df)} hours OK")
 
     raw = pd.DataFrame(point_rows)
-    if len(raw) != 7 * 120:
-        raise RuntimeError(f"Point row count {len(raw)} != 840")
+    if len(raw) != 7 * 168:
+        raise RuntimeError(f"Point row count {len(raw)} != 1176")
 
     good = raw.dropna(subset=["precipitation_mm"]).copy()
 
@@ -127,8 +127,8 @@ def main() -> None:
         )
     )
 
-    if len(agg) != 120:
-        raise RuntimeError(f"Basin row count {len(agg)} != 120")
+    if len(agg) != 168:
+        raise RuntimeError(f"Basin row count {len(agg)} != 168")
 
     if (agg["point_count"] < 7).any():
         bad = agg[agg["point_count"] < 7]
