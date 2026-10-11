@@ -27,6 +27,7 @@ LSTM_SOURCE = os.getenv("LSTM_SOURCE", "lstm_h120_v1")
 LSTM_MODEL_VERSION = os.getenv("LSTM_MODEL_VERSION", "LSTM_H120_V1_PERFECT_RAIN")
 LSTM_MODEL_DIR = Path(os.getenv("LSTM_MODEL_DIR", "models/lstm_h120_v1"))
 LSTM_MAX_LEAD = int(os.getenv("LSTM_MAX_LEAD", "120"))
+RAIN_BUFFER_MAX_LEAD = int(os.getenv("RAIN_BUFFER_MAX_LEAD", "168"))
 LSTM_LOOKBACK_HOURS = int(os.getenv("LSTM_LOOKBACK_HOURS", "168"))
 MAX_RAIN_RUN_AGE_HOURS = float(os.getenv("MAX_RAIN_RUN_AGE_HOURS", "12"))
 
@@ -146,18 +147,18 @@ def get_latest_rain_run() -> Tuple[pd.Timestamp, List[Dict[str, Any]]]:
     if not rows:
         raise RuntimeError("Không có rainfall_basin_hourly")
     latest = max(parse_ts(r["run_time"]) for r in rows)
-    selected = [r for r in rows if parse_ts(r["run_time"]) == latest and int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
+    selected = [r for r in rows if parse_ts(r["run_time"]) == latest and int(r.get("lead_hour") or 0) <= RAIN_BUFFER_MAX_LEAD]
     selected.sort(key=lambda r:int(r["lead_hour"]))
-    if len(selected) < LSTM_MAX_LEAD:
+    if len(selected) < RAIN_BUFFER_MAX_LEAD:
         selected = supabase_get(TABLE_RAIN, {
             "select":"forecast_time,run_time,basin_id,lead_hour,rain_ecmwf,rain_gfs,rain_icon,rain_aifs,rain_cma,rain_jma,rain_mean,model_count,quality",
             "basin_id":f"eq.{BASIN_ID}",
             "run_time":f"eq.{iso_utc(latest)}",
             "lead_hour":"gte.1",
             "order":"lead_hour.asc",
-            "limit":"300",
+            "limit":"400",
         })
-        selected=[r for r in selected if int(r.get("lead_hour") or 0) <= LSTM_MAX_LEAD]
+        selected=[r for r in selected if int(r.get("lead_hour") or 0) <= RAIN_BUFFER_MAX_LEAD]
     return latest, selected
 
 
@@ -447,6 +448,18 @@ def main():
         print("Rain run       :", rain_run)
 
         # Rain run chỉ cần còn phủ đủ H001-H120 tính từ issue_time.
+        # Giữ buffer tới 168h vì issue_time có thể mới hơn rain_run vài giờ.
+        rain_df_dbg = pd.DataFrame(rain_rows)
+        if not rain_df_dbg.empty:
+            rain_df_dbg["forecast_time"] = pd.to_datetime(
+                rain_df_dbg["forecast_time"], utc=True, errors="coerce"
+            )
+            print("Rain coverage  :", rain_df_dbg["forecast_time"].min(),
+                  "->", rain_df_dbg["forecast_time"].max())
+            print("Rain rows kept :", len(rain_df_dbg))
+            print("Need coverage  :", issue + pd.Timedelta(hours=1),
+                  "->", issue + pd.Timedelta(hours=LSTM_MAX_LEAD))
+
         aligned=align_rain_to_issue(rain_rows,issue)
         for n,col in RAIN_COLUMNS.items():
             miss=int(pd.to_numeric(aligned[col],errors="coerce").isna().sum())
