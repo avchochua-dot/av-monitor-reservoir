@@ -207,6 +207,8 @@ def detect_obs_columns() -> Tuple[str, str, str]:
     rain_aliases = [
         "rain",
         "rainfall",
+        "rainfallreal",
+        "rainfall_real",
         "rain_mm",
         "rain_hour",
         "rain_1h",
