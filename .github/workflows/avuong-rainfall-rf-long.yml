@@ -13,8 +13,8 @@ on:
   # HH:05 = run chính.
   # HH:10 = retry 1 lần nếu đến phút 10 mới có Q quan trắc giờ mới.
   schedule:
-    - cron: "5 * * * *"
-    - cron: "10 * * * *"
+    - cron: "7 * * * *"
+    - cron: "12 * * * *"
 
 permissions:
   contents: read
