@@ -1,0 +1,121 @@
+name: A Vuong CNN-LSTM V3 Shadow
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Optional note"
+        required: false
+        default: ""
+        type: string
+
+  schedule:
+    - cron: "15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-cnn-lstm-v3-shadow
+  cancel-in-progress: false
+
+jobs:
+  cnn-lstm-v3-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
+
+      BASIN_ID: "AVUONG"
+      CNN_LSTM_MODEL_DIR: "models/cnn_lstm_h120_v3"
+      CNN_LSTM_SOURCE: "cnn_lstm_h120_v3"
+      CNN_LSTM_MODEL_VERSION: "CNN_LSTM_H120_V3_SHORT_PEAK_AWARE"
+      CNN_LSTM_MAX_LEAD: "120"
+      CNN_LSTM_LOOKBACK_HOURS: "168"
+      MAX_RAIN_RUN_AGE_HOURS: "12"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements_lstm_live.txt
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements_lstm_live.txt
+
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_URL:-}" || (echo "Missing SUPABASE_URL" && exit 1)
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (echo "Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
+          echo "Supabase secrets OK."
+
+      - name: Validate CNN-LSTM V3 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras
+          test -s models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib
+          ls -lh models/cnn_lstm_h120_v3/
+
+      - name: Smoke test model and scaler bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import joblib
+          import tensorflow as tf
+
+          model_path="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
+          scaler_path="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
+
+          model=tf.keras.models.load_model(
+              model_path,
+              compile=False,
+              safe_mode=False
+          )
+          bundle=joblib.load(scaler_path)
+
+          print("Model       :", model.name)
+          print("Input shape :", model.input_shape)
+          print("Output shape:", model.output_shape)
+          print("Lookback    :", bundle.get("lookback"))
+          print("Horizon     :", bundle.get("horizon"))
+          print("Version     :", bundle.get("version"))
+          print("Alphas      :", bundle.get("short_blend_alphas"))
+
+          assert int(bundle["lookback"]) == 168
+          assert int(bundle["horizon"]) == 120
+          assert "short_blend_alphas" in bundle
+          PY
+
+      - name: Run CNN-LSTM V3 seven-scenario shadow predictor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cnn_lstm_predict_live.py
+
+      - name: Workflow summary
+        if: always()
+        shell: bash
+        run: |
+          echo "=============================================================="
+          echo "A VUONG CNN-LSTM V3 SHADOW"
+          echo "Event         : ${{ github.event_name }}"
+          echo "Schedule      : ${{ github.event.schedule }}"
+          echo "Expected rows : 840 scenario + 120 ensemble"
+          echo "Mode          : SHADOW ONLY"
+          echo "=============================================================="
