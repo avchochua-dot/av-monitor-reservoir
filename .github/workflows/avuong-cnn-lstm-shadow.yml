@@ -1,5 +1,4 @@
-name: A Vuong CNN-LSTM V3 Shadow
-
+name: A Vuong CNN-LSTM V3_1_NO_LAMBDA
 on:
   workflow_dispatch:
     inputs:
