@@ -1,0 +1,80 @@
+name: A Vuong Shadow Forecast Evaluator V5 Fair5
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Forecast production around :05/:10.
+    # CNN-LSTM V3.1 shadow around :15.
+    # Evaluate at :25.
+    - cron: "25 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-shadow-evaluator-v5
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BASIN_ID: "AVUONG"
+      SHADOW_OBS_LIMIT: "3000"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pandas requests
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_URL:-}" || (echo "ERROR: Missing SUPABASE_URL" && exit 1)
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
+          echo "Supabase secrets OK."
+
+      - name: Validate evaluator script
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s scripts/evaluate_forecast_shadow.py
+          ls -lh scripts/evaluate_forecast_shadow.py
+          python -m py_compile scripts/evaluate_forecast_shadow.py
+
+      - name: Run A Vuong five-model Fair5 shadow evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/evaluate_forecast_shadow.py
+
+      - name: Workflow summary
+        if: always()
+        shell: bash
+        run: |
+          echo "=============================================================="
+          echo "A VUONG SHADOW FORECAST EVALUATOR V5 / FAIR5"
+          echo "Event        : ${{ github.event_name }}"
+          echo "Schedule     : ${{ github.event.schedule }}"
+          echo "Basin        : ${BASIN_ID}"
+          echo "Models       : Persistence / RF / Long / LSTM / CNN-LSTM V3.1"
+          echo "Fair horizons: H01 H03 H06 H12 H24"
+          echo "Dashboard    : NOT modified"
+          echo "=============================================================="
