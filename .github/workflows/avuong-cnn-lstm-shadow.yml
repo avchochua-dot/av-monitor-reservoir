@@ -38,8 +38,18 @@ jobs:
       MAX_RAIN_RUN_AGE_HOURS: "12"
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository with Git LFS
         uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: Pull Git LFS model artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install
+          git lfs pull
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
@@ -67,9 +77,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras
-          test -s models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib
+
+          MODEL="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
+          SCALER="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
+
+          test -s "$MODEL"
+          test -s "$SCALER"
+
+          echo "Artifact listing:"
           ls -lh models/cnn_lstm_h120_v3/
+
+          echo "Model file type:"
+          file "$MODEL" || true
+
+          echo "Checking whether .keras is a real zip archive..."
+          python - <<'PY'
+          import os, zipfile
+
+          model = "models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
+          scaler = "models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
+
+          print("model bytes :", os.path.getsize(model))
+          print("scaler bytes:", os.path.getsize(scaler))
+          print("keras zip?  :", zipfile.is_zipfile(model))
+
+          if not zipfile.is_zipfile(model):
+              with open(model, "rb") as f:
+                  head = f.read(200)
+              print("model head:", head)
+              raise SystemExit(
+                  "ERROR: cnn_lstm_h120_v3.keras is not a real Keras zip file. "
+                  "Most likely Git LFS pointer was checked out instead of the binary."
+              )
+          PY
 
       - name: Smoke test model and scaler bundle
         shell: bash
