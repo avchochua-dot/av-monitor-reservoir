@@ -2,6 +2,8 @@
 
 
 
+
+
 <!-- HEC-LITE V3.2 HISTORY+CURRENT FIX: preserve original chart layout; history from grid lead4 + current production cycle -->
 
 
@@ -496,8 +498,8 @@
        ========================= */
     #tab-chart .tabs{
       display: grid;
-      /* 14 nút => 2 hàng, mỗi hàng 7 nút */
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+      /* 15 nút => 2 hàng gọn trên màn hình desktop */
+      grid-template-columns: repeat(8, minmax(0, 1fr));
       gap: 6px;
       margin-bottom: 10px;
     }
@@ -7828,6 +7830,129 @@ aside.sidebar{
   }
 }
 
+
+/* AV-DAM cross-section integrated with existing light overview; scoped to avoid changing other tabs */
+.av-dam-card{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid rgba(93,127,211,.16);border-radius:24px;box-shadow:0 18px 46px rgba(15,23,42,.08),0 3px 10px rgba(37,99,235,.06);overflow:hidden;padding:18px 18px 14px;min-width:0;position:relative}
+.av-dam-card:before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,#2563eb,#38bdf8,#34d399,#f59e0b);opacity:.92}
+.av-dam-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap}
+.av-dam-kicker{font-size:11px;font-weight:900;letter-spacing:1px;color:#2563eb;text-transform:uppercase}
+.av-dam-header h3{font-size:18px;margin:3px 0 4px;color:#172033;letter-spacing:-.28px}
+.av-dam-header p{margin:0;color:#64748b;font-size:12px}
+.av-dam-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.av-dam-status{font-size:11px;font-weight:850;border:1px solid #bfdbfe;color:#2563eb;border-radius:999px;padding:7px 12px;background:linear-gradient(180deg,#f0f9ff,#e0f2fe);box-shadow:inset 0 1px 0 rgba(255,255,255,.85)}
+.av-dam-status.good{color:#047857;background:linear-gradient(180deg,#ecfdf5,#d1fae5);border-color:#86efac}
+.av-dam-status.stale{color:#b45309;background:linear-gradient(180deg,#fff7ed,#ffedd5);border-color:#fdba74}
+.av-dam-time{font-size:11px;color:#64748b}
+.av-dam-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:6px 0 14px}
+.av-dam-chip{border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;border:1px solid transparent;min-width:0;box-shadow:0 8px 18px rgba(15,23,42,.05)}
+.av-dam-chip span{font-size:10.5px;font-weight:800;letter-spacing:.25px;color:#64748b;text-transform:uppercase}
+.av-dam-chip b{font-size:22px;line-height:1.08;font-weight:950;color:#0f172a;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.av-dam-chip small{font-size:11px;color:#64748b}
+.av-dam-chip.level{background:linear-gradient(135deg,#eef4ff,#dbeafe);border-color:#bfd6ff}
+.av-dam-chip.spill{background:linear-gradient(135deg,#fff8e8,#ffedd5);border-color:#fed7aa}
+.av-dam-chip.volume{background:linear-gradient(135deg,#eefbf5,#dcfce7);border-color:#a7f3d0}
+.av-dam-chip.trend{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-color:#d8b4fe}
+.av-dam-chip.trend.up b{color:#2563eb}.av-dam-chip.trend.down b{color:#dc2626}.av-dam-chip.trend.flat b{color:#475569}
+.av-dam-visual{background:linear-gradient(180deg,#234763,#16384f);border-radius:20px;overflow:hidden;max-height:470px;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 32px rgba(15,23,42,.16)}
+.av-dam-visual svg{width:100%;height:auto;display:block;max-height:470px}.av-dam-visual .threshold{font-size:13px;font-weight:780;paint-order:stroke;stroke:#10283d;stroke-width:1.1px;stroke-linejoin:round}
+.av-dam-footer{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;padding:12px 2px 4px;color:#475569;font-size:11.5px}
+.av-dam-footer span{padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0}
+.av-dam-footer b{color:#0f172a}
+#avDamReading{margin-left:auto;color:#075985;font-weight:850;background:linear-gradient(180deg,#eff6ff,#dbeafe)!important;border-color:#bfdbfe!important}
+.av-dam-note{margin:7px 2px 0;font-size:10.8px;color:#94a3b8;line-height:1.5}
+@media(max-width:900px){.av-dam-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.av-dam-card{padding:12px}.av-dam-header h3{font-size:15px}.av-dam-right{align-items:flex-start}.av-dam-summary{grid-template-columns:1fr 1fr}.av-dam-chip{padding:10px 11px}.av-dam-chip b{font-size:18px}.av-dam-visual{overflow-x:auto}.av-dam-visual svg{min-width:550px}.av-dam-footer{font-size:10.5px}#avDamReading{margin-left:0}}
+
+/* AV DAM V3 - more vivid, more informative */
+.av-dam-content{display:grid;grid-template-columns:minmax(0,1.78fr) minmax(285px,.82fr);gap:16px;align-items:stretch}
+.av-dam-content .av-dam-visual{max-height:none;min-width:0;display:flex;align-items:center;justify-content:center}
+.av-dam-content .av-dam-visual svg{max-height:none;width:100%;height:auto;display:block}
+.av-dam-kpi{background:linear-gradient(180deg,#f8fbff,#f4f8fc);border:1px solid #d7e6fb;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.av-dam-kpi-head{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#334155;font-size:11px;letter-spacing:.35px}
+.av-dam-kpi-head strong{font-size:12px;color:#1e293b}
+.av-dam-kpi-head span{font-size:10px;color:#94a3b8;letter-spacing:0}
+.av-dam-kpi-main{padding:16px;border:1px solid #bfdbfe;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#ffffff 60%,#ecfeff);position:relative;overflow:hidden}
+.av-dam-kpi-main:after{content:"";position:absolute;right:-32px;top:-32px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,#60a5fa55 0%,#60a5fa00 70%)}
+.av-dam-kpi-label{font-size:11px;font-weight:900;color:#475569;position:relative;z-index:1}
+.av-dam-kpi-number{font-size:34px;line-height:1.08;color:#1d4ed8;font-weight:950;font-variant-numeric:tabular-nums;margin-top:6px;position:relative;z-index:1}
+.av-dam-kpi-unit{font-size:11px;color:#64748b;margin-top:3px;position:relative;z-index:1}
+.av-dam-progress{margin-top:13px;width:100%;height:10px;overflow:hidden;background:#dbeafe;border-radius:99px;position:relative;z-index:1}
+.av-dam-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#2563eb,#1d4ed8);border-radius:99px;transition:width .4s}
+.av-dam-kpi-sub{margin-top:8px;font-size:10.5px;color:#64748b;position:relative;z-index:1}
+.av-dam-kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.av-dam-kpi-tile{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0;position:relative;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.04)}
+.av-dam-kpi-tile:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:14px 0 0 14px;background:#cbd5e1}
+.av-dam-kpi-tile span{font-size:10px;line-height:1.35;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.2px}
+.av-dam-kpi-tile b{font-size:22px;font-weight:950;color:#0f172a;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.av-dam-kpi-tile small{font-size:10px;color:#94a3b8}
+.av-dam-kpi-tile.tone-blue{background:linear-gradient(180deg,#ffffff,#f8fbff)} .av-dam-kpi-tile.tone-blue:before{background:#3b82f6}
+.av-dam-kpi-tile.tone-green{background:linear-gradient(180deg,#ffffff,#f3fff8)} .av-dam-kpi-tile.tone-green:before{background:#22c55e}
+.av-dam-kpi-tile.tone-violet{background:linear-gradient(180deg,#ffffff,#faf5ff)} .av-dam-kpi-tile.tone-violet:before{background:#a855f7}
+.av-dam-kpi-tile.tone-cyan{background:linear-gradient(180deg,#ffffff,#f0fdff)} .av-dam-kpi-tile.tone-cyan:before{background:#06b6d4}
+.av-dam-kpi-tile.tone-amber{background:linear-gradient(180deg,#ffffff,#fffbeb)} .av-dam-kpi-tile.tone-amber:before{background:#f59e0b}
+.av-dam-kpi-tile.tone-rose{background:linear-gradient(180deg,#ffffff,#fff1f2)} .av-dam-kpi-tile.tone-rose:before{background:#f43f5e}
+.av-dam-kpi-flow{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:10px;background:#fff;border-radius:12px;padding:11px 12px}
+.av-dam-kpi-flow b{color:#0f172a}.av-dam-kpi-flow small{margin-left:auto;color:#94a3b8}
+@media(max-width:1120px){.av-dam-content{grid-template-columns:1fr}.av-dam-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.av-dam-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.av-dam-kpi-number{font-size:28px}.av-dam-content .av-dam-visual{overflow-x:auto;justify-content:flex-start}.av-dam-content .av-dam-visual svg{min-width:590px}}
+
+@media(prefers-reduced-motion:reduce){#avDamCard animate,#avDamCard animateTransform{display:none}}
+
+/* AV DAM V4 - all KPIs embedded inside the reservoir scene */
+.av-dam-card{padding:18px 18px 16px}
+.av-dam-stage{position:relative;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 40px rgba(15,23,42,.16);background:linear-gradient(180deg,#173550,#11273a);min-height:700px}
+.av-dam-stage .av-dam-visual{background:transparent;border:none;box-shadow:none;border-radius:0;max-height:none;height:100%}
+.av-dam-stage .av-dam-visual svg{display:block;width:100%;height:auto;max-height:none}
+.av-dam-stage .av-dam-summary{position:absolute;left:18px;right:300px;top:16px;z-index:3;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0}
+.av-dam-stage .av-dam-chip{background:linear-gradient(180deg,rgba(10,25,39,.78),rgba(14,33,48,.64));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);box-shadow:0 10px 24px rgba(0,0,0,.2);padding:12px 14px}
+.av-dam-stage .av-dam-chip span{color:#b8cad8}.av-dam-stage .av-dam-chip b{color:#f8fbff}.av-dam-stage .av-dam-chip small{color:#bcd0de}
+.av-dam-stage .av-dam-chip.level{border-color:rgba(96,165,250,.45)}
+.av-dam-stage .av-dam-chip.spill{border-color:rgba(251,191,36,.40)}
+.av-dam-stage .av-dam-chip.volume{border-color:rgba(52,211,153,.40)}
+.av-dam-stage .av-dam-chip.trend{border-color:rgba(196,181,253,.40)}
+.av-dam-stage .av-dam-chip.trend.up b{color:#7dd3fc}.av-dam-stage .av-dam-chip.trend.down b{color:#fda4af}.av-dam-stage .av-dam-chip.trend.flat b{color:#e5e7eb}
+.av-dam-stage .av-dam-kpi{position:absolute;top:132px;right:16px;bottom:16px;width:284px;z-index:3;background:linear-gradient(180deg,rgba(11,27,41,.88),rgba(11,27,41,.72));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);border-radius:20px;padding:14px;box-shadow:0 12px 28px rgba(0,0,0,.24)}
+.av-dam-stage .av-dam-kpi-head{color:#cbd5e1}.av-dam-stage .av-dam-kpi-head strong{color:#f8fafc}.av-dam-stage .av-dam-kpi-head span{color:#94a3b8}
+.av-dam-stage .av-dam-kpi-main{background:linear-gradient(135deg,rgba(219,234,254,.18),rgba(255,255,255,.08));border:1px solid rgba(147,197,253,.32)}
+.av-dam-stage .av-dam-kpi-main:after{background:radial-gradient(circle,#93c5fd50 0%,#60a5fa00 72%)}
+.av-dam-stage .av-dam-kpi-label{color:#d7e8f8}.av-dam-stage .av-dam-kpi-number{color:#dbeafe}.av-dam-stage .av-dam-kpi-unit,.av-dam-stage .av-dam-kpi-sub{color:#bfd2e2}.av-dam-stage .av-dam-progress{background:rgba(191,219,254,.16)}
+.av-dam-stage .av-dam-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.av-dam-stage .av-dam-kpi-tile{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border-color:rgba(255,255,255,.08);box-shadow:none;padding:10px 10px 9px}
+.av-dam-stage .av-dam-kpi-tile span{color:#b7c9d7}.av-dam-stage .av-dam-kpi-tile b{font-size:18px;color:#f8fafc}.av-dam-stage .av-dam-kpi-tile small{color:#95abc0}
+.av-dam-stage .av-dam-kpi-flow{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-top:none;color:#b7c9d7;padding:10px 12px;border-radius:14px}.av-dam-stage .av-dam-kpi-flow b{color:#fff}.av-dam-stage .av-dam-kpi-flow small{color:#89a2bb}
+.av-dam-stage .av-dam-footer{position:absolute;left:16px;right:316px;bottom:14px;z-index:3;padding:0;gap:8px 8px}
+.av-dam-stage .av-dam-footer span{background:linear-gradient(180deg,rgba(10,25,39,.72),rgba(10,25,39,.58));color:#c8d7e2;border-color:rgba(255,255,255,.1);backdrop-filter:blur(8px)}
+.av-dam-stage .av-dam-footer b{color:#fff}
+.av-dam-stage #avDamReading{background:linear-gradient(180deg,rgba(14,116,144,.38),rgba(3,105,161,.26))!important;border-color:rgba(125,211,252,.32)!important;color:#e0f2fe}
+.av-dam-stage .av-dam-note{position:absolute;left:18px;right:320px;bottom:62px;z-index:3;margin:0;color:#a7bdd0;text-shadow:0 1px 0 rgba(0,0,0,.22)}
+.av-dam-stage .av-dam-visual .threshold{font-size:14px;stroke:#0f2435;stroke-width:1.35px}
+.av-dam-stage .av-dam-watermark{position:absolute;right:20px;top:18px;font-size:11px;color:#b7c9d7;background:linear-gradient(180deg,rgba(10,25,39,.76),rgba(10,25,39,.58));border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 12px;z-index:3;backdrop-filter:blur(8px)}
+.av-dam-stage .av-dam-watermark b{color:#fff}
+/* make the image area higher and centered */
+.av-dam-stage .av-dam-visual svg{padding-top:10px}
+
+@media(max-width:1280px){
+ .av-dam-stage{min-height:760px}
+ .av-dam-stage .av-dam-summary{right:286px;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .av-dam-stage .av-dam-footer,.av-dam-stage .av-dam-note{right:300px}
+}
+@media(max-width:1100px){
+ .av-dam-stage{min-height:auto;display:flex;flex-direction:column}
+ .av-dam-stage .av-dam-summary,.av-dam-stage .av-dam-kpi,.av-dam-stage .av-dam-footer,.av-dam-stage .av-dam-note,.av-dam-stage .av-dam-watermark{position:static}
+ .av-dam-stage .av-dam-summary{padding:14px 14px 0;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .av-dam-stage .av-dam-kpi{width:auto;margin:0 14px 14px;top:auto;right:auto;bottom:auto}
+ .av-dam-stage .av-dam-footer{padding:0 14px 12px}
+ .av-dam-stage .av-dam-note{padding:0 14px 14px}
+ .av-dam-stage .av-dam-watermark{margin:0 14px 10px auto}
+}
+@media(max-width:680px){
+ .av-dam-stage .av-dam-summary{grid-template-columns:1fr}
+ .av-dam-stage .av-dam-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .av-dam-stage .av-dam-visual{overflow-x:auto}
+ .av-dam-stage .av-dam-visual svg{min-width:760px}
+}
+
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -9827,6 +9952,14 @@ body.map-fullscreen-active .v8-map{
 #lstmScenarioToggleBtn{border-color:rgba(124,58,237,.22)!important;color:#6d28d9!important;background:rgba(124,58,237,.06)!important}
 </style>
 
+<style id="cnn-lstm-h120-dashboard-addon">
+#tab-chart #cnnLstmH120DataCard .long-data-title{color:#be185d}
+#tab-chart #cnnLstmH120DataCard .long-panel-chip.forecast{background:rgba(219,39,119,.08)!important;border-color:rgba(219,39,119,.20)!important;color:#be185d!important}
+#tab-chart #cnnLstmH120DataCard .row-issue td{background:rgba(219,39,119,.055)!important}
+#tab-chart #cnnLstmH120DataCard .rain-mean{color:#7c3aed!important}
+#cnnLstmScenarioToggleBtn{border-color:rgba(219,39,119,.22)!important;color:#be185d!important;background:rgba(219,39,119,.06)!important}
+</style>
+
 <style id="shadow-eval-dashboard-style">
   /* =========================================================
      MODEL SHADOW EVALUATION DASHBOARD
@@ -9947,6 +10080,689 @@ body.map-fullscreen-active .v8-map{
   }
 </style>
 
+<style id="shadow-eval-v5-style">
+  .shadow-kpi-grid{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .shadow-kpi.cnn .value{color:#db2777}
+  .shadow-model-dot.cnn{background:#db2777}
+  .shadow-rank.r5{background:#fdf2f8;color:#be185d}
+  @media(max-width:1500px){
+    .shadow-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  }
+  @media(max-width:1100px){
+    .shadow-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media(max-width:760px){
+    .shadow-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:560px){
+    .shadow-kpi-grid{grid-template-columns:1fr}
+  }
+</style>
+
+
+<style id="overview-subtabs-avdam-style">
+.overview-subtabs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px}.overview-subtabs-label{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin-right:4px}.overview-subtab{appearance:none;border:1px solid rgba(148,163,184,.28);background:linear-gradient(180deg,#fff,#f8fafc);color:#334155;border-radius:14px;padding:11px 16px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(15,23,42,.06);transition:all .18s ease}.overview-subtab:hover{transform:translateY(-1px);border-color:rgba(59,130,246,.32);color:#1d4ed8}.overview-subtab.active{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;border-color:rgba(59,130,246,.35);box-shadow:0 10px 24px rgba(37,99,235,.12)}.overview-subpanel{display:none;gap:14px}.overview-subpanel.active{display:grid}#overviewPanelVisual.active{display:block}.overview-subpanel .v8-card:first-child,.overview-subpanel .av-dam-card:first-child{margin-top:0}
+#overviewPanelVisual .av-dam-card{margin-top:0}
+
+/* visual tab refinements */
+.av-dam-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}.av-dam-action-btn{appearance:none;border:1px solid rgba(37,99,235,.24);background:linear-gradient(180deg,#eff6ff,#e0f2fe);color:#0f172a;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 6px 16px rgba(59,130,246,.12);transition:all .18s ease}.av-dam-action-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(59,130,246,.18)}.av-dam-action-btn.active{background:linear-gradient(180deg,#dbeafe,#bfdbfe);color:#1d4ed8}.av-dam-card .av-dam-header{margin-bottom:14px}.av-dam-card .av-dam-header h3{font-size:20px}.av-dam-card .av-dam-header p{font-size:13px}.av-dam-stage{position:relative;min-height:785px;border-radius:26px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:radial-gradient(circle at top left,rgba(110,231,255,.10),transparent 28%),linear-gradient(180deg,#173a58 0%,#12283a 100%);box-shadow:0 16px 42px rgba(15,23,42,.18)}.av-dam-stage .av-dam-summary{position:absolute;left:18px;top:18px;right:336px;z-index:3;width:min(56%,640px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}.av-dam-stage .av-dam-chip{min-height:112px;background:linear-gradient(180deg,rgba(9,24,37,.84),rgba(14,35,50,.68));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);box-shadow:0 10px 24px rgba(0,0,0,.18);padding:14px 16px;border-radius:18px}.av-dam-stage .av-dam-chip span{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#c8dae6;margin-bottom:8px}.av-dam-stage .av-dam-chip b{display:block;font-size:23px;line-height:1.05;color:#fff;margin-bottom:6px}.av-dam-stage .av-dam-chip small{display:block;font-size:12px;color:#b6cbd9;line-height:1.35}.av-dam-stage .av-dam-chip.level{border-color:rgba(96,165,250,.45)}.av-dam-stage .av-dam-chip.spill{border-color:rgba(251,191,36,.38)}.av-dam-stage .av-dam-chip.volume{border-color:rgba(52,211,153,.36)}.av-dam-stage .av-dam-chip.trend{border-color:rgba(196,181,253,.34)}.av-dam-stage .av-dam-kpi{position:absolute;top:160px;right:16px;bottom:16px;width:318px;z-index:3;background:linear-gradient(180deg,rgba(8,22,33,.92),rgba(11,27,41,.74));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);border-radius:24px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.22)}.av-dam-stage .av-dam-kpi-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:14px}.av-dam-stage .av-dam-kpi-head strong{font-size:18px;line-height:1.05;color:#f8fafc;max-width:145px}.av-dam-stage .av-dam-kpi-head span{font-size:11px;color:#9fb2c3;max-width:110px;text-align:right;line-height:1.35}.av-dam-stage .av-dam-kpi-main{padding:18px 18px 16px;border-radius:22px;background:linear-gradient(135deg,rgba(219,234,254,.20),rgba(255,255,255,.08));border:1px solid rgba(147,197,253,.32)}.av-dam-stage .av-dam-kpi-label{font-size:13px}.av-dam-stage .av-dam-kpi-number{font-size:54px;color:#dbeafe;line-height:1.02;letter-spacing:-.04em}.av-dam-stage .av-dam-kpi-unit{font-size:13px;margin-top:2px}.av-dam-stage .av-dam-kpi-sub{font-size:13px}.av-dam-stage .av-dam-kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.av-dam-stage .av-dam-kpi-tile{min-height:92px;padding:12px 12px 10px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08)}.av-dam-stage .av-dam-kpi-tile span{display:block;font-size:12px;line-height:1.3;margin-bottom:6px}.av-dam-stage .av-dam-kpi-tile b{display:block;font-size:20px;line-height:1.08}.av-dam-stage .av-dam-kpi-tile small{display:block;font-size:12px;line-height:1.3}.av-dam-stage .av-dam-kpi-flow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:11px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#bfd0dd}.av-dam-stage .av-dam-kpi-flow span{font-size:14px}.av-dam-stage .av-dam-kpi-flow small{font-size:12px;color:#90a5b8}.av-dam-stage .av-dam-watermark{right:18px;top:18px}.av-dam-stage .av-dam-footer{position:absolute;left:18px;right:340px;bottom:16px;z-index:3;display:flex;gap:8px;flex-wrap:wrap;padding:0}.av-dam-stage .av-dam-footer span{background:linear-gradient(180deg,rgba(8,22,33,.76),rgba(8,22,33,.60));color:#c8d7e2;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:10px 14px;backdrop-filter:blur(10px)}.av-dam-stage .av-dam-footer b{color:#fff}.av-dam-stage .av-dam-note{position:absolute;left:20px;right:346px;bottom:70px;z-index:3;margin:0;color:#a8c0d0;font-size:13px;line-height:1.45;text-shadow:0 1px 0 rgba(0,0,0,.2)}.av-dam-stage #avDamReading{margin-left:auto;background:linear-gradient(180deg,rgba(14,116,144,.38),rgba(3,105,161,.26))!important;border-color:rgba(125,211,252,.32)!important;color:#e0f2fe}.av-dam-stage .av-dam-visual{height:100%;background:transparent;border:none;box-shadow:none;border-radius:0;overflow:hidden}.av-dam-stage .av-dam-visual svg{display:block;width:100%;height:auto}.av-dam-stage .av-dam-visual .threshold{font-size:14px;stroke:#0f2435;stroke-width:1.35px}
+.av-dam-card:fullscreen,.av-dam-card:-webkit-full-screen{background:#081521;padding:14px 16px 18px;overflow:auto}.av-dam-card:fullscreen .av-dam-header,.av-dam-card:-webkit-full-screen .av-dam-header{padding-right:4px}.av-dam-card:fullscreen .av-dam-stage,.av-dam-card:-webkit-full-screen .av-dam-stage{min-height:calc(100vh - 118px);box-shadow:none}.av-dam-card:fullscreen .av-dam-header h3,.av-dam-card:-webkit-full-screen .av-dam-header h3{font-size:24px;color:#f8fafc}.av-dam-card:fullscreen .av-dam-header p,.av-dam-card:-webkit-full-screen .av-dam-header p{color:#bfd0de}.av-dam-card:fullscreen .av-dam-status,.av-dam-card:-webkit-full-screen .av-dam-status{box-shadow:none}.av-dam-card:fullscreen .av-dam-card,.av-dam-card:-webkit-full-screen .av-dam-card{padding:0}.av-dam-card:fullscreen .av-dam-stage .av-dam-summary,.av-dam-card:-webkit-full-screen .av-dam-stage .av-dam-summary{width:min(52%,700px)}body.avdam-presenting{overflow:hidden}
+@media(max-width:1320px){.av-dam-stage .av-dam-summary{width:min(55%,560px);right:320px}.av-dam-stage .av-dam-kpi{width:300px}.av-dam-stage .av-dam-footer,.av-dam-stage .av-dam-note{right:320px}}@media(max-width:1180px){.av-dam-stage{min-height:auto}.av-dam-stage .av-dam-summary,.av-dam-stage .av-dam-kpi,.av-dam-stage .av-dam-footer,.av-dam-stage .av-dam-note,.av-dam-stage .av-dam-watermark{position:static}.av-dam-stage .av-dam-summary{width:auto;padding:18px 18px 0;grid-template-columns:repeat(2,minmax(0,1fr))}.av-dam-stage .av-dam-kpi{width:auto;margin:0 18px 18px;top:auto;right:auto;bottom:auto}.av-dam-stage .av-dam-note{padding:0 18px 14px}.av-dam-stage .av-dam-footer{padding:0 18px 18px}.av-dam-stage .av-dam-watermark{display:inline-flex;margin:0 18px 10px auto}.av-dam-stage .av-dam-visual{overflow-x:auto}.av-dam-stage .av-dam-visual svg{min-width:860px}}@media(max-width:720px){.overview-subtabs{gap:8px}.overview-subtabs-label{width:100%;margin-bottom:2px}.overview-subtab{flex:1 1 calc(50% - 8px);justify-content:center;text-align:center;padding:10px 12px}.av-dam-right{align-items:flex-start}.av-dam-action-btn{width:100%;justify-content:center}.av-dam-stage .av-dam-summary{grid-template-columns:1fr;padding:14px 14px 0}.av-dam-stage .av-dam-chip{min-height:auto}.av-dam-stage .av-dam-kpi{margin:0 14px 14px;padding:14px}.av-dam-stage .av-dam-kpi-number{font-size:42px}.av-dam-stage .av-dam-kpi-grid{gap:8px}.av-dam-stage .av-dam-kpi-tile{min-height:auto}.av-dam-stage .av-dam-footer,.av-dam-stage .av-dam-note{padding:0 14px 14px}.av-dam-stage .av-dam-visual svg{min-width:760px}}
+</style>
+
+
+<style id="av6-visual-style">
+.nav-link[data-tab="overviewvisual"]{--nav-accent:#0ea5e9;--nav-soft:rgba(14,165,233,.14)}
+.av6-card{background:transparent;padding:0;margin:0;display:flex;flex-direction:column;gap:18px}
+.av6-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:#fff;border:1px solid rgba(15,23,42,.06);border-radius:22px;padding:20px 22px;box-shadow:0 12px 30px rgba(15,23,42,.04)}
+.av6-kicker{font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#2563eb;margin-bottom:2px}
+.av6-header h2{margin:0;font-size:24px;line-height:1.15;color:#0f172a}
+.av6-header p{margin:6px 0 0;color:#64748b;font-size:14px}
+.av6-head-actions{display:flex;align-items:flex-end;flex-direction:column;gap:10px}
+.av6-status{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.12);color:#15803d;border:1px solid rgba(34,197,94,.18);border-radius:999px;padding:10px 16px;font-size:13px;font-weight:800}.av6-status.good{background:rgba(34,197,94,.12);color:#15803d;border-color:rgba(34,197,94,.18)}.av6-status.stale{background:rgba(245,158,11,.14);color:#f59e0b;border-color:rgba(245,158,11,.25)}
+.av6-time{font-size:14px;color:#64748b;font-weight:700}
+.av6-fullscreen{appearance:none;border:1px solid rgba(59,130,246,.24);background:linear-gradient(180deg,#eff6ff,#dbeafe);color:#0f172a;border-radius:999px;padding:10px 16px;font-size:14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.10)}
+.av6-fullscreen.active{background:linear-gradient(180deg,#dbeafe,#bfdbfe);color:#1d4ed8}
+.av6-stage{background:linear-gradient(180deg,#0d2434,#0a1f2c 100%);border-radius:28px;border:1px solid rgba(15,23,42,.14);box-shadow:0 18px 48px rgba(15,23,42,.14);padding:18px;position:relative;overflow:hidden}
+.av6-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(94,234,212,.10),transparent 22%),radial-gradient(circle at top left,rgba(96,165,250,.14),transparent 24%);pointer-events:none}
+.av6-topstats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.av6-focus{min-height:108px;border-radius:22px;padding:16px 18px;background:linear-gradient(135deg,rgba(6,20,31,.86),rgba(15,40,58,.72));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);box-shadow:0 12px 24px rgba(0,0,0,.16)}
+.av6-focus span{display:block;color:#c6d7e5;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+.av6-focus b{display:block;color:#fff;font-size:25px;line-height:1.05;margin-bottom:6px}
+.av6-focus small{display:block;color:#aac2d2;font-size:13px;line-height:1.35}
+.av6-focus.is-level{border-color:rgba(56,189,248,.42)}
+.av6-focus.is-spill{border-color:rgba(250,204,21,.36)}
+.av6-focus.is-volume{border-color:rgba(45,212,191,.34)}
+.av6-focus.is-trend{border-color:rgba(196,181,253,.34)}
+.av6-main{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:16px;align-items:stretch}
+.av6-visual-card{position:relative;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#173a58 0%,#10293d 100%);border:1px solid rgba(255,255,255,.09);min-height:620px}
+.av6-visual-badge{position:absolute;right:18px;top:18px;z-index:3;background:rgba(7,27,42,.72);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(8px);color:#dbe9f3;padding:10px 16px;border-radius:999px;font-size:13px}
+.av6-visual-card .av-dam-visual{height:100%;background:transparent;border:none;border-radius:0;box-shadow:none;overflow:hidden}
+.av6-visual-card .av-dam-visual svg{display:block;width:100%;height:100%;min-height:620px}
+.av6-visual-card .threshold{font-size:14px;stroke:#0f2435;stroke-width:1.3px}
+.av6-sidecard{position:relative;border-radius:24px;background:linear-gradient(180deg,rgba(8,22,33,.92),rgba(11,27,41,.82));border:1px solid rgba(255,255,255,.10);padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 28px rgba(0,0,0,.16)}
+.av6-sidecard::after{content:"";position:absolute;right:18px;top:14px;width:86px;height:86px;border-radius:999px;background:radial-gradient(circle,rgba(147,197,253,.30),rgba(147,197,253,0));pointer-events:none}
+.av6-sidehead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;position:relative;z-index:1}
+.av6-sidehead strong{font-size:17px;line-height:1.05;color:#f8fafc;max-width:145px}
+.av6-sidehead span{font-size:12px;line-height:1.35;color:#9fb2c3;max-width:110px;text-align:right}
+.av6-hero-block{position:relative;z-index:1;padding:16px 16px 14px;border-radius:22px;background:linear-gradient(135deg,rgba(219,234,254,.18),rgba(255,255,255,.08));border:1px solid rgba(147,197,253,.28)}
+.av6-hero-label{font-size:13px;font-weight:800;color:#e5eef7;margin-bottom:6px}
+.av6-hero-value{font-size:52px;line-height:1.02;font-weight:900;color:#e8f1fe;letter-spacing:-.04em}
+.av6-hero-unit{font-size:13px;color:#c5d4e4;margin-top:2px}
+.av6-hero-caption{font-size:13px;color:#d5e4ef;margin-top:8px}
+.av6-progress{height:10px;border-radius:999px;background:rgba(191,219,254,.24);overflow:hidden;margin-top:12px}
+.av6-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#2563eb);border-radius:999px}
+.av6-sidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;position:relative;z-index:1}
+.av6-metric{min-height:96px;padding:12px 12px 10px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08)}
+.av6-metric span{display:block;font-size:12px;font-weight:800;line-height:1.3;color:#c8dae6;margin-bottom:7px}
+.av6-metric b{display:block;font-size:18px;line-height:1.08;color:#fff;margin-bottom:5px}
+.av6-metric small{display:block;font-size:12px;line-height:1.3;color:#a7bdcb}
+.av6-metric.tone-blue{border-left:4px solid #3b82f6}
+.av6-metric.tone-green{border-left:4px solid #22c55e}
+.av6-metric.tone-violet{border-left:4px solid #a855f7}
+.av6-metric.tone-cyan{border-left:4px solid #06b6d4}
+.av6-metric.tone-amber{border-left:4px solid #f59e0b}
+.av6-metric.tone-rose{border-left:4px solid #f43f5e}
+.av6-flowbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#dbe7ef;position:relative;z-index:1}
+.av6-flowbar div{display:flex;flex-direction:column;gap:4px}
+.av6-flowbar span{font-size:12px;color:#aac0cf;font-weight:700}
+.av6-flowbar b{font-size:18px;color:#fff}
+.av6-flowbar small{font-size:12px;color:#8fa4b6;align-self:flex-end}
+.av6-bottom{position:relative;z-index:1;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+.av6-chiprow{display:flex;gap:10px;flex-wrap:wrap}
+.av6-chiprow span{display:inline-flex;align-items:center;gap:4px;padding:10px 14px;border-radius:999px;background:rgba(8,28,42,.58);border:1px solid rgba(255,255,255,.10);color:#c7d7e4;font-size:13px}
+.av6-chiprow b{color:#fff}
+.av6-note{margin:14px 2px 0;color:#a8c0d0;font-size:13px;line-height:1.45}
+.av6-card:fullscreen,.av6-card:-webkit-full-screen{background:#081521;padding:16px;overflow:auto}
+.av6-card:fullscreen .av6-header,.av6-card:-webkit-full-screen .av6-header{background:transparent;border-color:rgba(255,255,255,.08);box-shadow:none}
+.av6-card:fullscreen .av6-header h2,.av6-card:-webkit-full-screen .av6-header h2{color:#f8fafc}
+.av6-card:fullscreen .av6-header p,.av6-card:-webkit-full-screen .av6-header p{color:#bfd0de}
+.av6-card:fullscreen .av6-stage,.av6-card:-webkit-full-screen .av6-stage{min-height:calc(100vh - 136px);box-shadow:none}
+.av6-card:fullscreen .av6-visual-card,.av6-card:-webkit-full-screen .av6-visual-card{min-height:calc(100vh - 290px)}
+body.avdam-presenting{overflow:hidden}
+@media(max-width:1460px){.av6-topstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1180px){.av6-main{grid-template-columns:1fr}.av6-visual-card .av-dam-visual{overflow-x:auto}.av6-visual-card .av-dam-visual svg{min-width:820px;height:auto}.av6-sidecard{order:2}}
+@media(max-width:780px){.av6-header{flex-direction:column;align-items:flex-start}.av6-head-actions{align-items:flex-start}.av6-topstats{grid-template-columns:1fr}.av6-focus{min-height:auto}.av6-sidegrid{grid-template-columns:1fr}.av6-hero-value{font-size:42px}.av6-visual-card .av-dam-visual svg{min-width:760px}.av6-chiprow span{font-size:12px;padding:9px 12px}}
+</style>
+
+
+<style id="av7-premium-style">
+/* AV7 visual-first premium redesign: less text, stronger focus on diagram */
+.av6-card{gap:12px}
+.av6-header{padding:14px 18px;border-radius:18px;background:linear-gradient(180deg,#0d2334,#0b1d2d);border:1px solid rgba(98,142,172,.22);box-shadow:0 16px 34px rgba(5,17,29,.18)}
+.av6-header h2{font-size:22px;color:#f8fbff}
+.av6-header p{font-size:12px;color:#9cb8cc;max-width:820px}
+.av6-kicker{color:#4ea2ff}
+.av6-head-actions{align-items:flex-end;gap:8px}
+.av6-status{background:rgba(34,197,94,.12);color:#76f3a3;border-color:rgba(34,197,94,.18)}
+.av6-status.stale{background:rgba(251,191,36,.12);color:#ffd36b;border-color:rgba(251,191,36,.2)}
+.av6-time{color:#a9c4d6;font-size:12px}
+.av6-fullscreen{background:linear-gradient(180deg,#eff6ff,#dbeafe);border:1px solid rgba(96,165,250,.28);color:#1d4ed8}
+.av7-stage{position:relative;isolation:isolate;background:radial-gradient(circle at 20% 0%,rgba(71,145,199,.12),transparent 28%),linear-gradient(180deg,#0c2233 0%,#081d2b 100%);border:1px solid rgba(74,118,150,.38);border-radius:24px;overflow:hidden;padding:16px 16px 14px;box-shadow:0 24px 46px rgba(6,18,30,.22)}
+.av7-stage:before{content:"";pointer-events:none;position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#2584ff 0%,#35d2ed 36%,#1fca95 72%,#e7b652 100%)}
+.av7-kpi-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;position:relative;z-index:2}
+.av7-kpi-mini{position:relative;min-width:0;border-radius:18px;padding:14px 16px;background:linear-gradient(135deg,rgba(17,52,79,.96),rgba(11,33,52,.92));border:1px solid rgba(110,173,214,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.av7-kpi-mini:after{content:"";position:absolute;inset:auto -18% -30% auto;width:120px;height:120px;background:radial-gradient(circle,rgba(134,194,255,.16),transparent 68%);pointer-events:none}
+.av7-kpi-mini.primary{background:linear-gradient(120deg,rgba(22,72,110,.98),rgba(10,46,73,.95));border-color:rgba(59,172,255,.34)}
+.av7-kpi-mini .label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:850;letter-spacing:.055em;color:#b6d2e4;text-transform:uppercase}
+.av7-kpi-mini .label .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ee4c0;box-shadow:0 0 12px rgba(78,228,192,.52)}
+.av7-kpi-mini .value{display:block;margin-top:8px;font-size:clamp(22px,2.2vw,34px);font-weight:860;line-height:1.05;color:#f8fbff;font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+.av7-kpi-mini .sub{display:block;margin-top:5px;color:#93b2c5;font-size:12px;line-height:1.3}
+.av7-kpi-mini.trend .value{color:#8fdcff}.av7-kpi-mini.flow .value{color:#ffffff}
+.av7-body{display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:14px;align-items:stretch}
+.av7-diagram{position:relative;min-width:0;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,#20455f,#17394f);border:1px solid rgba(112,167,206,.22);display:flex;flex-direction:column;min-height:560px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.av7-diagram-tag{position:absolute;left:14px;top:14px;z-index:4;padding:7px 12px;border-radius:999px;background:rgba(6,22,35,.56);backdrop-filter:blur(8px);color:#d7ebf6;font-size:10px;font-weight:850;letter-spacing:.06em;pointer-events:none;border:1px solid rgba(158,205,232,.12)}
+.av7-visual-focus{position:absolute;right:14px;top:14px;z-index:4;padding:7px 12px;border-radius:999px;background:rgba(8,29,46,.58);backdrop-filter:blur(8px);color:#d7ebf6;border:1px solid rgba(158,205,232,.12);font-size:10px;font-weight:850;letter-spacing:.03em}
+.av7-visual-focus b{color:#fff}
+.av7-diagram .av-dam-visual{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;max-height:none!important;overflow:hidden!important;display:block!important;flex:1}
+.av7-diagram .av-dam-visual svg{width:100%!important;height:100%!important;display:block!important}
+.av7-diagram .threshold{font-size:13px;stroke:#112436;stroke-width:1.1px;font-weight:800;paint-order:stroke fill}
+.av7-fs-exit{position:absolute;right:14px;top:14px;z-index:6;display:none;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:1px solid rgba(198,225,245,.2);background:rgba(7,26,40,.72);backdrop-filter:blur(9px);color:#eef8ff;font-weight:800;font-size:12px;cursor:pointer}
+.av7-fs-exit:hover{background:rgba(9,34,52,.85)}
+.av7-diagram-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(180deg,#0f293d,#0b2133);color:#bcd4e3;font-size:11px;border-top:1px solid rgba(110,167,206,.14)}
+.av7-diagram-foot i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#50e1c2;box-shadow:0 0 10px rgba(80,225,194,.4);margin-right:6px}
+.av7-data{min-width:0;background:linear-gradient(180deg,rgba(16,42,62,.94),rgba(11,29,44,.92));border:1px solid rgba(85,132,166,.34);border-radius:20px;padding:15px 14px;display:flex;flex-direction:column;gap:12px;color:#eaf4fc;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.av7-section-label{color:#8fc5e6;font-weight:900;letter-spacing:.07em;font-size:11px}
+.av7-available{background:linear-gradient(145deg,rgba(34,79,112,.88),rgba(20,53,77,.82));border:1px solid rgba(89,149,198,.36);border-radius:16px;padding:14px;position:relative;overflow:hidden}
+.av7-available:after{content:"";position:absolute;right:-25px;top:-18px;width:110px;height:110px;background:radial-gradient(circle,rgba(173,212,255,.24),transparent 65%)}
+.av7-available>span{font-size:12px;font-weight:800;color:#dbedf8;position:relative}
+.av7-available>div:nth-child(2){display:flex;align-items:baseline;gap:7px;margin-top:7px;position:relative}
+.av7-available strong{font-size:44px;line-height:1.02;font-variant-numeric:tabular-nums;color:#f6fbff;letter-spacing:-.045em;position:relative}
+.av7-available small{font-size:11px;color:#d3e3ef;position:relative}
+.av7-bar{height:9px;border-radius:99px;background:rgba(199,222,244,.16);margin-top:13px;overflow:hidden;position:relative}
+.av7-bar-fill{width:0;height:100%;background:linear-gradient(90deg,#42d6ef,#2f84ff);border-radius:99px;transition:width .5s}
+.av7-available p{color:#caddeb;font-size:12px;margin:10px 0 0;position:relative}
+.av7-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.av7-data-cell{padding:11px 11px 10px 13px;border:1px solid rgba(93,138,171,.24);border-radius:15px;background:linear-gradient(180deg,rgba(28,58,80,.76),rgba(22,45,64,.88));min-width:0;position:relative;overflow:hidden}
+.av7-data-cell:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:4px;background:#60a5fa}
+.av7-data-cell.cyan:before{background:#22d3ee}.av7-data-cell.green:before{background:#4ade80}.av7-data-cell.violet:before{background:#c4b5fd}
+.av7-data-cell span{display:block;min-height:24px;font-weight:780;font-size:10px;line-height:1.35;color:#bcd4e3;text-transform:uppercase;letter-spacing:.03em}
+.av7-data-cell b{display:block;font-weight:860;font-size:clamp(16px,1.55vw,21px);line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.av7-data-cell small{font-size:10px;color:#90afc3;line-height:1.25}
+.av7-second-head{margin-top:0;padding-top:2px}
+.av7-control-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(93,138,171,.18);font-size:12px;color:#afc8d8}
+.av7-control-row:last-child{border-bottom:none}
+.av7-control-row b{color:#f3faff;font-weight:860;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.av7-control-row b small{font-size:10px;font-weight:600;color:#8da8ba}
+.av7-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;padding:2px 2px 0}
+.av7-level-legend,.av7-bottom-extras{display:flex;gap:8px;flex-wrap:wrap}
+.av7-level-legend>span,.av7-bottom-extras>span{border-radius:10px;background:linear-gradient(180deg,rgba(15,46,70,.88),rgba(12,35,55,.82));border:1px solid rgba(83,128,161,.25);color:#c2d9e6;padding:8px 12px;font-size:11px;white-space:nowrap}
+.av7-level-legend b,.av7-bottom-extras b{color:#fff}
+.av7-level-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#77c5ff}.av7-level-legend i.teal{background:#57e5c5}.av7-level-legend i.amber{background:#fac36f}.av7-level-legend i.red{background:#ff8287}
+#avDamReading{background:linear-gradient(180deg,#f5fbff,#e5f2ff)!important;color:#0a63a5!important;border-color:rgba(191,219,254,.9)!important;box-shadow:0 10px 20px rgba(0,0,0,.16)}
+.av7-disclaimer{font-size:10px;color:#83a3b8;margin:8px 2px 0;line-height:1.5}
+.av7-diagram:fullscreen,.av7-diagram:-webkit-full-screen{background:#0b2031;padding:0;border-radius:0;border:none;display:block}
+.av7-diagram:fullscreen .av7-diagram-tag,.av7-diagram:-webkit-full-screen .av7-diagram-tag,
+.av7-diagram:fullscreen .av7-visual-focus,.av7-diagram:-webkit-full-screen .av7-visual-focus,
+.av7-diagram:fullscreen .av7-diagram-foot,.av7-diagram:-webkit-full-screen .av7-diagram-foot{display:none}
+.av7-diagram:fullscreen .av7-fs-exit,.av7-diagram:-webkit-full-screen .av7-fs-exit{display:inline-flex}
+.av7-diagram:fullscreen .av-dam-visual,.av7-diagram:-webkit-full-screen .av-dam-visual{height:100vh}
+.av7-diagram:fullscreen .av-dam-visual svg,.av7-diagram:-webkit-full-screen .av-dam-visual svg{width:100vw!important;height:100vh!important;object-fit:contain;background:#0b2031}
+@media(max-width:1200px){.av7-body{grid-template-columns:minmax(0,1fr) 290px}.av7-kpi-strip{gap:10px}.av7-kpi-mini{padding:13px 14px}.av7-diagram{min-height:520px}}
+@media(max-width:960px){.av7-kpi-strip{grid-template-columns:1fr 1fr}.av7-body{grid-template-columns:1fr}.av7-data{order:2}.av7-diagram{min-height:500px}}
+@media(max-width:680px){.av6-header{padding:12px 14px}.av6-header h2{font-size:18px}.av6-header p{font-size:11px}.av6-head-actions{align-items:flex-start}.av7-stage{padding:10px}.av7-kpi-strip{grid-template-columns:1fr;gap:8px}.av7-kpi-mini{padding:11px 12px}.av7-kpi-mini .value{font-size:28px}.av7-data-grid{grid-template-columns:1fr 1fr}.av7-diagram{min-height:420px}.av7-diagram-tag{font-size:8px;padding:6px 9px}.av7-level-legend>span,.av7-bottom-extras>span{font-size:10px;padding:7px 10px}}
+@media(prefers-reduced-motion:reduce){.av7-bar-fill{transition:none}}
+</style>
+
+<style id="av9-presentation-overrides">
+/* V9: unified canvas, data lives INSIDE the visual frame. */
+.av7-stage{padding:12px;}
+.av7-kpi-strip{gap:8px;margin-bottom:10px;}
+.av7-kpi-mini{padding:9px 12px;border-radius:12px;}
+.av7-kpi-mini .label{font-size:10px;}
+.av7-kpi-mini .value{font-size:clamp(18px,2vw,27px);margin-top:4px;}
+.av7-kpi-mini .sub{font-size:10px;margin-top:3px;}
+.av7-body{display:block;}
+.av7-diagram{display:grid;grid-template-columns:minmax(0,1fr) clamp(245px,25%,310px);grid-template-rows:minmax(440px,auto) auto;gap:0;align-items:stretch;min-height:0;background:linear-gradient(135deg,#254b63,#193c54 65%,#112d42);}
+.av7-diagram .av-dam-visual{grid-column:1;grid-row:1;display:flex!important;align-items:center;justify-content:center;min-height:500px;max-height:none!important;min-width:0;}
+.av7-diagram .av-dam-visual svg{width:100%!important;height:auto!important;max-height:none!important;flex:0 0 auto;}
+.av7-diagram .av7-data{grid-column:2;grid-row:1;align-self:stretch;position:relative;z-index:3;border:none;border-left:1px solid rgba(136,195,231,.16);border-radius:0;padding:14px 12px;background:linear-gradient(180deg,rgba(11,39,59,.76),rgba(7,27,42,.86));box-shadow:none;gap:9px;}
+.av7-diagram .av7-data .av7-section-label{font-size:10px}
+.av7-diagram .av7-available{padding:12px;border-radius:12px}
+.av7-diagram .av7-available strong{font-size:clamp(24px,2.6vw,35px)}
+.av7-diagram .av7-available>span,.av7-diagram .av7-available p{font-size:11px}
+.av7-diagram .av7-data-grid{gap:7px;}
+.av7-diagram .av7-data-cell{padding:9px;border-radius:11px}
+.av7-diagram .av7-data-cell span{font-size:9px;min-height:25px}
+.av7-diagram .av7-data-cell b{font-size:17px}
+.av7-diagram .av7-control-row{font-size:11px;padding:7px 0}
+.av7-diagram .av7-control-row b{font-size:12px}
+.av7-diagram .av7-diagram-foot{grid-column:1/-1;grid-row:2;z-index:4;}
+.av7-diagram .av7-visual-focus{right:calc(25% + 15px);font-size:10px;}
+.av7-diagram .av7-diagram-tag{font-size:9px;}
+.av7-bottom{gap:6px;margin-top:8px;}
+.av7-disclaimer{margin-top:5px}
+/* Full screen shows ONLY a single visual canvas, with a subtle integrated HUD. */
+.av7-diagram:fullscreen,.av7-diagram:-webkit-full-screen{
+ width:100vw!important;height:100dvh!important;min-height:0!important;
+ display:grid!important;grid-template-columns:minmax(0,1fr) clamp(300px,24vw,390px)!important;
+ grid-template-rows:minmax(0,1fr)!important;align-items:center!important;
+ overflow:hidden!important;background:linear-gradient(180deg,#234760,#13344a 55%,#0a2335)!important;
+ border:0!important;border-radius:0!important;
+}
+.av7-diagram:fullscreen .av-dam-visual,.av7-diagram:-webkit-full-screen .av-dam-visual{
+ position:relative!important;grid-column:1!important;grid-row:1!important;
+ width:100%!important;height:100dvh!important;min-height:0!important;max-height:none!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;
+}
+.av7-diagram:fullscreen .av-dam-visual svg,.av7-diagram:-webkit-full-screen .av-dam-visual svg{
+ width:100%!important;height:auto!important;max-width:100%!important;max-height:100dvh!important;
+ object-fit:contain!important;background:transparent!important;
+}
+.av7-diagram:fullscreen .av7-data,.av7-diagram:-webkit-full-screen .av7-data{
+ display:flex!important;grid-column:2!important;grid-row:1!important;
+ height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;
+ align-self:stretch!important;justify-content:center!important;
+ padding:clamp(16px,2vw,30px)!important;background:linear-gradient(180deg,rgba(6,27,42,.78),rgba(8,33,50,.9))!important;
+}
+.av7-diagram:fullscreen .av7-diagram-foot,.av7-diagram:-webkit-full-screen .av7-diagram-foot{display:none!important;}
+.av7-diagram:fullscreen .av7-fs-exit,.av7-diagram:-webkit-full-screen .av7-fs-exit{
+ display:inline-flex!important;top:14px!important;right:14px!important;width:auto!important;max-width:220px!important;
+ border-radius:999px!important;padding:8px 12px!important;font-size:11px!important;
+}
+@media(max-width:1050px){
+ .av7-diagram{grid-template-columns:minmax(0,1fr) 240px;}
+ .av7-diagram .av7-visual-focus{right:255px}
+ .av7-diagram:fullscreen,.av7-diagram:-webkit-full-screen{grid-template-columns:minmax(0,1fr) 260px!important;}
+}
+@media(max-width:760px){
+ .av7-diagram{grid-template-columns:1fr;grid-template-rows:auto auto auto;}
+ .av7-diagram .av-dam-visual{grid-column:1;grid-row:1;min-height:280px;}
+ .av7-diagram .av7-data{grid-column:1;grid-row:2;border-left:0;border-top:1px solid rgba(136,195,231,.16)}
+ .av7-diagram .av7-diagram-foot{grid-column:1;grid-row:3}
+ .av7-diagram .av7-visual-focus{right:14px}
+ .av7-diagram:fullscreen,.av7-diagram:-webkit-full-screen{grid-template-columns:1fr!important;grid-template-rows:minmax(0,1fr) auto!important;overflow-y:auto!important;}
+ .av7-diagram:fullscreen .av-dam-visual,.av7-diagram:-webkit-full-screen .av-dam-visual{grid-column:1!important;grid-row:1!important;height:65dvh!important;}
+ .av7-diagram:fullscreen .av7-data,.av7-diagram:-webkit-full-screen .av7-data{grid-column:1!important;grid-row:2!important;height:auto!important;max-height:35dvh!important;padding:10px!important;display:block!important;}
+}
+</style>
+
+<style id="av10-integrated-overlay">
+/* V10: full-screen visual canvas + all reservoir metrics integrated inside the image. */
+.av7-body{display:block!important;}
+.av7-diagram{
+  position:relative!important;
+  display:block!important;
+  min-height:680px!important;
+  background:linear-gradient(180deg,#284c65 0%,#18384d 58%,#10293c 100%)!important;
+}
+.av7-diagram .av-dam-visual{
+  display:block!important;
+  min-height:680px!important;
+  height:680px!important;
+}
+.av7-diagram .av-dam-visual svg{
+  width:100%!important;
+  height:100%!important;
+  display:block!important;
+}
+.av7-visual-focus{
+  right:20px!important;
+  top:18px!important;
+  z-index:8!important;
+  font-size:11px!important;
+  padding:8px 14px!important;
+}
+.av7-data{
+  position:absolute!important;
+  top:68px!important;
+  right:18px!important;
+  width:clamp(250px,24vw,310px)!important;
+  z-index:7!important;
+  border:1px solid rgba(119,181,223,.22)!important;
+  border-radius:22px!important;
+  padding:14px 14px 12px!important;
+  background:linear-gradient(180deg,rgba(7,29,44,.88),rgba(9,32,49,.72))!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+  box-shadow:0 18px 42px rgba(2,10,18,.30), inset 0 1px 0 rgba(255,255,255,.05)!important;
+  gap:10px!important;
+}
+.av7-data .av7-section-label{font-size:10px!important;letter-spacing:.08em!important;color:#9ed5f2!important}
+.av7-available{padding:12px!important;border-radius:16px!important}
+.av7-available strong{font-size:clamp(26px,2.3vw,38px)!important}
+.av7-available > span,.av7-available p{font-size:11px!important}
+.av7-data-grid{gap:8px!important}
+.av7-data-cell{padding:10px 10px 9px 12px!important;border-radius:14px!important}
+.av7-data-cell span{font-size:9px!important;min-height:24px!important}
+.av7-data-cell b{font-size:clamp(16px,1.5vw,20px)!important}
+.av7-data-cell small{font-size:10px!important}
+.av7-control-row{font-size:11px!important;padding:8px 0!important}
+.av7-control-row b{font-size:13px!important}
+.av7-diagram-foot{
+  position:absolute!important;
+  left:0!important;right:0!important;bottom:0!important;
+  z-index:6!important;
+  background:linear-gradient(180deg,rgba(9,28,42,.15),rgba(7,23,35,.78))!important;
+}
+.av7-diagram-tag{z-index:8!important}
+.av7-fs-exit{left:14px!important;right:auto!important;top:14px!important;z-index:9!important}
+
+/* Full screen = only the image canvas, with overlay data still inside the image. */
+.av7-diagram:fullscreen,
+.av7-diagram:-webkit-full-screen{
+  width:100vw!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:hidden!important;
+  background:#18384d!important;
+}
+.av7-diagram:fullscreen .av-dam-visual,
+.av7-diagram:-webkit-full-screen .av-dam-visual{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100dvh!important;
+  min-height:0!important;
+  display:block!important;
+}
+.av7-diagram:fullscreen .av-dam-visual svg,
+.av7-diagram:-webkit-full-screen .av-dam-visual svg{
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  display:block!important;
+}
+.av7-diagram:fullscreen .av7-diagram-tag,
+.av7-diagram:-webkit-full-screen .av7-diagram-tag{
+  display:block!important;
+}
+.av7-diagram:fullscreen .av7-visual-focus,
+.av7-diagram:-webkit-full-screen .av7-visual-focus{
+  display:block!important;
+}
+.av7-diagram:fullscreen .av7-data,
+.av7-diagram:-webkit-full-screen .av7-data{
+  top:70px!important;
+  right:22px!important;
+  width:min(330px,27vw)!important;
+  max-height:calc(100dvh - 150px)!important;
+  overflow:auto!important;
+  display:flex!important;
+}
+.av7-diagram:fullscreen .av7-diagram-foot,
+.av7-diagram:-webkit-full-screen .av7-diagram-foot{
+  display:flex!important;
+}
+
+/* Compact on smaller screens while keeping overlay inside the picture. */
+@media (max-width: 1180px){
+  .av7-diagram{min-height:620px!important}
+  .av7-diagram .av-dam-visual{min-height:620px!important;height:620px!important}
+  .av7-data{width:270px!important}
+}
+@media (max-width: 980px){
+  .av7-kpi-strip{grid-template-columns:1fr 1fr 1fr!important}
+  .av7-diagram{min-height:760px!important}
+  .av7-diagram .av-dam-visual{min-height:760px!important;height:760px!important}
+  .av7-data{top:auto!important;right:14px!important;bottom:56px!important;width:min(320px,40vw)!important}
+}
+@media (max-width: 760px){
+  .av7-kpi-strip{grid-template-columns:1fr!important}
+  .av7-diagram{min-height:760px!important}
+  .av7-diagram .av-dam-visual{height:760px!important}
+  .av7-data{left:14px!important;right:14px!important;top:auto!important;bottom:52px!important;width:auto!important;max-height:280px!important;overflow:auto!important}
+  .av7-diagram-foot{font-size:10px!important;padding:8px 10px!important}
+  .av7-visual-focus{font-size:10px!important;padding:7px 11px!important}
+}
+</style>
+
+
+<style id="av11-compact-topbar">
+/* V11: make the top header much smaller so the visual section dominates. */
+.av6-card{gap:10px!important}
+.av6-header{
+  padding:10px 16px!important;
+  min-height:auto!important;
+  border-radius:16px!important;
+  gap:10px!important;
+  align-items:center!important;
+}
+.av6-kicker{
+  font-size:10px!important;
+  letter-spacing:.08em!important;
+  margin-bottom:2px!important;
+}
+.av6-header h2{
+  font-size:18px!important;
+  line-height:1.08!important;
+  margin:0!important;
+}
+.av6-header p{display:none!important}
+.av6-head-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+}
+.av6-status{
+  padding:7px 12px!important;
+  font-size:11px!important;
+  border-radius:999px!important;
+}
+.av6-time{
+  font-size:12px!important;
+  font-weight:700!important;
+  white-space:nowrap!important;
+}
+.av6-fullscreen{
+  padding:9px 13px!important;
+  font-size:12px!important;
+  border-radius:999px!important;
+  min-height:auto!important;
+}
+.av7-stage{margin-top:0!important}
+@media (max-width: 860px){
+  .av6-header{padding:10px 12px!important;align-items:flex-start!important}
+  .av6-header h2{font-size:16px!important}
+  .av6-head-actions{justify-content:flex-start!important}
+}
+</style>
+
+
+<style id="av12-boat-color-tune">
+/* V12: center boat, add AVC on sail, and make KPI colors richer / more visually attractive. */
+.av7-diagram .av7-data{
+  background:linear-gradient(180deg,rgba(9,34,53,.86),rgba(6,24,39,.94))!important;
+  border-left:1px solid rgba(112,201,255,.22)!important;
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.03),-10px 0 24px rgba(0,0,0,.12)!important;
+}
+.av7-diagram .av7-section-label{
+  color:#8ed9ff!important;
+  text-shadow:0 0 12px rgba(67,203,255,.14)!important;
+}
+.av7-diagram .av7-available{
+  background:linear-gradient(145deg,rgba(36,96,141,.88),rgba(23,63,99,.90))!important;
+  border:1px solid rgba(113,196,255,.42)!important;
+  box-shadow:0 10px 24px rgba(4,17,30,.14), inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+.av7-diagram .av7-available:after{
+  background:radial-gradient(circle,rgba(166,221,255,.32),transparent 66%)!important;
+}
+.av7-diagram .av7-available strong{
+  color:#ffffff!important;
+  text-shadow:0 2px 10px rgba(9,37,63,.20)!important;
+}
+.av7-diagram .av7-bar{
+  background:rgba(135,187,228,.24)!important;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.22)!important;
+}
+.av7-diagram .av7-bar-fill{
+  background:linear-gradient(90deg,#42e5ff,#2d7dff)!important;
+  box-shadow:0 0 10px rgba(80,187,255,.28)!important;
+}
+.av7-diagram .av7-data-cell{
+  border:1px solid rgba(108,168,214,.20)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+.av7-diagram .av7-data-cell.blue{
+  background:linear-gradient(180deg,rgba(25,71,108,.86),rgba(17,49,76,.92))!important;
+}
+.av7-diagram .av7-data-cell.cyan{
+  background:linear-gradient(180deg,rgba(17,76,103,.86),rgba(13,54,75,.92))!important;
+}
+.av7-diagram .av7-data-cell.green{
+  background:linear-gradient(180deg,rgba(26,79,70,.86),rgba(17,55,49,.92))!important;
+}
+.av7-diagram .av7-data-cell.violet{
+  background:linear-gradient(180deg,rgba(63,66,113,.86),rgba(39,40,79,.92))!important;
+}
+.av7-diagram .av7-data-cell b{
+  color:#f8fdff!important;
+  text-shadow:0 2px 8px rgba(4,17,30,.15)!important;
+}
+.av7-diagram .av7-data-cell small{
+  color:#b4cbda!important;
+}
+.av7-diagram .av7-control-row{
+  padding:10px 0!important;
+  border-bottom:1px solid rgba(128,177,216,.16)!important;
+}
+.av7-diagram .av7-control-row:last-child{border-bottom:none!important}
+.av7-diagram .av7-control-row span{color:#a9c4d8!important}
+.av7-diagram .av7-control-row b{color:#ffffff!important}
+</style>
+
+
+<style id="av13-kpi-inside-tune">
+/* V13: move top KPI strip inside the visual area */
+.av7-stage > .av7-kpi-strip{display:none!important}
+.av7-diagram{padding-top:118px!important}
+.av7-kpi-strip-inside{
+  position:absolute!important;
+  top:16px;
+  left:18px;
+  right:18px;
+  z-index:6;
+  margin:0!important;
+  gap:10px!important;
+  width:auto!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini{
+  border-radius:16px!important;
+  padding:12px 16px!important;
+  background:linear-gradient(135deg,rgba(10,35,54,.86),rgba(7,23,38,.90))!important;
+  border:1px solid rgba(96,178,233,.26)!important;
+  backdrop-filter: blur(3px);
+  box-shadow:0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini.primary{
+  background:linear-gradient(135deg,rgba(17,67,104,.90),rgba(10,41,67,.92))!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini .label{font-size:10px!important}
+.av7-kpi-strip-inside .av7-kpi-mini .value{font-size:clamp(18px,1.85vw,29px)!important;margin-top:5px!important}
+.av7-kpi-strip-inside .av7-kpi-mini .sub{font-size:10px!important;margin-top:4px!important}
+.av7-kpi-strip-inside .av7-kpi-mini:after{width:92px;height:92px;opacity:.9}
+@media(max-width:1200px){
+  .av7-diagram{padding-top:108px!important}
+  .av7-kpi-strip-inside{gap:8px!important}
+  .av7-kpi-strip-inside .av7-kpi-mini{padding:10px 12px!important}
+}
+@media(max-width:960px){
+  .av7-diagram{padding-top:146px!important}
+  .av7-kpi-strip-inside{grid-template-columns:1fr 1fr!important}
+  .av7-kpi-strip-inside .flow{grid-column:1 / -1}
+}
+@media(max-width:680px){
+  .av7-diagram{padding-top:180px!important}
+  .av7-kpi-strip-inside{grid-template-columns:1fr!important;left:10px;right:10px;top:10px}
+}
+</style>
+
+
+<style id="av14-clean-layout">
+/* V14: clean composition, no overlapping text, finer level lines */
+.av7-diagram-tag{display:none!important;}
+.av7-diagram{
+  padding-top:110px!important;
+  min-height:700px!important;
+  overflow:hidden!important;
+}
+.av7-diagram .av-dam-visual{
+  min-height:700px!important;
+  height:700px!important;
+}
+.av7-kpi-strip-inside{
+  position:absolute!important;
+  top:16px!important;
+  left:16px!important;
+  right:336px!important;
+  z-index:8!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini{
+  min-height:82px!important;
+  padding:12px 16px!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,rgba(15,53,83,.88),rgba(8,31,49,.92))!important;
+  border:1px solid rgba(82,171,228,.28)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini.primary{background:linear-gradient(180deg,rgba(21,79,121,.92),rgba(12,49,81,.94))!important;}
+.av7-kpi-strip-inside .av7-kpi-mini.trend{background:linear-gradient(180deg,rgba(15,63,92,.90),rgba(9,37,60,.94))!important;}
+.av7-kpi-strip-inside .av7-kpi-mini.flow{background:linear-gradient(180deg,rgba(13,54,84,.90),rgba(9,35,58,.94))!important;}
+.av7-kpi-strip-inside .av7-kpi-mini:after{display:none!important;}
+.av7-kpi-strip-inside .av7-kpi-mini .label{
+  font-size:11px!important;
+  line-height:1.2!important;
+  letter-spacing:.02em!important;
+  margin-bottom:6px!important;
+  color:#c9e8f8!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini .value{
+  font-size:clamp(22px,2.25vw,32px)!important;
+  line-height:1!important;
+  margin:0!important;
+  color:#ffffff!important;
+  text-shadow:0 2px 10px rgba(2,10,18,.18)!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini .sub{
+  margin-top:6px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  color:#9fc2d8!important;
+}
+.av7-kpi-strip-inside .av7-kpi-mini.primary .dot{background:#45e2c6!important;box-shadow:0 0 8px rgba(69,226,198,.45)!important;}
+.av7-visual-focus{
+  top:18px!important;
+  right:18px!important;
+  z-index:9!important;
+  padding:8px 14px!important;
+  font-size:11px!important;
+}
+.av7-data{
+  top:76px!important;
+  right:16px!important;
+  width:clamp(270px,23vw,320px)!important;
+  padding:16px 15px 14px!important;
+  border-radius:22px!important;
+}
+.av7-data-grid{gap:10px!important;}
+.av7-data-cell{
+  border-radius:16px!important;
+  padding:11px 11px 10px 13px!important;
+}
+.av7-data-cell b{font-size:clamp(17px,1.55vw,22px)!important;}
+.av7-data-cell span{font-size:10px!important;min-height:24px!important;}
+.av7-available{padding:14px!important;border-radius:18px!important;}
+.av7-available strong{font-size:clamp(28px,2.3vw,40px)!important;}
+.av7-control-row{padding:11px 0!important;}
+.av7-diagram-foot{
+  background:linear-gradient(180deg,rgba(6,22,35,.08),rgba(6,22,35,.76))!important;
+  padding:8px 14px!important;
+  font-size:11px!important;
+}
+.av7-bottom-extras{gap:8px!important;flex-wrap:wrap!important;}
+.av7-bottom-extras>span,.av7-level-legend>span{
+  background:rgba(14,41,61,.92)!important;
+  border:1px solid rgba(91,148,188,.25)!important;
+  font-size:11px!important;
+}
+/* full screen only shows the image region cleanly */
+.av7-diagram:fullscreen .av7-kpi-strip-inside,
+.av7-diagram:-webkit-full-screen .av7-kpi-strip-inside{
+  right:350px!important;
+}
+.av7-diagram:fullscreen .av7-data,
+.av7-diagram:-webkit-full-screen .av7-data{
+  top:84px!important;
+  right:20px!important;
+  width:min(340px,24vw)!important;
+}
+@media (max-width:1200px){
+  .av7-diagram{padding-top:104px!important;min-height:660px!important}
+  .av7-diagram .av-dam-visual{min-height:660px!important;height:660px!important}
+  .av7-kpi-strip-inside{right:300px!important;gap:8px!important}
+  .av7-kpi-strip-inside .av7-kpi-mini{padding:11px 12px!important;min-height:78px!important}
+  .av7-data{width:280px!important}
+}
+@media (max-width:980px){
+  .av7-diagram{padding-top:164px!important;min-height:760px!important}
+  .av7-diagram .av-dam-visual{min-height:760px!important;height:760px!important}
+  .av7-kpi-strip-inside{right:16px!important;grid-template-columns:1fr 1fr!important}
+  .av7-kpi-strip-inside .flow{grid-column:1/-1!important}
+  .av7-data{top:auto!important;bottom:56px!important;right:14px!important;width:min(320px,44vw)!important}
+}
+@media (max-width:760px){
+  .av7-diagram{padding-top:220px!important;min-height:840px!important}
+  .av7-diagram .av-dam-visual{min-height:840px!important;height:840px!important}
+  .av7-kpi-strip-inside{left:10px!important;right:10px!important;top:10px!important;grid-template-columns:1fr!important}
+  .av7-data{left:12px!important;right:12px!important;bottom:52px!important;width:auto!important;max-height:300px!important;overflow:auto!important}
+}
+</style>
+
+
+<style id="av15-cao-trinh-fix">
+.av7-fullscreen-exit{top:10px!important;left:10px!important;}
+</style>
 </head>
 <body>
 
@@ -10013,10 +10829,27 @@ body.map-fullscreen-active .v8-map{
 
         <div class="nav-quick">
           <div class="nav-section-label">Truy cập nhanh</div>
-          <a class="nav-link active" data-tab="overview">
-          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-          Tổng quan
-        </a>
+        <div class="nav-accordion open has-active" data-nav-group="overviewmenu">
+          <button type="button" class="nav-group-toggle" aria-expanded="true">
+            <span class="nav-group-icon monitoring">
+              <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            </span>
+            <span class="nav-group-copy">
+              <b>TỔNG QUAN</b>
+            </span>
+            <span class="nav-group-chevron">›</span>
+          </button>
+          <div class="nav-group-items">
+            <a class="nav-link active" data-tab="overview">
+              <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+              Tổng quan điều hành
+            </a>
+            <a class="nav-link" data-tab="overviewvisual">
+              <svg viewBox="0 0 24 24"><path d="M12 2 1 7l11 5 9-4.09V17h2V7L12 2zm0 13L1 10v7l11 5 11-5v-7l-11 5z"/></svg>
+              Trực quan hồ chứa
+            </a>
+          </div>
+        </div>
           <a class="nav-link" data-tab="chart">
           <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
           Biểu đồ
@@ -10191,7 +11024,7 @@ body.map-fullscreen-active .v8-map{
       
       <div id="tab-overview" class="tab-pane active">
         <section class="v8-overview">
-          <div class="v8-card v8-safety">
+<div class="v8-card v8-safety">
             <div class="v8-head">
               <div>
                 <div class="v8-title">An toàn công trình</div>
@@ -10214,6 +11047,7 @@ body.map-fullscreen-active .v8-map{
               <div class="v8-level purple"><div class="v8-i">🟣</div><b>MN chết</b><em>340.0 m</em><strong><span id="diff_Chet">--</span></strong><p>Cao hơn MN chết</p></div>
             </div>
           </div>
+
 
           <div class="v8-card v8-op">
             <div class="v8-title">Số liệu vận hành</div>
@@ -10268,6 +11102,7 @@ body.map-fullscreen-active .v8-map{
             </div>
           </div>
 
+          <!-- AV DAM SECTION V1: SVG visualization tied to existing renderOverview / state.lastObs -->
           <div class="v8-card v8-forecast">
             <div class="v8-title">Dự báo 7 ngày tới</div>
             <div class="v8-forecast-list">
@@ -10282,8 +11117,499 @@ body.map-fullscreen-active .v8-map{
         </section>
       </div>
 
+      <div id="tab-overviewvisual" class="tab-pane">
+        <section class="av6-card" id="avDamCard" aria-label="Trực quan hồ chứa A Vương">
+          <div class="av6-header">
+            <div>
+              <div class="av6-kicker">Trực quan mực nước hồ</div>
+              <h2>Mặt cắt đập A Vương</h2>
+              <p>Mặt cắt ngang 11 · Tập trung dải cao trình 330–380 m · Ưu tiên trực quan vận hành, giảm chữ để nổi bật hình ảnh hồ chứa</p>
+            </div>
+            <div class="av6-head-actions">
+              <span id="avDamSource" class="av6-status">Đang chờ dữ liệu</span>
+              <span id="avDamTime" class="av6-time">Chưa có thời điểm quan trắc</span>
+              <button type="button" class="av6-fullscreen" id="avDamFullscreenBtn" title="Trình chiếu hình minh họa toàn màn hình"><span>⛶</span><span data-fs-label>Full màn hình</span></button>
+            </div>
+          </div>
+
+          <div class="av7-stage">
+            <div class="av7-body">
+              <div class="av7-diagram" id="avDamDiagram">
+                                <div class="av7-diagram-tag">MẶT CẮT NGANG THÂN ĐẬP · MINH HỌA</div>
+                <div class="av7-kpi-strip av7-kpi-strip-inside" aria-label="Số liệu ưu tiên">
+                  <div class="av7-kpi-mini primary">
+                    <div class="label"><span class="dot"></span> Mực nước hồ hiện tại</div>
+                    <strong class="value" id="avDamLevelHero">--</strong>
+                    <span class="sub">Quan trắc gần nhất</span>
+                  </div>
+                  <div class="av7-kpi-mini trend" id="avDamTrendChip">
+                    <div class="label">↗ Biến thiên mực nước 24h</div>
+                    <strong class="value" id="avDamTrendHero">--</strong>
+                    <span class="sub" id="avDamTrendHeroText">Chưa có xu thế</span>
+                  </div>
+                  <div class="av7-kpi-mini flow">
+                    <div class="label">≈ Lưu lượng về hồ</div>
+                    <strong class="value" id="avDamQin">--</strong>
+                    <span class="sub">m³/s · lưu lượng hiện tại</span>
+                  </div>
+                </div>
+                <div class="av7-visual-focus">Trực quan vận hành hồ <b>A Vương</b></div>
+                <button type="button" class="av7-fs-exit" id="avDamDiagramExitBtn">⤢ Thoát full màn hình</button>
+                <div class="av-dam-visual"><svg id="avDam_avDamDrawing" viewBox="0 42 960 462" role="img" aria-label="Mặt cắt thân đập A Vương với mực nước động">
+<defs><linearGradient id="avDam_sky" x2="0" y2="1"><stop stop-color="#2b4d67"/><stop offset="1" stop-color="#133147"/></linearGradient><linearGradient id="avDam_water" x2="0" y2="1"><stop stop-color="#5bd4ff"/><stop offset=".18" stop-color="#1d9fe6"/><stop offset="1" stop-color="#0b4f8d"/></linearGradient><linearGradient id="avDam_dam" x2="1" y2=".15"><stop stop-color="#dce7e9"/><stop offset=".47" stop-color="#9faeb4"/><stop offset="1" stop-color="#607d8d"/></linearGradient><linearGradient id="avDam_ground" x2="0" y2="1"><stop stop-color="#867b70"/><stop offset="1" stop-color="#44474a"/></linearGradient><pattern id="avDam_concrete" width="18" height="24" patternUnits="userSpaceOnUse"><path d="M0 0H18 M0 24L18 0" stroke="#3f5864" stroke-opacity=".15" stroke-width=".7"/></pattern><pattern id="avDam_rock" width="45" height="34" patternUnits="userSpaceOnUse"><path d="M0 15l10 -8 17 7 18 -11M3 33l11 -9 17 6 12 -4" fill="none" stroke="#b6a89f" stroke-opacity=".25" stroke-width="2"/></pattern><clipPath id="avDam_lakeClip"><path d="M30 120 L500 120 L500 416 L470 432 L405 438 L338 439 L272 436 L210 428 L152 409 L98 391 L30 382 Z"/></clipPath><filter id="avDam_glow"><feGaussianBlur stdDeviation="3"/></filter></defs>
+<rect width="960" height="565" fill="url(#avDam_sky)"/>
+<path d="M0 205 L78 171 142 182 210 137 277 157 346 128 425 168 520 130 595 159 677 125 767 168 840 131 960 161V365H0Z" fill="#2f5569" opacity=".58"/>
+<path d="M0 263L110 217 200 236 319 192 430 230 549 199 632 224 748 198 850 222 960 185V430H0Z" fill="#254d5f" opacity=".78"/>
+<path d="M0 382L70 388 118 410 168 432 214 447 272 455 338 454 402 446 470 437 748 436 806 429 870 415 960 401V565H0Z" fill="url(#avDam_ground)"/><path d="M0 382L70 388 118 410 168 432 214 447 272 455 338 454 402 446 470 437 748 436 806 429 870 415 960 401V565H0Z" fill="url(#avDam_rock)"/>
+<g clip-path="url(#avDam_lakeClip)">
+  <rect id="avDam_waterFill" x="0" y="175" width="560" height="400" fill="url(#avDam_water)"/>
+  <g id="avDam_surface">
+    <path d="M0 0H560" fill="none" stroke="#f2ffff" stroke-width="2.6" opacity=".96"/>
+    <path d="M0 6 Q28 1 56 6T112 6T168 6T224 6T280 6T336 6T392 6T448 6T504 6T560 6" fill="none" stroke="#dbffff" stroke-width="1.9" opacity=".75"><animate attributeName="d" dur="3.4s" repeatCount="indefinite" values="M0 6 Q28 1 56 6T112 6T168 6T224 6T280 6T336 6T392 6T448 6T504 6T560 6;M0 6 Q28 11 56 6T112 6T168 6T224 6T280 6T336 6T392 6T448 6T504 6T560 6;M0 6 Q28 1 56 6T112 6T168 6T224 6T280 6T336 6T392 6T448 6T504 6T560 6"/><animateTransform attributeName="transform" type="translate" values="0 0;8 0;0 0" dur="5s" repeatCount="indefinite"/></path>
+    <path d="M-12 13 Q18 18 48 13T108 13T168 13T228 13T288 13T348 13T408 13T468 13T528 13T588 13" fill="none" stroke="#2b8fd7" stroke-width="1.2" opacity=".42"><animate attributeName="d" dur="4.6s" repeatCount="indefinite" values="M-12 13 Q18 18 48 13T108 13T168 13T228 13T288 13T348 13T408 13T468 13T528 13T588 13;M-12 13 Q18 8 48 13T108 13T168 13T228 13T288 13T348 13T408 13T468 13T528 13T588 13;M-12 13 Q18 18 48 13T108 13T168 13T228 13T288 13T348 13T408 13T468 13T528 13T588 13"/><animateTransform attributeName="transform" type="translate" values="0 0;-10 0;0 0" dur="6.2s" repeatCount="indefinite"/></path>
+  </g>
+  <g id="avDam_boat" transform="translate(235 180)">
+    <g class="boat-bob">
+      <animateTransform attributeName="transform" type="translate" values="-2 0;1 -1.2;3 0;0 1;-2 0" dur="5.6s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="-1;1.3;0;-1.2;-1" dur="5.6s" repeatCount="indefinite"/>
+        <g transform="scale(1.72)">
+          <ellipse cx="0" cy="2.2" rx="33" ry="3.3" fill="#d7fbff" opacity=".28"/>
+          <path d="M-28 -8H27L19 1H-18Z" fill="#8d5c42" stroke="#553729" stroke-width="1.1"/>
+          <path d="M-28 -8H27" stroke="#c79a6d" stroke-width="1.55"/>
+          <path d="M-2 -29V-8" stroke="#e6f7fb" stroke-width="1.5"/>
+          <path d="M-1 -29C13 -26 21 -18 22 -9H-1Z" fill="#f7fdff" stroke="#b8d9e5" stroke-width=".7"/>
+          <path d="M-3 -27L-16 -10H-3Z" fill="#afcfdd" opacity=".82"/>
+          <text x="8.5" y="-16.2" text-anchor="middle" font-size="6.7" font-weight="900" fill="#2a6785" letter-spacing=".08em">AVC</text>
+          <path d="M-31 3.5Q-21 6.5 -10 3.5T11 3.5T32 3.5" fill="none" stroke="#adf5ff" stroke-opacity=".7" stroke-width="1.15"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+<g id="avDam_damBlock" transform="translate(78 0)"><path d="M420 101L477 101L479 132L496 154L691 442L705 451L418 451Z" fill="url(#avDam_dam)" stroke="#e3f1f5" stroke-width="2"/><path d="M420 101L477 101L479 132L496 154L691 442L705 451L418 451Z" fill="url(#avDam_concrete)"/><path d="M420 101V451" stroke="#7c9aa6" stroke-width="5"/><path d="M490 162L693 445" stroke="#f4fafb" stroke-opacity=".6" stroke-width="2"/><path d="M428 184H515M428 252H562M428 322H612M428 385H659" stroke="#47616e" stroke-opacity=".32" stroke-width="2"/><path d="M416 100V83H486V100" fill="#b6cad0" stroke="#e5f1f5" stroke-width="2"/><g stroke="#dcecf3" stroke-width="3"><path d="M404 81H496M410 81V68M424 81V68M438 81V68M452 81V68M466 81V68M480 81V68M494 81V68"/></g><path d="M419 447L709 447L742 465H410Z" fill="#69828a" stroke="#dce5e9" stroke-width="2"/><text x="610" y="280" font-size="15" font-weight="700" fill="#35505f" fill-opacity=".35" transform="rotate(53 610 280)">THÂN ĐẬP BÊ TÔNG</text></g>
+<g id="avDam_datum"><line x1="34" x2="492" y1="0" y2="0" stroke="#f5c15e" stroke-width="1.6" stroke-dasharray="7 6" opacity=".78"/><text x="38" y="-10" class="threshold" text-anchor="start" fill="#ffd27d">Ngưỡng tràn 363 m</text></g><g id="avDam_normalDatum"><line x1="34" x2="492" y1="0" y2="0" stroke="#65b8ff" stroke-width="1.6" stroke-dasharray="7 6" opacity=".82"/><text x="38" y="-10" class="threshold" text-anchor="start" fill="#a4ddff">MNDBT 380 m</text></g><g id="avDam_floodDatum"><line x1="34" x2="492" y1="0" y2="0" stroke="#58f0c9" stroke-width="1.6" stroke-dasharray="7 6" opacity=".84"/><text x="38" y="-10" class="threshold" text-anchor="start" fill="#8ff8dd">Mực nước đón lũ 370 m</text></g><g id="avDam_deadDatum"><line x1="34" x2="492" y1="0" y2="0" stroke="#fb8588" stroke-width="1.6" stroke-dasharray="7 6" opacity=".78"/><text x="38" y="-10" class="threshold" text-anchor="start" fill="#ff9ea0">MNC 340 m</text></g>
+<g><line x1="470" x2="470" y1="79" y2="482" stroke="#c2dceb" stroke-width="2" opacity=".95"/><text x="540" y="46" text-anchor="middle" font-size="12" fill="#d5eafb" font-weight="700">CAO TRÌNH (m)</text><g id="avDam_ticks"></g></g>
+<g id="avDam_current"><line x1="28" x2="466" y1="0" y2="0" stroke="#36ffd4" stroke-width="2.4" stroke-dasharray="10 5" opacity=".96"/><circle cx="470" cy="0" r="7" fill="#36ffd4" stroke="#063f4c" stroke-width="3"/><rect x="486" y="-16" width="106" height="31" rx="8" fill="#075b5c" stroke="#40e7bd"/><text id="avDam_floating" x="539" y="5" text-anchor="middle" font-size="16" font-weight="850" fill="#eafffc">372.50 m</text></g>
+<text x="44" y="98" fill="#d2e8f5" font-size="12" font-weight="700" opacity=".96">THƯỢNG LƯU · HỒ CHỨA</text><text x="599" y="98" fill="#d2e8f5" font-size="12" font-weight="700" opacity=".96">HẠ LƯU</text></svg></div>
+                <aside class="av7-data" aria-label="Thông tin dung tích và điều tiết">
+                <div class="av7-section-label">DUNG TÍCH HỒ CHỨA</div>
+                <div class="av7-available">
+                  <span>Dung tích trống đến MNDBT</span>
+                  <div><strong id="avDamEmpty">--</strong><small>triệu m³</small></div>
+                  <div class="av7-bar"><div id="avDamFillPct" class="av7-bar-fill"></div></div>
+                  <p id="avDamCapacityCaption">Dung tích toàn bộ đã sử dụng: --</p>
+                </div>
+                <div class="av7-data-grid">
+                  <div class="av7-data-cell blue"><span>Dung tích hiện tại</span><b id="avDamVolumeHero">--</b><small>triệu m³</small></div>
+                  <div class="av7-data-cell cyan"><span>Dung tích hữu ích còn lại</span><b id="avDamUsefulLeft">--</b><small>triệu m³</small></div>
+                  <div class="av7-data-cell green"><span>Tỷ lệ toàn bộ</span><b id="avDamPercentTotal">--</b><small>so với dung tích toàn bộ</small></div>
+                  <div class="av7-data-cell violet"><span>Tỷ lệ hữu ích</span><b id="avDamPercentUseful">--</b><small>so với dung tích hữu ích</small></div>
+                </div>
+                <div class="av7-section-label av7-second-head">THEO DÕI ĐIỀU TIẾT</div>
+                <div class="av7-control-row"><span>Khoảng cách đến ngưỡng tràn</span><b id="avDamToSpill">--</b></div>
+                <div class="av7-control-row"><span>Lưu lượng qua máy</span><b id="avDamTurbine">-- <small>m³/s</small></b></div>
+                <div class="av7-control-row"><span>Lưu lượng xả</span><b id="avDamSpill">-- <small>m³/s</small></b></div>
+                <div class="av7-control-row"><span>Xu thế 24h</span><b id="avDamTrend">--</b></div>
+              </aside>
+                <div class="av7-diagram-foot">
+                  <span><i></i>Nước biến đổi theo cao trình quan trắc</span>
+                  <span>Vùng ưu tiên 330–380 m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="av7-bottom">
+              <div class="av7-level-legend">
+                <span><i></i>MNDBT <b>380 m</b></span>
+                <span><i class="teal"></i>MN đón lũ <b>370 m</b></span>
+                <span><i class="amber"></i>Ngưỡng tràn <b>363 m</b></span>
+                <span><i class="red"></i>MNC <b>340 m</b></span>
+              </div>
+              <div class="av7-bottom-extras">
+                <span id="avDamAboveDeadChip">Cao hơn MNC: --</span>
+                <span id="avDamToNormalChip">So với MNDBT: --</span>
+                <span id="avDamReading">Mực nước: --</span>
+              </div>
+            </div>
+            <p class="av7-disclaimer">Sơ đồ mặt cắt được giản lược để trực quan hóa, có bổ sung thuyền minh họa động nhẹ trên mặt hồ; không thay thế bản vẽ kỹ thuật.</p>
+          </div>
+        </section>
+      </div>
+
+
+
+<style id="av-chart-fullscreen-header-fix">
+/* V20.3 - Fullscreen control at chart header right, no overlap with legend/plot */
+#tab-chart .av-chart-head{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+}
+
+#tab-chart .av-chart-head-right{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:7px !important;
+  min-width:0 !important;
+}
+
+#tab-chart .av-chart-fs-head-btn{
+  width:auto !important;
+  min-width:78px !important;
+  height:27px !important;
+  min-height:27px !important;
+  padding:0 8px !important;
+  margin:0 !important;
+
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:4px !important;
+
+  border:1px solid #0b67b2 !important;
+  border-radius:7px !important;
+  background:#fff !important;
+  color:#075b9d !important;
+  box-shadow:none !important;
+
+  font-size:10px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  cursor:pointer !important;
+}
+
+#tab-chart .av-chart-fs-head-btn:hover{
+  background:#f3f8ff !important;
+}
+
+#tab-chart .av-chart-fs-head-btn:active{
+  transform:translateY(1px) !important;
+}
+
+#tab-chart .av-chart-fs-head-btn .av-chart-fs-icon{
+  font-size:12px !important;
+  line-height:1 !important;
+}
+
+/* Disable old in-plot fullscreen button styling from V20.2 */
+#tab-chart #mainChartFullscreenArea > .av-chart-fs-btn{
+  display:none !important;
+}
+
+/* In native/fallback fullscreen show the same small control at top-right of plot */
+#mainChartFullscreenArea:fullscreen .av-chart-fs-head-btn,
+#mainChartFullscreenArea:-webkit-full-screen .av-chart-fs-head-btn,
+#mainChartFullscreenArea.av-fs-active .av-chart-fs-head-btn{
+  display:none !important;
+}
+
+/* Dedicated exit button rendered by JS only while fullscreen */
+#avChartFullscreenExitBtn{
+  position:absolute !important;
+  top:10px !important;
+  right:12px !important;
+  z-index:100 !important;
+  width:auto !important;
+  min-width:54px !important;
+  height:25px !important;
+  padding:0 7px !important;
+  border:1px solid #111827 !important;
+  border-radius:6px !important;
+  background:#fff !important;
+  color:#111827 !important;
+  font-size:10px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+}
+
+@media(max-width:760px){
+  #tab-chart .av-chart-head-right{
+    gap:5px !important;
+  }
+  #tab-chart .av-chart-fs-head-btn{
+    min-width:30px !important;
+    width:30px !important;
+    padding:0 !important;
+  }
+  #tab-chart .av-chart-fs-head-btn #avChartFullscreenText{
+    display:none !important;
+  }
+}
+</style>
+
+<style id="av-chart-fullscreen-style">
+/* =========================================================
+   CLEAN fullscreen - Thac Mo style
+   Only the plot area goes fullscreen.
+   ========================================================= */
+
+#tab-chart #mainChartFullscreenArea{
+  position:relative;
+  background:#fff;
+}
+
+/* Small button inside top-right of plot */
+#tab-chart #mainChartFullscreenArea .av-chart-fs-btn{
+  position:absolute;
+  top:8px;
+  right:10px;
+  z-index:50;
+
+  width:auto;
+  min-width:90px;
+  height:29px;
+  padding:0 9px;
+  margin:0;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+
+  border:1px solid #0870c1;
+  border-radius:7px;
+  background:rgba(255,255,255,.97);
+  color:#075f9f;
+  box-shadow:0 1px 4px rgba(15,23,42,.08);
+
+  font:800 11px/1 Arial,Helvetica,sans-serif;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+#tab-chart #mainChartFullscreenArea .av-chart-fs-btn:hover{
+  background:#f1f7ff;
+}
+
+#tab-chart #mainChartFullscreenArea .av-chart-fs-btn:active{
+  transform:translateY(1px);
+}
+
+#tab-chart #mainChartFullscreenArea .av-chart-fs-icon{
+  font-size:13px;
+  line-height:1;
+}
+
+/* Native fullscreen */
+#mainChartFullscreenArea:fullscreen,
+#mainChartFullscreenArea:-webkit-full-screen{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:14px 16px 8px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  background:#fff !important;
+}
+
+/* CSS fallback if browser blocks Fullscreen API */
+body.av-fs-fallback-open{
+  overflow:hidden !important;
+}
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483000 !important;
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:14px 16px 8px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  background:#fff !important;
+}
+
+/* Canvas fills the fullscreen plot area */
+#mainChartFullscreenArea:fullscreen canvas,
+#mainChartFullscreenArea:-webkit-full-screen canvas,
+#mainChartFullscreenArea.av-fs-active canvas{
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+
+/* Exit button: compact, like Thac Mo */
+#mainChartFullscreenArea:fullscreen .av-chart-fs-btn,
+#mainChartFullscreenArea:-webkit-full-screen .av-chart-fs-btn,
+#mainChartFullscreenArea.av-fs-active .av-chart-fs-btn{
+  top:10px;
+  right:12px;
+  min-width:57px;
+  height:26px;
+  padding:0 7px;
+  border-color:#111827;
+  color:#111827;
+  background:#fff;
+  font-size:10.5px;
+  box-shadow:none;
+}
+
+@media(max-width:680px){
+  #tab-chart #mainChartFullscreenArea .av-chart-fs-btn{
+    min-width:34px;
+    width:34px;
+    height:28px;
+    padding:0;
+  }
+  #tab-chart #mainChartFullscreenArea .av-chart-fs-btn span:last-child{
+    display:none;
+  }
+}
+</style>
+
+
+
+<style id="av-chart-fullscreen-tabs-fix">
+/* =========================================================
+   V20.4 - FULLSCREEN GIỮ CÁC NÚT CHỌN BIỂU ĐỒ
+   Fullscreen target = cardBody:
+   [chart tabs] + [chart] + [scenario toggle]
+   ========================================================= */
+
+/* Normal mode unchanged */
+#tab-chart #mainChartFullscreenArea{
+  position:relative;
+}
+
+/* Native fullscreen + fallback */
+#mainChartFullscreenArea:fullscreen,
+#mainChartFullscreenArea:-webkit-full-screen,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:12px 14px 10px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  background:#fff !important;
+
+  display:flex !important;
+  flex-direction:column !important;
+  gap:6px !important;
+}
+
+/* Tabs remain visible at the top */
+#mainChartFullscreenArea:fullscreen > .tabs,
+#mainChartFullscreenArea:-webkit-full-screen > .tabs,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs{
+  flex:0 0 auto !important;
+  margin:0 !important;
+  padding:0 72px 4px 0 !important; /* reserve space for Exit */
+  min-height:0 !important;
+}
+
+/* Make chart selector buttons a little more compact in fullscreen */
+#mainChartFullscreenArea:fullscreen > .tabs button,
+#mainChartFullscreenArea:-webkit-full-screen > .tabs button,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs button{
+  min-height:34px !important;
+  height:34px !important;
+  padding:0 9px !important;
+  font-size:10px !important;
+}
+
+/* Chart takes all remaining height */
+#mainChartFullscreenArea:fullscreen > .chartWrap,
+#mainChartFullscreenArea:-webkit-full-screen > .chartWrap,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .chartWrap{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  height:auto !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  position:relative !important;
+  overflow:hidden !important;
+  background:#fff !important;
+}
+
+/* Canvas fills chartWrap, not the whole cardBody */
+#mainChartFullscreenArea:fullscreen > .chartWrap > canvas,
+#mainChartFullscreenArea:-webkit-full-screen > .chartWrap > canvas,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .chartWrap > canvas{
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  max-height:none !important;
+}
+
+/* Scenario hide/show button remains at bottom */
+#mainChartFullscreenArea:fullscreen > .long-chart-mini-actions,
+#mainChartFullscreenArea:-webkit-full-screen > .long-chart-mini-actions,
+body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-mini-actions{
+  flex:0 0 auto !important;
+  min-height:30px !important;
+  margin:0 !important;
+  padding-top:2px !important;
+}
+
+/* Exit button stays clear of chart selector buttons */
+#mainChartFullscreenArea #avChartFullscreenExitBtn{
+  top:9px !important;
+  right:12px !important;
+  z-index:200 !important;
+}
+
+/* In fullscreen, use screen width better for the chart selector grid */
+@media(min-width:1100px){
+  #mainChartFullscreenArea:fullscreen > .tabs,
+  #mainChartFullscreenArea:-webkit-full-screen > .tabs,
+  body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs{
+    grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+    gap:6px !important;
+  }
+}
+
+@media(max-width:1099px){
+  #mainChartFullscreenArea:fullscreen > .tabs,
+  #mainChartFullscreenArea:-webkit-full-screen > .tabs,
+  body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs{
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+}
+
+@media(max-width:680px){
+  #mainChartFullscreenArea:fullscreen,
+  #mainChartFullscreenArea:-webkit-full-screen,
+  body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active{
+    padding:8px !important;
+  }
+
+  #mainChartFullscreenArea:fullscreen > .tabs,
+  #mainChartFullscreenArea:-webkit-full-screen > .tabs,
+  body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    padding-right:58px !important;
+    gap:4px !important;
+  }
+
+  #mainChartFullscreenArea:fullscreen > .tabs button,
+  #mainChartFullscreenArea:-webkit-full-screen > .tabs button,
+  body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .tabs button{
+    height:31px !important;
+    min-height:31px !important;
+    font-size:9px !important;
+    padding:0 5px !important;
+  }
+}
+</style>
+
 
       <!-- TAB: Chart -->
+
       <div id="tab-chart" class="tab-pane">
         <section class="card control-card chart-control-compact">
           <div class="chart-control-inline">
@@ -10295,8 +11621,24 @@ body.map-fullscreen-active .v8-map{
         </section>
 
         <section class="card chart-card">
-          <div class="cardHead"><b>Biểu đồ</b> <span class="chip" id="chartRange">...</span></div>
-          <div class="cardBody">
+          <div class="cardHead av-chart-head">
+            <b>Biểu đồ</b>
+            <div class="av-chart-head-right">
+              <span class="chip" id="chartRange">...</span>
+              <button
+                type="button"
+                class="av-chart-fs-head-btn"
+                id="avChartFullscreenBtn"
+                onclick="toggleAvChartFullscreen()"
+                title="Mở biểu đồ toàn màn hình"
+                aria-label="Mở biểu đồ toàn màn hình"
+              >
+                <span class="av-chart-fs-icon" aria-hidden="true">⛶</span>
+                <span id="avChartFullscreenText">Fullscreen</span>
+              </button>
+            </div>
+          </div>
+          <div class="cardBody" id="mainChartFullscreenArea">
             <div class="tabs" id="tabs"></div>
             <div class="chartWrap">
               <canvas id="chart"></canvas>
@@ -10304,9 +11646,170 @@ body.map-fullscreen-active .v8-map{
             <div class="long-chart-mini-actions">
               <button type="button" class="long-scenario-mini-btn" id="longScenarioToggleBtn" onclick="toggleLongScenarios()">Ẩn 6 kịch bản</button>
               <button type="button" class="long-scenario-mini-btn" id="lstmScenarioToggleBtn" onclick="toggleLstmScenarios()" style="display:none">Ẩn 7 kịch bản</button>
+              <button type="button" class="long-scenario-mini-btn" id="cnnLstmScenarioToggleBtn" onclick="toggleCnnLstmScenarios()" style="display:none">Ẩn 7 kịch bản CNN-LSTM</button>
             </div>
           </div>
+
         </section>
+
+<script id="av-chart-fullscreen-script">
+(function(){
+  "use strict";
+
+  function area(){
+    return document.getElementById("mainChartFullscreenArea");
+  }
+
+  function headerBtn(){
+    return document.getElementById("avChartFullscreenBtn");
+  }
+
+  function nativeFsEl(){
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function getMainChart(){
+    try{
+      var canvas = document.getElementById("chart");
+      if(!canvas || !window.Chart) return null;
+      if(typeof window.Chart.getChart === "function"){
+        return window.Chart.getChart(canvas) || window.Chart.getChart("chart") || null;
+      }
+      if(window.Chart.instances){
+        var values = Object.values(window.Chart.instances);
+        for(var i=0;i<values.length;i++){
+          if(values[i] && values[i].canvas === canvas) return values[i];
+        }
+      }
+    }catch(e){
+      console.warn("Fullscreen chart lookup:", e);
+    }
+    return null;
+  }
+
+  function resizeChart(){
+    function run(){
+      try{
+        var c = getMainChart();
+        if(c && typeof c.resize === "function"){
+          c.resize();
+          if(typeof c.update === "function") c.update("none");
+        }
+      }catch(e){
+        console.warn("Fullscreen chart resize:", e);
+      }
+    }
+    requestAnimationFrame(function(){ requestAnimationFrame(run); });
+    setTimeout(run, 160);
+    setTimeout(run, 360);
+  }
+
+  function ensureExitButton(){
+    var a = area();
+    if(!a) return null;
+    var b = document.getElementById("avChartFullscreenExitBtn");
+    if(!b){
+      b = document.createElement("button");
+      b.type = "button";
+      b.id = "avChartFullscreenExitBtn";
+      b.textContent = "Exit";
+      b.title = "Thoát toàn màn hình";
+      b.onclick = function(){ window.toggleAvChartFullscreen(); };
+      a.appendChild(b);
+    }
+    return b;
+  }
+
+  function removeExitButton(){
+    var b = document.getElementById("avChartFullscreenExitBtn");
+    if(b && b.parentNode) b.parentNode.removeChild(b);
+  }
+
+  function setState(active){
+    var a = area();
+    var hb = headerBtn();
+    if(!a) return;
+
+    a.classList.toggle("av-fs-active", !!active);
+
+    if(hb){
+      hb.disabled = !!active;
+      hb.style.opacity = active ? "0.55" : "";
+    }
+
+    if(active) ensureExitButton();
+    else removeExitButton();
+
+    resizeChart();
+  }
+
+  window.toggleAvChartFullscreen = async function(){
+    var a = area();
+    if(!a) return;
+
+    var nativeActive = nativeFsEl() === a;
+    var fallbackActive = document.body.classList.contains("av-fs-fallback-open");
+
+    if(nativeActive){
+      try{
+        if(document.exitFullscreen) await document.exitFullscreen();
+        else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }catch(e){
+        console.warn("Exit fullscreen:", e);
+      }
+      return;
+    }
+
+    if(fallbackActive){
+      document.body.classList.remove("av-fs-fallback-open");
+      setState(false);
+      return;
+    }
+
+    try{
+      if(a.requestFullscreen){
+        await a.requestFullscreen();
+        return;
+      }
+      if(a.webkitRequestFullscreen){
+        a.webkitRequestFullscreen();
+        return;
+      }
+    }catch(e){
+      console.warn("Native fullscreen unavailable; using fallback:", e);
+    }
+
+    document.body.classList.add("av-fs-fallback-open");
+    setState(true);
+  };
+
+  function onFsChange(){
+    var a = area();
+    if(!a) return;
+    var active = nativeFsEl() === a;
+
+    if(active){
+      document.body.classList.remove("av-fs-fallback-open");
+      setState(true);
+    }else if(!document.body.classList.contains("av-fs-fallback-open")){
+      setState(false);
+    }
+  }
+
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" &&
+       document.body.classList.contains("av-fs-fallback-open")){
+      document.body.classList.remove("av-fs-fallback-open");
+      setState(false);
+    }
+  });
+
+  window.addEventListener("resize", resizeChart);
+})();
+</script>
 
         <section class="card rain6-card">
           <div class="rain6-head">
@@ -10524,18 +12027,81 @@ body.map-fullscreen-active .v8-map{
             7 kịch bản gồm ECMWF, GFS, ICON, AIFS, CMA, JMA và OpenMeteo Best. Mô hình đang ở chế độ <b>SHADOW</b>.
           </div>
         </section>
+        <section class="card long-data-card" id="cnnLstmH120DataCard" style="display:none">
+          <div class="long-data-head">
+            <div>
+              <div class="long-data-title">Số liệu CNN-LSTM H120 V3.1</div>
+              <div class="long-data-sub" id="cnnLstmH120TableInfo">Q thực gần thời điểm phát hành + dự báo H01…H120 + 7 kịch bản mưa • SHADOW.</div>
+            </div>
+            <div class="long-data-actions">
+              <button type="button" class="long-action-btn excel" onclick="exportCnnLstmH120Excel()">📥 Xuất Excel</button>
+            </div>
+          </div>
+
+          <div class="long-panel past-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Số liệu đã qua</div>
+                <div class="long-panel-sub">24 mốc giờ gần nhất trước thời điểm phát hành. Q thực và mưa thực lấy từ quan trắc; forecast lịch sử lấy đúng issue CNN-LSTM đã phát hành trước đó, thiếu thì hiển thị “-”.</div>
+              </div>
+              <span class="long-panel-chip" id="cnnLstmPastCount">0 dòng</span>
+            </div>
+            <div class="long-table-wrap past-table-wrap">
+              <table class="long-table aligned-long-table past-table" id="cnnLstmPastTable">
+                <colgroup>
+                  <col class="col-time"><col class="col-lead"><col class="col-q-real"><col class="col-q-min"><col class="col-q-max">
+                  <col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-rain">
+                </colgroup>
+                <thead><tr>
+                  <th>Thời gian</th><th>Lead</th><th>Q thực</th><th>Q Min</th><th>Q Max</th>
+                  <th>Q ECMWF</th><th>Q GFS</th><th>Q ICON</th><th>Q AIFS</th><th>Q CMA</th><th>Q JMA</th><th>Q O-M Best</th><th>Mưa thực</th>
+                </tr></thead>
+                <tbody id="cnnLstmPastTableBody"><tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Đang tải số liệu đã qua...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="long-panel forecast-panel">
+            <div class="long-panel-head">
+              <div>
+                <div class="long-panel-title">Kết quả dự báo CNN-LSTM H120 V3.1</div>
+                <div class="long-panel-sub">H000 là điểm nối phát hành; H001–H120 là dự báo từng giờ. Hiển thị q_forecast sau hiệu chỉnh short-horizon với 7 kịch bản mưa.</div>
+              </div>
+              <span class="long-panel-chip forecast" id="cnnLstmForecastCount">0 dòng</span>
+            </div>
+            <div class="long-table-wrap forecast-table-wrap">
+              <table class="long-table aligned-long-table forecast-table" id="cnnLstmForecastTable">
+                <colgroup>
+                  <col class="col-time"><col class="col-lead"><col class="col-q-real"><col class="col-q-min"><col class="col-q-max">
+                  <col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-model"><col class="col-rain">
+                </colgroup>
+                <thead><tr>
+                  <th>Thời gian</th><th>Lead</th><th>Q thực</th><th>Q Min</th><th>Q Max</th>
+                  <th>Q ECMWF</th><th>Q GFS</th><th>Q ICON</th><th>Q AIFS</th><th>Q CMA</th><th>Q JMA</th><th>Q O-M Best</th><th>Mưa 6NWP mean</th>
+                </tr></thead>
+                <tbody id="cnnLstmForecastTableBody"><tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Đang chờ dữ liệu dự báo CNN-LSTM V3.1...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="long-data-note">
+            CNN-LSTM V3.1 dùng <b>P50</b> làm đường trung tâm; <b>P25–P75</b> là dải đồng thuận chính và <b>Min–Max</b> là dải toàn phần của 7 kịch bản.
+            Các kịch bản gồm ECMWF, GFS, ICON, AIFS, CMA, JMA và OpenMeteo Best. Mô hình hiện chạy <b>SHADOW</b>, chưa promote/blend production.
+          </div>
+        </section>
+
 </div>
 
 
-      <!-- TAB: MODEL SHADOW EVALUATION -->
+      <!-- TAB: MODEL SHADOW EVALUATION - V5 / FAIR5 -->
       <div id="tab-modeleval" class="tab-pane">
         <section class="shadow-page">
 
           <div class="shadow-hero">
             <div>
-              <div class="shadow-kicker">Shadow validation • A Vương</div>
+              <div class="shadow-kicker">Shadow validation • A Vương • V5</div>
               <h2>Đánh giá mô hình dự báo Q</h2>
-              <p>So sánh Persistence, RF V1, Long-H120 và LSTM-H120. Bảng Fair4 chỉ xếp hạng khi cả 4 mô hình cùng có dự báo tại đúng forecast_time và cùng lead.</p>
+              <p>So sánh Persistence, RF V1, Long-H120, LSTM-H120 và CNN-LSTM V3.1. Bảng Fair5 chỉ xếp hạng khi đủ cả 5 mô hình trên cùng issue_time, forecast_time và lead.</p>
               <div class="shadow-status" id="shadowFairStatus">Đang kiểm tra dữ liệu...</div>
               <span class="shadow-phase" id="shadowPhaseBadge">SHADOW WARM-UP</span>
             </div>
@@ -10548,28 +12114,39 @@ body.map-fullscreen-active .v8-map{
               <div class="value" id="shadowLatestObs">--</div>
               <div class="sub" id="shadowLatestObsQ">Chưa tải dữ liệu</div>
             </div>
+
             <div class="shadow-kpi long">
               <div class="label">Long-H120</div>
               <div class="value" id="shadowLongN">0</div>
               <div class="sub" id="shadowLongMae">MAE tổng: --</div>
             </div>
+
             <div class="shadow-kpi lstm">
               <div class="label">LSTM-H120</div>
               <div class="value" id="shadowLstmN">0</div>
               <div class="sub" id="shadowLstmMae">MAE tổng: --</div>
             </div>
+
+            <div class="shadow-kpi cnn">
+              <div class="label">CNN-LSTM V3.1</div>
+              <div class="value" id="shadowCnnN">0</div>
+              <div class="sub" id="shadowCnnMae">MAE tổng: --</div>
+            </div>
+
             <div class="shadow-kpi rf">
               <div class="label">RF V1</div>
               <div class="value" id="shadowRfN">0</div>
               <div class="sub" id="shadowRfMae">MAE tổng: --</div>
             </div>
+
             <div class="shadow-kpi persist">
               <div class="label">Persistence</div>
               <div class="value" id="shadowPersistN">0</div>
               <div class="sub" id="shadowPersistMae">MAE tổng: --</div>
             </div>
+
             <div class="shadow-kpi fair">
-              <div class="label">Horizon Fair4 có mẫu</div>
+              <div class="label">Horizon Fair5 có mẫu</div>
               <div class="value" id="shadowFairHorizonCount">0/5</div>
               <div class="sub" id="shadowFairSampleText">Chờ Q thực tương lai</div>
             </div>
@@ -10577,15 +12154,15 @@ body.map-fullscreen-active .v8-map{
 
           <div class="shadow-wait" id="shadowWaitBox">
             <div>⏳</div>
-            <div><b>Chưa có mẫu Fair4 chung.</b> Dashboard vẫn hiển thị thống kê shadow hiện có; khi Q thực đi tới các forecast_time của cycle mới, bảng xếp hạng công bằng sẽ tự xuất hiện.</div>
+            <div><b>Chưa có mẫu Fair5 chung.</b> Dashboard vẫn hiển thị thống kê shadow hiện có; Fair5 sẽ xuất hiện khi Q thực đi tới forecast_time và đủ cả 5 mô hình trên cùng cycle.</div>
           </div>
 
           <div class="shadow-grid-2">
             <section class="shadow-card">
               <div class="shadow-card-head">
                 <div>
-                  <div class="shadow-card-title">MAE theo horizon</div>
-                  <div class="shadow-card-sub" id="shadowMaeMode">Tạm hiển thị số liệu shadow hiện có; sẽ tự chuyển sang Fair4 khi có mẫu chung.</div>
+                  <div class="shadow-card-title">MAE theo horizon • 5 mô hình</div>
+                  <div class="shadow-card-sub" id="shadowMaeMode">Tạm hiển thị số liệu shadow hiện có; sẽ tự chuyển sang Fair5 khi có mẫu chung.</div>
                 </div>
                 <span class="shadow-chip">H01 • H03 • H06 • H12 • H24</span>
               </div>
@@ -10595,8 +12172,8 @@ body.map-fullscreen-active .v8-map{
             <section class="shadow-card">
               <div class="shadow-card-head">
                 <div>
-                  <div class="shadow-card-title">Long-H120 vs LSTM-H120</div>
-                  <div class="shadow-card-sub" id="shadowPairMode">So sánh theo các horizon có dữ liệu kiểm chứng.</div>
+                  <div class="shadow-card-title">Long vs LSTM vs CNN-LSTM</div>
+                  <div class="shadow-card-sub" id="shadowPairMode">Theo dõi MAE của 3 mô hình H120 trên các horizon đã được Q thực kiểm chứng.</div>
                 </div>
                 <span class="shadow-chip">đến H120</span>
               </div>
@@ -10607,11 +12184,12 @@ body.map-fullscreen-active .v8-map{
           <section class="shadow-card">
             <div class="shadow-card-head">
               <div>
-                <div class="shadow-card-title">Bảng xếp hạng Fair4</div>
-                <div class="shadow-card-sub">Chỉ dùng các mẫu cùng forecast_time + cùng lead + đủ cả 4 mô hình. Hạng 1 = MAE nhỏ nhất.</div>
+                <div class="shadow-card-title">Bảng xếp hạng Fair5</div>
+                <div class="shadow-card-sub">Chỉ dùng mẫu cùng issue_time + forecast_time + lead và đủ 5 mô hình. Hạng 1 = MAE nhỏ nhất.</div>
               </div>
               <span class="shadow-chip" id="shadowFairRowsChip">0 dòng</span>
             </div>
+
             <div class="shadow-table-wrap">
               <table class="shadow-table">
                 <thead>
@@ -10631,10 +12209,11 @@ body.map-fullscreen-active .v8-map{
             <div class="shadow-card-head">
               <div>
                 <div class="shadow-card-title">Số liệu shadow hiện có</div>
-                <div class="shadow-card-sub">Bảng này cho phép theo dõi ngay từ hôm nay, nhưng chưa dùng để kết luận mô hình nào tốt hơn nếu n khác nhau.</div>
+                <div class="shadow-card-sub">Theo dõi toàn bộ mẫu đã kiểm chứng của 5 mô hình. Không dùng bảng raw để kết luận hơn/kém khi n giữa các mô hình khác nhau.</div>
               </div>
               <span class="shadow-chip" id="shadowRawRowsChip">0 dòng</span>
             </div>
+
             <div class="shadow-table-wrap">
               <table class="shadow-table">
                 <thead>
@@ -10652,7 +12231,7 @@ body.map-fullscreen-active .v8-map{
 
           <div class="shadow-wait" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">
             <div>ℹ️</div>
-            <div><b>Nguyên tắc sử dụng:</b> chưa promote/blend mô hình chỉ vì MAE tạm thời thấp. Ưu tiên bảng Fair4, theo dõi đủ mẫu theo H01/H03/H06/H12/H24; Long/LSTM tiếp tục theo dõi H48/H72/H120 khi Q thực đi tới.</div>
+            <div><b>Nguyên tắc sử dụng:</b> chưa promote/blend mô hình chỉ vì MAE tạm thời thấp. Ưu tiên Fair5 tại H01/H03/H06/H12/H24; Long/LSTM/CNN-LSTM tiếp tục theo dõi H48/H72/H120 khi Q thực đi tới. Mọi kết luận cần xét đồng thời n, MAE, RMSE và Bias.</div>
           </div>
 
         </section>
@@ -14516,6 +16095,7 @@ body.map-fullscreen-active .v8-map{
     // Long-H120 đặt đầu tiên: P50 hourly H01-H120 + dải P10-P90 + 6 scenario.
     IN_OBS_FC_LONG_H120:{name:"Q Long H120",hint:"Thực tế vs Long-H120 (P50 + P25–P75 + Min–Max, H01…H120)",color:'2, 132, 199'},
     IN_OBS_FC_LSTM_H120:{name:"Q LSTM H120",hint:"Thực tế vs LSTM-H120 (P50 + P25–P75 + Min–Max, 7 kịch bản, H01…H120)",color:'124, 58, 237'},
+    IN_OBS_FC_CNN_LSTM_H120:{name:"Q CNN-LSTM H120",hint:"Thực tế vs CNN-LSTM V3.1 (P50 + P25–P75 + Min–Max, 7 kịch bản, H01…H120)",color:'219, 39, 119'},
 
     // Giữ RF V1 để benchmark/shadow.
     IN_OBS_FC_RF_V1:{name:"Q RF V1",hint:"Thực tế vs Random Forest V1 (H01/H03/H06/H12/H24)",color:'14, 165, 233'},
@@ -14549,6 +16129,13 @@ body.map-fullscreen-active .v8-map{
     lstmIssueTime:null,
     lstmHistoryRows:[],
     lstmHistoryError:null,
+
+    // CNN-LSTM V3.1 live shadow
+    inflowFc_CNN_LSTM:[],
+    inflowFc_CNN_LSTM_SCENARIO:[],
+    cnnLstmIssueTime:null,
+    cnnLstmHistoryRows:[],
+    cnnLstmHistoryError:null,
 
     // Forecast archive gần nhất trước issue hiện tại:
     // dùng cho khung "Số liệu đã qua".
@@ -18821,6 +20408,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     setActiveNav(name);
 
     if(name==='overview' && typeof initMap==='function') { initMap(); if(typeof refreshOverviewMap==='function') refreshOverviewMap(); }
+    if(name==='overviewvisual') { try{ avDamSyncKpis(); }catch(e){} setTimeout(()=>window.dispatchEvent(new Event('resize')),80); }
     if(name==='data') loadTableData();
     if(name==='windyrain') loadWindyRainData();
     if(name==='openmeteorarain') loadOpenMeteoRainData();
@@ -18882,6 +20470,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         renderRain6ModelChart();
         renderLongH120Table();
         renderLstmH120Table();
+        renderCnnLstmH120Table();
       };
       tc.appendChild(t);
     });
@@ -19016,6 +20605,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         resLONGScenario,
         resLSTM,
         resLSTMScenario,
+        resCNNLSTM,
+        resCNNLSTMScenario,
         resRFV1,
         res4,
         res6,
@@ -19085,6 +20676,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
         // LSTM 7 rainfall scenarios latest.
         sb.from('v_inflow_forecast_lstm_scenario_latest')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('lead_hour',{ascending:true})
+          .order('rain_scenario',{ascending:true}),
+
+        // CNN-LSTM V3.1 ensemble latest - live shadow.
+        sb.from('v_inflow_forecast_cnn_lstm_latest')
+          .select('*')
+          .gte('forecast_time',tFcStart)
+          .lte('forecast_time',tFcEnd)
+          .order('lead_hour',{ascending:true}),
+
+        // CNN-LSTM V3.1 - 7 rainfall scenarios latest.
+        sb.from('v_inflow_forecast_cnn_lstm_scenario_latest')
           .select('*')
           .gte('forecast_time',tFcStart)
           .lte('forecast_time',tFcEnd)
@@ -19190,6 +20796,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         ['forecast Long-H120 scenarios',resLONGScenario],
         ['forecast LSTM-H120 ensemble',resLSTM],
         ['forecast LSTM-H120 scenarios',resLSTMScenario],
+        ['forecast CNN-LSTM V3.1 ensemble',resCNNLSTM],
+        ['forecast CNN-LSTM V3.1 scenarios',resCNNLSTMScenario],
         ['forecast RF V1',resRFV1],
         ['reservoir_hourly_data chart',res4],
         ['v_current_storage',res6],
@@ -19259,6 +20867,15 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       state.lstmIssueTime=lstmRows.length?(lstmRows[0].issue_time||null):null;
       state.inflowFc_LSTM=lstmRows;
       state.inflowFc_LSTM_SCENARIO=(resLSTMScenario.data||[]).slice().sort((a,b)=>{
+        const la=Number(a.lead_hour||0), lb=Number(b.lead_hour||0);
+        if(la!==lb) return la-lb;
+        return String(a.rain_scenario||'').localeCompare(String(b.rain_scenario||''));
+      });
+
+      const cnnLstmRows=(resCNNLSTM.data||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+      state.cnnLstmIssueTime=cnnLstmRows.length?(cnnLstmRows[0].issue_time||null):null;
+      state.inflowFc_CNN_LSTM=cnnLstmRows;
+      state.inflowFc_CNN_LSTM_SCENARIO=(resCNNLSTMScenario.data||[]).slice().sort((a,b)=>{
         const la=Number(a.lead_hour||0), lb=Number(b.lead_hour||0);
         if(la!==lb) return la-lb;
         return String(a.rain_scenario||'').localeCompare(String(b.rain_scenario||''));
@@ -19446,6 +21063,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       // Nếu archive lỗi, dashboard vẫn render Q thực và để forecast là "-".
       await loadLongHistoryArchive(state.longIssueTime);
       await loadLstmHistoryArchive(state.lstmIssueTime);
+      await loadCnnLstmHistoryArchive(state.cnnLstmIssueTime);
 
       console.info('[A Vuong chart data]',{
         selectedDate:dateVal,
@@ -19461,6 +21079,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         lstmRows:state.inflowFc_LSTM.length,
         lstmScenarioRows:state.inflowFc_LSTM_SCENARIO.length,
         lstmIssueTime:state.lstmIssueTime,
+        cnnLstmRows:state.inflowFc_CNN_LSTM.length,
+        cnnLstmScenarioRows:state.inflowFc_CNN_LSTM_SCENARIO.length,
+        cnnLstmIssueTime:state.cnnLstmIssueTime,
         rfV1Rows:state.inflowFc_RF_V1.length,
         rfV1IssueTime:state.rfV1IssueTime,
         rfV1ForecastTimes:state.inflowFc_RF_V1.map(r=>r.forecast_time),
@@ -19482,6 +21103,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       renderRain6ModelChart();
       renderLongH120Table();
       renderLstmH120Table();
+      renderCnnLstmH120Table();
 
       const activePane=
         document.querySelector('.tab-pane.active');
@@ -19635,12 +21257,193 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+
+  // A VUONG DAM: no duplicate API calls. Use the exact observed row read by renderOverview().
+  const avDamMapY = (h) => h >= 330
+      ? 430 - (h - 330) * (430 - 87) / (390 - 330)
+      : 467 - (h - 310) * (467 - 430) / (330 - 310);
+  let avDamAnimation = null;
+  let avDamShown = null;
+  function avDamUpdate(level, obsTime){
+    const h = Number(level);
+    const root = document.getElementById('avDamCard');
+    if(!root || !Number.isFinite(h) || h < 280 || h > 400) return;
+    const get = (id)=>document.getElementById('avDam_'+id);
+    const fill=get('waterFill'),waves=get('surface'),line=get('current'),floating=get('floating'),boat=get('boat');
+    for(const [name,datum] of [['normalDatum',380],['floodDatum',370],['datum',363],['deadDatum',340]]) {
+      const g=get(name); if(g) g.setAttribute('transform',`translate(0 ${avDamMapY(datum)})`);
+    }
+    const tickGroup=get('ticks');
+    if(tickGroup && !tickGroup.childElementCount){
+      for(let v=330;v<=390;v+=10){
+        const ns='http://www.w3.org/2000/svg';
+        const grp=document.createElementNS(ns,'g');
+        const yv=avDamMapY(v);
+        grp.innerHTML=`<line x1="464" y1="${yv}" x2="476" y2="${yv}" stroke="#9abdd2"/><text x="482" y="${yv+4}" class="tick" style="fill:#cee1ef;font-size:11px">${v}</text>`;
+        tickGroup.appendChild(grp);
+      }
+    }
+    if(!fill || !waves || !line || !floating) return;
+    floating.textContent=h.toFixed(2)+' m';
+    const reading=document.getElementById('avDamReading'); if(reading) reading.textContent='Mực nước: '+h.toFixed(2)+' m';
+    const levelHero=document.getElementById('avDamLevelHero'); if(levelHero) levelHero.textContent=h.toFixed(2)+' m';
+    const spillHero=document.getElementById('avDamToSpill'); if(spillHero) spillHero.textContent=((363-h)>=0?(363-h).toFixed(2)+' m':('+'+(h-363).toFixed(2)+' m'));
+    const timeNode=document.getElementById('avDamTime');
+    const badge=document.getElementById('avDamSource');
+    if(obsTime){
+      const literal = typeof parseLiteral === 'function' ? parseLiteral(obsTime) : null;
+      if(timeNode) timeNode.textContent=literal ? 'Quan trắc: '+literal.time+' '+literal.day+'/'+literal.month : 'Thời điểm: '+String(obsTime);
+      if(badge){ badge.textContent='Dữ liệu quan trắc'; badge.className='av6-status good'; }
+    }else{
+      if(timeNode) timeNode.textContent='Chưa xác định thời điểm quan trắc';
+      if(badge){ badge.textContent='Chưa rõ độ mới dữ liệu'; badge.className='av6-status stale'; }
+    }
+    const paint=(v)=>{
+      const yy=avDamMapY(v);
+      fill.setAttribute('y',yy);
+      fill.setAttribute('height',Math.max(0,565-yy));
+      waves.setAttribute('transform',`translate(0 ${yy})`);
+      line.setAttribute('transform',`translate(0 ${yy})`);
+      if(boat) boat.setAttribute('transform',`translate(235 ${yy})`);
+    };
+    const target=Math.max(310,Math.min(390,h));
+    if(avDamAnimation) cancelAnimationFrame(avDamAnimation);
+    if(avDamShown===null || !Number.isFinite(avDamShown)){ paint(target); avDamShown=target; return; }
+    const start=avDamShown,delta=target-start,t0=performance.now(),dur=950;
+    const frame=(now)=>{
+      const t=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-t,3);
+      paint(start+delta*e);
+      avDamShown=start+delta*e;
+      if(t<1){ avDamAnimation=requestAnimationFrame(frame); }
+      else { avDamShown=target; avDamAnimation=null; }
+    };
+    avDamAnimation=requestAnimationFrame(frame);
+  }
+
+  // AV DAM V2: read the existing dashboard KPI elements, never create a second data source.
+  function avDamSyncKpis(){
+    const mappings={
+      avDamEmpty:'txtVolRemain', avDamVolumeHero:'txtVol',
+      avDamPercentTotal:'txtPctTotal', avDamPercentUseful:'txtPctUseful',
+      avDamUsefulLeft:'txtVolUsefulLeft', avDamTrendHero:'txtDeltaWl24h',
+      avDamQin:'txtQin', avDamTurbine:'txtQtb', avDamSpill:'txtQsp'
+    };
+    const read=(id)=>{const el=document.getElementById(id);return el?el.textContent.trim():'';};
+    for(const [target,source] of Object.entries(mappings)){
+      const dst=document.getElementById(target);
+      if(dst) dst.textContent=read(source)||'--';
+    }
+    const pct=read('txtPctTotal');
+    const m=pct.replace(/\s/g,'').match(/-?\d+(?:[.,]\d+)?/);
+    const pctNum=m?Number(m[0].replace(',','.')):NaN;
+    const bar=document.getElementById('avDamFillPct');
+    if(bar) bar.style.width=Number.isFinite(pctNum)?Math.max(0,Math.min(100,pctNum))+'%':'0%';
+    const note=document.getElementById('avDamCapacityCaption');
+    if(note) note.textContent='Dung tích toàn bộ đã sử dụng: '+(Number.isFinite(pctNum)?pct:'--');
+
+    const delta=read('txtDeltaWl24h');
+    const mDelta=delta.replace(/\s/g,'').match(/[-+]?\d+(?:[.,]\d+)?/);
+    const val=mDelta?Number(mDelta[0].replace(',','.')):NaN;
+    const trend=document.getElementById('avDamTrend');
+    const trendText=document.getElementById('avDamTrendHeroText');
+    const trendChip=document.getElementById('avDamTrendChip');
+    if(trend){ trend.textContent=Number.isFinite(val)?(val>0?'Tăng nhẹ':val<0?'Giảm nhẹ':'Ổn định'):'Chưa có xu thế'; }
+    if(trendText){ trendText.textContent=Number.isFinite(val)?(val>0?'So với 24 giờ trước':val<0?'So với 24 giờ trước':'Biến động rất nhỏ'):'Chưa có xu thế'; }
+    if(trendChip){ trendChip.classList.remove('up','down','flat'); if(Number.isFinite(val)){ trendChip.classList.add(val>0?'up':val<0?'down':'flat'); } }
+
+    const aboveDead = read('diff_Chet');
+    const toNormal = read('diff_MNDBT');
+    const chipDead = document.getElementById('avDamAboveDeadChip');
+    const chipNormal = document.getElementById('avDamToNormalChip');
+    if(chipDead) chipDead.textContent = 'Cao hơn MNC: ' + (aboveDead || '--');
+    if(chipNormal) chipNormal.textContent = 'So với MNDBT: ' + (toNormal || '--');
+  }
+  function avDamInstallKpiSync(){
+    const sources=['txtVolRemain','txtVol','txtPctTotal','txtPctUseful','txtVolUsefulLeft','txtDeltaWl24h','txtQin','txtQtb','txtQsp','diff_Chet','diff_MNDBT'];
+    const observer=new MutationObserver(()=>avDamSyncKpis());
+    for(const id of sources){const n=document.getElementById(id);if(n)observer.observe(n,{childList:true,characterData:true,subtree:true});}
+    avDamSyncKpis();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',avDamInstallKpiSync,{once:true});
+  else avDamInstallKpiSync();
+
+  function initOverviewSubtabs(){
+    if(window.__overviewSubtabsBound) return;
+    const buttons=[...document.querySelectorAll('.overview-subtab[data-ovtab]')];
+    if(!buttons.length) return;
+    const panels=buttons.map(btn=>document.getElementById(btn.dataset.ovtab)).filter(Boolean);
+    const show=(targetId)=>{
+      buttons.forEach(btn=>{
+        const on=btn.dataset.ovtab===targetId;
+        btn.classList.toggle('active',on);
+        btn.setAttribute('aria-selected',on?'true':'false');
+      });
+      panels.forEach(panel=>panel.classList.toggle('active',panel.id===targetId));
+      if(targetId==='overviewPanelMain' && typeof refreshOverviewMap==='function'){
+        setTimeout(()=>{ try{ refreshOverviewMap(); }catch(e){} },120);
+      }
+      if(targetId==='overviewPanelVisual'){
+        try{ avDamSyncKpis(); }catch(e){}
+      }
+      window.dispatchEvent(new Event('resize'));
+    };
+    buttons.forEach(btn=>btn.addEventListener('click',()=>show(btn.dataset.ovtab)));
+    show('overviewPanelMain');
+    window.__overviewSubtabsBound=true;
+  }
+
+  function avDamToggleFullscreen(){
+    const diagram=document.getElementById('avDamDiagram');
+    if(!diagram) return;
+    const fsEl=document.fullscreenElement || document.webkitFullscreenElement;
+    const isActive = fsEl===diagram;
+    if(isActive){
+      const exit=document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) exit.call(document);
+      return;
+    }
+    const req=diagram.requestFullscreen || diagram.webkitRequestFullscreen;
+    if(req) req.call(diagram);
+  }
+
+  function avDamBindFullscreen(){
+    if(window.__avDamFullscreenBound) return;
+    const btn=document.getElementById('avDamFullscreenBtn');
+    const exitBtn=document.getElementById('avDamDiagramExitBtn');
+    const diagram=document.getElementById('avDamDiagram');
+    if(!btn || !diagram) return;
+    const sync=()=>{
+      const fsEl=document.fullscreenElement || document.webkitFullscreenElement;
+      const active=fsEl===diagram;
+      btn.classList.toggle('active',active);
+      const label=btn.querySelector('[data-fs-label]');
+      if(label) label.textContent=active?'Đang trình chiếu':'Full màn hình';
+      document.body.classList.toggle('avdam-presenting',active);
+    };
+    btn.addEventListener('click',()=>{ avDamToggleFullscreen(); });
+    if(exitBtn) exitBtn.addEventListener('click',()=>{ avDamToggleFullscreen(); });
+    document.addEventListener('fullscreenchange',sync);
+    document.addEventListener('webkitfullscreenchange',sync);
+    sync();
+    window.__avDamFullscreenBound=true;
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initOverviewSubtabs,{once:true});
+    document.addEventListener('DOMContentLoaded',avDamBindFullscreen,{once:true});
+  }else{
+    initOverviewSubtabs();
+    avDamBindFullscreen();
+  }
+
   function renderOverview(fcFlow,fcRain){
+
     const l=state.lastObs;
     if(!l) return;
 
     const wl=l.water_level;
     $("txtWL").textContent=fmt2.format(wl);
+    avDamUpdate(wl, l.time);
 
     const p=parseLiteral(l.time);
     if(p) $("lastUpdate").textContent=`${p.time} ${p.day}/${p.month}`;
@@ -19826,19 +21629,28 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
 
   // =========================================================
-  // LONG / LSTM DETAIL VISIBILITY
+  // LONG / LSTM / CNN-LSTM DETAIL VISIBILITY
   // =========================================================
   function updateForecastDetailVisibility(){
     const isLong=currentTab==='IN_OBS_FC_LONG_H120';
     const isLstm=currentTab==='IN_OBS_FC_LSTM_H120';
+    const isCnnLstm=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
+
     const longCard=$("longH120DataCard");
     const lstmCard=$("lstmH120DataCard");
+    const cnnLstmCard=$("cnnLstmH120DataCard");
+
     const longBtn=$("longScenarioToggleBtn");
     const lstmBtn=$("lstmScenarioToggleBtn");
+    const cnnLstmBtn=$("cnnLstmScenarioToggleBtn");
+
     if(longCard) longCard.style.display=isLong?'block':'none';
     if(lstmCard) lstmCard.style.display=isLstm?'block':'none';
+    if(cnnLstmCard) cnnLstmCard.style.display=isCnnLstm?'block':'none';
+
     if(longBtn) longBtn.style.display=isLong?'inline-flex':'none';
     if(lstmBtn) lstmBtn.style.display=isLstm?'inline-flex':'none';
+    if(cnnLstmBtn) cnnLstmBtn.style.display=isCnnLstm?'inline-flex':'none';
   }
 
   // =========================================================
@@ -20902,6 +22714,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(currentTab==='IN_OBS_FC_LSTM_H120') renderChart();
   }
 
+  let cnnLstmScenarioVisible=true;
+  function toggleCnnLstmScenarios(){
+    cnnLstmScenarioVisible=!cnnLstmScenarioVisible;
+    const btn=$("cnnLstmScenarioToggleBtn");
+    if(btn) btn.textContent=cnnLstmScenarioVisible?'Ẩn 7 kịch bản CNN-LSTM':'Hiện 7 kịch bản CNN-LSTM';
+    if(currentTab==='IN_OBS_FC_CNN_LSTM_H120') renderChart();
+  }
+
   async function exportLstmH120Excel(){
     try{
       const fc=(state.inflowFc_LSTM||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
@@ -20926,6 +22746,292 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`A_Vuong_LSTM_H120_${safe}.xlsx`);
       toast('Đã xuất Excel LSTM-H120.');
     }catch(err){console.error(err);toast('Lỗi xuất Excel LSTM-H120: '+err.message);}
+  }
+
+
+  // =========================================================
+  // CNN-LSTM H120 V3.1 UI / TABLE / HISTORY / EXPORT
+  // =========================================================
+  function buildCnnLstmScenarioLookup(){
+    const out={};
+    (state.inflowFc_CNN_LSTM_SCENARIO||[]).forEach(r=>{
+      const key=new Date(r.forecast_time).getTime();
+      if(!Number.isFinite(key)) return;
+      if(!out[key]) out[key]={};
+      out[key][String(r.rain_scenario||'')]=Number(r.q_forecast);
+    });
+    return out;
+  }
+
+  function getCnnLstmQNow(){
+    const sc=(state.inflowFc_CNN_LSTM_SCENARIO||[]).find(r=>Number.isFinite(Number(r.q_now)));
+    if(sc) return Number(sc.q_now);
+    if(state.lastObs && Number.isFinite(Number(state.lastObs.inflow))) return Number(state.lastObs.inflow);
+    return null;
+  }
+
+  function getCnnLstmRainRuns(){
+    const rows=state.inflowFc_CNN_LSTM_SCENARIO||[];
+    const six=rows.find(r=>String(r.rain_scenario||'')!=='OPENMETEO_BEST' && r.rain_run_time);
+    const best=rows.find(r=>String(r.rain_scenario||'')==='OPENMETEO_BEST' && r.rain_run_time);
+    return {
+      six:six?.rain_run_time||null,
+      best:best?.rain_run_time||null
+    };
+  }
+
+  async function loadCnnLstmHistoryArchive(issueTime){
+    state.cnnLstmHistoryRows=[];
+    state.cnnLstmHistoryError=null;
+    if(!sb||!issueTime) return;
+
+    const issueMs=new Date(issueTime).getTime();
+    if(!Number.isFinite(issueMs)) return;
+
+    const histStartMs=issueMs-24*3600000;
+    const issueSearchStartMs=histStartMs-12*3600000;
+
+    try{
+      const res=await sb.from('inflow_forecast_cnn_lstm_ensemble')
+        .select('*')
+        .eq('source','cnn_lstm_h120_v3')
+        .gte('forecast_time',new Date(histStartMs).toISOString())
+        .lt('forecast_time',new Date(issueMs).toISOString())
+        .gte('issue_time',new Date(issueSearchStartMs).toISOString())
+        .lt('issue_time',new Date(issueMs).toISOString())
+        .order('forecast_time',{ascending:true})
+        .order('issue_time',{ascending:false})
+        .limit(1000);
+
+      if(res.error) throw res.error;
+
+      const best=new Map();
+      (res.data||[]).forEach(r=>{
+        const fm=new Date(r.forecast_time).getTime();
+        const im=new Date(r.issue_time).getTime();
+        if(!Number.isFinite(fm)||!Number.isFinite(im)||fm<histStartMs||fm>=issueMs||im>fm||im>=issueMs) return;
+        const prev=best.get(fm);
+        if(!prev||im>new Date(prev.issue_time).getTime()) best.set(fm,r);
+      });
+
+      const selected=[...best.values()]
+        .sort((a,b)=>new Date(a.forecast_time)-new Date(b.forecast_time))
+        .slice(-24);
+
+      state.cnnLstmHistoryRows=await Promise.all(selected.map(async r=>{
+        let scenarios={};
+        try{
+          const sc=await sb.from('inflow_forecast_cnn_lstm_scenario')
+            .select('rain_scenario,q_forecast')
+            .eq('source','cnn_lstm_h120_v3')
+            .eq('issue_time',r.issue_time)
+            .eq('forecast_time',r.forecast_time);
+
+          if(!sc.error){
+            (sc.data||[]).forEach(s=>{
+              scenarios[String(s.rain_scenario||'')]=Number(s.q_forecast);
+            });
+          }
+        }catch(_){}
+
+        return {...r,scenarios};
+      }));
+    }catch(err){
+      state.cnnLstmHistoryRows=[];
+      state.cnnLstmHistoryError=err?.message||String(err);
+      console.warn('[CNN-LSTM V3.1 history archive]',err);
+    }
+  }
+
+  function renderCnnLstmH120Table(){
+    const pastTb=$("cnnLstmPastTableBody");
+    const fcTb=$("cnnLstmForecastTableBody");
+    if(!pastTb||!fcTb) return;
+
+    const fc=(state.inflowFc_CNN_LSTM||[])
+      .slice()
+      .sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+
+    if(!fc.length){
+      pastTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Chưa có dữ liệu CNN-LSTM V3.1.</td></tr>';
+      fcTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Chưa có dữ liệu CNN-LSTM V3.1.</td></tr>';
+      return;
+    }
+
+    const scenario=buildCnnLstmScenarioLookup();
+    const rain=getLongRainLookup();
+    const issueMs=new Date(fc[0].issue_time).getTime();
+    const qNow=getCnnLstmQNow();
+    const rainRuns=getCnnLstmRainRuns();
+
+    const info=$("cnnLstmH120TableInfo");
+    if(info){
+      const parts=[
+        `Phát hành: ${longTimeLabel(fc[0].issue_time)}`,
+        `Q hiện tại: ${longFmt(qNow)} m³/s`,
+        `Run 6NWP: ${longTimeLabel(rainRuns.six)}`,
+        `O-M Best: ${longTimeLabel(rainRuns.best)}`,
+        '7 kịch bản',
+        'H01–H120',
+        'SHADOW'
+      ];
+      info.textContent=parts.join(' • ');
+    }
+
+    const obsHistory=(state.hourly7D_Obs||[])
+      .filter(r=>{
+        const tm=new Date(r.time).getTime();
+        return Number.isFinite(tm)&&tm<issueMs;
+      })
+      .sort((a,b)=>new Date(a.time)-new Date(b.time))
+      .slice(-24);
+
+    const histMap=new Map(
+      (state.cnnLstmHistoryRows||[]).map(r=>[
+        new Date(r.forecast_time).getTime(),r
+      ])
+    );
+
+    const pastCount=$("cnnLstmPastCount");
+    if(pastCount) pastCount.textContent=`${obsHistory.length} dòng`;
+
+    if(!obsHistory.length){
+      pastTb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:18px;color:#64748b">Không có số liệu đã qua trước thời điểm phát hành.</td></tr>';
+    }else{
+      pastTb.innerHTML=obsHistory.map(obs=>{
+        const h=histMap.get(new Date(obs.time).getTime())||null;
+        const sc=h?.scenarios||{};
+        return `<tr class="row-past">
+          <td>${longTimeLabel(obs.time)}</td>
+          <td>${h?`H${String(h.lead_hour??'').padStart(3,'0')}`:'-'}</td>
+          <td class="q-real">${longFmt(obs.inflow)}</td>
+          <td>${longFmt(h?.q_min)}</td>
+          <td>${longFmt(h?.q_max)}</td>
+          <td>${longFmt(sc.ECMWF_IFS)}</td>
+          <td>${longFmt(sc.GFS)}</td>
+          <td>${longFmt(sc.ICON)}</td>
+          <td>${longFmt(sc.ECMWF_AIFS)}</td>
+          <td>${longFmt(sc.CMA_GRAPES)}</td>
+          <td>${longFmt(sc.JMA_GSM)}</td>
+          <td>${longFmt(sc.OPENMETEO_BEST)}</td>
+          <td class="rain-observed">${longFmt(getRain(obs),1)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    if(state.cnnLstmHistoryError&&pastCount){
+      pastCount.textContent=`${obsHistory.length} dòng • forecast archive chưa đủ`;
+      pastCount.title=state.cnnLstmHistoryError;
+    }
+
+    let html=`<tr class="row-issue">
+      <td>${longTimeLabel(fc[0].issue_time)}</td>
+      <td>H000</td>
+      <td class="q-real">${longFmt(qNow)}</td>
+      ${Array(9).fill(`<td>${longFmt(qNow)}</td>`).join('')}
+      <td>-</td>
+    </tr>`;
+
+    fc.forEach(r=>{
+      const ms=new Date(r.forecast_time).getTime();
+      const sc=scenario[ms]||{};
+      const rr=rain[ms]||{};
+
+      html+=`<tr class="row-forecast">
+        <td>${longTimeLabel(r.forecast_time)}</td>
+        <td>H${String(r.lead_hour||'').padStart(3,'0')}</td>
+        <td>-</td>
+        <td>${longFmt(r.q_min)}</td>
+        <td>${longFmt(r.q_max)}</td>
+        <td>${longFmt(sc.ECMWF_IFS)}</td>
+        <td>${longFmt(sc.GFS)}</td>
+        <td>${longFmt(sc.ICON)}</td>
+        <td>${longFmt(sc.ECMWF_AIFS)}</td>
+        <td>${longFmt(sc.CMA_GRAPES)}</td>
+        <td>${longFmt(sc.JMA_GSM)}</td>
+        <td>${longFmt(sc.OPENMETEO_BEST)}</td>
+        <td class="rain-mean">${longFmt(rr.rain_mean??rr.rainfall_mm,2)}</td>
+      </tr>`;
+    });
+
+    fcTb.innerHTML=html;
+    const count=$("cnnLstmForecastCount");
+    if(count) count.textContent=`${fc.length+1} dòng`;
+  }
+
+  async function exportCnnLstmH120Excel(){
+    try{
+      const fc=(state.inflowFc_CNN_LSTM||[])
+        .slice()
+        .sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+
+      if(!fc.length){
+        toast('Chưa có dữ liệu CNN-LSTM V3.1 để xuất Excel.');
+        return;
+      }
+      if(typeof ExcelJS==='undefined'){
+        toast('Không tải được thư viện ExcelJS.');
+        return;
+      }
+
+      const scMap=buildCnnLstmScenarioLookup();
+      const rainRuns=getCnnLstmRainRuns();
+      const wb=new ExcelJS.Workbook();
+      const ws=wb.addWorksheet('CNN_LSTM_H120');
+
+      ws.addRow(['A VƯƠNG - CNN-LSTM H120 V3.1 SHADOW']);
+      ws.addRow(['Issue time',longTimeLabel(fc[0].issue_time)]);
+      ws.addRow(['Rain run 6NWP',longTimeLabel(rainRuns.six)]);
+      ws.addRow(['Rain run OpenMeteo Best',longTimeLabel(rainRuns.best)]);
+      ws.addRow(['Model version',fc[0].model_version||'CNN_LSTM_H120_V3_1_NO_LAMBDA']);
+      ws.addRow(['Source',fc[0].source||'cnn_lstm_h120_v3']);
+      ws.addRow([]);
+      ws.addRow([
+        'Thời gian','Lead','P50','P10','P90','P25','P75','Q Min','Q Max',
+        'Q ECMWF','Q GFS','Q ICON','Q AIFS','Q CMA','Q JMA','Q OpenMeteo Best'
+      ]);
+
+      fc.forEach(r=>{
+        const sc=scMap[new Date(r.forecast_time).getTime()]||{};
+        ws.addRow([
+          longTimeLabel(r.forecast_time),
+          `H${String(r.lead_hour||'').padStart(3,'0')}`,
+          Number(r.q_p50),
+          Number(r.q_p10),
+          Number(r.q_p90),
+          Number(r.q_p25),
+          Number(r.q_p75),
+          Number(r.q_min),
+          Number(r.q_max),
+          sc.ECMWF_IFS??null,
+          sc.GFS??null,
+          sc.ICON??null,
+          sc.ECMWF_AIFS??null,
+          sc.CMA_GRAPES??null,
+          sc.JMA_GSM??null,
+          sc.OPENMETEO_BEST??null
+        ]);
+      });
+
+      ws.columns.forEach((c,i)=>c.width=i===0?20:14);
+      ws.getRow(8).font={bold:true,color:{argb:'FFFFFFFF'}};
+      ws.getRow(8).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFBE185D'}};
+
+      const buf=await wb.xlsx.writeBuffer();
+      const safe=String(fc[0].issue_time||'')
+        .replace(/[:.]/g,'-')
+        .replace(/[TZ+]/g,'_');
+
+      saveAs(
+        new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+        `A_Vuong_CNN_LSTM_H120_V3_1_${safe}.xlsx`
+      );
+
+      toast('Đã xuất Excel CNN-LSTM V3.1.');
+    }catch(err){
+      console.error(err);
+      toast('Lỗi xuất Excel CNN-LSTM V3.1: '+err.message);
+    }
   }
 
   function renderChart(){
@@ -21088,8 +23194,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         return t>=tm&&t<tx;
       });
 
-      const isLONG=currentTab.includes('LONG_H120');
-      const isLSTM=currentTab.includes('LSTM_H120');
+      const isLONG=currentTab==='IN_OBS_FC_LONG_H120';
+      const isLSTM=currentTab==='IN_OBS_FC_LSTM_H120';
+      const isCNNLSTM=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
       const isRFV1=currentTab.includes('RF_V1');
 
       let longIssueMs=null, longQNow=null, forecastIssueMs=null, forecastQNow=null;
@@ -21103,11 +23210,20 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         forecastIssueMs=new Date(state.inflowFc_LSTM[0].issue_time).getTime();
         forecastQNow=Number(state.inflowFc_LSTM[0].q_now);
       }
+      if(isCNNLSTM && state.inflowFc_CNN_LSTM.length){
+        forecastIssueMs=new Date(state.inflowFc_CNN_LSTM[0].issue_time).getTime();
+        const sc0=(state.inflowFc_CNN_LSTM_SCENARIO||[])[0];
+        forecastQNow=Number(sc0?.q_now);
+        if(!Number.isFinite(forecastQNow) && state.lastObs){
+          forecastQNow=Number(state.lastObs.inflow);
+        }
+      }
 
       let fc=[];
 
       if(isLONG) fc=state.inflowFc_LONG;
       else if(isLSTM) fc=state.inflowFc_LSTM;
+      else if(isCNNLSTM) fc=state.inflowFc_CNN_LSTM;
       else if(isRFV1) fc=state.inflowFc_RF_V1;
       else if(currentTab.includes('V7')) fc=state.inflowFc_V7;
       else if(currentTab.includes('MIX')) fc=state.inflowFc_Mix;
@@ -21137,7 +23253,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // RF/Long dùng mưa mới 6 mô hình; tab cũ giữ nguồn legacy.
-      const rainSource=(isLONG||isLSTM||isRFV1) ? state.rainFcRFV1 : state.rainFc;
+      const rainSource=(isLONG||isLSTM||isCNNLSTM||isRFV1) ? state.rainFcRFV1 : state.rainFc;
 
       const rainByMs=new Map();
       (rainSource||[]).forEach(r=>{
@@ -21147,7 +23263,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       let all=[];
 
-      if(isLONG||isLSTM||isRFV1){
+      if(isLONG||isLSTM||isCNNLSTM||isRFV1){
         // Tạo timeline hourly đầy đủ:
         // - Q thực/MA24
         // - mưa dự báo từng giờ
@@ -21641,6 +23757,96 @@ if(r.rainfall_run_time){
         };
       }
 
+      else if(isCNNLSTM){
+        const scenarioStyle={
+          ECMWF_IFS:{label:'CNN-LSTM ECMWF',color:'#2563eb'},
+          GFS:{label:'CNN-LSTM GFS',color:'#f59e0b'},
+          ICON:{label:'CNN-LSTM ICON',color:'#10b981'},
+          ECMWF_AIFS:{label:'CNN-LSTM AIFS',color:'#8b5cf6'},
+          CMA_GRAPES:{label:'CNN-LSTM CMA',color:'#ef4444'},
+          JMA_GSM:{label:'CNN-LSTM JMA',color:'#06b6d4'},
+          OPENMETEO_BEST:{label:'CNN-LSTM OpenMeteo Best',color:'#db2777'}
+        };
+
+        const scenarioMaps={};
+        Object.keys(scenarioStyle).forEach(n=>scenarioMaps[n]=new Map());
+
+        (state.inflowFc_CNN_LSTM_SCENARIO||[]).forEach(r=>{
+          const ms=toMs(r.forecast_time);
+          const n=String(r.rain_scenario||'');
+          if(ms!==null&&scenarioMaps[n]) scenarioMaps[n].set(ms,r);
+        });
+
+        datasets.push({
+          label:'CNN-LSTM Q Min',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)?forecastQNow:(fcByMs.get(ms)?Number(fcByMs.get(ms).q_min):null)),
+          borderColor:'rgba(219,39,119,.03)',backgroundColor:'rgba(219,39,119,.02)',borderWidth:0,pointRadius:0,tension:.18,order:8
+        });
+        datasets.push({
+          label:'CNN-LSTM Dải Min–Max',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)?forecastQNow:(fcByMs.get(ms)?Number(fcByMs.get(ms).q_max):null)),
+          borderColor:'rgba(219,39,119,.07)',backgroundColor:'rgba(219,39,119,.045)',borderWidth:.5,pointRadius:0,tension:.18,fill:'-1',order:9
+        });
+        datasets.push({
+          label:'CNN-LSTM P25',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p25):null;}),
+          borderColor:'rgba(219,39,119,.08)',backgroundColor:'rgba(219,39,119,.04)',borderWidth:.5,pointRadius:0,tension:.18,order:6
+        });
+        datasets.push({
+          label:'CNN-LSTM Dải P25–P75',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p75):null;}),
+          borderColor:'rgba(219,39,119,.18)',backgroundColor:'rgba(219,39,119,.12)',borderWidth:.8,pointRadius:0,tension:.18,fill:'-1',order:7
+        });
+        datasets.push({
+          label:'CNN-LSTM V3.1 P50',
+          data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=fcByMs.get(ms); return r?Number(r.q_p50??r.q_mean):null;}),
+          borderColor:'rgb(219,39,119)',backgroundColor:'rgba(219,39,119,.10)',borderWidth:2.6,borderDash:[7,4],borderCapStyle:'round',
+          pointRadius:0,pointHoverRadius:4,tension:.28,cubicInterpolationMode:'monotone',spanGaps:false,fill:false,order:3
+        });
+
+        Object.entries(scenarioStyle).forEach(([name,style])=>{
+          const map=scenarioMaps[name];
+          datasets.push({
+            label:style.label,
+            data:all.map(ms=>{if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow; const r=map.get(ms); return r?Number(r.q_forecast):null;}),
+            borderColor:style.color,borderWidth:1.1,borderDash:[5,4],borderCapStyle:'round',pointRadius:0,pointHoverRadius:3,tension:.28,
+            cubicInterpolationMode:'monotone',spanGaps:false,fill:false,hidden:!cnnLstmScenarioVisible,order:4
+          });
+        });
+
+        opts.plugins.legend={
+          position:'top',
+          labels:{
+            color:'#334155',font:{size:11,weight:'700'},boxWidth:12,
+            filter:(item)=>!['CNN-LSTM P25','CNN-LSTM Q Min'].includes(item.text),
+            generateLabels:(c)=>Chart.defaults.plugins.legend.labels.generateLabels(c)
+              .filter(i=>!['CNN-LSTM P25','CNN-LSTM Q Min'].includes(i.text))
+              .map(i=>{const v=c.isDatasetVisible(i.datasetIndex);i.hidden=false;if(!v){i.fontColor='rgba(100,116,139,.38)';i.strokeStyle='rgba(148,163,184,.35)';i.fillStyle='rgba(203,213,225,.28)';}return i;})
+          },
+          onClick:(e,item,legend)=>{const c=legend.chart,idx=item.datasetIndex;c.setDatasetVisibility(idx,!c.isDatasetVisible(idx));c.update();}
+        };
+
+        opts.plugins.tooltip={
+          position:'longRightOffset',mode:'index',intersect:false,caretSize:5,caretPadding:14,
+          titleFont:{size:11,weight:'700'},bodyFont:{size:10},footerFont:{size:10},padding:8,boxWidth:9,boxHeight:9,
+          filter:(item)=>!['CNN-LSTM P25','CNN-LSTM Q Min'].includes(String(item.dataset?.label||'')),
+          callbacks:{afterBody:(items)=>{
+            if(!items||!items.length) return [];
+            const ms=all[items[0].dataIndex],r=fcByMs.get(ms),lines=[];
+            if(r){
+              lines.push(`Lead: H${String(r.lead_hour||'').padStart(3,'0')}`);
+              if(r.q_p10!=null&&r.q_p90!=null) lines.push(`P10–P90: ${Number(r.q_p10).toFixed(2)} – ${Number(r.q_p90).toFixed(2)} m³/s`);
+              if(r.q_p25!=null&&r.q_p75!=null) lines.push(`P25–P75: ${Number(r.q_p25).toFixed(2)} – ${Number(r.q_p75).toFixed(2)} m³/s`);
+              if(r.q_min!=null&&r.q_max!=null) lines.push(`Min–Max: ${Number(r.q_min).toFixed(2)} – ${Number(r.q_max).toFixed(2)} m³/s`);
+              if(r.scenario_count!=null) lines.push(`Kịch bản Q: ${r.scenario_count}`);
+              if(r.model_version) lines.push(`Model: ${r.model_version}`);
+              lines.push('Chế độ: SHADOW');
+            }
+            return lines;
+          }}
+        };
+      }
+
       else if(isRFV1){
         datasets.push({
           label:'RF V1 (H01/H03/H06/H12/H24)',
@@ -21789,7 +23995,7 @@ if(r.rainfall_run_time){
       }
 
       // Vạch phân cách Thực đo / Dự báo.
-      if((isLONG||isLSTM) && Number.isFinite(forecastIssueMs)){
+      if((isLONG||isLSTM||isCNNLSTM) && Number.isFinite(forecastIssueMs)){
         const issueIndex=all.indexOf(forecastIssueMs);
         opts.plugins.longIssueLine={enabled:issueIndex>=0,issueIndex};
       }
@@ -21810,7 +24016,7 @@ if(r.rainfall_run_time){
       datasets.push({
         type:'bar',
         label:
-          (isLONG||isLSTM||isRFV1)
+          (isLONG||isLSTM||isCNNLSTM||isRFV1)
             ? 'Mưa dự báo 6 NWP (mean)'
             : 'Mưa giờ dự báo',
 
@@ -32481,66 +34687,80 @@ let shadowPairChartInstance = null;
 let shadowDashboardLoaded = false;
 
 function shadowFmtNum(v, digits=2){
-  const n = Number(v);
+  const n=Number(v);
   return Number.isFinite(n)
     ? n.toLocaleString('vi-VN',{minimumFractionDigits:digits,maximumFractionDigits:digits})
     : '--';
 }
+
 function shadowFmtTime(v){
   if(!v) return '--';
-  const d = new Date(v);
+  const d=new Date(v);
   if(Number.isNaN(d.getTime())) return '--';
   return d.toLocaleString('vi-VN',{
-    hour:'2-digit',minute:'2-digit',
-    day:'2-digit',month:'2-digit',year:'numeric',
-    hour12:false,timeZone:'UTC'
+    hour:'2-digit',
+    minute:'2-digit',
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric',
+    hour12:false,
+    timeZone:'UTC'
   });
 }
+
 function shadowModelLabel(name){
-  const map = {
+  const map={
     'LONG_H120_P50':'Long-H120',
     'LSTM_H120_P50':'LSTM-H120',
+    'CNN_LSTM_H120_V3_1':'CNN-LSTM V3.1',
     'RF_V1':'RF V1',
     'PERSISTENCE':'Persistence'
   };
-  return map[name] || name || '--';
+  return map[name]||name||'--';
 }
+
 function shadowModelClass(name){
   if(name==='LONG_H120_P50') return 'long';
   if(name==='LSTM_H120_P50') return 'lstm';
+  if(name==='CNN_LSTM_H120_V3_1') return 'cnn';
   if(name==='RF_V1') return 'rf';
   return 'persist';
 }
-function shadowSetText(id, value){
+
+function shadowSetText(id,value){
   const el=document.getElementById(id);
   if(el) el.textContent=value;
 }
 
 function shadowConfidence(n){
   n=Number(n||0);
-  if(n<5) return {text:'Rất thấp', cls:'vlow'};
-  if(n<10) return {text:'Thấp', cls:'low'};
-  if(n<30) return {text:'Trung bình', cls:'med'};
-  return {text:'Tốt', cls:'good'};
+  if(n<5) return {text:'Rất thấp',cls:'vlow'};
+  if(n<10) return {text:'Thấp',cls:'low'};
+  if(n<30) return {text:'Trung bình',cls:'med'};
+  return {text:'Tốt',cls:'good'};
 }
+
 function shadowConfidenceHtml(n){
   const c=shadowConfidence(n);
   return `<span class="shadow-confidence ${c.cls}">${c.text}</span>`;
 }
-function shadowSetPhase(fairHorizons, fairRows){
+
+function shadowSetPhase(fairHorizons,fairRows){
   const el=document.getElementById('shadowPhaseBadge');
   if(!el) return;
+
   const hCount=Number(fairHorizons||0);
   const rows=Number(fairRows||0);
 
   el.className='shadow-phase';
+
   if(hCount===0){
     el.textContent='SHADOW WARM-UP';
   }else if(hCount<5){
-    el.textContent='EARLY FAIR BENCHMARK';
+    el.textContent='EARLY FAIR5 BENCHMARK';
     el.classList.add('early');
-  }else if(rows < 40){
-    el.textContent='FAIR BENCHMARK ACTIVE';
+  }else if(rows<40){
+    el.textContent='FAIR5 BENCHMARK ACTIVE';
     el.classList.add('active');
   }else{
     el.textContent='MODEL SELECTION READY';
@@ -32549,7 +34769,7 @@ function shadowSetPhase(fairHorizons, fairRows){
 }
 
 async function loadShadowDashboard(force=false){
-  if(shadowDashboardLoaded && !force){
+  if(shadowDashboardLoaded&&!force){
     setTimeout(()=>{
       if(shadowMaeChartInstance) shadowMaeChartInstance.resize();
       if(shadowPairChartInstance) shadowPairChartInstance.resize();
@@ -32566,25 +34786,42 @@ async function loadShadowDashboard(force=false){
       resSummary,
       resRaw,
       resFair,
-      resPair,
       resObs
-    ] = await Promise.all([
-      sb.from('v_forecast_shadow_summary').select('*').order('model_name',{ascending:true}),
-      sb.from('v_forecast_shadow_key_horizons').select('*').order('lead_hour',{ascending:true}).order('model_name',{ascending:true}),
-      sb.from('v_forecast_shadow_fair4_metrics').select('*').order('lead_hour',{ascending:true}).order('mae_rank',{ascending:true}),
-      sb.from('v_forecast_shadow_fair_long_lstm_metrics').select('*').order('lead_hour',{ascending:true}).order('mae_rank',{ascending:true}),
-      sb.from('reservoir_hourly_data').select('time,inflow').order('time',{ascending:false}).limit(1)
+    ]=await Promise.all([
+      sb.from('v_forecast_shadow_summary')
+        .select('*')
+        .order('model_name',{ascending:true}),
+
+      sb.from('v_forecast_shadow_key_horizons')
+        .select('*')
+        .order('lead_hour',{ascending:true})
+        .order('model_name',{ascending:true}),
+
+      sb.from('v_forecast_shadow_fair5_metrics')
+        .select('*')
+        .order('lead_hour',{ascending:true})
+        .order('mae_rank',{ascending:true}),
+
+      sb.from('reservoir_hourly_data')
+        .select('time,inflow')
+        .order('time',{ascending:false})
+        .limit(1)
     ]);
 
-    const errs=[resSummary.error,resRaw.error,resFair.error,resPair.error,resObs.error].filter(Boolean);
+    const errs=[
+      resSummary.error,
+      resRaw.error,
+      resFair.error,
+      resObs.error
+    ].filter(Boolean);
+
     if(errs.length){
-      console.warn('Shadow dashboard query warnings:',errs);
+      console.warn('Shadow dashboard V5 query warnings:',errs);
     }
 
     const summary=resSummary.data||[];
     const raw=resRaw.data||[];
     const fair=resFair.data||[];
-    const pair=resPair.data||[];
     const obs=(resObs.data||[])[0]||null;
 
     if(obs){
@@ -32596,73 +34833,135 @@ async function loadShadowDashboard(force=false){
     }
 
     const smap=Object.fromEntries(summary.map(r=>[r.model_name,r]));
+
     const applyModel=(name,nId,maeId)=>{
       const r=smap[name];
       shadowSetText(nId,r?String(r.n||0):'0');
-      shadowSetText(maeId,'MAE tổng: '+(r?shadowFmtNum(r.mae,2):'--')+' m³/s');
+      shadowSetText(
+        maeId,
+        'MAE tổng: '+(r?shadowFmtNum(r.mae,2):'--')+' m³/s'
+      );
     };
+
     applyModel('LONG_H120_P50','shadowLongN','shadowLongMae');
     applyModel('LSTM_H120_P50','shadowLstmN','shadowLstmMae');
+    applyModel('CNN_LSTM_H120_V3_1','shadowCnnN','shadowCnnMae');
     applyModel('RF_V1','shadowRfN','shadowRfMae');
     applyModel('PERSISTENCE','shadowPersistN','shadowPersistMae');
 
-    const fairHorizons=[...new Set(fair.map(r=>Number(r.lead_hour)).filter(Number.isFinite))];
+    const fairHorizons=[
+      ...new Set(
+        fair
+          .map(r=>Number(r.lead_hour))
+          .filter(Number.isFinite)
+      )
+    ];
+
     const fairSamplesByLead={};
     fair.forEach(r=>{
       const h=Number(r.lead_hour);
-      fairSamplesByLead[h]=Math.max(fairSamplesByLead[h]||0,Number(r.n_common||0));
+      fairSamplesByLead[h]=Math.max(
+        fairSamplesByLead[h]||0,
+        Number(r.n_common||0)
+      );
     });
-    const totalCommon=Object.values(fairSamplesByLead).reduce((a,b)=>a+b,0);
 
-    shadowSetText('shadowFairHorizonCount',fairHorizons.length+'/5');
-    shadowSetText('shadowFairSampleText',
-      fair.length ? (totalCommon+' mẫu chung theo horizon') : 'Chờ Q thực tương lai'
+    const totalCommon=Object.values(fairSamplesByLead)
+      .reduce((a,b)=>a+b,0);
+
+    shadowSetText(
+      'shadowFairHorizonCount',
+      fairHorizons.length+'/5'
     );
 
-    shadowSetPhase(fairHorizons.length, totalCommon);
+    shadowSetText(
+      'shadowFairSampleText',
+      fair.length
+        ? totalCommon+' mẫu chung theo horizon'
+        : 'Chờ Q thực tương lai'
+    );
+
+    shadowSetPhase(
+      fairHorizons.length,
+      totalCommon
+    );
 
     const wait=document.getElementById('shadowWaitBox');
+
     if(fair.length){
       if(statusEl){
-        statusEl.textContent='Fair4 đã có dữ liệu kiểm chứng chung';
+        statusEl.textContent='Fair5 đã có dữ liệu kiểm chứng chung';
         statusEl.classList.add('ready');
       }
+
       if(wait){
         wait.classList.add('ready');
-        wait.innerHTML='<div>✅</div><div><b>Fair4 đã bắt đầu có mẫu chung.</b> Bảng xếp hạng bên dưới đang so sánh các mô hình trên cùng forecast_time và cùng lead.</div>';
+        wait.innerHTML=
+          '<div>✅</div>'+
+          '<div><b>Fair5 đã bắt đầu có mẫu chung.</b> '+
+          'Bảng xếp hạng đang so sánh đủ 5 mô hình trên cùng issue_time, forecast_time và lead.</div>';
       }
     }else{
       if(statusEl){
-        statusEl.textContent='Đang chờ mẫu Fair4 đầu tiên';
+        statusEl.textContent='Đang chờ mẫu Fair5 đầu tiên';
         statusEl.classList.remove('ready');
       }
+
       if(wait){
         wait.classList.remove('ready');
-        wait.innerHTML='<div>⏳</div><div><b>Chưa có mẫu Fair4 chung.</b> Dashboard vẫn hiển thị thống kê shadow hiện có; khi Q thực đi tới các forecast_time của cycle mới, bảng xếp hạng công bằng sẽ tự xuất hiện.</div>';
+        wait.innerHTML=
+          '<div>⏳</div>'+
+          '<div><b>Chưa có mẫu Fair5 chung.</b> '+
+          'Dashboard vẫn hiển thị thống kê shadow hiện có; Fair5 sẽ xuất hiện khi Q thực đi tới forecast_time và đủ 5 mô hình trên cùng cycle.</div>';
       }
     }
 
     renderShadowFairTable(fair);
     renderShadowRawTable(raw);
-    renderShadowMaeChart(fair.length ? fair : raw, fair.length>0);
-    renderShadowPairChart(pair.length ? pair : raw, pair.length>0);
+
+    // MAE H01/H03/H06/H12/H24:
+    // ưu tiên Fair5 khi có, nếu chưa có thì dùng raw shadow để warm-up.
+    renderShadowMaeChart(
+      fair.length?fair:raw,
+      fair.length>0
+    );
+
+    // So sánh 3 model H120 dùng raw verified metrics để giữ được H48/H72/H120.
+    // Đây là chart theo dõi, không phải bảng xếp hạng công bằng.
+    renderShadowPairChart(raw,false);
 
     shadowDashboardLoaded=true;
   }catch(err){
-    console.error('loadShadowDashboard error',err);
-    shadowSetText('shadowFairStatus','Lỗi tải dashboard: '+(err?.message||err));
+    console.error('loadShadowDashboard V5 error',err);
+    shadowSetText(
+      'shadowFairStatus',
+      'Lỗi tải dashboard: '+(err?.message||err)
+    );
+
     const body=document.getElementById('shadowFairBody');
-    if(body) body.innerHTML='<tr><td colspan="10" class="shadow-empty">Không tải được dữ liệu đánh giá mô hình.</td></tr>';
+    if(body){
+      body.innerHTML=
+        '<tr><td colspan="10" class="shadow-empty">'+
+        'Không tải được dữ liệu đánh giá mô hình.</td></tr>';
+    }
   }
 }
 
 function renderShadowFairTable(rows){
   const body=document.getElementById('shadowFairBody');
   if(!body) return;
-  shadowSetText('shadowFairRowsChip',(rows||[]).length+' dòng');
 
-  if(!rows || !rows.length){
-    body.innerHTML='<tr><td colspan="9" class="shadow-empty">Chưa có mẫu chung đủ 4 mô hình. Khi Q thực đi tới forecast_time của cycle đồng bộ, bảng này sẽ tự có dữ liệu.</td></tr>';
+  shadowSetText(
+    'shadowFairRowsChip',
+    (rows||[]).length+' dòng'
+  );
+
+  if(!rows||!rows.length){
+    body.innerHTML=
+      '<tr><td colspan="10" class="shadow-empty">'+
+      'Chưa có mẫu chung đủ 5 mô hình. '+
+      'Khi Q thực đi tới forecast_time của cycle đồng bộ, bảng Fair5 sẽ tự có dữ liệu.'+
+      '</td></tr>';
     return;
   }
 
@@ -32670,7 +34969,7 @@ function renderShadowFairTable(rows){
     const rank=Number(r.mae_rank||0);
     return `<tr>
       <td>H${String(r.lead_hour).padStart(2,'0')}</td>
-      <td><span class="shadow-rank r${Math.min(Math.max(rank,1),4)}">${rank||'-'}</span></td>
+      <td><span class="shadow-rank r${Math.min(Math.max(rank,1),5)}">${rank||'-'}</span></td>
       <td style="text-align:left"><span class="shadow-model-dot ${shadowModelClass(r.model_name)}"></span>${shadowModelLabel(r.model_name)}</td>
       <td>${r.n_common??0}</td>
       <td>${shadowFmtNum(r.mae,2)}</td>
@@ -32686,14 +34985,29 @@ function renderShadowFairTable(rows){
 function renderShadowRawTable(rows){
   const body=document.getElementById('shadowRawBody');
   if(!body) return;
-  shadowSetText('shadowRawRowsChip',(rows||[]).length+' dòng');
 
-  if(!rows || !rows.length){
-    body.innerHTML='<tr><td colspan="9" class="shadow-empty">Chưa có số liệu shadow.</td></tr>';
+  const supported=new Set([
+    'PERSISTENCE',
+    'RF_V1',
+    'LONG_H120_P50',
+    'LSTM_H120_P50',
+    'CNN_LSTM_H120_V3_1'
+  ]);
+
+  const filtered=(rows||[]).filter(r=>supported.has(r.model_name));
+
+  shadowSetText(
+    'shadowRawRowsChip',
+    filtered.length+' dòng'
+  );
+
+  if(!filtered.length){
+    body.innerHTML=
+      '<tr><td colspan="9" class="shadow-empty">Chưa có số liệu shadow.</td></tr>';
     return;
   }
 
-  body.innerHTML=rows.map(r=>`<tr>
+  body.innerHTML=filtered.map(r=>`<tr>
     <td>H${String(r.lead_hour).padStart(2,'0')}</td>
     <td style="text-align:left"><span class="shadow-model-dot ${shadowModelClass(r.model_name)}"></span>${shadowModelLabel(r.model_name)}</td>
     <td>${r.n??0}</td>
@@ -32706,7 +35020,7 @@ function renderShadowRawTable(rows){
   </tr>`).join('');
 }
 
-function shadowBuildDataset(rows, modelName, leads, valueField){
+function shadowBuildDataset(rows,modelName,leads,valueField){
   const map=new Map(
     (rows||[])
       .filter(r=>r.model_name===modelName)
@@ -32714,113 +35028,199 @@ function shadowBuildDataset(rows, modelName, leads, valueField){
         Number(r.lead_hour),
         {
           value:Number(r[valueField]),
-          n:Number(r.n_common ?? r.n ?? 0),
+          n:Number(r.n_common??r.n??0),
           mae:Number(r.mae),
           rmse:Number(r.rmse),
           bias:Number(r.bias)
         }
       ])
   );
+
   return leads.map(h=>map.has(h)?map.get(h):null);
 }
+
 function shadowChartValues(metaArray){
-  return (metaArray||[]).map(x=>x && Number.isFinite(x.value) ? x.value : null);
+  return (metaArray||[]).map(
+    x=>x&&Number.isFinite(x.value)?x.value:null
+  );
 }
 
 function renderShadowMaeChart(rows,isFair){
   const canvas=document.getElementById('shadowMaeChart');
-  if(!canvas || typeof Chart==='undefined') return;
+  if(!canvas||typeof Chart==='undefined') return;
 
   const leads=[1,3,6,12,24];
-  const labels=leads.map(h=>'H'+String(h).padStart(2,'0'));
-  shadowSetText('shadowMaeMode',
-    isFair
-      ? 'Fair4: cùng forecast_time, cùng lead, đủ 4 mô hình.'
-      : 'Tạm hiển thị số liệu shadow hiện có; chưa dùng để kết luận vì n giữa các mô hình khác nhau.'
+  const labels=leads.map(
+    h=>'H'+String(h).padStart(2,'0')
   );
 
-  if(shadowMaeChartInstance) shadowMaeChartInstance.destroy();
-  shadowMaeChartInstance=new Chart(canvas.getContext('2d'),{
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        (()=>{const m=shadowBuildDataset(rows,'PERSISTENCE',leads,'mae');return {label:'Persistence',data:shadowChartValues(m),_meta:m,borderColor:'#64748b',backgroundColor:'#64748b',tension:.3,spanGaps:false};})(),
-        (()=>{const m=shadowBuildDataset(rows,'RF_V1',leads,'mae');return {label:'RF V1',data:shadowChartValues(m),_meta:m,borderColor:'#0ea5e9',backgroundColor:'#0ea5e9',tension:.3,spanGaps:false};})(),
-        (()=>{const m=shadowBuildDataset(rows,'LONG_H120_P50',leads,'mae');return {label:'Long-H120',data:shadowChartValues(m),_meta:m,borderColor:'#0284c7',backgroundColor:'#0284c7',tension:.3,spanGaps:false};})(),
-        (()=>{const m=shadowBuildDataset(rows,'LSTM_H120_P50',leads,'mae');return {label:'LSTM-H120',data:shadowChartValues(m),_meta:m,borderColor:'#7c3aed',backgroundColor:'#7c3aed',tension:.3,spanGaps:false};})()
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:10,weight:'bold'}}},
-        tooltip:{
-          callbacks:{
-            title:(items)=>items?.[0]?.label||'',
-            label:(ctx)=>{
-              const m=ctx.dataset?._meta?.[ctx.dataIndex];
-              if(!m) return `${ctx.dataset.label}: --`;
-              const c=shadowConfidence(m.n);
-              return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+  shadowSetText(
+    'shadowMaeMode',
+    isFair
+      ? 'Fair5: cùng issue_time, forecast_time, lead và đủ 5 mô hình.'
+      : 'Warm-up: tạm hiển thị raw shadow; chưa dùng để kết luận vì n giữa các mô hình khác nhau.'
+  );
+
+  if(shadowMaeChartInstance){
+    shadowMaeChartInstance.destroy();
+  }
+
+  const mk=(name,label,color)=>{
+    const m=shadowBuildDataset(rows,name,leads,'mae');
+    return {
+      label,
+      data:shadowChartValues(m),
+      _meta:m,
+      borderColor:color,
+      backgroundColor:color,
+      tension:.3,
+      spanGaps:false,
+      pointRadius:3,
+      pointHoverRadius:5
+    };
+  };
+
+  shadowMaeChartInstance=new Chart(
+    canvas.getContext('2d'),
+    {
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          mk('PERSISTENCE','Persistence','#64748b'),
+          mk('RF_V1','RF V1','#0ea5e9'),
+          mk('LONG_H120_P50','Long-H120','#0284c7'),
+          mk('LSTM_H120_P50','LSTM-H120','#7c3aed'),
+          mk('CNN_LSTM_H120_V3_1','CNN-LSTM V3.1','#db2777')
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{
+            position:'top',
+            labels:{
+              usePointStyle:true,
+              boxWidth:8,
+              font:{size:10,weight:'bold'}
+            }
+          },
+          tooltip:{
+            callbacks:{
+              title:(items)=>items?.[0]?.label||'',
+              label:(ctx)=>{
+                const m=ctx.dataset?._meta?.[ctx.dataIndex];
+                if(!m) return `${ctx.dataset.label}: --`;
+                const c=shadowConfidence(m.n);
+                return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+              }
             }
           }
+        },
+        scales:{
+          y:{
+            beginAtZero:true,
+            title:{
+              display:true,
+              text:'MAE (m³/s)',
+              font:{weight:'bold'}
+            },
+            grid:{color:'rgba(148,163,184,.16)'}
+          },
+          x:{grid:{display:false}}
         }
-      },
-      scales:{
-        y:{beginAtZero:true,title:{display:true,text:'MAE (m³/s)',font:{weight:'bold'}},grid:{color:'rgba(148,163,184,.16)'}},
-        x:{grid:{display:false}}
       }
     }
-  });
+  );
 }
 
 function renderShadowPairChart(rows,isFair){
   const canvas=document.getElementById('shadowPairChart');
-  if(!canvas || typeof Chart==='undefined') return;
+  if(!canvas||typeof Chart==='undefined') return;
 
   const leads=[1,3,6,12,24,48,72,120];
-  const labels=leads.map(h=>'H'+String(h).padStart(2,'0'));
-  shadowSetText('shadowPairMode',
-    isFair
-      ? 'Fair Long–LSTM: chỉ các forecast_time có đủ cả 2 mô hình.'
-      : 'Tạm hiển thị số liệu shadow hiện có; các horizon xa sẽ xuất hiện khi đủ Q thực.'
+  const labels=leads.map(
+    h=>'H'+String(h).padStart(2,'0')
   );
 
-  if(shadowPairChartInstance) shadowPairChartInstance.destroy();
-  shadowPairChartInstance=new Chart(canvas.getContext('2d'),{
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        (()=>{const m=shadowBuildDataset(rows,'LONG_H120_P50',leads,'mae');return {label:'Long-H120',data:shadowChartValues(m),_meta:m,borderColor:'#0284c7',backgroundColor:'#0284c7',tension:.3,spanGaps:false};})(),
-        (()=>{const m=shadowBuildDataset(rows,'LSTM_H120_P50',leads,'mae');return {label:'LSTM-H120',data:shadowChartValues(m),_meta:m,borderColor:'#7c3aed',backgroundColor:'#7c3aed',tension:.3,spanGaps:false};})()
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:10,weight:'bold'}}},
-        tooltip:{
-          callbacks:{
-            title:(items)=>items?.[0]?.label||'',
-            label:(ctx)=>{
-              const m=ctx.dataset?._meta?.[ctx.dataIndex];
-              if(!m) return `${ctx.dataset.label}: --`;
-              const c=shadowConfidence(m.n);
-              return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+  shadowSetText(
+    'shadowPairMode',
+    'Raw verified: Long-H120, LSTM-H120 và CNN-LSTM V3.1. Tooltip hiển thị n; chart này dùng theo dõi H48/H72/H120, không phải Fair5 ranking.'
+  );
+
+  if(shadowPairChartInstance){
+    shadowPairChartInstance.destroy();
+  }
+
+  const mk=(name,label,color)=>{
+    const m=shadowBuildDataset(rows,name,leads,'mae');
+    return {
+      label,
+      data:shadowChartValues(m),
+      _meta:m,
+      borderColor:color,
+      backgroundColor:color,
+      tension:.3,
+      spanGaps:false,
+      pointRadius:3,
+      pointHoverRadius:5
+    };
+  };
+
+  shadowPairChartInstance=new Chart(
+    canvas.getContext('2d'),
+    {
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          mk('LONG_H120_P50','Long-H120','#0284c7'),
+          mk('LSTM_H120_P50','LSTM-H120','#7c3aed'),
+          mk('CNN_LSTM_H120_V3_1','CNN-LSTM V3.1','#db2777')
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{
+            position:'top',
+            labels:{
+              usePointStyle:true,
+              boxWidth:8,
+              font:{size:10,weight:'bold'}
+            }
+          },
+          tooltip:{
+            callbacks:{
+              title:(items)=>items?.[0]?.label||'',
+              label:(ctx)=>{
+                const m=ctx.dataset?._meta?.[ctx.dataIndex];
+                if(!m) return `${ctx.dataset.label}: --`;
+                const c=shadowConfidence(m.n);
+                return `${ctx.dataset.label}: MAE ${shadowFmtNum(m.mae,2)} • RMSE ${shadowFmtNum(m.rmse,2)} • Bias ${shadowFmtNum(m.bias,2)} • n=${m.n} • ${c.text}`;
+              }
             }
           }
+        },
+        scales:{
+          y:{
+            beginAtZero:true,
+            title:{
+              display:true,
+              text:'MAE (m³/s)',
+              font:{weight:'bold'}
+            },
+            grid:{color:'rgba(148,163,184,.16)'}
+          },
+          x:{grid:{display:false}}
         }
-      },
-      scales:{
-        y:{beginAtZero:true,title:{display:true,text:'MAE (m³/s)',font:{weight:'bold'}},grid:{color:'rgba(148,163,184,.16)'}},
-        x:{grid:{display:false}}
       }
     }
-  });
+  );
 }
 </script>
 
