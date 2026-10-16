@@ -26,7 +26,6 @@ Expected secrets:
 
 Expected files:
   models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt
-  models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v1_2_config.json
 """
 
 from __future__ import annotations
@@ -367,7 +366,7 @@ def log_run(sb, **kwargs):
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--checkpoint",required=True)
-    ap.add_argument("--config",required=True)
+    ap.add_argument("--config",required=False,default=None)
     ap.add_argument("--max-nwp-age-hours",type=float,default=24.0)
     ap.add_argument("--max-q-age-hours",type=float,default=3.0)
     args=ap.parse_args()
@@ -394,12 +393,24 @@ def main():
         X,input_start,input_end=build_history(sb,issue)
         R,nwp_run,nwp_age=select_live_nwp(sb,issue,args.max_nwp_age_hours)
 
-        cfg=json.load(open(args.config,encoding="utf-8"))
         ck=torch.load(args.checkpoint,map_location="cpu",weights_only=False)
 
         for required in ["model_state_dict","rain_log_mean","rain_log_std","correction_caps","scenario_order"]:
             if required not in ck:
                 raise RuntimeError(f"Checkpoint missing {required}")
+
+        # Prefer the historical config embedded in the validated model checkpoint.
+        # This removes an unnecessary external-file dependency in GitHub Actions.
+        if "historical_config" in ck and isinstance(ck["historical_config"], dict):
+            cfg = ck["historical_config"]
+            print("Historical config source: checkpoint")
+        elif args.config:
+            cfg=json.load(open(args.config,encoding="utf-8"))
+            print("Historical config source:",args.config)
+        else:
+            raise RuntimeError(
+                "Checkpoint has no historical_config and --config was not provided."
+            )
 
         if list(ck["scenario_order"])!=SCENARIOS:
             raise RuntimeError(f"Scenario order mismatch: {ck['scenario_order']}")
