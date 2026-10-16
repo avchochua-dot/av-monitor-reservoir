@@ -13,6 +13,8 @@
 <!-- TIMEXER V2 CORE4 H120 SHADOW UI PATCH: 2026-10-16
      TimeXer tab is immediately after CNN-LSTM H120.
      Reads the TimeXer shadow views only; does not replace production forecasts.
+     TIME FIX: TimeXer now follows the exact same website timestamp path
+     as Long/LSTM/CNN-LSTM; no TimeXer-specific +7/-7 display shift.
 -->
 <!-- LONG-H120 PRODUCTION SIMPLE-DROPDOWN-SIDEBAR: 2026-10-10
      - DB hour displayed literally (no +7 conversion)
@@ -16107,34 +16109,9 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
   let sb=null, chart=null, currentTab="IN_OBS_FC_LONG_H120";
 
-  // TimeXer lưu UTC thật; dashboard hiện hiển thị reservoir DB theo VN wall-clock.
-  // Chỉ dịch ở lớp hiển thị, tuyệt đối không ghi ngược giá trị đã dịch vào Supabase.
-  const TIMEXER_DISPLAY_OFFSET_MS = 7 * 3600 * 1000;
-
-  function timeXerRealUtcToDbWallIso(value){
-    if(!value) return value;
-    const ms=new Date(value).getTime();
-    if(!Number.isFinite(ms)) return value;
-    return new Date(ms + TIMEXER_DISPLAY_OFFSET_MS).toISOString();
-  }
-
-  function timeXerDbWallRangeToRealUtcIso(value){
-    if(!value) return value;
-    const ms=new Date(value).getTime();
-    if(!Number.isFinite(ms)) return value;
-    return new Date(ms - TIMEXER_DISPLAY_OFFSET_MS).toISOString();
-  }
-
-  function normalizeTimeXerRowForDisplay(row){
-    if(!row) return row;
-    return {
-      ...row,
-      issue_time_utc:row.issue_time,
-      forecast_time_utc:row.forecast_time,
-      issue_time:timeXerRealUtcToDbWallIso(row.issue_time),
-      forecast_time:timeXerRealUtcToDbWallIso(row.forecast_time)
-    };
-  }
+  // TimeXer dùng cùng quy tắc thời gian hiển thị như Long/LSTM/CNN-LSTM.
+  // Không cộng/trừ timezone riêng ở lớp website.
+  // issue_time / forecast_time được dùng trực tiếp như các forecast khác.
 
   const tabMeta = {
     // Long-H120 đặt đầu tiên: P50 hourly H01-H120 + dải P10-P90 + 6 scenario.
@@ -20639,8 +20616,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const future7d=
         new Date(now.getTime()+7*24*3600*1000).toISOString();
 
-      const tTimeXerStart=timeXerDbWallRangeToRealUtcIso(tFcStart);
-      const tTimeXerEnd=timeXerDbWallRangeToRealUtcIso(tFcEnd);
+      // TimeXer query dùng cùng cửa sổ thời gian với các forecast H120 khác.
+      const tTimeXerStart=tFcStart;
+      const tTimeXerEnd=tFcEnd;
 
       const productionSources=[
         'rf2q_v7',
@@ -20958,14 +20936,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       const timeXerRows=(resTIMEXER.data||[])
-        .map(normalizeTimeXerRowForDisplay)
+        .slice()
         .sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
 
       state.timeXerIssueTime=timeXerRows.length?(timeXerRows[0].issue_time||null):null;
       state.inflowFc_TIMEXER=timeXerRows;
 
       state.inflowFc_TIMEXER_SCENARIO=(resTIMEXERScenario.data||[])
-        .map(normalizeTimeXerRowForDisplay)
+        .slice()
         .sort((a,b)=>{
           const la=Number(a.lead_hour||0), lb=Number(b.lead_hour||0);
           if(la!==lb) return la-lb;
@@ -23370,8 +23348,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       const rainByMs=new Map();
       (rainSource||[]).forEach(r=>{
-        const rainTime=isTIMEXER?timeXerRealUtcToDbWallIso(r.forecast_time):r.forecast_time;
-        const ms=toMs(rainTime);
+        const ms=toMs(r.forecast_time);
         if(ms!==null) rainByMs.set(ms,r);
       });
 
@@ -24084,7 +24061,7 @@ if(r.rainfall_run_time){
               if(r.q_p10!=null&&r.q_p90!=null) lines.push(`P10–P90: ${Number(r.q_p10).toFixed(2)} – ${Number(r.q_p90).toFixed(2)} m³/s`);
               if(r.q_p25!=null&&r.q_p75!=null) lines.push(`P25–P75: ${Number(r.q_p25).toFixed(2)} – ${Number(r.q_p75).toFixed(2)} m³/s`);
               if(r.q_min!=null&&r.q_max!=null) lines.push(`Min–Max: ${Number(r.q_min).toFixed(2)} – ${Number(r.q_max).toFixed(2)} m³/s`);
-              if(r.nwp_run_time) lines.push(`Run NWP: ${formatToVNTime(timeXerRealUtcToDbWallIso(r.nwp_run_time))}`);
+              if(r.nwp_run_time) lines.push(`Run NWP: ${formatToVNTime(r.nwp_run_time)}`);
               if(r.nwp_age_h!=null) lines.push(`Tuổi NWP: ${Number(r.nwp_age_h).toFixed(1)} h`);
               if(r.scenario_count!=null) lines.push(`Kịch bản Q: ${r.scenario_count}`);
               if(r.model_version) lines.push(`Model: ${r.model_version}`);
