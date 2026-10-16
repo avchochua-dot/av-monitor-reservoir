@@ -9,8 +9,10 @@ on:
         default: ""
         type: string
 
-  # Main rainfall workflow: HH:07, retry HH:12.
-  # CNN-LSTM waits until HH:20.
+  # Main rainfall workflow:
+  # HH:07 = collect NWP/rainfall + RF/Long/LSTM
+  # HH:12 = retry
+  # CNN-LSTM runs after those pipelines.
   schedule:
     - cron: "20 * * * *"
 
@@ -32,27 +34,42 @@ jobs:
       RESERVOIR_ID: ${{ secrets.RESERVOIR_ID }}
 
       BASIN_ID: "AVUONG"
+
       CNN_LSTM_MODEL_DIR: "models/cnn_lstm_h120_v3"
       CNN_LSTM_SOURCE: "cnn_lstm_h120_v3"
       CNN_LSTM_MODEL_VERSION: "CNN_LSTM_H120_V3_SHORT_PEAK_AWARE"
+
       CNN_LSTM_MAX_LEAD: "120"
       CNN_LSTM_LOOKBACK_HOURS: "168"
+
+      # CNN-LSTM blocks stale rainfall/NWP input.
       MAX_RAIN_RUN_AGE_HOURS: "12"
 
     steps:
+
+      # ==========================================================
+      # 1. CHECKOUT
+      # ==========================================================
       - name: Checkout repository with Git LFS
         uses: actions/checkout@v4
         with:
           lfs: true
           fetch-depth: 1
 
+      # ==========================================================
+      # 2. GIT LFS
+      # ==========================================================
       - name: Pull Git LFS model artifacts
         shell: bash
         run: |
           set -euo pipefail
+
           git lfs install
           git lfs pull
 
+      # ==========================================================
+      # 3. PYTHON
+      # ==========================================================
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -60,121 +77,319 @@ jobs:
           cache: "pip"
           cache-dependency-path: scripts/requirements_lstm_live.txt
 
+      # ==========================================================
+      # 4. INSTALL DEPENDENCIES
+      # ==========================================================
       - name: Install dependencies
         shell: bash
         run: |
           set -euo pipefail
+
           python -m pip install --upgrade pip
+
+          # Existing CNN-LSTM runtime dependencies
           pip install -r scripts/requirements_lstm_live.txt
 
+          # Required by the NWP freshness check below.
+          # This fixes:
+          # ModuleNotFoundError: No module named 'supabase'
+          pip install "supabase>=2,<3"
+
+      # ==========================================================
+      # 5. VALIDATE SECRETS
+      # ==========================================================
       - name: Validate secrets
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${SUPABASE_URL:-}" || (echo "Missing SUPABASE_URL" && exit 1)
-          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (echo "Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
 
+          test -n "${SUPABASE_URL:-}" || (
+            echo "ERROR: Missing SUPABASE_URL"
+            exit 1
+          )
+
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (
+            echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          )
+
+          echo "Supabase secrets OK."
+
+      # ==========================================================
+      # 6. VALIDATE ARTIFACTS
+      # ==========================================================
       - name: Validate CNN-LSTM V3 artifacts
         shell: bash
         run: |
           set -euo pipefail
+
           MODEL="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
           SCALER="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
 
           test -s "$MODEL"
           test -s "$SCALER"
 
+          echo "======================================================"
+          echo "CNN-LSTM ARTIFACTS"
+          echo "======================================================"
+
+          ls -lh models/cnn_lstm_h120_v3/
+
+          echo ""
+          echo "Model file type:"
+          file "$MODEL" || true
+
+          echo ""
+          echo "Validate Keras archive..."
+
           python - <<'PY'
+          import os
           import zipfile
-          model = "models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
+
+          model = (
+              "models/cnn_lstm_h120_v3/"
+              "cnn_lstm_h120_v3.keras"
+          )
+
+          scaler = (
+              "models/cnn_lstm_h120_v3/"
+              "cnn_lstm_h120_v3_scalers.joblib"
+          )
+
+          print("model bytes :", os.path.getsize(model))
+          print("scaler bytes:", os.path.getsize(scaler))
+          print("keras zip?  :", zipfile.is_zipfile(model))
+
           if not zipfile.is_zipfile(model):
-              raise SystemExit("ERROR: CNN-LSTM .keras is not a valid Keras zip archive.")
+              with open(model, "rb") as f:
+                  head = f.read(200)
+
+              print("model head:", head)
+
+              raise SystemExit(
+                  "ERROR: cnn_lstm_h120_v3.keras is not "
+                  "a valid Keras zip archive. "
+                  "Possible Git LFS pointer instead of binary."
+              )
           PY
 
+      # ==========================================================
+      # 7. CHECK NWP FRESHNESS
+      # ==========================================================
       - name: Check latest NWP freshness
         shell: bash
         run: |
           set -euo pipefail
+
           python - <<'PY'
           import os
           from datetime import datetime, timezone
+
           from supabase import create_client
 
-          sb = create_client(
-              os.environ["SUPABASE_URL"],
-              os.environ["SUPABASE_SERVICE_ROLE_KEY"],
-          )
+          url = os.environ["SUPABASE_URL"]
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+          sb = create_client(url, key)
 
           rows = (
               sb.table("rainfall_basin_hourly")
-              .select("run_time")
+              .select(
+                  "run_time,"
+                  "rain_ecmwf,"
+                  "rain_gfs,"
+                  "rain_icon,"
+                  "rain_aifs,"
+                  "rain_cma,"
+                  "rain_jma"
+              )
               .eq("basin_id", "AVUONG")
               .order("run_time", desc=True)
-              .limit(1)
+              .limit(300)
               .execute()
-              .data or []
+              .data
+              or []
           )
 
           if not rows:
-              raise RuntimeError("NWP_MISSING")
+              raise RuntimeError(
+                  "NWP_MISSING: "
+                  "No AVUONG rainfall_basin_hourly rows."
+              )
 
-          run_time = rows[0]["run_time"]
+          latest_run = rows[0]["run_time"]
+
+          latest_rows = [
+              r
+              for r in rows
+              if r["run_time"] == latest_run
+          ]
+
           run_dt = datetime.fromisoformat(
-              run_time.replace("Z", "+00:00")
+              latest_run.replace("Z", "+00:00")
           ).astimezone(timezone.utc)
 
+          now = datetime.now(timezone.utc)
+
           age_h = (
-              datetime.now(timezone.utc) - run_dt
+              now - run_dt
           ).total_seconds() / 3600.0
 
-          print("Latest NWP run:", run_time)
-          print("NWP age hours :", round(age_h, 2))
+          print("======================================================")
+          print("CNN-LSTM NWP HEALTH")
+          print("======================================================")
+          print("Latest run :", latest_run)
+          print("Age h      :", round(age_h, 2))
+          print("Rows       :", len(latest_rows))
+
+          columns = [
+              "rain_ecmwf",
+              "rain_gfs",
+              "rain_icon",
+              "rain_aifs",
+              "rain_cma",
+              "rain_jma",
+          ]
+
+          completeness_ok = True
+
+          for col in columns:
+              n = sum(
+                  r.get(col) is not None
+                  for r in latest_rows
+              )
+
+              print(f"{col:12s}: {n}")
+
+              if n < 120:
+                  completeness_ok = False
+
+          if not completeness_ok:
+              raise RuntimeError(
+                  "NWP_PARTIAL: "
+                  "latest 6-model run does not have "
+                  "at least 120 non-null rows/model."
+              )
 
           if age_h > 12:
-              raise RuntimeError(f"NWP_STALE: {age_h:.1f}h > 12h")
+              raise RuntimeError(
+                  f"NWP_STALE: "
+                  f"{age_h:.1f}h > 12h"
+              )
+
+          if age_h <= 6:
+              status = "GOOD"
+          else:
+              status = "WARN"
+
+          print("NWP_STATUS :", status)
+          print("======================================================")
           PY
 
+      # ==========================================================
+      # 8. SMOKE TEST MODEL
+      # ==========================================================
       - name: Smoke test model and scaler bundle
         shell: bash
         run: |
           set -euo pipefail
+
           python - <<'PY'
           import joblib
           import tensorflow as tf
 
-          model_path="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
-          scaler_path="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
+          model_path = (
+              "models/cnn_lstm_h120_v3/"
+              "cnn_lstm_h120_v3.keras"
+          )
 
-          model=tf.keras.models.load_model(
+          scaler_path = (
+              "models/cnn_lstm_h120_v3/"
+              "cnn_lstm_h120_v3_scalers.joblib"
+          )
+
+          model = tf.keras.models.load_model(
               model_path,
               compile=False,
               safe_mode=False
           )
-          bundle=joblib.load(scaler_path)
 
-          assert int(bundle["lookback"]) == 168
-          assert int(bundle["horizon"]) == 120
-          assert "short_blend_alphas" in bundle
+          bundle = joblib.load(
+              scaler_path
+          )
+
+          print("======================================================")
+          print("CNN-LSTM MODEL SMOKE TEST")
+          print("======================================================")
 
           print("Model       :", model.name)
           print("Input shape :", model.input_shape)
           print("Output shape:", model.output_shape)
+
+          print(
+              "Lookback    :",
+              bundle.get("lookback")
+          )
+
+          print(
+              "Horizon     :",
+              bundle.get("horizon")
+          )
+
+          print(
+              "Version     :",
+              bundle.get("version")
+          )
+
+          print(
+              "Alphas      :",
+              bundle.get("short_blend_alphas")
+          )
+
+          assert int(
+              bundle["lookback"]
+          ) == 168
+
+          assert int(
+              bundle["horizon"]
+          ) == 120
+
+          assert (
+              "short_blend_alphas"
+              in bundle
+          )
+
+          print("Smoke test PASS.")
           PY
 
+      # ==========================================================
+      # 9. RUN CNN-LSTM
+      # ==========================================================
       - name: Run CNN-LSTM V3 seven-scenario shadow predictor
         shell: bash
         run: |
           set -euo pipefail
+
           python scripts/cnn_lstm_predict_live.py
 
+      # ==========================================================
+      # 10. SUMMARY
+      # ==========================================================
       - name: Workflow summary
         if: always()
         shell: bash
         run: |
+          echo ""
           echo "=============================================================="
           echo "A VUONG CNN-LSTM V3 SHADOW"
+          echo "=============================================================="
           echo "Event         : ${{ github.event_name }}"
           echo "Schedule      : ${{ github.event.schedule }}"
+          echo "Basin         : ${BASIN_ID}"
+          echo "Model version : ${CNN_LSTM_MODEL_VERSION}"
+          echo "Lookback      : ${CNN_LSTM_LOOKBACK_HOURS} h"
+          echo "Horizon       : ${CNN_LSTM_MAX_LEAD} h"
+          echo "Max NWP age   : ${MAX_RAIN_RUN_AGE_HOURS} h"
           echo "Expected rows : 840 scenario + 120 ensemble"
           echo "Mode          : SHADOW ONLY"
           echo "Cron          : HH:20 UTC"
