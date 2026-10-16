@@ -1,0 +1,62 @@
+name: TimeXer CORE4 Shadow
+
+on:
+  workflow_dispatch:
+
+  # PHASE 2:
+  # After 1-2 days of successful manual runs, uncomment:
+  # schedule:
+  #   - cron: "25 * * * *"
+
+concurrency:
+  group: timexer-core4-shadow
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install
+        run: pip install -r requirements-timexer-shadow.txt
+
+      - name: Validate artifacts
+        run: |
+          test -f models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt
+          test -f models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v1_2_config.json
+          python - <<'PY'
+          import os
+          p="models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt"
+          print("checkpoint bytes:",os.path.getsize(p))
+          PY
+
+      - name: Predict shadow
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python scripts/timexer_core4_shadow_predict.py \
+            --checkpoint models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt \
+            --config models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v1_2_config.json \
+            --max-nwp-age-hours 24 \
+            --max-q-age-hours 3
+
+      - name: Evaluate matured shadow rows
+        if: ${{ success() }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/evaluate_timexer_shadow.py
