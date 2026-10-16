@@ -36,7 +36,6 @@ jobs:
       - name: Validate artifacts
         run: |
           test -f models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt
-          test -f models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v1_2_config.json
           python - <<'PY'
           import os
           p="models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt"
@@ -50,7 +49,6 @@ jobs:
         run: |
           python scripts/timexer_core4_shadow_predict.py \
             --checkpoint models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt \
-            --config models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v1_2_config.json \
             --max-nwp-age-hours 24 \
             --max-q-age-hours 3
 
