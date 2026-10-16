@@ -1,0 +1,42 @@
+{
+  "status": "OK",
+  "model_version": "TIMEXER_H120_V2_NWP_CORE4_FIXED",
+  "scenario_order": [
+    "ECMWF",
+    "GFS",
+    "ICON",
+    "AIFS"
+  ],
+  "scenario_spread_note": "q_p10/q_p25/q_p50/q_p75/q_p90 are empirical percentiles across 4 model scenarios, not calibrated probabilistic forecast quantiles.",
+  "best_epoch": 1,
+  "best_val_loss": 2.8534641566577257,
+  "train_samples": 518,
+  "val_samples": 111,
+  "test_samples": 112,
+  "overall_core4": {
+    "mae": 41.01689147949219,
+    "rmse": 92.73114776611328,
+    "bias": -20.30274200439453,
+    "nse": -0.1732107400894165
+  },
+  "overall_historical": {
+    "mae": 41.27154541015625,
+    "rmse": 93.0076675415039,
+    "bias": -19.358661651611328,
+    "nse": -0.18021810054779053
+  },
+  "overall_persistence": {
+    "mae": 51.332767486572266,
+    "rmse": 116.80520629882812,
+    "bias": -7.0984039306640625,
+    "nse": -0.8614406585693359
+  },
+  "overall_gain_vs_historical_pct": 0.6170205843597908,
+  "overall_gain_vs_persistence_pct": 20.096083870363167,
+  "shadow_gate": {
+    "overall_core4_mae_better_than_historical": true,
+    "h24_h48_h72_h120_not_worse_than_historical": true,
+    "recommended_for_shadow": true
+  },
+  "checkpoint": "/content/drive/MyDrive/rf_training/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt"
+}
