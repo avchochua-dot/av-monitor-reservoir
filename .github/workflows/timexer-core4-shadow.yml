@@ -3,17 +3,18 @@ name: TimeXer CORE4 Shadow
 on:
   workflow_dispatch:
 
-  # PHASE 2:
-  # After 1-2 days of successful manual runs, uncomment:
+  # Main rainfall workflow: HH:07 and retry HH:12.
+  # CNN-LSTM: HH:20.
+  # TimeXer waits until HH:30.
   schedule:
-  - cron: "25 * * * *"
+    - cron: "30 * * * *"
+
+permissions:
+  contents: read
 
 concurrency:
   group: timexer-core4-shadow
   cancel-in-progress: false
-
-permissions:
-  contents: read
 
 jobs:
   predict:
@@ -29,32 +30,64 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: requirements-timexer-shadow.txt
 
       - name: Install
-        run: pip install -r requirements-timexer-shadow.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          pip install -r requirements-timexer-shadow.txt
+
+      - name: Validate required secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_URL:-}" || (echo "ERROR: Missing SUPABASE_URL" && exit 1)
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (echo "ERROR: Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
 
       - name: Validate artifacts
+        shell: bash
         run: |
-          test -f models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt
+          set -euo pipefail
+          MODEL="models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt"
+          test -s "$MODEL"
+
           python - <<'PY'
           import os
           p="models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt"
-          print("checkpoint bytes:",os.path.getsize(p))
+          print("checkpoint bytes:", os.path.getsize(p))
           PY
 
       - name: Predict shadow
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
         run: |
-          python scripts/timexer_core4_shadow_predict.py \
-            --checkpoint models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt \
-            --max-nwp-age-hours 24 \
-            --max-q-age-hours 3
+          set -euo pipefail
+          python scripts/timexer_core4_shadow_predict.py             --checkpoint models/timexer_h120_v2_nwp_core4_fixed/timexer_h120_v2_nwp_core4_fixed.pt             --max-nwp-age-hours 24             --max-q-age-hours 3
 
-      - name: Evaluate matured shadow rows
+      - name: Evaluate matured TimeXer shadow rows
         if: ${{ success() }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scripts/evaluate_timexer_shadow.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/evaluate_timexer_shadow.py
+
+      - name: Workflow summary
+        if: always()
+        shell: bash
+        run: |
+          echo "=============================================================="
+          echo "A VUONG TIMEXER CORE4 SHADOW"
+          echo "Event         : ${{ github.event_name }}"
+          echo "Schedule      : ${{ github.event.schedule }}"
+          echo "Mode          : SHADOW ONLY"
+          echo "Cron          : HH:30 UTC"
+          echo "=============================================================="

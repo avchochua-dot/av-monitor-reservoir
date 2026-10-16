@@ -1,4 +1,5 @@
 name: A Vuong CNN-LSTM V3_1_NO_LAMBDA
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,8 +9,10 @@ on:
         default: ""
         type: string
 
+  # Main rainfall workflow: HH:07, retry HH:12.
+  # CNN-LSTM waits until HH:20.
   schedule:
-    - cron: "15 * * * *"
+    - cron: "20 * * * *"
 
 permissions:
   contents: read
@@ -70,44 +73,65 @@ jobs:
           set -euo pipefail
           test -n "${SUPABASE_URL:-}" || (echo "Missing SUPABASE_URL" && exit 1)
           test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || (echo "Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
-          echo "Supabase secrets OK."
 
       - name: Validate CNN-LSTM V3 artifacts
         shell: bash
         run: |
           set -euo pipefail
-
           MODEL="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
           SCALER="models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
 
           test -s "$MODEL"
           test -s "$SCALER"
 
-          echo "Artifact listing:"
-          ls -lh models/cnn_lstm_h120_v3/
-
-          echo "Model file type:"
-          file "$MODEL" || true
-
-          echo "Checking whether .keras is a real zip archive..."
           python - <<'PY'
-          import os, zipfile
-
+          import zipfile
           model = "models/cnn_lstm_h120_v3/cnn_lstm_h120_v3.keras"
-          scaler = "models/cnn_lstm_h120_v3/cnn_lstm_h120_v3_scalers.joblib"
-
-          print("model bytes :", os.path.getsize(model))
-          print("scaler bytes:", os.path.getsize(scaler))
-          print("keras zip?  :", zipfile.is_zipfile(model))
-
           if not zipfile.is_zipfile(model):
-              with open(model, "rb") as f:
-                  head = f.read(200)
-              print("model head:", head)
-              raise SystemExit(
-                  "ERROR: cnn_lstm_h120_v3.keras is not a real Keras zip file. "
-                  "Most likely Git LFS pointer was checked out instead of the binary."
-              )
+              raise SystemExit("ERROR: CNN-LSTM .keras is not a valid Keras zip archive.")
+          PY
+
+      - name: Check latest NWP freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from supabase import create_client
+
+          sb = create_client(
+              os.environ["SUPABASE_URL"],
+              os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+          )
+
+          rows = (
+              sb.table("rainfall_basin_hourly")
+              .select("run_time")
+              .eq("basin_id", "AVUONG")
+              .order("run_time", desc=True)
+              .limit(1)
+              .execute()
+              .data or []
+          )
+
+          if not rows:
+              raise RuntimeError("NWP_MISSING")
+
+          run_time = rows[0]["run_time"]
+          run_dt = datetime.fromisoformat(
+              run_time.replace("Z", "+00:00")
+          ).astimezone(timezone.utc)
+
+          age_h = (
+              datetime.now(timezone.utc) - run_dt
+          ).total_seconds() / 3600.0
+
+          print("Latest NWP run:", run_time)
+          print("NWP age hours :", round(age_h, 2))
+
+          if age_h > 12:
+              raise RuntimeError(f"NWP_STALE: {age_h:.1f}h > 12h")
           PY
 
       - name: Smoke test model and scaler bundle
@@ -128,17 +152,13 @@ jobs:
           )
           bundle=joblib.load(scaler_path)
 
-          print("Model       :", model.name)
-          print("Input shape :", model.input_shape)
-          print("Output shape:", model.output_shape)
-          print("Lookback    :", bundle.get("lookback"))
-          print("Horizon     :", bundle.get("horizon"))
-          print("Version     :", bundle.get("version"))
-          print("Alphas      :", bundle.get("short_blend_alphas"))
-
           assert int(bundle["lookback"]) == 168
           assert int(bundle["horizon"]) == 120
           assert "short_blend_alphas" in bundle
+
+          print("Model       :", model.name)
+          print("Input shape :", model.input_shape)
+          print("Output shape:", model.output_shape)
           PY
 
       - name: Run CNN-LSTM V3 seven-scenario shadow predictor
@@ -157,4 +177,5 @@ jobs:
           echo "Schedule      : ${{ github.event.schedule }}"
           echo "Expected rows : 840 scenario + 120 ensemble"
           echo "Mode          : SHADOW ONLY"
+          echo "Cron          : HH:20 UTC"
           echo "=============================================================="
