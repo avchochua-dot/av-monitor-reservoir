@@ -4,11 +4,16 @@
 
 
 
+
 <!-- HEC-LITE V3.2 HISTORY+CURRENT FIX: preserve original chart layout; history from grid lead4 + current production cycle -->
 
 
 
 <!doctype html>
+<!-- TIMEXER V2 CORE4 H120 SHADOW UI PATCH: 2026-10-16
+     TimeXer tab is immediately after CNN-LSTM H120.
+     Reads the TimeXer shadow views only; does not replace production forecasts.
+-->
 <!-- LONG-H120 PRODUCTION SIMPLE-DROPDOWN-SIDEBAR: 2026-10-10
      - DB hour displayed literally (no +7 conversion)
      - Q observed solid; P50 long-dash
@@ -7953,6 +7958,16 @@ aside.sidebar{
 }
 
 
+
+/* TIMEXER V2 CORE4 SHADOW */
+#timeXerScenarioToggleBtn{
+  border-color:rgba(8,145,178,.24)!important;
+  background:linear-gradient(135deg,rgba(8,145,178,.11),rgba(236,254,255,.96))!important;
+  color:#0e7490!important;
+}
+#timeXerScenarioToggleBtn:hover{
+  box-shadow:0 10px 24px rgba(8,145,178,.14)!important;
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11647,6 +11662,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
               <button type="button" class="long-scenario-mini-btn" id="longScenarioToggleBtn" onclick="toggleLongScenarios()">Ẩn 6 kịch bản</button>
               <button type="button" class="long-scenario-mini-btn" id="lstmScenarioToggleBtn" onclick="toggleLstmScenarios()" style="display:none">Ẩn 7 kịch bản</button>
               <button type="button" class="long-scenario-mini-btn" id="cnnLstmScenarioToggleBtn" onclick="toggleCnnLstmScenarios()" style="display:none">Ẩn 7 kịch bản CNN-LSTM</button>
+              <button type="button" class="long-scenario-mini-btn" id="timeXerScenarioToggleBtn" onclick="toggleTimeXerScenarios()" style="display:none">Ẩn 4 kịch bản TimeXer</button>
             </div>
           </div>
 
@@ -16091,11 +16107,41 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
   let sb=null, chart=null, currentTab="IN_OBS_FC_LONG_H120";
 
+  // TimeXer lưu UTC thật; dashboard hiện hiển thị reservoir DB theo VN wall-clock.
+  // Chỉ dịch ở lớp hiển thị, tuyệt đối không ghi ngược giá trị đã dịch vào Supabase.
+  const TIMEXER_DISPLAY_OFFSET_MS = 7 * 3600 * 1000;
+
+  function timeXerRealUtcToDbWallIso(value){
+    if(!value) return value;
+    const ms=new Date(value).getTime();
+    if(!Number.isFinite(ms)) return value;
+    return new Date(ms + TIMEXER_DISPLAY_OFFSET_MS).toISOString();
+  }
+
+  function timeXerDbWallRangeToRealUtcIso(value){
+    if(!value) return value;
+    const ms=new Date(value).getTime();
+    if(!Number.isFinite(ms)) return value;
+    return new Date(ms - TIMEXER_DISPLAY_OFFSET_MS).toISOString();
+  }
+
+  function normalizeTimeXerRowForDisplay(row){
+    if(!row) return row;
+    return {
+      ...row,
+      issue_time_utc:row.issue_time,
+      forecast_time_utc:row.forecast_time,
+      issue_time:timeXerRealUtcToDbWallIso(row.issue_time),
+      forecast_time:timeXerRealUtcToDbWallIso(row.forecast_time)
+    };
+  }
+
   const tabMeta = {
     // Long-H120 đặt đầu tiên: P50 hourly H01-H120 + dải P10-P90 + 6 scenario.
     IN_OBS_FC_LONG_H120:{name:"Q Long H120",hint:"Thực tế vs Long-H120 (P50 + P25–P75 + Min–Max, H01…H120)",color:'2, 132, 199'},
     IN_OBS_FC_LSTM_H120:{name:"Q LSTM H120",hint:"Thực tế vs LSTM-H120 (P50 + P25–P75 + Min–Max, 7 kịch bản, H01…H120)",color:'124, 58, 237'},
     IN_OBS_FC_CNN_LSTM_H120:{name:"Q CNN-LSTM H120",hint:"Thực tế vs CNN-LSTM V3.1 (P50 + P25–P75 + Min–Max, 7 kịch bản, H01…H120)",color:'219, 39, 119'},
+    IN_OBS_FC_TIMEXER_H120:{name:"Q TimeXer H120",hint:"Thực tế vs TimeXer V2 CORE4 • SHADOW (P50 + P25–P75 + Min–Max, 4 kịch bản, H01…H120)",color:'8, 145, 178'},
 
     // Giữ RF V1 để benchmark/shadow.
     IN_OBS_FC_RF_V1:{name:"Q RF V1",hint:"Thực tế vs Random Forest V1 (H01/H03/H06/H12/H24)",color:'14, 165, 233'},
@@ -16136,6 +16182,11 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     cnnLstmIssueTime:null,
     cnnLstmHistoryRows:[],
     cnnLstmHistoryError:null,
+
+    // TimeXer V2 CORE4 live shadow
+    inflowFc_TIMEXER:[],
+    inflowFc_TIMEXER_SCENARIO:[],
+    timeXerIssueTime:null,
 
     // Forecast archive gần nhất trước issue hiện tại:
     // dùng cho khung "Số liệu đã qua".
@@ -20588,6 +20639,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const future7d=
         new Date(now.getTime()+7*24*3600*1000).toISOString();
 
+      const tTimeXerStart=timeXerDbWallRangeToRealUtcIso(tFcStart);
+      const tTimeXerEnd=timeXerDbWallRangeToRealUtcIso(tFcEnd);
+
       const productionSources=[
         'rf2q_v7',
         'rf2q_high_fast',
@@ -20607,6 +20661,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         resLSTMScenario,
         resCNNLSTM,
         resCNNLSTMScenario,
+        resTIMEXER,
+        resTIMEXERScenario,
         resRFV1,
         res4,
         res6,
@@ -20696,6 +20752,24 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           .lte('forecast_time',tFcEnd)
           .order('lead_hour',{ascending:true})
           .order('rain_scenario',{ascending:true}),
+
+        // TimeXer V2 CORE4 ensemble latest - SHADOW.
+        sb.from('v_inflow_forecast_timexer_latest')
+          .select('*')
+          .eq('basin_id','AVUONG')
+          .eq('source','timexer_h120_v2_core4_shadow')
+          .gte('forecast_time',tTimeXerStart)
+          .lte('forecast_time',tTimeXerEnd)
+          .order('lead_hour',{ascending:true}),
+
+        // TimeXer V2 CORE4 - 4 scenarios: ECMWF / GFS / ICON / AIFS.
+        sb.from('v_inflow_forecast_timexer_scenario_latest')
+          .select('*')
+          .eq('basin_id','AVUONG')
+          .gte('forecast_time',tTimeXerStart)
+          .lte('forecast_time',tTimeXerEnd)
+          .order('lead_hour',{ascending:true})
+          .order('scenario',{ascending:true}),
 
         // RF V1 live - giữ lại để benchmark.
         sb.from('v_inflow_forecast_rf_latest')
@@ -20798,6 +20872,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         ['forecast LSTM-H120 scenarios',resLSTMScenario],
         ['forecast CNN-LSTM V3.1 ensemble',resCNNLSTM],
         ['forecast CNN-LSTM V3.1 scenarios',resCNNLSTMScenario],
+        ['forecast TimeXer V2 CORE4 ensemble',resTIMEXER],
+        ['forecast TimeXer V2 CORE4 scenarios',resTIMEXERScenario],
         ['forecast RF V1',resRFV1],
         ['reservoir_hourly_data chart',res4],
         ['v_current_storage',res6],
@@ -20880,6 +20956,21 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         if(la!==lb) return la-lb;
         return String(a.rain_scenario||'').localeCompare(String(b.rain_scenario||''));
       });
+
+      const timeXerRows=(resTIMEXER.data||[])
+        .map(normalizeTimeXerRowForDisplay)
+        .sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
+
+      state.timeXerIssueTime=timeXerRows.length?(timeXerRows[0].issue_time||null):null;
+      state.inflowFc_TIMEXER=timeXerRows;
+
+      state.inflowFc_TIMEXER_SCENARIO=(resTIMEXERScenario.data||[])
+        .map(normalizeTimeXerRowForDisplay)
+        .sort((a,b)=>{
+          const la=Number(a.lead_hour||0), lb=Number(b.lead_hour||0);
+          if(la!==lb) return la-lb;
+          return String(a.scenario||'').localeCompare(String(b.scenario||''));
+        });
 
       // RF V1: view đã bảo đảm chỉ có cycle mới nhất.
       const rfV1Rows=(resRFV1.data||[])
@@ -21082,6 +21173,9 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         cnnLstmRows:state.inflowFc_CNN_LSTM.length,
         cnnLstmScenarioRows:state.inflowFc_CNN_LSTM_SCENARIO.length,
         cnnLstmIssueTime:state.cnnLstmIssueTime,
+        timeXerRows:state.inflowFc_TIMEXER.length,
+        timeXerScenarioRows:state.inflowFc_TIMEXER_SCENARIO.length,
+        timeXerIssueTime:state.timeXerIssueTime,
         rfV1Rows:state.inflowFc_RF_V1.length,
         rfV1IssueTime:state.rfV1IssueTime,
         rfV1ForecastTimes:state.inflowFc_RF_V1.map(r=>r.forecast_time),
@@ -21635,6 +21729,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const isLong=currentTab==='IN_OBS_FC_LONG_H120';
     const isLstm=currentTab==='IN_OBS_FC_LSTM_H120';
     const isCnnLstm=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
+    const isTimeXer=currentTab==='IN_OBS_FC_TIMEXER_H120';
 
     const longCard=$("longH120DataCard");
     const lstmCard=$("lstmH120DataCard");
@@ -21643,6 +21738,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const longBtn=$("longScenarioToggleBtn");
     const lstmBtn=$("lstmScenarioToggleBtn");
     const cnnLstmBtn=$("cnnLstmScenarioToggleBtn");
+    const timeXerBtn=$("timeXerScenarioToggleBtn");
 
     if(longCard) longCard.style.display=isLong?'block':'none';
     if(lstmCard) lstmCard.style.display=isLstm?'block':'none';
@@ -21651,6 +21747,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(longBtn) longBtn.style.display=isLong?'inline-flex':'none';
     if(lstmBtn) lstmBtn.style.display=isLstm?'inline-flex':'none';
     if(cnnLstmBtn) cnnLstmBtn.style.display=isCnnLstm?'inline-flex':'none';
+    if(timeXerBtn) timeXerBtn.style.display=isTimeXer?'inline-flex':'none';
   }
 
   // =========================================================
@@ -22722,6 +22819,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(currentTab==='IN_OBS_FC_CNN_LSTM_H120') renderChart();
   }
 
+  let timeXerScenarioVisible=true;
+  function toggleTimeXerScenarios(){
+    timeXerScenarioVisible=!timeXerScenarioVisible;
+    const btn=$("timeXerScenarioToggleBtn");
+    if(btn) btn.textContent=timeXerScenarioVisible?'Ẩn 4 kịch bản TimeXer':'Hiện 4 kịch bản TimeXer';
+    if(currentTab==='IN_OBS_FC_TIMEXER_H120') renderChart();
+  }
+
   async function exportLstmH120Excel(){
     try{
       const fc=(state.inflowFc_LSTM||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
@@ -23197,6 +23302,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const isLONG=currentTab==='IN_OBS_FC_LONG_H120';
       const isLSTM=currentTab==='IN_OBS_FC_LSTM_H120';
       const isCNNLSTM=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
+      const isTIMEXER=currentTab==='IN_OBS_FC_TIMEXER_H120';
       const isRFV1=currentTab.includes('RF_V1');
 
       let longIssueMs=null, longQNow=null, forecastIssueMs=null, forecastQNow=null;
@@ -23218,12 +23324,19 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
           forecastQNow=Number(state.lastObs.inflow);
         }
       }
+      if(isTIMEXER && state.inflowFc_TIMEXER.length){
+        forecastIssueMs=new Date(state.inflowFc_TIMEXER[0].issue_time).getTime();
+        if(state.lastObs && Number.isFinite(Number(state.lastObs.inflow))){
+          forecastQNow=Number(state.lastObs.inflow);
+        }
+      }
 
       let fc=[];
 
       if(isLONG) fc=state.inflowFc_LONG;
       else if(isLSTM) fc=state.inflowFc_LSTM;
       else if(isCNNLSTM) fc=state.inflowFc_CNN_LSTM;
+      else if(isTIMEXER) fc=state.inflowFc_TIMEXER;
       else if(isRFV1) fc=state.inflowFc_RF_V1;
       else if(currentTab.includes('V7')) fc=state.inflowFc_V7;
       else if(currentTab.includes('MIX')) fc=state.inflowFc_Mix;
@@ -23253,17 +23366,18 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // RF/Long dùng mưa mới 6 mô hình; tab cũ giữ nguồn legacy.
-      const rainSource=(isLONG||isLSTM||isCNNLSTM||isRFV1) ? state.rainFcRFV1 : state.rainFc;
+      const rainSource=(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isRFV1) ? state.rainFcRFV1 : state.rainFc;
 
       const rainByMs=new Map();
       (rainSource||[]).forEach(r=>{
-        const ms=toMs(r.forecast_time);
+        const rainTime=isTIMEXER?timeXerRealUtcToDbWallIso(r.forecast_time):r.forecast_time;
+        const ms=toMs(rainTime);
         if(ms!==null) rainByMs.set(ms,r);
       });
 
       let all=[];
 
-      if(isLONG||isLSTM||isCNNLSTM||isRFV1){
+      if(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isRFV1){
         // Tạo timeline hourly đầy đủ:
         // - Q thực/MA24
         // - mưa dự báo từng giờ
@@ -23847,6 +23961,141 @@ if(r.rainfall_run_time){
         };
       }
 
+
+      else if(isTIMEXER){
+        const scenarioStyle={
+          ECMWF:{label:'TimeXer ECMWF',color:'#2563eb'},
+          GFS:{label:'TimeXer GFS',color:'#f59e0b'},
+          ICON:{label:'TimeXer ICON',color:'#10b981'},
+          AIFS:{label:'TimeXer AIFS',color:'#8b5cf6'}
+        };
+
+        const scenarioMaps={};
+        Object.keys(scenarioStyle).forEach(n=>scenarioMaps[n]=new Map());
+
+        (state.inflowFc_TIMEXER_SCENARIO||[]).forEach(r=>{
+          const ms=toMs(r.forecast_time);
+          const n=String(r.scenario||'').toUpperCase();
+          if(ms!==null&&scenarioMaps[n]) scenarioMaps[n].set(ms,r);
+        });
+
+        datasets.push({
+          label:'TimeXer Q Min',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)
+            ?forecastQNow
+            :(fcByMs.get(ms)&&fcByMs.get(ms).q_min!=null?Number(fcByMs.get(ms).q_min):null)),
+          borderColor:'rgba(8,145,178,.03)',backgroundColor:'rgba(8,145,178,.02)',
+          borderWidth:0,pointRadius:0,tension:.18,order:8
+        });
+
+        datasets.push({
+          label:'TimeXer Dải Min–Max',
+          data:all.map(ms=>ms===forecastIssueMs&&Number.isFinite(forecastQNow)
+            ?forecastQNow
+            :(fcByMs.get(ms)&&fcByMs.get(ms).q_max!=null?Number(fcByMs.get(ms).q_max):null)),
+          borderColor:'rgba(8,145,178,.08)',backgroundColor:'rgba(8,145,178,.05)',
+          borderWidth:.5,pointRadius:0,tension:.18,fill:'-1',order:9
+        });
+
+        datasets.push({
+          label:'TimeXer P25',
+          data:all.map(ms=>{
+            if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow;
+            const r=fcByMs.get(ms); return r&&r.q_p25!=null?Number(r.q_p25):null;
+          }),
+          borderColor:'rgba(8,145,178,.08)',backgroundColor:'rgba(8,145,178,.04)',
+          borderWidth:.5,pointRadius:0,tension:.18,order:6
+        });
+
+        datasets.push({
+          label:'TimeXer Dải P25–P75',
+          data:all.map(ms=>{
+            if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow;
+            const r=fcByMs.get(ms); return r&&r.q_p75!=null?Number(r.q_p75):null;
+          }),
+          borderColor:'rgba(8,145,178,.22)',backgroundColor:'rgba(8,145,178,.13)',
+          borderWidth:.8,pointRadius:0,tension:.18,fill:'-1',order:7
+        });
+
+        datasets.push({
+          label:'TimeXer V2 CORE4 P50',
+          data:all.map(ms=>{
+            if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow;
+            const r=fcByMs.get(ms);
+            if(!r) return null;
+            const v=r.q_p50??r.inflow_m3s;
+            return v==null?null:Number(v);
+          }),
+          borderColor:'rgb(8,145,178)',backgroundColor:'rgba(8,145,178,.10)',
+          borderWidth:2.8,borderDash:[7,4],borderCapStyle:'round',
+          pointRadius:0,pointHoverRadius:4,tension:.28,cubicInterpolationMode:'monotone',
+          spanGaps:false,fill:false,order:3
+        });
+
+        Object.entries(scenarioStyle).forEach(([name,style])=>{
+          const map=scenarioMaps[name];
+          datasets.push({
+            label:style.label,
+            data:all.map(ms=>{
+              if(ms===forecastIssueMs&&Number.isFinite(forecastQNow)) return forecastQNow;
+              const r=map.get(ms); return r&&r.q_forecast!=null?Number(r.q_forecast):null;
+            }),
+            borderColor:style.color,borderWidth:1.15,borderDash:[5,4],
+            borderCapStyle:'round',pointRadius:0,pointHoverRadius:3,tension:.28,
+            cubicInterpolationMode:'monotone',spanGaps:false,fill:false,
+            hidden:!timeXerScenarioVisible,order:4
+          });
+        });
+
+        opts.plugins.legend={
+          position:'top',
+          labels:{
+            color:'#334155',font:{size:11,weight:'700'},boxWidth:12,
+            filter:(item)=>!['TimeXer P25','TimeXer Q Min'].includes(item.text),
+            generateLabels:(c)=>Chart.defaults.plugins.legend.labels.generateLabels(c)
+              .filter(i=>!['TimeXer P25','TimeXer Q Min'].includes(i.text))
+              .map(i=>{
+                const v=c.isDatasetVisible(i.datasetIndex);
+                i.hidden=false;
+                if(!v){
+                  i.fontColor='rgba(100,116,139,.38)';
+                  i.strokeStyle='rgba(148,163,184,.35)';
+                  i.fillStyle='rgba(203,213,225,.28)';
+                }
+                return i;
+              })
+          },
+          onClick:(e,item,legend)=>{
+            const c=legend.chart,idx=item.datasetIndex;
+            c.setDatasetVisibility(idx,!c.isDatasetVisible(idx));c.update();
+          }
+        };
+
+        opts.plugins.tooltip={
+          position:'longRightOffset',mode:'index',intersect:false,
+          caretSize:5,caretPadding:14,titleFont:{size:11,weight:'700'},
+          bodyFont:{size:10},footerFont:{size:10},padding:8,boxWidth:9,boxHeight:9,
+          filter:(item)=>!['TimeXer P25','TimeXer Q Min'].includes(String(item.dataset?.label||'')),
+          callbacks:{afterBody:(items)=>{
+            if(!items||!items.length) return [];
+            const ms=all[items[0].dataIndex],r=fcByMs.get(ms),lines=[];
+            if(r){
+              lines.push(`Lead: H${String(r.lead_hour||'').padStart(3,'0')}`);
+              if(r.q_p10!=null&&r.q_p90!=null) lines.push(`P10–P90: ${Number(r.q_p10).toFixed(2)} – ${Number(r.q_p90).toFixed(2)} m³/s`);
+              if(r.q_p25!=null&&r.q_p75!=null) lines.push(`P25–P75: ${Number(r.q_p25).toFixed(2)} – ${Number(r.q_p75).toFixed(2)} m³/s`);
+              if(r.q_min!=null&&r.q_max!=null) lines.push(`Min–Max: ${Number(r.q_min).toFixed(2)} – ${Number(r.q_max).toFixed(2)} m³/s`);
+              if(r.nwp_run_time) lines.push(`Run NWP: ${formatToVNTime(timeXerRealUtcToDbWallIso(r.nwp_run_time))}`);
+              if(r.nwp_age_h!=null) lines.push(`Tuổi NWP: ${Number(r.nwp_age_h).toFixed(1)} h`);
+              if(r.scenario_count!=null) lines.push(`Kịch bản Q: ${r.scenario_count}`);
+              if(r.model_version) lines.push(`Model: ${r.model_version}`);
+              lines.push('Chế độ: SHADOW');
+              lines.push('Dải phân vị: spread 4 kịch bản, chưa hiệu chỉnh xác suất');
+            }
+            return lines;
+          }}
+        };
+      }
+
       else if(isRFV1){
         datasets.push({
           label:'RF V1 (H01/H03/H06/H12/H24)',
@@ -23995,7 +24244,7 @@ if(r.rainfall_run_time){
       }
 
       // Vạch phân cách Thực đo / Dự báo.
-      if((isLONG||isLSTM||isCNNLSTM) && Number.isFinite(forecastIssueMs)){
+      if((isLONG||isLSTM||isCNNLSTM||isTIMEXER) && Number.isFinite(forecastIssueMs)){
         const issueIndex=all.indexOf(forecastIssueMs);
         opts.plugins.longIssueLine={enabled:issueIndex>=0,issueIndex};
       }
