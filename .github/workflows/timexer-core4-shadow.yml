@@ -5,8 +5,8 @@ on:
 
   # PHASE 2:
   # After 1-2 days of successful manual runs, uncomment:
-  # schedule:
-  #   - cron: "25 * * * *"
+  schedule:
+  - cron: "25 * * * *"
 
 concurrency:
   group: timexer-core4-shadow
