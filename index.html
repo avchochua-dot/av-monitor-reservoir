@@ -15,6 +15,10 @@
      Reads the TimeXer shadow views only; does not replace production forecasts.
      TIME FIX: TimeXer now follows the exact same website timestamp path
      as Long/LSTM/CNN-LSTM; no TimeXer-specific +7/-7 display shift.
+     Added Q So sánh AI using existing central Q forecasts:
+     RF / Long / LSTM / CNN-LSTM / TimeXer / Mixed.
+     Shared reference rainfall = Median of 6 NWP models.
+     Legend supports individual hide/show and a global 6-model toggle.
 -->
 <!-- LONG-H120 PRODUCTION SIMPLE-DROPDOWN-SIDEBAR: 2026-10-10
      - DB hour displayed literally (no +7 conversion)
@@ -7970,6 +7974,15 @@ aside.sidebar{
 #timeXerScenarioToggleBtn:hover{
   box-shadow:0 10px 24px rgba(8,145,178,.14)!important;
 }
+
+#aiCompareToggleBtn{
+  border-color:rgba(15,118,110,.24)!important;
+  background:linear-gradient(135deg,rgba(15,118,110,.10),rgba(240,253,250,.96))!important;
+  color:#0f766e!important;
+}
+#aiCompareToggleBtn:hover{
+  box-shadow:0 10px 24px rgba(15,118,110,.14)!important;
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11665,6 +11678,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
               <button type="button" class="long-scenario-mini-btn" id="lstmScenarioToggleBtn" onclick="toggleLstmScenarios()" style="display:none">Ẩn 7 kịch bản</button>
               <button type="button" class="long-scenario-mini-btn" id="cnnLstmScenarioToggleBtn" onclick="toggleCnnLstmScenarios()" style="display:none">Ẩn 7 kịch bản CNN-LSTM</button>
               <button type="button" class="long-scenario-mini-btn" id="timeXerScenarioToggleBtn" onclick="toggleTimeXerScenarios()" style="display:none">Ẩn 4 kịch bản TimeXer</button>
+              <button type="button" class="long-scenario-mini-btn" id="aiCompareToggleBtn" onclick="toggleAiCompareModels()" style="display:none">Ẩn 6 mô hình</button>
             </div>
           </div>
 
@@ -16122,6 +16136,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
     // Giữ RF V1 để benchmark/shadow.
     IN_OBS_FC_RF_V1:{name:"Q RF V1",hint:"Thực tế vs Random Forest V1 (H01/H03/H06/H12/H24)",color:'14, 165, 233'},
+    IN_OBS_FC_AI5_COMPARE:{name:"Q So sánh AI",hint:"Q thực đo vs RF + Long + LSTM + CNN-LSTM + TimeXer + Mixed • Mưa chung: Median 6 NWP",color:'15, 118, 110'},
 
     // Mixed đặt ngay sau RF V1 theo bố cục vận hành.
     IN_OBS_FC_MIX:{name:"Q Về vs DB (Mixed)",hint:"Thực tế vs Mô hình Mixed (Mưa thực + DB)",color:'233, 30, 99'},
@@ -21708,6 +21723,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const isLstm=currentTab==='IN_OBS_FC_LSTM_H120';
     const isCnnLstm=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
     const isTimeXer=currentTab==='IN_OBS_FC_TIMEXER_H120';
+    const isAiCompare=currentTab==='IN_OBS_FC_AI5_COMPARE';
 
     const longCard=$("longH120DataCard");
     const lstmCard=$("lstmH120DataCard");
@@ -21717,6 +21733,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const lstmBtn=$("lstmScenarioToggleBtn");
     const cnnLstmBtn=$("cnnLstmScenarioToggleBtn");
     const timeXerBtn=$("timeXerScenarioToggleBtn");
+    const aiCompareBtn=$("aiCompareToggleBtn");
 
     if(longCard) longCard.style.display=isLong?'block':'none';
     if(lstmCard) lstmCard.style.display=isLstm?'block':'none';
@@ -21726,6 +21743,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(lstmBtn) lstmBtn.style.display=isLstm?'inline-flex':'none';
     if(cnnLstmBtn) cnnLstmBtn.style.display=isCnnLstm?'inline-flex':'none';
     if(timeXerBtn) timeXerBtn.style.display=isTimeXer?'inline-flex':'none';
+    if(aiCompareBtn) aiCompareBtn.style.display=isAiCompare?'inline-flex':'none';
   }
 
   // =========================================================
@@ -22805,6 +22823,14 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     if(currentTab==='IN_OBS_FC_TIMEXER_H120') renderChart();
   }
 
+  let aiCompareModelsVisible=true;
+  function toggleAiCompareModels(){
+    aiCompareModelsVisible=!aiCompareModelsVisible;
+    const btn=$("aiCompareToggleBtn");
+    if(btn) btn.textContent=aiCompareModelsVisible?'Ẩn 6 mô hình':'Hiện 6 mô hình';
+    if(currentTab==='IN_OBS_FC_AI5_COMPARE') renderChart();
+  }
+
   async function exportLstmH120Excel(){
     try{
       const fc=(state.inflowFc_LSTM||[]).slice().sort((a,b)=>Number(a.lead_hour||0)-Number(b.lead_hour||0));
@@ -23281,6 +23307,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       const isLSTM=currentTab==='IN_OBS_FC_LSTM_H120';
       const isCNNLSTM=currentTab==='IN_OBS_FC_CNN_LSTM_H120';
       const isTIMEXER=currentTab==='IN_OBS_FC_TIMEXER_H120';
+      const isAI5COMPARE=currentTab==='IN_OBS_FC_AI5_COMPARE';
       const isRFV1=currentTab.includes('RF_V1');
 
       let longIssueMs=null, longQNow=null, forecastIssueMs=null, forecastQNow=null;
@@ -23309,12 +23336,39 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         }
       }
 
+      if(isAI5COMPARE){
+        const issueTimes=[
+          ...(state.inflowFc_RF_V1||[]),
+          ...(state.inflowFc_LONG||[]),
+          ...(state.inflowFc_LSTM||[]),
+          ...(state.inflowFc_CNN_LSTM||[]),
+          ...(state.inflowFc_TIMEXER||[]),
+          ...(state.inflowFc_Mix||[])
+        ]
+          .map(r=>new Date(r.issue_time).getTime())
+          .filter(Number.isFinite);
+
+        forecastIssueMs=issueTimes.length ? Math.max(...issueTimes) : null;
+
+        if(state.lastObs && Number.isFinite(Number(state.lastObs.inflow))){
+          forecastQNow=Number(state.lastObs.inflow);
+        }
+      }
+
       let fc=[];
 
       if(isLONG) fc=state.inflowFc_LONG;
       else if(isLSTM) fc=state.inflowFc_LSTM;
       else if(isCNNLSTM) fc=state.inflowFc_CNN_LSTM;
       else if(isTIMEXER) fc=state.inflowFc_TIMEXER;
+      else if(isAI5COMPARE) fc=[
+        ...(state.inflowFc_RF_V1||[]),
+        ...(state.inflowFc_LONG||[]),
+        ...(state.inflowFc_LSTM||[]),
+        ...(state.inflowFc_CNN_LSTM||[]),
+        ...(state.inflowFc_TIMEXER||[]),
+        ...(state.inflowFc_Mix||[])
+      ];
       else if(isRFV1) fc=state.inflowFc_RF_V1;
       else if(currentTab.includes('V7')) fc=state.inflowFc_V7;
       else if(currentTab.includes('MIX')) fc=state.inflowFc_Mix;
@@ -23344,7 +23398,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // RF/Long dùng mưa mới 6 mô hình; tab cũ giữ nguồn legacy.
-      const rainSource=(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isRFV1) ? state.rainFcRFV1 : state.rainFc;
+      const rainSource=(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isAI5COMPARE||isRFV1) ? state.rainFcRFV1 : state.rainFc;
 
       const rainByMs=new Map();
       (rainSource||[]).forEach(r=>{
@@ -23354,7 +23408,7 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
 
       let all=[];
 
-      if(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isRFV1){
+      if(isLONG||isLSTM||isCNNLSTM||isTIMEXER||isAI5COMPARE||isRFV1){
         // Tạo timeline hourly đầy đủ:
         // - Q thực/MA24
         // - mưa dự báo từng giờ
@@ -23485,9 +23539,200 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
       });
 
       // =====================================================
+      // SO SÁNH AI
+      // 6 forecast curves:
+      // RF + Long + LSTM + CNN-LSTM + TimeXer + Mixed.
+      // No Q recalculation; use existing central forecasts only.
+      // Shared reference rainfall = Median 6 NWP:
+      // ECMWF / GFS / ICON / AIFS / CMA / JMA.
+      // =====================================================
+      if(isAI5COMPARE){
+        const makeMap=(rows)=>new Map(
+          (rows||[])
+            .filter(r=>{
+              const ms=toMs(r.forecast_time);
+              return ms!==null && ms>=tm && ms<tx;
+            })
+            .map(r=>[toMs(r.forecast_time),r])
+        );
+
+        const rfMap=makeMap(state.inflowFc_RF_V1);
+        const longMap=makeMap(state.inflowFc_LONG);
+        const lstmMap=makeMap(state.inflowFc_LSTM);
+        const cnnMap=makeMap(state.inflowFc_CNN_LSTM);
+        const timexerMap=makeMap(state.inflowFc_TIMEXER);
+        const mixedMap=makeMap(state.inflowFc_Mix);
+
+        const modelDefs=[
+          {
+            label:'RF V1',
+            map:rfMap,
+            value:(r)=>r?getFlowFc(r):null,
+            color:'#f97316',
+            dash:[7,4],
+            width:2.1,
+            spanGaps:true,
+            points:true
+          },
+          {
+            label:'Long H120',
+            map:longMap,
+            value:(r)=>{
+              if(!r) return null;
+              const v=r.q_central ?? r.q_median ?? r.q_p50 ?? r.inflow_m3s;
+              return v==null?null:Number(v);
+            },
+            color:'#2563eb',
+            dash:[7,4],
+            width:2.2
+          },
+          {
+            label:'LSTM H120',
+            map:lstmMap,
+            value:(r)=>{
+              if(!r) return null;
+              const v=r.q_p50 ?? r.q_median ?? r.inflow_m3s;
+              return v==null?null:Number(v);
+            },
+            color:'#7c3aed',
+            dash:[7,4],
+            width:2.2
+          },
+          {
+            label:'CNN-LSTM V3.1',
+            map:cnnMap,
+            value:(r)=>{
+              if(!r) return null;
+              const v=r.q_p50 ?? r.q_median ?? r.inflow_m3s;
+              return v==null?null:Number(v);
+            },
+            color:'#db2777',
+            dash:[7,4],
+            width:2.4
+          },
+          {
+            label:'TimeXer CORE4',
+            map:timexerMap,
+            value:(r)=>{
+              if(!r) return null;
+              const v=r.q_p50 ?? r.inflow_m3s;
+              return v==null?null:Number(v);
+            },
+            color:'#0891b2',
+            dash:[7,4],
+            width:2.4
+          },
+          {
+            label:'Mixed',
+            map:mixedMap,
+            value:(r)=>r?getFlowFc(r):null,
+            color:'#e11d48',
+            dash:[7,4],
+            width:2.3
+          }
+        ];
+
+        modelDefs.forEach(def=>{
+          datasets.push({
+            label:def.label,
+            data:all.map(ms=>{
+              const r=def.map.get(ms);
+              return def.value(r);
+            }),
+            borderColor:def.color,
+            backgroundColor:def.color,
+            borderWidth:def.width,
+            borderDash:def.dash,
+            borderCapStyle:'round',
+            pointRadius:def.points
+              ? all.map(ms=>def.map.has(ms)?3:0)
+              : 0,
+            pointHoverRadius:4,
+            pointBorderWidth:def.points?2:1,
+            pointBackgroundColor:'#ffffff',
+            pointBorderColor:def.color,
+            tension:.22,
+            cubicInterpolationMode:'monotone',
+            spanGaps:def.spanGaps===true,
+            fill:false,
+            hidden:!aiCompareModelsVisible,
+            order:4
+          });
+        });
+
+        // Legend behaves like existing scenario charts:
+        // click one item => hide/show that line;
+        // hidden labels stay visible but become faint.
+        opts.plugins.legend={
+          position:'top',
+          labels:{
+            color:'#334155',
+            font:{size:11,weight:'700'},
+            boxWidth:12,
+            generateLabels:(c)=>Chart.defaults.plugins.legend.labels.generateLabels(c)
+              .map(i=>{
+                const visible=c.isDatasetVisible(i.datasetIndex);
+                i.hidden=false;
+                if(!visible){
+                  i.fontColor='rgba(100,116,139,.38)';
+                  i.strokeStyle='rgba(148,163,184,.35)';
+                  i.fillStyle='rgba(203,213,225,.28)';
+                }
+                return i;
+              })
+          },
+          onClick:(e,item,legend)=>{
+            const c=legend.chart;
+            const idx=item.datasetIndex;
+            c.setDatasetVisibility(idx,!c.isDatasetVisible(idx));
+            c.update();
+          }
+        };
+
+        opts.plugins.tooltip={
+          position:'longRightOffset',
+          mode:'index',
+          intersect:false,
+          caretSize:5,
+          caretPadding:14,
+          titleFont:{size:11,weight:'700'},
+          bodyFont:{size:10},
+          footerFont:{size:10},
+          padding:8,
+          boxWidth:9,
+          boxHeight:9,
+          callbacks:{
+            afterBody:(items)=>{
+              if(!items||!items.length) return [];
+
+              const ms=all[items[0].dataIndex];
+              const rain=rainByMs.get(ms);
+              const lines=[];
+
+              if(rain && Number.isFinite(Number(rain.rain_median))){
+                lines.push(
+                  `Mưa chung Median 6 NWP: ${Number(rain.rain_median).toFixed(2)} mm`
+                );
+              }
+
+              if(rain && Number.isFinite(Number(rain.model_count))){
+                lines.push(`Số NWP: ${Number(rain.model_count)}`);
+              }
+
+              if(rain?.run_time){
+                lines.push(`Run mưa: ${formatToVNTime(rain.run_time)}`);
+              }
+
+              return lines;
+            }
+          }
+        };
+      }
+
+      // =====================================================
       // LONG-H120
       // =====================================================
-      if(isLONG){
+      else if(isLONG){
         // Lookup 6 scenario trước để tính P25/P75 theo từng giờ.
         const scenarioStyle={
           ECMWF_IFS:{label:'Q ECMWF',color:'#2563eb'},
@@ -24191,7 +24436,11 @@ if(r.rainfall_run_time){
         const row=rainByMs.get(ms);
 
         return row
-          ? Number(row.rainfall_mm||0)
+          ? (
+              isAI5COMPARE
+                ? Number(row.rain_median ?? row.rainfall_mm ?? 0)
+                : Number(row.rainfall_mm||0)
+            )
           : null;
       });
 
@@ -24221,7 +24470,7 @@ if(r.rainfall_run_time){
       }
 
       // Vạch phân cách Thực đo / Dự báo.
-      if((isLONG||isLSTM||isCNNLSTM||isTIMEXER) && Number.isFinite(forecastIssueMs)){
+      if((isLONG||isLSTM||isCNNLSTM||isTIMEXER||isAI5COMPARE) && Number.isFinite(forecastIssueMs)){
         const issueIndex=all.indexOf(forecastIssueMs);
         opts.plugins.longIssueLine={enabled:issueIndex>=0,issueIndex};
       }
@@ -24242,9 +24491,13 @@ if(r.rainfall_run_time){
       datasets.push({
         type:'bar',
         label:
-          (isLONG||isLSTM||isCNNLSTM||isRFV1)
-            ? 'Mưa dự báo 6 NWP (mean)'
-            : 'Mưa giờ dự báo',
+          isAI5COMPARE
+            ? 'Mưa chung Median 6 NWP'
+            : (
+                (isLONG||isLSTM||isCNNLSTM||isRFV1)
+                  ? 'Mưa dự báo 6 NWP (mean)'
+                  : 'Mưa giờ dự báo'
+              ),
 
         data:rainFcData,
         yAxisID:'y1',
