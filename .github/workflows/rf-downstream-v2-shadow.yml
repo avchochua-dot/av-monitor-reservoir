@@ -1,0 +1,56 @@
+name: RF Downstream V2 Shadow
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub Actions cron is UTC. HH:10 UTC = HH:10 UTC, i.e. +7h in Vietnam.
+    # Run every hour at minute 10.
+    - cron: "10 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements-rf-downstream.txt
+
+      - name: Check model files
+        run: |
+          ls -lh rf_downstream_v2_final_models
+          test -f rf_downstream_v2_final_models/rf_v2_final_hoi_khach_h01.joblib
+          test -f rf_downstream_v2_final_models/rf_v2_final_hoi_khach_h03.joblib
+          test -f rf_downstream_v2_final_models/rf_v2_final_ai_nghia_h01.joblib
+          test -f rf_downstream_v2_final_models/rf_v2_final_ai_nghia_h03.joblib
+          test -f rf_downstream_v2_final_models/rf_v2_final_ai_nghia_h06.joblib
+
+      - name: Run RF shadow forecast
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PCTT_API_BASE: https://av-monitor-reservoir.vercel.app
+        run: |
+          python scripts/predict_rf_downstream_live_supabase.py \
+            --model-dir rf_downstream_v2_final_models \
+            --hours 72 \
+            --output-dir rf_downstream_v2_live_output
+
+      - name: Evaluate matured forecasts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python scripts/evaluate_rf_downstream_shadow_live.py --limit 500
