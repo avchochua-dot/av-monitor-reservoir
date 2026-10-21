@@ -26,8 +26,8 @@ PCTT_IDS = {
 }
 
 CANDIDATES = {
-    "hoi_khach": [1, 3],
-    "ai_nghia": [1, 3, 6],
+    "hoi_khach": [1, 2, 3, 4, 5, 6],
+    "ai_nghia": [1, 2, 3, 4, 5, 6],
 }
 
 Q_LAGS = [0,1,2,3,4,5,6,8,9,11,12,18,24]
