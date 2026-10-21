@@ -50,10 +50,18 @@ jobs:
             EXTRA="--no-write"
             echo "Dry run enabled: forecasts will NOT be uploaded."
           fi
-          python scripts/predict_rf_downstream_live_supabase.py --model-dir rf_downstream_v2_final_models --hours 72 --output-dir rf_downstream_v2_live_output $EXTRA
+          python scripts/predict_rf_downstream_live_supabase.py \
+            --model-dir rf_downstream_v2_final_models \
+            --hours 72 \
+            --history-hours 30 \
+            --max-gap-hours 3 \
+            --max-gap-cells 6 \
+            --max-consecutive-gap-hours 2 \
+            --max-input-age-h 4 \
+            --output-dir rf_downstream_v2_live_output $EXTRA
 
       - name: Evaluate matured forecasts
-        if: ${{ github.event_name == 'schedule' || inputs.dry_run != true }}
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.dry_run != true) }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
