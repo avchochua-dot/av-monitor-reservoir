@@ -1,6 +1,7 @@
 {
-  "model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
-  "created_at_utc": "2026-10-20T02:43:09.032340+00:00",
+  "release_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+  "parent_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+  "created_utc": "2026-10-21T01:22:07.608724+00:00",
   "source_file": "DaNang_Qxa4Ho_HaDu_HoiKhach_AiNghia_2025.xlsx",
   "source_sha256": "45e1540c56aa3b4f5e56252735ac6a4b16ae01c4b609d48b116e996a49d78a38",
   "data_start": "2025-09-01 00:00:00",
@@ -8,7 +9,31 @@
   "algorithm": "RandomForestRegressor",
   "sklearn_version": "1.6.1",
   "target_type": "delta_h",
-  "prediction_formula": "H_forecast = H_now + predicted_delta_h",
+  "features_count": 196,
+  "horizons": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "stations": [
+    "HOI_KHACH",
+    "AI_NGHIA"
+  ],
+  "reuse_existing": {
+    "hoi_khach": [
+      1,
+      3
+    ],
+    "ai_nghia": [
+      1,
+      3,
+      6
+    ]
+  },
+  "new_horizons_validation": "RESEARCH_SHADOW_PENDING_BACKTEST",
   "hyperparameters": {
     "n_estimators": 700,
     "max_depth": 14,
@@ -21,45 +46,113 @@
     "hoi_khach": {
       "1": {
         "model_file": "rf_v2_final_hoi_khach_h01.joblib",
-        "training_start": "2025-09-02 00:00:00",
-        "training_end": "2025-12-31 22:00:00",
+        "original_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+        "lineage": "REUSED_FINAL_V2",
+        "evaluation_status": "SHADOW_CANDIDATE",
         "training_rows": 2507,
-        "feature_count": 196,
-        "status": "SHADOW_CANDIDATE"
+        "training_end": "2025-12-31 22:00:00",
+        "feature_count": 196
+      },
+      "2": {
+        "model_file": "rf_v2_final_hoi_khach_h02.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2504,
+        "training_end": "2025-12-31 21:00:00",
+        "feature_count": 196
       },
       "3": {
         "model_file": "rf_v2_final_hoi_khach_h03.joblib",
-        "training_start": "2025-09-02 00:00:00",
-        "training_end": "2025-12-31 20:00:00",
+        "original_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+        "lineage": "REUSED_FINAL_V2",
+        "evaluation_status": "SHADOW_CANDIDATE",
         "training_rows": 2503,
-        "feature_count": 196,
-        "status": "SHADOW_CANDIDATE"
+        "training_end": "2025-12-31 20:00:00",
+        "feature_count": 196
+      },
+      "4": {
+        "model_file": "rf_v2_final_hoi_khach_h04.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2502,
+        "training_end": "2025-12-31 19:00:00",
+        "feature_count": 196
+      },
+      "5": {
+        "model_file": "rf_v2_final_hoi_khach_h05.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2500,
+        "training_end": "2025-12-31 18:00:00",
+        "feature_count": 196
+      },
+      "6": {
+        "model_file": "rf_v2_final_hoi_khach_h06.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2497,
+        "training_end": "2025-12-31 17:00:00",
+        "feature_count": 196
       }
     },
     "ai_nghia": {
       "1": {
         "model_file": "rf_v2_final_ai_nghia_h01.joblib",
-        "training_start": "2025-09-02 00:00:00",
-        "training_end": "2025-12-31 22:00:00",
+        "original_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+        "lineage": "REUSED_FINAL_V2",
+        "evaluation_status": "SHADOW_CANDIDATE",
         "training_rows": 2427,
-        "feature_count": 196,
-        "status": "SHADOW_CANDIDATE"
+        "training_end": "2025-12-31 22:00:00",
+        "feature_count": 196
+      },
+      "2": {
+        "model_file": "rf_v2_final_ai_nghia_h02.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2422,
+        "training_end": "2025-12-31 21:00:00",
+        "feature_count": 196
       },
       "3": {
         "model_file": "rf_v2_final_ai_nghia_h03.joblib",
-        "training_start": "2025-09-02 00:00:00",
-        "training_end": "2025-12-31 20:00:00",
+        "original_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+        "lineage": "REUSED_FINAL_V2",
+        "evaluation_status": "SHADOW_CANDIDATE",
         "training_rows": 2417,
-        "feature_count": 196,
-        "status": "SHADOW_CANDIDATE"
+        "training_end": "2025-12-31 20:00:00",
+        "feature_count": 196
+      },
+      "4": {
+        "model_file": "rf_v2_final_ai_nghia_h04.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2412,
+        "training_end": "2025-12-31 19:00:00",
+        "feature_count": 196
+      },
+      "5": {
+        "model_file": "rf_v2_final_ai_nghia_h05.joblib",
+        "original_model_version": "RF_DOWNSTREAM_V2_SEQ6_20261020_R1",
+        "lineage": "NEW_HORIZON_FINAL_TRAIN",
+        "evaluation_status": "RESEARCH_SHADOW",
+        "training_rows": 2407,
+        "training_end": "2025-12-31 18:00:00",
+        "feature_count": 196
       },
       "6": {
         "model_file": "rf_v2_final_ai_nghia_h06.joblib",
-        "training_start": "2025-09-02 00:00:00",
-        "training_end": "2025-12-31 17:00:00",
+        "original_model_version": "RF_DOWNSTREAM_V2_DELTA_H_FINAL_2025Q4",
+        "lineage": "REUSED_FINAL_V2",
+        "evaluation_status": "SHADOW_CANDIDATE",
         "training_rows": 2402,
-        "feature_count": 196,
-        "status": "SHADOW_CANDIDATE"
+        "training_end": "2025-12-31 17:00:00",
+        "feature_count": 196
       }
     }
   }
