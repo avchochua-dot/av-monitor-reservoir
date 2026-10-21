@@ -1,3 +1,7 @@
+<!-- V94: VERIFIED MAIN STYLESHEET + PILL TOGGLES + 24H COMPACT RESIDUAL -->
+<!-- V93: FIX EXACT 24H AXIS + TOP TOGGLES + FORECAST ANCHOR -->
+<!-- V92: HẠ DU RF PRODUCTION STYLE -->
+<!-- V91: HẠ DU RF V2 ADDED INSIDE MAIN BIỂU ĐỒ TAB -->
 
 
 
@@ -5,6 +9,8 @@
 
 
 
+
+<!-- RF DOWNSTREAM V2 SHADOW UI ADDED: 2026-10-20 -->
 <!-- HEC-LITE V3.2 HISTORY+CURRENT FIX: preserve original chart layout; history from grid lead4 + current production cycle -->
 
 
@@ -7983,6 +7989,187 @@ aside.sidebar{
 #aiCompareToggleBtn:hover{
   box-shadow:0 10px 24px rgba(15,118,110,.14)!important;
 }
+
+
+/* =========================================================
+   RF DOWNSTREAM V2 • SHADOW DASHBOARD
+   - Historical forecast vs observed vs persistence
+   - Future/current shadow forecasts
+   - Residual diagnostics
+   ========================================================= */
+.nav-link[data-tab="downstreamrfv2"]{
+  --nav-accent:#7c3aed;
+  --nav-soft:rgba(124,58,237,.13);
+  padding-right:78px!important;
+}
+.nav-link[data-tab="downstreamrfv2"]::after{
+  content:"SHADOW"!important;
+  right:9px!important;
+  padding:4px 7px!important;
+  border-radius:999px!important;
+  background:linear-gradient(135deg,#7c3aed,#2563eb)!important;
+  color:#fff!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+  transform:translateY(-50%)!important;
+  box-shadow:0 10px 18px rgba(124,58,237,.18)!important;
+}
+
+.rfds-shell{display:grid;gap:14px}
+.rfds-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:22px;
+  box-shadow:var(--shadow-card);
+  padding:16px;
+}
+.rfds-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+  padding-bottom:13px;
+  margin-bottom:14px;
+  border-bottom:1px solid var(--line-soft);
+}
+.rfds-title{display:flex;align-items:flex-start;gap:12px;min-width:260px}
+.rfds-title-icon{
+  width:42px;height:42px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(37,99,235,.08));
+  border:1px solid rgba(124,58,237,.13);
+  box-shadow:0 10px 24px rgba(124,58,237,.08);
+  font-size:21px;flex:0 0 auto
+}
+.rfds-title h2{margin:0;color:#0f172a;font-size:18px;font-weight:1000;letter-spacing:-.3px}
+.rfds-title p{margin:5px 0 0;color:#64748b;font-size:12px;line-height:1.45;font-weight:750;max-width:780px}
+.rfds-status{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 11px;border-radius:999px;
+  background:#f5f3ff;color:#6d28d9;
+  border:1px solid rgba(124,58,237,.15);
+  font-size:11px;font-weight:1000
+}
+.rfds-status::before{
+  content:"";width:8px;height:8px;border-radius:99px;background:#8b5cf6;
+  box-shadow:0 0 0 4px rgba(139,92,246,.12)
+}
+.rfds-status.ok{background:#ecfdf5;color:#047857;border-color:rgba(16,185,129,.18)}
+.rfds-status.ok::before{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.12)}
+.rfds-status.err{background:#fff1f2;color:#be123c;border-color:rgba(244,63,94,.18)}
+.rfds-status.err::before{background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.12)}
+
+.rfds-controls{
+  display:grid;
+  grid-template-columns:1.25fr 1fr 1fr auto;
+  gap:10px;
+  align-items:end;
+}
+.rfds-field{display:grid;gap:6px}
+.rfds-field label{
+  color:#64748b;font-size:10px;font-weight:1000;
+  text-transform:uppercase;letter-spacing:.55px
+}
+.rfds-field select{
+  width:100%;min-height:42px;
+  border:1px solid var(--line);
+  border-radius:14px;background:#fff;color:#172033;
+  font-weight:900;padding:9px 11px;outline:none;
+  box-shadow:0 8px 18px rgba(15,23,42,.04)
+}
+.rfds-refresh{
+  width:auto!important;min-width:116px!important;min-height:42px!important;
+  border-radius:14px!important;padding:9px 14px!important;
+  background:linear-gradient(135deg,#7c3aed,#2563eb)!important;
+  color:#fff!important;border-color:rgba(124,58,237,.2)!important;
+  box-shadow:0 12px 26px rgba(124,58,237,.16)!important
+}
+
+.rfds-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.rfds-kpi{
+  min-height:92px;border:1px solid var(--line);
+  border-radius:18px;padding:14px;
+  background:linear-gradient(180deg,#fff,#fbfdff);
+  box-shadow:0 8px 22px rgba(15,23,42,.04)
+}
+.rfds-kpi span{
+  display:block;color:#64748b;font-size:10px;font-weight:1000;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px
+}
+.rfds-kpi b{
+  color:#0f172a;font-size:24px;font-weight:1000;
+  letter-spacing:-.8px;font-family:var(--font-mono)
+}
+.rfds-kpi small{display:block;margin-top:5px;color:#94a3b8;font-size:10px;font-weight:800}
+.rfds-kpi.good b{color:#059669}
+.rfds-kpi.bad b{color:#dc2626}
+.rfds-kpi.neutral b{color:#2563eb}
+
+.rfds-current{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:10px;padding:11px 13px;border-radius:15px;
+  background:linear-gradient(90deg,rgba(124,58,237,.08),rgba(37,99,235,.04));
+  border:1px solid rgba(124,58,237,.12);
+  color:#475569;font-size:11px;font-weight:850
+}
+.rfds-current strong{color:#6d28d9;font-size:13px}
+
+.rfds-chart-wrap{height:430px;position:relative}
+.rfds-chart-wrap canvas{height:430px!important;width:100%!important}
+.rfds-residual-wrap{height:260px;position:relative}
+.rfds-residual-wrap canvas{height:260px!important;width:100%!important}
+.rfds-note{
+  margin-top:9px;color:#64748b;font-size:11px;font-weight:750;line-height:1.45
+}
+.rfds-note strong{color:#334155}
+
+.rfds-table-wrap{
+  max-height:430px;overflow:auto;border:1px solid var(--line);
+  border-radius:16px
+}
+.rfds-table{width:100%;border-collapse:collapse;white-space:nowrap}
+.rfds-table th{
+  position:sticky;top:0;z-index:3;background:#f8fafc!important;
+  color:#64748b;font-size:9px!important;font-weight:1000!important;
+  text-transform:uppercase;letter-spacing:.45px;padding:9px 7px!important
+}
+.rfds-table td{
+  padding:9px 7px!important;font-size:11px!important;
+  border-bottom:1px solid var(--line-soft)!important;text-align:center!important
+}
+.rfds-table td:first-child{
+  position:static!important;text-align:center!important;border-right:0!important;
+  background:#fff!important;width:auto!important
+}
+.rfds-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:4px 8px;border-radius:999px;font-size:9px;font-weight:1000
+}
+.rfds-badge.eval{background:#dcfce7;color:#15803d}
+.rfds-badge.shadow{background:#ede9fe;color:#6d28d9}
+.rfds-badge.loss{background:#fee2e2;color:#b91c1c}
+.rfds-empty{
+  padding:24px;text-align:center;color:#94a3b8;font-size:12px;font-weight:850
+}
+
+@media(max-width:1100px){
+  .rfds-controls{grid-template-columns:1fr 1fr}
+  .rfds-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .rfds-controls{grid-template-columns:1fr}
+  .rfds-kpis{grid-template-columns:1fr}
+  .rfds-chart-wrap{height:340px}
+  .rfds-chart-wrap canvas{height:340px!important}
+  .rfds-residual-wrap{height:230px}
+  .rfds-residual-wrap canvas{height:230px!important}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -10793,6 +10980,193 @@ body.avdam-presenting{overflow:hidden}
 <style id="av15-cao-trinh-fix">
 .av7-fullscreen-exit{top:10px!important;left:10px!important;}
 </style>
+
+
+<style id="rf-v2-downstream-production-style">
+/* Hạ du RF V2 – giao diện biểu đồ vận hành */
+#tab-chart #dsMainChartTools {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 9px 0 15px;
+  padding: 3px 2px 5px;
+  min-height: 49px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+#tab-chart #dsMainChartTools .ds-main-switches {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  box-sizing: border-box;
+  min-height: 35px;
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid #dce5f0;
+  background: #fff;
+  box-shadow: 0 4px 13px rgba(15,23,42,.035);
+  color: #64748b;
+  font: 800 11px/1.15 Inter, system-ui, sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle:hover {
+  border-color: var(--ds-accent);
+  box-shadow: 0 5px 14px rgba(15,23,42,.07);
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle:has(input:checked) {
+  background: var(--ds-soft);
+  border-color: color-mix(in srgb, var(--ds-accent) 28%, white);
+  color: #1e293b;
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle:focus-within {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle input[type="checkbox"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  pointer-events: none !important;
+}
+#tab-chart #dsMainChartTools .ds-toggle-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1.7px solid #cbd5e1;
+  background: #fff;
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle:has(input:checked) .ds-toggle-indicator {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+}
+#tab-chart #dsMainChartTools .ds-ref-toggle:has(input:checked) .ds-toggle-indicator::after {
+  content: "";
+  width: 6px;
+  height: 3px;
+  border-left: 1.7px solid #fff;
+  border-bottom: 1.7px solid #fff;
+  transform: rotate(-45deg) translate(0, -1px);
+}
+#tab-chart #dsMainChartTools .ds-ref-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 7px;
+  white-space: nowrap;
+  margin: 0 0 0 auto;
+  padding: 7px 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  font: 750 10.5px/1.2 Inter, system-ui, sans-serif;
+}
+#tab-chart #dsMainChartTools .ds-ref-meta strong {
+  color: #0f172a;
+  font-weight: 1000;
+  font-size: 11px;
+}
+#tab-chart #dsMainChartTools .ds-ref-meta .ds-meta-separator {
+  color: #cbd5e1;
+}
+#tab-chart #dsMainChartTools .ds-ref-meta.stale {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+/* Biểu đồ sai số là một dải thấp, không được tự giãn theo chiều rộng. */
+#tab-chart #dsMainResidualSection {
+  display: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 12px 0 0;
+  padding: 9px 0 0;
+}
+#tab-chart #dsMainResidualSection .ds-main-residual-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 5px;
+  padding: 0;
+  min-height: 16px;
+}
+#tab-chart #dsMainResidualSection .ds-main-residual-head h3 {
+  margin: 0;
+  padding: 0;
+  color: #475569;
+  font: 900 11px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: .35px;
+}
+#tab-chart #dsMainResidualSection .ds-main-residual-wrap {
+  position: relative !important;
+  box-sizing: border-box;
+  width: 100%;
+  height: 104px !important;
+  min-height: 104px !important;
+  max-height: 104px !important;
+  overflow: hidden;
+}
+#tab-chart #dsMainResidualSection canvas#dsMainResidualChart {
+  display: block !important;
+  width: 100% !important;
+  height: 104px !important;
+  min-height: 104px !important;
+  max-height: 104px !important;
+}
+#tab-chart #tabs .tab.ds-rf-tab {
+  border-color: rgba(14,165,233,.22);
+}
+#tab-chart #tabs .tab.ds-rf-tab.active {
+  color: #1d4ed8;
+  border-color: rgba(37,99,235,.38);
+  background: linear-gradient(135deg,#e0f2fe,#eef2ff);
+}
+@media (max-width: 720px) {
+  #tab-chart #dsMainChartTools {gap: 10px; margin-bottom: 10px;}
+  #tab-chart #dsMainChartTools .ds-ref-toggle {padding: 7px 10px;font-size: 10px;}
+  #tab-chart #dsMainChartTools .ds-ref-meta {font-size:10px;}
+  #tab-chart #dsMainResidualSection .ds-main-residual-wrap,
+  #tab-chart #dsMainResidualSection canvas#dsMainResidualChart {
+    height: 98px !important;
+    min-height: 98px !important;
+    max-height: 98px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -10973,7 +11347,7 @@ body.avdam-presenting{overflow:hidden}
           <svg viewBox="0 0 24 24"><path d="M12 2c3.86 0 7 3.14 7 7 0 5.25-7 13-7 13S5 14.25 5 9c0-3.86 3.14-7 7-7zm0 2.2A4.8 4.8 0 0 0 7.2 9c0 2.76 2.58 6.86 4.8 9.74 2.22-2.88 4.8-6.98 4.8-9.74A4.8 4.8 0 0 0 12 4.2zM9 10h2v5H9v-5zm4-4h2v9h-2V6z"/></svg>
           Dự báo hạ du
         </a>
-            <a class="nav-link" data-tab="pcttdanang">
+<a class="nav-link" data-tab="pcttdanang">
           <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.6 5.25 10.9 6.55 12.38.24.27.66.27.9 0C13.75 19.9 19 13.6 19 9c0-3.87-3.13-7-7-7zm0 3.2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-4 9.6c.9-1.9 2.1-2.8 4-2.8s3.1.9 4 2.8c-1.1 1.7-2.5 3.5-4 5.2-1.5-1.7-2.9-3.5-4-5.2z"/></svg>
           PCTT Đà Nẵng
         </a>
@@ -11670,9 +12044,52 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
           </div>
           <div class="cardBody" id="mainChartFullscreenArea">
             <div class="tabs" id="tabs"></div>
+            <div id="dsMainChartTools" role="group" aria-label="Tùy chọn hiển thị biểu đồ hạ du">
+              <div class="ds-main-switches">
+                <label class="ds-ref-toggle ds-ref-actual" style="--ds-accent:#0284c7;--ds-soft:#eef9ff">
+                  <input type="checkbox" id="dsShowActual" checked onchange="renderChart()" aria-label="Hiển thị mực nước thực đo">
+                  <span class="ds-toggle-indicator" aria-hidden="true"></span>
+                  <span>H thực đo</span>
+                </label>
+                <label class="ds-ref-toggle ds-ref-forecast" style="--ds-accent:#7c3aed;--ds-soft:#f5f0ff">
+                  <input type="checkbox" id="dsShowRF" checked onchange="renderChart()" aria-label="Hiển thị dự báo RF V2">
+                  <span class="ds-toggle-indicator" aria-hidden="true"></span>
+                  <span>RF V2</span>
+                </label>
+                <label class="ds-ref-toggle ds-ref-persistence" style="--ds-accent:#64748b;--ds-soft:#f1f5f9">
+                  <input type="checkbox" id="dsShowPersistence" checked onchange="renderChart()" aria-label="Hiển thị đường Persistence">
+                  <span class="ds-toggle-indicator" aria-hidden="true"></span>
+                  <span>Persistence</span>
+                </label>
+                <label class="ds-ref-toggle ds-ref-alarm" style="--ds-accent:#f97316;--ds-soft:#fff7ed">
+                  <input type="checkbox" id="dsShowAlarmLevels" checked onchange="renderChart()" aria-label="Hiển thị ba mức báo động">
+                  <span class="ds-toggle-indicator" aria-hidden="true"></span>
+                  <span>Mức báo động</span>
+                </label>
+                <label class="ds-ref-toggle ds-ref-flood" style="--ds-accent:#0891b2;--ds-soft:#ecfeff">
+                  <input type="checkbox" id="dsMainShowFlood" checked onchange="renderChart()" aria-label="Hiển thị đỉnh lũ năm 2025">
+                  <span class="ds-toggle-indicator" aria-hidden="true"></span>
+                  <span>Đỉnh lũ 2025</span>
+                </label>
+              </div>
+              <div class="ds-ref-meta" id="dsMainMeta" aria-live="polite">
+                <strong>Hạ du</strong>
+              </div>
+            </div>
+
             <div class="chartWrap">
               <canvas id="chart"></canvas>
             </div>
+
+            <div id="dsMainResidualSection">
+              <div class="ds-main-residual-head">
+                <h3>SAI SỐ DỰ BÁO 24H</h3>
+              </div>
+              <div class="ds-main-residual-wrap">
+                <canvas id="dsMainResidualChart"></canvas>
+              </div>
+            </div>
+
             <div class="long-chart-mini-actions">
               <button type="button" class="long-scenario-mini-btn" id="longScenarioToggleBtn" onclick="toggleLongScenarios()">Ẩn 6 kịch bản</button>
               <button type="button" class="long-scenario-mini-btn" id="lstmScenarioToggleBtn" onclick="toggleLstmScenarios()" style="display:none">Ẩn 7 kịch bản</button>
@@ -13202,6 +13619,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
       </div>
 
 
+      
       <!-- TAB: Downstream manual input -->
       <div id="tab-downstreammanual" class="tab-pane">
         <div class="downstream-shell">
@@ -16140,8 +16558,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
     // Mixed đặt ngay sau RF V1 theo bố cục vận hành.
     IN_OBS_FC_MIX:{name:"Q Về vs DB (Mixed)",hint:"Thực tế vs Mô hình Mixed (Mưa thực + DB)",color:'233, 30, 99'},
-
-    WL_24H:{name:"MNH 24h",hint:"Mực nước 24h qua",color:C.WL},
+WL_24H:{name:"MNH 24h",hint:"Mực nước 24h qua",color:C.WL},
     FLOW_24H:{name:"Q 24h",hint:"Dòng chảy 24h qua",color:C.IN},
     WL_7D:{name:"MNH 7D",hint:"Mực nước 7 ngày",color:C.WL},
     FLOW_7D:{name:"Q Tổng hợp",hint:"Q về/máy/xả 7 ngày",color:C.IN},
@@ -16151,7 +16568,18 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     IN_FC_7D:{name:"Q Dự báo",hint:"Dự báo 7 ngày tới (Ensemble)",color:C.IF},
     RF_DAILY_FC:{name:"Mưa Ngày",hint:"Mưa ngày & Lũy kế",color:C.RN},
     RF_HOURLY_ACC:{name:"Mưa Giờ",hint:"Mưa giờ & Lũy kế",color:C.RN},
-    RF_COMPARE:{name:"Mưa Thực vs DB",hint:"So sánh mưa Thực & DB",color:C.RF}
+    RF_COMPARE:{name:"Mưa Thực vs DB",hint:"So sánh mưa Thực & DB",color:C.RF},
+
+    DS_HOI_KHACH_RF:{
+      name:"H Hội Khách RF V2",
+      hint:"Mực nước Hội Khách • 24h thực tế + dự báo RF V2",
+      color:'2, 132, 199'
+    },
+    DS_AI_NGHIA_RF:{
+      name:"H Ái Nghĩa RF V2",
+      hint:"Mực nước Ái Nghĩa • 24h thực tế + dự báo RF V2",
+      color:'6, 182, 212'
+    }
   };
 
   const state = {
@@ -20502,14 +20930,18 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const tc=$("tabs");
     Object.keys(tabMeta).forEach(k=>{
       const t=document.createElement("span");
-      t.className=`tab ${k===currentTab?'active':''}`;
+      t.className=`tab ${k===currentTab?'active':''} ${(k==='DS_HOI_KHACH_RF'||k==='DS_AI_NGHIA_RF')?'ds-rf-tab':''}`;
       t.innerHTML=`<span class="swatch" style="background:rgb(${tabMeta[k].color})"></span>${tabMeta[k].name}`;
       t.onclick=()=>{
         document.querySelectorAll("#tab-chart .tab").forEach(x=>x.classList.remove("active"));
         t.classList.add("active");
         currentTab=k;
         updateForecastDetailVisibility();
-        renderChart();
+        if(k==='DS_HOI_KHACH_RF'||k==='DS_AI_NGHIA_RF'){
+          loadDsMainRf(k,false);
+        }else{
+          renderChart();
+        }
         renderRain6ModelChart();
         renderLongH120Table();
         renderLstmH120Table();
@@ -23143,6 +23575,396 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     }
   }
 
+
+  // ========================================================
+  // RF V2 hạ du — data cache for main BIỂU ĐỒ tab
+  // ========================================================
+  const DS_RF_SEQ6_RELEASE = "RF_DOWNSTREAM_V2_SEQ6_20261020_R1";
+  const dsMainRfState = {
+    HOI_KHACH:{rows:[],obs:[],loaded:false,loading:false},
+    AI_NGHIA:{rows:[],obs:[],loaded:false,loading:false}
+  };
+  let dsMainResidualChartObj = null;
+
+  const DS_MAIN_CFG = {
+    DS_HOI_KHACH_RF:{
+      stationCode:'HOI_KHACH',
+      obsField:'hoi_khach_m',
+      title:'Hội Khách',
+      yMin:0,
+      // BD III + 2m = 18.5m, nhưng đỉnh 2025 = 19.32m.
+      // Mở trần đến 20.5m để đường đỉnh lịch sử luôn nhìn thấy.
+      yMax:20.0,
+      bdi:14.5, bdii:15.5, bdiii:16.5, flood:19.32
+    },
+    DS_AI_NGHIA_RF:{
+      stationCode:'AI_NGHIA',
+      obsField:'ai_nghia_m',
+      title:'Ái Nghĩa',
+      yMin:0,
+      yMax:11.0,
+      bdi:6.5, bdii:8.0, bdiii:9.0, flood:10.60
+    }
+  };
+
+  function dsMainN(v){
+    if(v===null||v===undefined||v==='') return null;
+    const n=Number(v);
+    return Number.isFinite(n)?n:null;
+  }
+  function dsMainDate(v){
+    if(!v) return null;
+    const d=new Date(String(v).replace(' ','T'));
+    return Number.isFinite(d.getTime())?d:null;
+  }
+  function dsMainHourKey(v){
+    const d=dsMainDate(v);
+    if(!d) return null;
+    d.setUTCMinutes(0,0,0);
+    return d.toISOString();
+  }
+  function dsMainLabel(v){
+    const d=dsMainDate(v);
+    if(!d) return '--';
+    return new Intl.DateTimeFormat('vi-VN',{
+      timeZone:'Asia/Ho_Chi_Minh',
+      hour:'2-digit',minute:'2-digit',
+      day:'2-digit',month:'2-digit',
+      hour12:false
+    }).format(d);
+  }
+
+  async function loadDsMainRf(tabKey, force=false){
+    const cfg=DS_MAIN_CFG[tabKey];
+    if(!cfg || !sb) return;
+
+    const st=dsMainRfState[cfg.stationCode];
+    if(st.loading) return;
+    if(st.loaded && !force){
+      renderChart();
+      return;
+    }
+
+    st.loading=true;
+    try{
+      // Phát hành mới nhất quyết định cửa sổ 24h quan trắc.
+      const {data:latest,error:latestErr}=await sb
+        .from('rf_downstream_shadow_forecasts')
+        .select('issue_time')
+        .eq('station_code',cfg.stationCode)
+        .order('issue_time',{ascending:false})
+        .limit(1);
+      if(latestErr) throw latestErr;
+      const issueMs=latest?.length ? dsMainDate(latest[0].issue_time)?.getTime() : null;
+      const earliest=Math.min(
+        Date.now()-26*3600000,
+        Number.isFinite(issueMs) ? issueMs-26*3600000 : Date.now()-26*3600000
+      );
+      const cutoff=new Date(earliest).toISOString();
+
+      const [{data:fc,error:fcErr},{data:obs,error:obsErr}] = await Promise.all([
+        sb.from('rf_downstream_shadow_forecasts')
+          .select('station_code,model_version,horizon_hours,issue_time,forecast_time,h_now_m,forecast_level_m,persistence_level_m,actual_level_m,error_m,abs_error_m,persistence_error_m,persistence_abs_error_m,status')
+          .eq('station_code',cfg.stationCode)
+          .gte('forecast_time',cutoff)
+          .order('forecast_time',{ascending:true})
+          .limit(5000),
+
+        sb.from('downstream_manual_observations')
+          .select('obs_time,obs_hour,hoi_khach_m,ai_nghia_m')
+          .gte('obs_time',cutoff)
+          .order('obs_time',{ascending:true})
+          .limit(5000)
+      ]);
+
+      if(fcErr) throw fcErr;
+      if(obsErr) throw obsErr;
+
+      st.rows=Array.isArray(fc)?fc:[];
+      st.obs=(obs||[]).map(r=>({
+        time:r.obs_hour||r.obs_time,
+        value:dsMainN(r[cfg.obsField])
+      })).filter(r=>r.time && r.value!==null);
+      st.loaded=true;
+    }catch(err){
+      console.error('loadDsMainRf',err);
+      st.rows=[];
+      st.obs=[];
+      st.loaded=true;
+    }finally{
+      st.loading=false;
+      renderChart();
+    }
+  }
+
+  function dsMainLatestPerForecastTime(rows){
+    const map=new Map();
+    (rows||[]).forEach(r=>{
+      const k=dsMainHourKey(r.forecast_time);
+      if(!k) return;
+      const prev=map.get(k);
+      const currIssue=dsMainDate(r.issue_time)?.getTime()||0;
+      const prevIssue=dsMainDate(prev?.issue_time)?.getTime()||0;
+      // Nếu cùng giờ phát hành: chọn bản sequence6, không trộn với bản 5 model cũ.
+      if(!prev || currIssue>prevIssue ||
+        (currIssue===prevIssue &&
+          r.model_version===DS_RF_SEQ6_RELEASE &&
+          prev.model_version!==DS_RF_SEQ6_RELEASE)){
+        map.set(k,r);
+      }
+    });
+    return Array.from(map.values()).sort((a,b)=>dsMainDate(a.forecast_time)-dsMainDate(b.forecast_time));
+  }
+
+  function dsMainLatestIssueSequence(rows){
+    if(!rows?.length) return [];
+
+    // Ưu tiên release H+1...H+6; không ghép nhầm các phiên bản tại cùng issue_time.
+    const newRows=rows.filter(r=>r.model_version===DS_RF_SEQ6_RELEASE);
+    if(newRows.length){
+      const groups=new Map();
+      for(const r of newRows){
+        const issue=dsMainHourKey(r.issue_time);
+        if(!issue) continue;
+        if(!groups.has(issue)) groups.set(issue,new Map());
+        groups.get(issue).set(Number(r.horizon_hours),r);
+      }
+      const issueTimes=Array.from(groups.keys()).sort().reverse();
+      for(const issue of issueTimes){
+        const byH=groups.get(issue);
+        if([1,2,3,4,5,6].every(h=>byH.has(h))){
+          return [1,2,3,4,5,6].map(h=>byH.get(h));
+        }
+      }
+      return []; // Không giả vẽ chuỗi nếu release mới chưa đủ 6 điểm.
+    }
+
+    // Trước khi triển khai backend mới, biểu đồ V94 vẫn hiển thị được 5 model cũ.
+    const issueMs=rows.map(r=>dsMainDate(r.issue_time)?.getTime()).filter(Number.isFinite);
+    if(!issueMs.length) return [];
+    const latest=Math.max(...issueMs);
+    return rows
+      .filter(r=>(dsMainDate(r.issue_time)?.getTime()||0)===latest)
+      .sort((a,b)=>Number(a.horizon_hours)-Number(b.horizon_hours));
+  }
+
+  function dsMainWaterGradient(ctx,chartArea,alpha=1){
+    if(!chartArea) return `rgba(14,165,233,${0.20*alpha})`;
+    const g=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+    g.addColorStop(0,`rgba(186,230,253,${0.10*alpha})`);
+    g.addColorStop(.55,`rgba(56,189,248,${0.22*alpha})`);
+    g.addColorStop(1,`rgba(2,132,199,${0.52*alpha})`);
+    return g;
+  }
+
+  function renderDsMainResidual(cfg,histRows){
+    const canvas=$("dsMainResidualChart");
+    if(!canvas || typeof Chart==="undefined") return;
+    if(dsMainResidualChartObj){
+      dsMainResidualChartObj.destroy();
+      dsMainResidualChartObj=null;
+    }
+
+    // 24 vị trí GIỜ, không dùng 1 category rộng cho mỗi record:
+    // kể cả khi chỉ có 1-2 bản ghi EVALUATED thì cột vẫn mảnh.
+    const oneHour=3600000;
+    const endMs=Math.floor(Date.now()/oneHour)*oneHour;
+    const startMs=endMs-23*oneHour;
+    const timeKeys=Array.from({length:24},(_,i)=>
+      new Date(startMs+i*oneHour).toISOString()
+    );
+    const byHour=new Map();
+    for(const r of histRows||[]){
+      if(dsMainN(r.actual_level_m)===null) continue;
+      const key=dsMainHourKey(r.forecast_time);
+      if(!key) continue;
+      const ms=dsMainDate(key)?.getTime();
+      if(!Number.isFinite(ms) || ms<startMs || ms>endMs) continue;
+      const prev=byHour.get(key);
+      if(!prev || (dsMainDate(r.issue_time)?.getTime()||0)>
+                  (dsMainDate(prev.issue_time)?.getTime()||0)){
+        byHour.set(key,r);
+      }
+    }
+
+    const labels=timeKeys.map(dsMainLabel);
+    const rf=timeKeys.map(k=>{
+      const r=byHour.get(k);
+      if(!r) return null;
+      const val=dsMainN(r.error_m);
+      if(val!==null) return val;
+      const pred=dsMainN(r.forecast_level_m),actual=dsMainN(r.actual_level_m);
+      return pred!==null && actual!==null ? pred-actual : null;
+    });
+    const persistence=timeKeys.map(k=>{
+      const r=byHour.get(k);
+      if(!r) return null;
+      const val=dsMainN(r.persistence_error_m);
+      if(val!==null) return val;
+      const pred=dsMainN(r.persistence_level_m),actual=dsMainN(r.actual_level_m);
+      return pred!==null && actual!==null ? pred-actual : null;
+    });
+
+    const allValid=[...rf,...persistence].filter(v=>Number.isFinite(v));
+    const peak=allValid.length?Math.max(...allValid.map(Math.abs)):0;
+    const bound=Math.max(0.10,Math.ceil(peak*1.12/0.05)*0.05);
+    const colors=rf.map(v=>{
+      if(!Number.isFinite(v)) return 'rgba(0,0,0,0)';
+      if(Math.abs(v)>=0.30) return 'rgba(239,68,68,.85)';
+      if(Math.abs(v)>=0.15) return 'rgba(245,158,11,.85)';
+      return 'rgba(14,165,233,.82)';
+    });
+
+    dsMainResidualChartObj=new Chart(canvas.getContext("2d"),{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {
+            type:'bar',
+            label:'RF − Thực đo',
+            data:rf,
+            backgroundColor:colors,
+            borderWidth:0,
+            barThickness:8,
+            maxBarThickness:9,
+            categoryPercentage:.8,
+            order:1
+          },
+          {
+            type:'line',
+            label:'Persistence − Thực đo',
+            data:persistence,
+            borderColor:'#94a3b8',
+            backgroundColor:'#94a3b8',
+            borderWidth:1.3,
+            borderDash:[4,4],
+            pointRadius:2.2,
+            pointHoverRadius:3,
+            spanGaps:false,
+            tension:0,
+            order:0
+          },
+          {
+            type:'line',
+            label:'0',
+            data:timeKeys.map(()=>0),
+            borderColor:'rgba(71,85,105,.45)',
+            borderWidth:1,
+            pointRadius:0,
+            spanGaps:false,
+            order:2
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        layout:{padding:{top:3,bottom:0,left:1,right:5}},
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            filter:(item)=>item.dataset.label!=='0' && item.parsed.y!==null,
+            callbacks:{
+              label:(ctx)=>{
+                const val=ctx.parsed.y;
+                return `${ctx.dataset.label}: ${Number.isFinite(val)?(val>=0?'+':'')+val.toFixed(3):'--'} m`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false},
+            border:{display:false},
+            ticks:{
+              autoSkip:true,maxTicksLimit:8,maxRotation:0,
+              color:'#94a3b8',font:{size:9}
+            }
+          },
+          y:{
+            min:-bound,max:bound,
+            border:{display:false},
+            grid:{color:'rgba(148,163,184,.12)'},
+            ticks:{
+              maxTicksLimit:3,
+              color:'#94a3b8',
+              font:{size:9},
+              callback:(v)=>Number(v).toFixed(2)
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+  const dsMainGuidePlugin={
+    id:'dsMainGuidePlugin',
+    afterDraw(chart,args,pluginOpts){
+      if(!pluginOpts?.enabled) return;
+      const y=chart.scales.y;
+      const ca=chart.chartArea;
+      const ctx=chart.ctx;
+      ctx.save();
+
+      (pluginOpts.lines||[]).forEach(it=>{
+        if(!it.show) return;
+        const py=y.getPixelForValue(it.value);
+        if(py<ca.top || py>ca.bottom) return;
+
+        ctx.setLineDash(it.dash||[6,5]);
+        ctx.strokeStyle=it.color;
+        ctx.lineWidth=1.4;
+        ctx.beginPath();
+        ctx.moveTo(ca.left,py);
+        ctx.lineTo(ca.right,py);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const txt=it.label;
+        ctx.font='800 10px Inter, system-ui, sans-serif';
+        const w=ctx.measureText(txt).width+14;
+        const h=18;
+        const x=Math.max(ca.left+4,ca.right-w-5);
+        ctx.fillStyle='rgba(255,255,255,.90)';
+        ctx.strokeStyle=it.color;
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(x,py-h/2,w,h,7);
+        else ctx.rect(x,py-h/2,w,h);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle=it.color;
+        ctx.textBaseline='middle';
+        ctx.fillText(txt,x+7,py);
+      });
+
+      if(pluginOpts.issueIndex!==null && pluginOpts.issueIndex!==undefined){
+        const x=chart.scales.x.getPixelForValue(pluginOpts.issueIndex);
+        ctx.setLineDash([6,5]);
+        ctx.strokeStyle='rgba(71,85,105,.72)';
+        ctx.lineWidth=1.2;
+        ctx.beginPath();
+        ctx.moveTo(x,ca.top);
+        ctx.lineTo(x,ca.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#475569';
+        ctx.font='900 10px Inter, system-ui, sans-serif';
+        ctx.fillText('PHÁT HÀNH',Math.min(x+6,ca.right-66),ca.top+14);
+      }
+      ctx.restore();
+    }
+  };
+
+  if(typeof Chart!=="undefined"){
+    try{Chart.register(dsMainGuidePlugin);}catch(e){}
+  }
+
+
   function renderChart(){
     updateForecastDetailVisibility();
 
@@ -23261,6 +24083,242 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
         {label:'Q cắt lũ (600)',data:Array(pts.length).fill(600),borderColor:'rgba(239,68,68,0.55)',borderDash:[4,4],pointRadius:0,fill:false}
       ];
     };
+
+
+    // =====================================================
+    // HẠ DU RF V2 — hiển thị trực tiếp trong tab BIỂU ĐỒ
+    // =====================================================
+    if(currentTab==='DS_HOI_KHACH_RF' || currentTab==='DS_AI_NGHIA_RF'){
+      const cfg=DS_MAIN_CFG[currentTab];
+      const st=dsMainRfState[cfg.stationCode];
+
+      const tools=$("dsMainChartTools");
+      const residual=$("dsMainResidualSection");
+      if(tools) tools.style.display='flex';
+      if(residual) residual.style.display='block';
+
+      if(!st.loaded && !st.loading){
+        setTimeout(()=>loadDsMainRf(currentTab,false),0);
+      }
+
+      const hist=dsMainLatestPerForecastTime(st.rows||[]);
+      const latestSeq=dsMainLatestIssueSequence(st.rows||[]);
+
+      // Nếu chưa có forecast thì vẫn dựng 24h quan trắc gần nhất.
+      const latestObsTime=(st.obs||[])
+        .map(o=>dsMainDate(o.time)?.getTime())
+        .filter(Number.isFinite)
+        .sort((a,b)=>b-a)[0];
+
+      const issueMs=latestSeq.length
+        ? (dsMainDate(latestSeq[0].issue_time)?.getTime()||latestObsTime||Date.now())
+        : (latestObsTime||Date.now());
+
+      const historyStartMs=issueMs-24*3600*1000;
+
+      const lastForecastMs=latestSeq.length
+        ? Math.max(...latestSeq.map(r=>dsMainDate(r.forecast_time)?.getTime()||issueMs))
+        : issueMs;
+
+      // X-axis CHỈ tồn tại từ 24h trước phát hành đến forecast cuối.
+      // Không giữ label buffer 36h, nên không còn khoảng trắng phía trước.
+      const all=[];
+      for(let t=historyStartMs;t<=lastForecastMs;t+=3600*1000){
+        all.push(new Date(t).toISOString());
+      }
+
+      labels=all.map(dsMainLabel);
+
+      const obsMap=new Map();
+      (st.obs||[]).forEach(o=>{
+        const k=dsMainHourKey(o.time);
+        if(k) obsMap.set(k,o.value);
+      });
+
+      // Dữ liệu thực đo: 24h đến đúng issue_time.
+      const obsData=all.map(k=>{
+        const t=dsMainDate(k)?.getTime();
+        if(!Number.isFinite(t) || t>issueMs) return null;
+        return obsMap.has(k)?obsMap.get(k):null;
+      });
+
+      // Điểm neo tại issue_time để đường forecast nối trực tiếp từ H hiện tại.
+      const anchorH=latestSeq.length
+        ? dsMainN(latestSeq[0].h_now_m)
+        : (obsMap.get(new Date(issueMs).toISOString()) ?? null);
+
+      const futureMap=new Map();
+      latestSeq.forEach(r=>{
+        const k=dsMainHourKey(r.forecast_time);
+        if(k) futureMap.set(k,r);
+      });
+
+      const issueKey=new Date(issueMs).toISOString();
+
+      const rfFutureData=all.map(k=>{
+        if(k===issueKey) return anchorH;
+        const r=futureMap.get(k);
+        return r?dsMainN(r.forecast_level_m):null;
+      });
+
+      const persistenceData=all.map(k=>{
+        if(k===issueKey) return anchorH;
+        const r=futureMap.get(k);
+        return r?dsMainN(r.persistence_level_m):null;
+      });
+
+      datasets=[
+        {
+          label:`${cfg.title} thực đo`,
+          data:obsData,
+          borderColor:'#0284c7',
+          backgroundColor:(context)=>dsMainWaterGradient(
+            context.chart.ctx,
+            context.chart.chartArea,
+            1
+          ),
+          fill:'origin',
+          borderWidth:2.6,
+          pointRadius:1.8,
+          pointHoverRadius:5,
+          tension:.20,
+          spanGaps:false,
+          hidden:!$("dsShowActual")?.checked,
+          order:3
+        },
+        {
+          label:'RF V2',
+          data:rfFutureData,
+          borderColor:'#7c3aed',
+          backgroundColor:(context)=>{
+            const area=context.chart.chartArea;
+            if(!area) return 'rgba(124,58,237,.10)';
+            const g=context.chart.ctx.createLinearGradient(
+              0,area.top,0,area.bottom
+            );
+            g.addColorStop(0,'rgba(124,58,237,.03)');
+            g.addColorStop(.60,'rgba(56,189,248,.10)');
+            g.addColorStop(1,'rgba(14,165,233,.24)');
+            return g;
+          },
+          fill:'origin',
+          borderWidth:2.7,
+          borderDash:[7,4],
+          pointRadius:4,
+          pointHoverRadius:6,
+          tension:.18,
+          spanGaps:true,
+          hidden:!$("dsShowRF")?.checked,
+          order:1
+        },
+        {
+          label:'Persistence',
+          data:persistenceData,
+          borderColor:'#64748b',
+          backgroundColor:'#64748b',
+          fill:false,
+          borderWidth:1.4,
+          borderDash:[5,5],
+          pointRadius:0,
+          tension:.10,
+          spanGaps:true,
+          hidden:!$("dsShowPersistence")?.checked,
+          order:4
+        }
+      ];
+
+      opts.scales.y={
+        min:cfg.yMin,
+        max:cfg.yMax,
+        title:{
+          display:true,
+          text:'Mực nước (m)',
+          color:'#475569',
+          font:{size:11,weight:'700'}
+        },
+        ticks:{color:'#64748b',font:{size:10}},
+        grid:{color:'rgba(15,23,42,.08)'}
+      };
+
+      opts.scales.x={
+        ...opts.scales.x,
+        ticks:{
+          color:'#64748b',
+          font:{size:10},
+          maxRotation:0,
+          autoSkip:true,
+          maxTicksLimit:14
+        }
+      };
+
+      // Hàng toggle phía trên thay cho legend trong chart.
+      opts.plugins.legend={display:false};
+
+      const issueIndex=all.indexOf(issueKey);
+
+      opts.plugins.dsMainGuidePlugin={
+        enabled:true,
+        issueIndex:issueIndex>=0?issueIndex:null,
+        lines:[
+          {
+            show:$("dsShowAlarmLevels")?.checked,
+            value:cfg.bdi,
+            color:'#f59e0b',
+            label:`BD I: ${cfg.bdi.toFixed(1)} m`
+          },
+          {
+            show:$("dsShowAlarmLevels")?.checked,
+            value:cfg.bdii,
+            color:'#fb923c',
+            label:`BD II: ${cfg.bdii.toFixed(1)} m`
+          },
+          {
+            show:$("dsShowAlarmLevels")?.checked,
+            value:cfg.bdiii,
+            color:'#ef4444',
+            label:`BD III: ${cfg.bdiii.toFixed(1)} m`
+          },
+          {
+            show:$("dsMainShowFlood")?.checked,
+            value:cfg.flood,
+            color:'#06b6d4',
+            label:`Đỉnh 2025: ${cfg.flood.toFixed(2)} m`,
+            dash:[3,4]
+          }
+        ]
+      };
+
+      const meta=$("dsMainMeta");
+      if(meta){
+        const ageH=(Date.now()-issueMs)/3600000;
+        const delayed=Number.isFinite(ageH) && ageH>4;
+        meta.classList.toggle('stale',delayed);
+        meta.innerHTML=
+          `<strong>${cfg.title}</strong><span class="ds-meta-separator">·</span>`+
+          `<span>Phát hành ${dsMainLabel(issueKey)}</span>`+
+          (delayed?`<span class="ds-meta-separator">·</span><span>Dữ liệu chậm</span>`:'');
+      }
+
+      // Residual vẫn lấy forecast đã chấm trong 24h gần nhất.
+      renderDsMainResidual(cfg,hist);
+
+      chart=new Chart(ctx,{
+        type:'line',
+        data:{labels,datasets},
+        options:opts
+      });
+      return;
+    }else{
+      const tools=$("dsMainChartTools");
+      const residual=$("dsMainResidualSection");
+      if(tools) tools.style.display='none';
+      if(residual) residual.style.display='none';
+
+      if(dsMainResidualChartObj){
+        dsMainResidualChartObj.destroy();
+        dsMainResidualChartObj=null;
+      }
+    }
 
     if(currentTab==='WL_24H'){
       const d=state.latest24h;
@@ -31756,6 +32814,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
 
 
 
+
+
 </style>
 
       <div class="pdf-official-head">
@@ -35702,6 +36762,10 @@ function renderShadowPairChart(rows,isFair){
   );
 }
 </script>
+
+
+
+
 
 </body>
 </html>
