@@ -21,6 +21,7 @@ from rf_downstream_common import (
     fetch_downstream_history,
     normalize_hourly,
     build_features,
+    select_latest_gap_tolerant_issue,
 )
 
 Q_COLS = ["q_av", "q_dm4", "q_sb4", "q_st2"]
@@ -168,14 +169,48 @@ def main():
     if latest_common is None:
         print("Không có cửa sổ liên tục 24h phù hợp trong dữ liệu truy xuất.")
     elif (age_h(now, latest_common) or 0) > args.max_age_h:
-        print(
-            f"::warning title=RF downstream DATA_STALE::"
-            f"Latest complete issue {show_time(latest_common)}, age "
-            f"{age_text(now, latest_common)} > {args.max_age_h:.1f}h"
-        )
-        print("KẾT LUẬN: DATA_STALE. Không hạ ngưỡng bảo vệ và không điền 0 vào dữ liệu thiếu.")
+        print("STRICT HISTORY: STALE. Bộ 196 features nguyên gốc đòi lịch sử không khuyết.")
+        print("Đây là chẩn đoán chế độ cũ; bên dưới sẽ kiểm tra chính sách nội suy giới hạn.")
     else:
-        print("KẾT LUẬN: nguồn hiện đủ điều kiện freshness (còn phải chạy predictor thử).")
+        print("STRICT HISTORY: đầy đủ (vẫn kiểm tra chính sách mới bên dưới).")
+
+    # Independently inspect the new, *bounded* historical-gap policy, using
+    # the same generated 196 features but without loading 12 model binaries.
+    print("\nCHÍNH SÁCH MỚI: 30H QUÁ KHỨ, CHỈ BÙ LỖ HỔNG NGẮN")
+    print("-"*104)
+    model_columns = {
+        g: list(build_features(base, g).columns)
+        for g in ("hoi_khach", "ai_nghia")
+    }
+    mock_bundles = {
+        g: {h: {"features": model_columns[g]} for h in range(1, 7)}
+        for g in model_columns
+    }
+    try:
+        robust_issue, _, qc = select_latest_gap_tolerant_issue(
+            base, mock_bundles, now=now,
+            max_age_h=args.max_age_h,
+            history_hours=30,
+            max_gap_hours=3,
+            max_gap_cells=6,
+            max_consecutive_gap_hours=2,
+        )
+        print("ISSUE HỢP LỆ (QC mới):", show_time(robust_issue))
+        print("Tuổi dữ liệu:", age_text(now, robust_issue))
+        print("Mốc giờ khuyết / 30h:", qc["window_missing_hour_count"])
+        print("Ô dữ liệu thiếu / 30h:", qc["window_missing_cell_count"])
+        print("Ô đã nội suy trong quá khứ:", qc["interpolated_cell_count"])
+        for imp in qc["interpolations"]:
+            print(
+                "INTERPOLATED:", imp["time_vn"], imp["source"],
+                "=", imp["interpolated_value"],
+                "(hai số đo thật tại", imp["left_time_vn"], "và",
+                imp["right_time_vn"] + ")"
+            )
+        print("KẾT LUẬN: QC_READY_FOR_SHADOW. Không nội suy tại issue_time.")
+    except RuntimeError as exc:
+        print(f"::warning title=RF downstream QC not ready::{str(exc)[:250]}")
+        print("KẾT LUẬN: QC_NOT_READY:", str(exc))
 
     # Explain why the latest hour is not usable: missing 196 feature names
     t = base.index.max()
@@ -195,7 +230,7 @@ def main():
             KEY_COLS,
         ]
         print(
-            "\nGIỜ ĐẦU TIÊN SAU ISSUE HỢP LỆ "
+            "\nGIỜ ĐẦU TIÊN SAU ISSUE STRICT (không bù lịch sử) "
             "(dấu — thể hiện thiếu dữ liệu nguồn):"
         )
         print(

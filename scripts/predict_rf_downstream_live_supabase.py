@@ -10,7 +10,7 @@ import pandas as pd
 
 from rf_downstream_common import (
     VN_TZ, CANDIDATES, build_live_base, build_features, load_bundles,
-    latest_common_issue_time, sb_upsert, utc_iso,
+    select_latest_gap_tolerant_issue, sb_upsert, utc_iso,
 )
 
 EXPECTED_RELEASE = "RF_DOWNSTREAM_V2_SEQ6_20261020_R1"
@@ -34,7 +34,7 @@ def read_manifest(model_dir):
     return manifest
 
 
-def forecast_sequence(base, bundles, manifest, issue_time, input_age_h):
+def forecast_sequence(base, bundles, manifest, issue_time, input_age_h, qc):
     frames = {g: build_features(base, g) for g in CANDIDATES}
     out = []
     for gauge, horizons in CANDIDATES.items():
@@ -73,7 +73,11 @@ def forecast_sequence(base, bundles, manifest, issue_time, input_age_h):
                 "persistence_level_m": round(h_now, 4),
                 "status": "SHADOW",
                 "input_age_hours": round(input_age_h, 3),
-                "source": "PCTT_VERCEL+SUPABASE_DOWNSTREAM",
+                "source": (
+                    "PCTT_VERCEL+SUPABASE_DOWNSTREAM|"
+                    + ("QC=INTERPOLATED_HISTORY" if qc["interpolated_cell_count"] > 0
+                       else "QC=REAL_HISTORY")
+                ),
             })
 
     expected = {(g.upper(), h) for g in CANDIDATES for h in HORIZONS}
@@ -91,6 +95,12 @@ def main():
     ap.add_argument("--model-dir", default="rf_downstream_v2_final_models")
     ap.add_argument("--hours", type=int, default=72)
     ap.add_argument("--max-input-age-h", type=float, default=4.0)
+    ap.add_argument("--history-hours", type=int, default=30)
+    ap.add_argument("--max-gap-hours", type=int, default=3,
+                    help="Max distinct missing hourly timestamps in 30h history")
+    ap.add_argument("--max-gap-cells", type=int, default=6,
+                    help="Max missing sensor/hour values across 4 Q + 2 H")
+    ap.add_argument("--max-consecutive-gap-hours", type=int, default=2)
     ap.add_argument("--output-dir", default="rf_downstream_v2_live_output")
     ap.add_argument("--no-write", action="store_true")
     a = ap.parse_args()
@@ -107,10 +117,31 @@ def main():
             if len(b["features"]) != 196 or len(b["features"]) != entry["feature_count"]:
                 raise RuntimeError(f"Feature count mismatch for {gauge} H+{h}")
 
-    base = build_live_base(hours=a.hours)
-    frames = {g: build_features(base, g) for g in CANDIDATES}
-    issue_time = latest_common_issue_time(base, frames, bundles)
+    base_raw = build_live_base(hours=a.hours)
+    # Require real current Q4 + H2, but permit small interior historical gaps.
+    issue_time, base, qc = select_latest_gap_tolerant_issue(
+        base_raw, bundles,
+        max_age_h=a.max_input_age_h,
+        history_hours=a.history_hours,
+        max_gap_hours=a.max_gap_hours,
+        max_gap_cells=a.max_gap_cells,
+        max_consecutive_gap_hours=a.max_consecutive_gap_hours,
+    )
     age = (pd.Timestamp.now(tz=VN_TZ) - issue_time).total_seconds() / 3600.0
+
+    print("INPUT QC: all four Q and both H are REAL at:", issue_time)
+    print("QC HISTORY: window", qc["historical_window_hours"], "h; missing",
+          qc["window_missing_hour_count"], "distinct hours;",
+          qc["window_missing_cell_count"], "cells;",
+          qc["interpolated_cell_count"], "cells interpolated")
+    for cell in qc["interpolations"]:
+        print("QC GAPFILL:",
+              cell["time_vn"], cell["source"],
+              "=", cell["interpolated_value"],
+              "| real neighbors", cell["left_time_vn"], "and", cell["right_time_vn"])
+    if qc["not_interpolated_missing_in_earliest_window_margin"]:
+        print("QC NOTICE: unused earliest window edge missing cells:",
+              qc["not_interpolated_missing_in_earliest_window_margin"])
 
     if age < -0.5:
         raise RuntimeError(f"Issue time in future: {issue_time} ({age:.2f} h)")
@@ -120,7 +151,7 @@ def main():
             f"age {age:.2f} h > {a.max_input_age_h:.2f} h. No forecast written."
         )
 
-    rows = forecast_sequence(base, bundles, manifest, issue_time, age)
+    rows = forecast_sequence(base, bundles, manifest, issue_time, age, qc)
     df = pd.DataFrame(rows).sort_values(["station_code", "horizon_hours"])
     stamp = issue_time.strftime("%Y%m%d_%H%M")
     csv_path = outdir / f"rf_downstream_seq6_{stamp}.csv"
@@ -132,6 +163,7 @@ def main():
         "release_version": manifest["release_version"],
         "issue_time_vietnam": issue_time.isoformat(),
         "row_count": 12,
+        "data_quality": qc,
         "forecasts": rows,
     }, ensure_ascii=False, indent=2)
     json_path.write_text(json_text, encoding="utf-8")
@@ -144,6 +176,9 @@ def main():
     print(df[["station_code","horizon_hours","forecast_time","h_now_m",
               "delta_h_pred_m","forecast_level_m"]].to_string(index=False))
     print("Forecast count:", len(rows), "(must equal 12)")
+    print("DATA QUALITY:",
+          "HISTORICAL_GAPFILL" if qc["interpolated_cell_count"] else "REAL_DATA",
+          "| SHADOW only. Interpolated inputs are NOT measured observations.")
 
     if not a.no_write:
         saved = sb_upsert(
