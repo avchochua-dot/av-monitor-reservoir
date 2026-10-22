@@ -52,7 +52,6 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESERVOIR_ID: "is.null"
       SOURCE_TIME_MODE: "vn_label_stored_as_utc"
-      TAILWATER_FALLBACK_M: "60.00"
 
       AUTO_SEND_TEST_EMAIL: ${{ vars.AUTO_SEND_TEST_EMAIL }}
       REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
