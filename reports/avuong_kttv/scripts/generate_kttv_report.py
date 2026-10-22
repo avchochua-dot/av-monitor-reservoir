@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Báo cáo vận hành hồ A Vương theo mẫu PDF khách hàng cung cấp.
-ĐƯỢC THIẾT KẾ AN TOÀN CHO POC:
- - Khi tailwater_level NULL, hiển thị 60.00 m TẠM TÍNH kèm cảnh báo rõ trên PDF.
- - Không ghi 60.00 vào Supabase.
- - Chỉ cho phép xem trước PDF hoặc gửi thư THỬ NGHIỆM qua SMTP.
- - Khóa đọc dữ liệu / SMTP được lưu trong GitHub Secrets, không đưa lên website.
+QUY TẮC VẬN HÀNH POC:
+ - Tailwater phải đọc từ reservoir_hourly_data.tailwater_level tại đúng giờ báo cáo.
+ - Nếu thiếu tailwater thì ghi PENDING_DATA, KHÔNG dùng số 60.00 m và KHÔNG gửi email.
+ - Chỉ cho phép xem trước PDF hoặc gửi email THỬ NGHIỆM qua SMTP khi đủ dữ liệu.
+ - Khóa đọc dữ liệu / SMTP nằm trong GitHub Secrets, không đưa lên website.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_REPORT_POC_V1_2_FOUR_ISSUES"
+VERSION = "AVUONG_KTTV_REPORT_POC_V1_3_REAL_TAILWATER"
 
 
 def env(name: str, default: str = "") -> str:
@@ -193,18 +193,19 @@ class Report:
 
 
 def aggregate_rows(report_day: date, hour: int, source_mode: str,
-                   rows: list[dict[str, Any]], fallback: Decimal) -> Report:
+                   rows: list[dict[str, Any]]) -> Report:
     if len(rows) != DEFAULT_PERIOD_HOURS:
         raise ValueError("Phải có đúng 6 bản ghi giờ.")
     # Mực nước tại đúng thời điểm báo cáo nằm ở bản ghi giờ cuối.
     w = decimal_value(rows[-1].get("water_level"), "water_level tại giờ phát hành")
     if not (Decimal("300") <= w <= Decimal("400")):
         raise ValueError(f"Mực nước thượng lưu ngoài phạm vi QC A Vương: {w}")
-    tval = rows[-1].get("tailwater_level")
-    temporary = tval is None
-    tail = fallback if temporary else decimal_value(tval, "tailwater_level")
+    # Chỉ chấp nhận SỐ ĐO THỰC tại đúng giờ báo cáo.
+    # Giờ T phải có giá trị; KHÔNG dùng giá trị giờ T-1 và KHÔNG dự phòng 60 m.
+    tail = decimal_value(rows[-1].get("tailwater_level"),
+                         "tailwater_level tại đúng giờ báo cáo")
     if not (Decimal("0") < tail <= Decimal("100")):
-        raise ValueError(f"Mực nước hạ lưu nhà máy ngoài phạm vi QC: {tail}")
+        raise ValueError(f"DATA_QC_FAIL: mực nước hạ lưu ngoài phạm vi QC: {tail}")
 
     series: dict[str, list[Decimal]] = {}
     for key in EXPECTED_FIELDS:
@@ -222,7 +223,7 @@ def aggregate_rows(report_day: date, hour: int, source_mode: str,
     rain = sum(series["rainfallreal"], Decimal(0))
     return Report(
         day=report_day, hour=hour, source_mode=source_mode,
-        upstream=w, tailwater=tail, tailwater_is_temporary=temporary,
+        upstream=w, tailwater=tail, tailwater_is_temporary=False,
         mean_inflow=avg("inflow"), mean_turbine=avg("turbine_flow"),
         mean_spillway=avg("spillway_flow"), rain_total=rain,
         hour_ids=[int(r.get("id") or 0) for r in rows],
@@ -407,7 +408,11 @@ def report_meta(r: Report) -> dict[str, Any]:
         "report_version": VERSION, "report_date_vn": r.day.isoformat(),
         "report_hour_vn": r.hour, "source_time_mode": r.source_mode,
         "period_definition": "6 hourly readings ending at report hour: (T-6h, T]",
-        "hourly_record_ids": r.hour_ids, "data_from_demo": r.demo,
+        "hourly_record_ids": r.hour_ids,
+        "tailwater_source": ("DEMO_ONLY" if r.demo else
+                             "public.reservoir_hourly_data.tailwater_level"),
+        "tailwater_record_id": (r.hour_ids[-1] if r.hour_ids else None),
+        "data_from_demo": r.demo,
         "data_quality": "PROVISIONAL_TAILWATER_60M" if r.tailwater_is_temporary else "TAILWATER_RECORDED",
         "values": {
             "water_level_m": fmt(r.upstream),
@@ -452,13 +457,16 @@ def mail_send_test(r: Report, pdf_path: Path) -> list[str]:
     msg = EmailMessage()
     msg["From"] = sender
     msg["To"] = ", ".join(recipients)
-    msg["Subject"] = (f"[BẢN THỬ NGHIỆM - HẠ LƯU TẠM TÍNH] "
+    tag = ("[BẢN THỬ NGHIỆM - HẠ LƯU TẠM TÍNH]"
+           if r.tailwater_is_temporary else "[BẢN THỬ NGHIỆM]")
+    msg["Subject"] = (f"{tag} "
                       f"Công ty CPTĐ A Vương - báo cáo số liệu vận hành lúc {r.hour:02d}h00 ngày "
                       f"{r.day.strftime('%d/%m/%Y')}")
     warning = (
         f"Mực nước hạ lưu nhà máy {fmt(r.tailwater).replace('.', ',')} m là GIẢ ĐỊNH TẠM THỜI, không phải số đo.\n"
         if r.tailwater_is_temporary else
-        "Mực nước hạ lưu được lấy từ trường tailwater_level; cần đối soát nguồn.\n"
+        f"Mực nước hạ lưu nhà máy {fmt(r.tailwater).replace('.', ',')} m được đọc "
+        "từ dữ liệu quan trắc tại đúng giờ báo cáo; cần đối soát trước khi phê duyệt.\n"
     )
     msg.set_content(
         "Kính gửi các anh/chị,\n\n"
@@ -536,13 +544,12 @@ def run() -> int:
     if not args.demo and issue_vn > datetime.now(VN):
         raise RuntimeError("Chưa đến giờ kết thúc kỳ báo cáo. Không tạo báo cáo tương lai.")
     source_mode = env("SOURCE_TIME_MODE", "vn_label_stored_as_utc")
-    fallback = decimal_value(env("TAILWATER_FALLBACK_M", "60.00"), "TAILWATER_FALLBACK_M")
     if args.demo:
         r = demo_report()
     else:
         try:
             rows = fetch_six_hours(report_day, args.hour, source_mode)
-            r = aggregate_rows(report_day, args.hour, source_mode, rows, fallback)
+            r = aggregate_rows(report_day, args.hour, source_mode, rows)
         except ValueError as error:
             description = str(error)
             # Chi nhung loi THIEU du lieu duoc thu lai vao phut 10.
