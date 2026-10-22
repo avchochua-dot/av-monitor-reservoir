@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_REPORT_POC_V1"
+VERSION = "AVUONG_KTTV_REPORT_POC_V1_2_FOUR_ISSUES"
 
 
 def env(name: str, default: str = "") -> str:
@@ -285,7 +285,11 @@ def draw_pdf(r: Report, output: Path) -> Path:
     black = colors.black
     d = r.day
     fmtday = d.strftime("%d/%m/%Y")
-    period_start = r.hour - DEFAULT_PERIOD_HOURS
+    # Ky 01h vuot ngay: ngay gio bat dau phai lui sang ngay truoc.
+    end_clock = datetime(d.year, d.month, d.day, r.hour)
+    start_clock = end_clock - timedelta(hours=DEFAULT_PERIOD_HOURS)
+    period_from = start_clock.strftime("%Hh/%d/%m")
+    period_to = end_clock.strftime("%Hh/%d/%m/%Y")
     left, right = 25, 767
 
     def centered(lines: list[str], center_x: float, top_y: float,
@@ -348,14 +352,14 @@ def draw_pdf(r: Report, output: Path) -> Path:
     cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y_top, y_data, 8.0, line_height=12.5)
 
     centered(["Số liệu trung bình từ",
-              f"{period_start:02d}h/{d.day:02d}/{d.month:02d} ÷ {r.hour:02d}h/{d.day:02d}/{d.month:02d}/{d.year}"],
+              f"{period_from} ÷ {period_to}"],
              (x[4]+x[7])/2, 416, "VNSerifBold", 8.2, 15)
     cell(4, ["Qđến hồ", "(m³/s)"], y_group, y_data, 7.8)
     cell(5, ["Qchạy máy", "(m³/s)"], y_group, y_data, 7.8)
     cell(6, ["Qxả tràn", "(m³/s)"], y_group, y_data, 7.8)
     centered(["Tổng lượng mưa từ",
-              f"{period_start:02d}h/{d.day:02d}/{d.month:02d} ÷",
-              f"{r.hour:02d}h/{d.day:02d}/{d.month:02d}/{d.year}",
+              f"{period_from} ÷",
+              f"{period_to}",
               "(mm)"],
              (x[7]+x[8])/2, 412, "VNSerifBold", 7.6, 14)
 
@@ -516,10 +520,12 @@ def sha256_path(p: Path) -> str:
 def run() -> int:
     parser = argparse.ArgumentParser(description="Tạo PDF vận hành KTTV A Vương và gửi email thử nội bộ")
     parser.add_argument("--date", default="", help="Ngày VN YYYY-MM-DD; bỏ trống để lấy ngày hôm nay")
-    parser.add_argument("--hour", type=int, choices=[7, 13, 19], default=19)
+    parser.add_argument("--hour", type=int, choices=[1, 7, 13, 19], default=19)
     parser.add_argument("--mode", choices=["preview", "test-email"], default="preview")
     parser.add_argument("--demo", action="store_true", help="PDF minh họa từ mẫu đính kèm, không kết nối DB")
     parser.add_argument("--retry-failed", action="store_true", help="Chỉ dùng khi SMTP đã lỗi (không dùng cho SENT)")
+    parser.add_argument("--allow-pending-data", action="store_true",
+                        help="Lich tu dong: neu thieu gio/chi tieu thi ghi PENDING, khong gui, exit 0")
     parser.add_argument("--output-dir", default="reports/output")
     args = parser.parse_args()
     if args.demo and args.mode != "preview":
@@ -534,8 +540,41 @@ def run() -> int:
     if args.demo:
         r = demo_report()
     else:
-        rows = fetch_six_hours(report_day, args.hour, source_mode)
-        r = aggregate_rows(report_day, args.hour, source_mode, rows, fallback)
+        try:
+            rows = fetch_six_hours(report_day, args.hour, source_mode)
+            r = aggregate_rows(report_day, args.hour, source_mode, rows, fallback)
+        except ValueError as error:
+            description = str(error)
+            # Chi nhung loi THIEU du lieu duoc thu lai vao phut 10.
+            # Loi QC bat thuong, dang sai, loi API/DB van bao loi de van hanh kiem tra.
+            is_missing = (
+                description.startswith("DATA_INCOMPLETE:")
+                or description.startswith("Thiếu số liệu bắt buộc:")
+            )
+            if not args.allow_pending_data or not is_missing:
+                raise
+            output_dir = Path(args.output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            pending = {
+                "status": "PENDING_DATA",
+                "report_date_vn": report_day.isoformat(),
+                "report_hour_vn": args.hour,
+                "reason": description,
+                "email_sent": False,
+                "checked_at_vn": datetime.now(VN).isoformat(),
+            }
+            status_path = output_dir / (
+                f"{args.hour:02d}h00_{report_day.strftime('%d-%m-%Y')}_PENDING_DATA.json"
+            )
+            status_path.write_text(
+                json.dumps(pending, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print("REPORT_PENDING_DATA:", description)
+            print("EMAIL: NOT SENT (waiting for full data).")
+            # GitHub annotation: thieu du lieu la cho du lieu, khong phai gui thanh cong.
+            safe_reason = description.replace("%", "%25").replace("\r", " ").replace("\n", " ")
+            print(f"::warning title=BAO CAO {args.hour:02d}H DANG CHO DU LIEU::{safe_reason}")
+            return 0
         print("DATA QC PASS:", "6/6 hourly records;",
               "IDs", r.hour_ids, "; source time mode", source_mode)
     if r.tailwater_is_temporary:
