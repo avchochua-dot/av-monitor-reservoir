@@ -1,36 +1,40 @@
-name: A Vuong - Bao cao KTTV PDF & Email thu
+name: A Vuong - Bao cao KTTV PDF & Email thu (4 ky mua mua)
 
 on:
   workflow_dispatch:
     inputs:
       report_date:
-        description: "Ngay bao cao VN: YYYY-MM-DD (bo trong = hom nay)"
+        description: "Ngay bao cao gio VN YYYY-MM-DD, bo trong = hom nay"
         required: false
         type: string
       report_hour:
-        description: "Gio bao cao (VN)"
+        description: "Ky bao cao gio Viet Nam"
         required: true
         default: "19"
         type: choice
         options:
+          - "01"
           - "07"
           - "13"
           - "19"
       send_test_email:
-        description: "Gui PDF DANH DAU THU NGHIEM den email noi bo?"
-        type: boolean
+        description: "Gui email THU NGHIEM toi REPORT_TEST_TO?"
         required: true
+        type: boolean
         default: false
       retry_failed:
-        description: "Cho phep gui lai neu lan truoc trang thai FAILED"
-        type: boolean
+        description: "Thu lai khi trang thai SMTP la FAILED (chi khi da xac minh)"
         required: true
+        type: boolean
         default: false
-  # 19:35 và 20:15 VN = 12:35 và 13:15 UTC.
-  # Khi dữ liệu đến chậm, lượt sau thử lại. Có khóa chống gửi trùng trong Supabase.
+
+  # Cron dung UTC; +7h = gio Viet Nam.
+  # Moi ky chay phut 05 va phut 10. Luot phut 10 khong gui trung neu :05 da gui.
   schedule:
-    - cron: "35 12 * * *"
-    - cron: "15 13 * * *"
+    - cron: "5,10 18 * * *"  # 01:05/01:10 VN (UTC ngay truoc)
+    - cron: "5,10 0 * * *"   # 07:05/07:10 VN
+    - cron: "5,10 6 * * *"   # 13:05/13:10 VN
+    - cron: "5,10 12 * * *"  # 19:05/19:10 VN
 
 permissions:
   contents: read
@@ -50,7 +54,6 @@ jobs:
       SOURCE_TIME_MODE: "vn_label_stored_as_utc"
       TAILWATER_FALLBACK_M: "60.00"
 
-      # Chỉ EMAIL THỬ nội bộ. AUTO_SEND_TEST_EMAIL = true khi đã kiểm thử xong.
       AUTO_SEND_TEST_EMAIL: ${{ vars.AUTO_SEND_TEST_EMAIL }}
       REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -59,45 +62,89 @@ jobs:
       SMTP_USER: ${{ secrets.SMTP_USER }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
-      REPORT_DATE: ${{ github.event.inputs.report_date || '' }}
-      REPORT_HOUR: ${{ github.event.inputs.report_hour || '19' }}
+
+      EVENT_NAME: ${{ github.event_name }}
+      SCHEDULE_CRON: ${{ github.event.schedule || '' }}
+      MANUAL_REPORT_DATE: ${{ github.event.inputs.report_date || '' }}
+      MANUAL_REPORT_HOUR: ${{ github.event.inputs.report_hour || '19' }}
       MANUAL_TEST_SEND: ${{ github.event.inputs.send_test_email || 'false' }}
       RETRY_FAILED: ${{ github.event.inputs.retry_failed || 'false' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install font and Python requirements
+
+      - name: Resolve report issue (VN) from actual trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            case "$SCHEDULE_CRON" in
+              "5,10 18 * * *") REPORT_HOUR="01" ;;
+              "5,10 0 * * *")  REPORT_HOUR="07" ;;
+              "5,10 6 * * *")  REPORT_HOUR="13" ;;
+              "5,10 12 * * *") REPORT_HOUR="19" ;;
+              *) echo "::error::Unknown scheduled cron: $SCHEDULE_CRON"; exit 1 ;;
+            esac
+            REPORT_DATE="$(TZ=Asia/Ho_Chi_Minh date +%F)"
+            RUN_TYPE="AUTO"
+          else
+            REPORT_HOUR="$MANUAL_REPORT_HOUR"
+            REPORT_DATE="$MANUAL_REPORT_DATE"
+            RUN_TYPE="MANUAL"
+          fi
+          {
+            echo "REPORT_HOUR=$REPORT_HOUR"
+            echo "REPORT_DATE=$REPORT_DATE"
+            echo "RUN_TYPE=$RUN_TYPE"
+          } >> "$GITHUB_ENV"
+          echo "RUN_TYPE=$RUN_TYPE; cron=$SCHEDULE_CRON; report=${REPORT_DATE:-TODAY_VN} ${REPORT_HOUR}h VN"
+
+      - name: Install fonts and report requirements
+        shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y fonts-dejavu-core
           python -m pip install -r reports/avuong_kttv/requirements.txt
 
-      - name: Generate PDF and optional TEST email
+      - name: Validate Python source
+        run: |
+          python -m py_compile reports/avuong_kttv/scripts/generate_kttv_report.py
+
+      - name: Generate PDF; send TEST email only if enabled
         shell: bash
         run: |
           set -euo pipefail
-          MODE=preview
-          if [[ "${{ github.event_name }}" == "schedule" && "$AUTO_SEND_TEST_EMAIL" == "true" ]]; then
-            MODE=test-email
+          MODE="preview"
+          if [[ "$RUN_TYPE" == "AUTO" && "$AUTO_SEND_TEST_EMAIL" == "true" ]]; then
+            MODE="test-email"
           fi
-          if [[ "$MANUAL_TEST_SEND" == "true" ]]; then
-            MODE=test-email
+          if [[ "$RUN_TYPE" == "MANUAL" && "$MANUAL_TEST_SEND" == "true" ]]; then
+            MODE="test-email"
           fi
+
           EXTRA=()
           if [[ -n "$REPORT_DATE" ]]; then EXTRA+=(--date "$REPORT_DATE"); fi
-          if [[ "$RETRY_FAILED" == "true" ]]; then EXTRA+=(--retry-failed); fi
+          # scheduled run: no data at HH:05 => PENDING; HH:10 checks again
+          if [[ "$RUN_TYPE" == "AUTO" ]]; then EXTRA+=(--allow-pending-data); fi
+          # Failed SMTP is never automatically retried (might have been accepted).
+          if [[ "$RUN_TYPE" == "MANUAL" && "$RETRY_FAILED" == "true" ]]; then
+            EXTRA+=(--retry-failed)
+          fi
+
+          echo "ISSUE: $REPORT_HOUR h; DATE: ${REPORT_DATE:-TODAY_VN}; MODE: $MODE"
           python reports/avuong_kttv/scripts/generate_kttv_report.py \
             --hour "$REPORT_HOUR" \
             --mode "$MODE" \
             --output-dir reports/avuong_kttv/reports/output \
             "${EXTRA[@]}"
 
-      - name: Upload PDF + audit JSON
+      - name: Upload report PDF or pending-data audit
         if: always()
         uses: actions/upload-artifact@v4
         with:
