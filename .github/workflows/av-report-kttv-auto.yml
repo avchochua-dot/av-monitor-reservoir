@@ -1,0 +1,107 @@
+name: A Vuong - Bao cao KTTV PDF & Email thu
+
+on:
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: "Ngay bao cao VN: YYYY-MM-DD (bo trong = hom nay)"
+        required: false
+        type: string
+      report_hour:
+        description: "Gio bao cao (VN)"
+        required: true
+        default: "19"
+        type: choice
+        options:
+          - "07"
+          - "13"
+          - "19"
+      send_test_email:
+        description: "Gui PDF DANH DAU THU NGHIEM den email noi bo?"
+        type: boolean
+        required: true
+        default: false
+      retry_failed:
+        description: "Cho phep gui lai neu lan truoc trang thai FAILED"
+        type: boolean
+        required: true
+        default: false
+  # 19:35 và 20:15 VN = 12:35 và 13:15 UTC.
+  # Khi dữ liệu đến chậm, lượt sau thử lại. Có khóa chống gửi trùng trong Supabase.
+  schedule:
+    - cron: "35 12 * * *"
+    - cron: "15 13 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-kttv-report-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESERVOIR_ID: "is.null"
+      SOURCE_TIME_MODE: "vn_label_stored_as_utc"
+      TAILWATER_FALLBACK_M: "60.00"
+
+      # Chỉ EMAIL THỬ nội bộ. AUTO_SEND_TEST_EMAIL = true khi đã kiểm thử xong.
+      AUTO_SEND_TEST_EMAIL: ${{ vars.AUTO_SEND_TEST_EMAIL }}
+      REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
+      SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      REPORT_DATE: ${{ github.event.inputs.report_date || '' }}
+      REPORT_HOUR: ${{ github.event.inputs.report_hour || '19' }}
+      MANUAL_TEST_SEND: ${{ github.event.inputs.send_test_email || 'false' }}
+      RETRY_FAILED: ${{ github.event.inputs.retry_failed || 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install font and Python requirements
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-dejavu-core
+          python -m pip install -r reports/avuong_kttv/requirements.txt
+
+      - name: Generate PDF and optional TEST email
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODE=preview
+          if [[ "${{ github.event_name }}" == "schedule" && "$AUTO_SEND_TEST_EMAIL" == "true" ]]; then
+            MODE=test-email
+          fi
+          if [[ "$MANUAL_TEST_SEND" == "true" ]]; then
+            MODE=test-email
+          fi
+          EXTRA=()
+          if [[ -n "$REPORT_DATE" ]]; then EXTRA+=(--date "$REPORT_DATE"); fi
+          if [[ "$RETRY_FAILED" == "true" ]]; then EXTRA+=(--retry-failed); fi
+          python reports/avuong_kttv/scripts/generate_kttv_report.py \
+            --hour "$REPORT_HOUR" \
+            --mode "$MODE" \
+            --output-dir reports/avuong_kttv/reports/output \
+            "${EXTRA[@]}"
+
+      - name: Upload PDF + audit JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KTTV-PDF-${{ github.run_id }}
+          path: reports/avuong_kttv/reports/output/*
+          if-no-files-found: warn
+          retention-days: 60
