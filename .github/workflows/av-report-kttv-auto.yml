@@ -30,11 +30,17 @@ on:
 
   # Cron dung UTC; +7h = gio Viet Nam.
   # Moi ky chay phut 05 va phut 10. Luot phut 10 khong gui trung neu :05 da gui.
+  # TÁCH RIÊNG 8 SỰ KIỆN CRON ĐỂ GITHUB ĐĂNG KÝ LẠI LỊCH
+  # Mốc cron dùng UTC, giờ Việt Nam UTC+7.
   schedule:
-    - cron: "5,10 18 * * *"  # 01:05/01:10 VN (UTC ngay truoc)
-    - cron: "5,10 0 * * *"   # 07:05/07:10 VN
-    - cron: "5,10 6 * * *"   # 13:05/13:10 VN
-    - cron: "5,10 12 * * *"  # 19:05/19:10 VN
+    - cron: "5 18 * * *"     # 01:05 VN, ngày UTC trước đó
+    - cron: "10 18 * * *"    # 01:10 VN
+    - cron: "5 0 * * *"      # 07:05 VN
+    - cron: "10 0 * * *"     # 07:10 VN
+    - cron: "5 6 * * *"      # 13:05 VN
+    - cron: "10 6 * * *"     # 13:10 VN
+    - cron: "5 12 * * *"     # 19:05 VN
+    - cron: "10 12 * * *"    # 19:10 VN
 
 permissions:
   contents: read
@@ -84,10 +90,10 @@ jobs:
           set -euo pipefail
           if [[ "$EVENT_NAME" == "schedule" ]]; then
             case "$SCHEDULE_CRON" in
-              "5,10 18 * * *") REPORT_HOUR="01" ;;
-              "5,10 0 * * *")  REPORT_HOUR="07" ;;
-              "5,10 6 * * *")  REPORT_HOUR="13" ;;
-              "5,10 12 * * *") REPORT_HOUR="19" ;;
+              "5 18 * * *"|"10 18 * * *") REPORT_HOUR="01" ;;
+              "5 0 * * *"|"10 0 * * *")   REPORT_HOUR="07" ;;
+              "5 6 * * *"|"10 6 * * *")   REPORT_HOUR="13" ;;
+              "5 12 * * *"|"10 12 * * *") REPORT_HOUR="19" ;;
               *) echo "::error::Unknown scheduled cron: $SCHEDULE_CRON"; exit 1 ;;
             esac
             REPORT_DATE="$(TZ=Asia/Ho_Chi_Minh date +%F)"
