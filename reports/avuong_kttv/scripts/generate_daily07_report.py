@@ -154,7 +154,7 @@ def build_pdf(rows, d, output):
     story += [tab,Spacer(1,18),
               P("PHÂN XƯỞNG VẬN HÀNH",bold),
               Spacer(1,40),
-              P("BẢN THỬ NGHIỆM – CHƯA KÝ, CHƯA PHÊ DUYỆT",tiny),
+              
               Spacer(1,9),
               P("Nơi nhận: Theo danh sách được phê duyệt; Lưu vận hành.",normal)]
     doc.build(story)

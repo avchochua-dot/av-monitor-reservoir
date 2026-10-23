@@ -121,44 +121,94 @@ def render_reservoir_pdf(rows, report_date, path, generation_hours=None):
         ("BACKGROUND",(0,-1),(-1,-1),colors.whitesmoke)
     ]))
     story += [tab, Spacer(1,10),
-              p("TB ngày tính trung bình 24 giá trị giờ 01h–24h; cần đối chiếu quy tắc được duyệt.",small),
+              
               Spacer(1,17),p("PHÂN XƯỞNG VẬN HÀNH",heading),
-              Spacer(1,25),p("BẢN THỬ NGHIỆM – CHƯA KÝ, CHƯA PHÊ DUYỆT",small),
-              Spacer(1,8),p("Nơi nhận: Theo danh sách được phê duyệt; Lưu VH, KTAT.",style)]
+              Spacer(1,25),
+              Spacer(1,8),p("Nơi nhận: Như kính gửi; Ban GĐ; Lưu VH, KTAT.",style)]
     doc.build(story)
     return hours
 
 def update_excel(rows, report_date, target):
-    """Preserve original 3 worksheets and formulas; update day and append its daily averages.
-    Weekly sheet is left intact because template's approximate VLOOKUP needs owner review.
+    """Update 24 hourly rows, daily summary and the 7-day weekly view.
+    Maintain the original formatted workbook, including its three sheets.
     """
+    from copy import copy
     w = load_workbook(TEMPLATE)
     sh = w["Solieuhangngay_gio"]
-    prev=report_date-timedelta(days=1)
-    day=daily_rows(rows)
-    # Template 30 rows: rows 6..29 contain 24 hours. Make 24 observations explicit.
-    for i,(t,r) in enumerate(day, start=6):
-        sh.cell(i,2,prev if i==6 else None)
-        sh.cell(i,3,24 if t.hour==0 else t.hour)
-        for col,key in ((4,"water_level"),(5,"inflow"),(6,"turbine_flow"),(7,"spillway_flow")):
-            sh.cell(i,col,float(r[key]))
-    sh["B1"]=report_date.year
-    sh["B6"].number_format="dd/mm/yyyy"
-    avgsh=w["SolieuQtbngay"]
-    index={}
-    for row in range(6,avgsh.max_row+1):
-        v=avgsh.cell(row,2).value
-        if isinstance(v,datetime): index[v.date()]=row
-        elif isinstance(v,date): index[v]=row
-    dest=index.get(prev,avgsh.max_row+1)
-    avgsh.cell(dest,2,datetime.combine(prev,datetime.min.time()))
-    for c,key in ((3,"inflow"),(4,"turbine_flow"),(5,"spillway_flow")):
-        avgsh.cell(dest,c,round(sum(float(r[key]) for _,r in day)/24,4))
-    avgsh.cell(dest,2).number_format="dd/mm/yyyy"
-    # WEEKLY formulas deliberately not reauthored; source has VLOOKUP approximate matches.
-    # This template must be inspected before official weekly publication.
-    w.calculation=openpyxl.workbook.properties.CalcProperties(calcMode="auto",fullCalcOnLoad=True)
+    prev = report_date - timedelta(days=1)
+    day = daily_rows(rows)
+    if len(day) != 24:
+        raise ValueError("PENDING_DATA: missing hours for previous day")
+    # Clear template's two date groups (B6:B22 and B23:B29).
+    for merged in list(sh.merged_cells.ranges):
+        if merged.min_col == 2 and merged.max_col == 2 and merged.min_row <= 29 and merged.max_row >= 6:
+            sh.unmerge_cells(str(merged))
+    sh.merge_cells("B6:B29")
+    sh["B6"] = datetime.combine(prev, datetime.min.time())
+    sh["B6"].number_format = "dd/mm/yyyy"
+    from openpyxl.styles import Alignment
+    sh["B6"].alignment = Alignment(horizontal="center", vertical="center")
+    for i, (t, r) in enumerate(day, start=6):
+        # Every hourly row belongs to previous operational day; 00:00 is 24h00.
+        sh.cell(i, 3, 24 if t.hour == 0 else t.hour)
+        for col, key in ((4, "water_level"), (5, "inflow"),
+                         (6, "turbine_flow"), (7, "spillway_flow")):
+            sh.cell(i, col, float(r[key]))
+    sh["B1"] = report_date.year
+    # Excel compatibility: avoid _xlfn.CONCAT dependency.
+    sh["B3"] = '="Số liệu thủy văn theo giờ từng ngày năm "&B1'
+
+    avgsh = w["SolieuQtbngay"]
+    avgsh["B3"] = f"Số liệu thủy văn theo ngày năm {report_date.year}"
+    index = {}
+    for rnum in range(6, avgsh.max_row + 1):
+        val = avgsh.cell(rnum, 2).value
+        if isinstance(val, datetime):
+            index[val.date()] = rnum
+        elif isinstance(val, date):
+            index[val] = rnum
+    dest = index.get(prev)
+    if dest is None:
+        # Append after last dated record, not after formatted/empty rows.
+        dest = max(index.values(), default=5) + 1
+        if dest > 6:
+            for col in range(2, 6):
+                source = avgsh.cell(dest-1, col)
+                target_cell = avgsh.cell(dest, col)
+                if source.has_style:
+                    target_cell._style = copy(source._style)
+    avgsh.cell(dest, 2, datetime.combine(prev, datetime.min.time()))
+    avgsh.cell(dest, 2).number_format = "dd/mm/yyyy"
+    for col, key in ((3, "inflow"), (4, "turbine_flow"), (5, "spillway_flow")):
+        # Decimal displayed by cell format, retain full precision in workbook.
+        cell = avgsh.cell(dest, col,
+                          sum(float(r[key]) for _, r in day) / 24)
+        cell.number_format = '0.00'
+
+    # Weekly sheet: 7 dates ending at previous operational day.
+    week = w["Tuan"]
+    week["A2"] = report_date.year
+    week["B1"] = datetime(report_date.year, 1, 1)
+    week["B1"].number_format = "dd/mm/yyyy"
+    week["B3"] = '="Số liệu thủy văn tuần thứ "&A3&" năm "&A2'
+    # Explicit dates and exact-match lookups prevent silent nearest-date values.
+    last = max([dest, *index.values()]) + 250
+    for rnum in range(6, 13):
+        d = prev - timedelta(days=12-rnum)
+        week.cell(rnum, 3, datetime.combine(d, datetime.min.time()))
+        week.cell(rnum, 3).number_format = "dd/mm/yyyy"
+        week.cell(rnum, 2,
+                  f'=CHOOSE(WEEKDAY(C{rnum},2),"Thứ hai","Thứ ba",'
+                  '"Thứ tư","Thứ năm","Thứ sáu","Thứ bảy","Chủ nhật")')
+        for col, n in ((4, 2), (5, 3), (6, 4)):
+            week.cell(rnum, col,
+                      f'=IFERROR(VLOOKUP($C{rnum},'
+                      f'SolieuQtbngay!$B$6:$E${last},{n},FALSE),"")')
+    week["A3"] = '=ISOWEEKNUM(C12)'
+    w.calculation = openpyxl.workbook.properties.CalcProperties(
+        calcMode="auto", fullCalcOnLoad=True, forceFullCalc=True)
     w.save(target)
+
 
 def recipients_for(report):
     env,_=REPORTS[report]
@@ -192,7 +242,12 @@ def dispatch_email_once(report, report_date, file, recipients):
     msg["Subject"]=f"[BẢN THỬ NGHIỆM] A Vương - {report} - {report_date:%d/%m/%Y}"
     msg["From"]=os.environ["SMTP_FROM"]
     msg["To"]=", ".join(recipients)
-    msg.set_content("Kính gửi anh/chị,\n\nĐính kèm bản thử nghiệm; chưa ký, chưa phê duyệt, không dùng để phát hành chính thức.\n")
+    msg.set_content(
+        "Kính gửi anh/chị,\\n\\n"
+        "Đính kèm báo cáo số liệu vận hành A Vương theo mẫu trình bày sử dụng thực tế.\\n"
+        "Email hiện được gửi trong phạm vi kiểm thử nội bộ; tài liệu chưa có chữ ký xác nhận.\\n"
+        "Trân trọng."
+    )
     ispdf=file.suffix==".pdf"
     msg.add_attachment(file.read_bytes(),
       maintype="application",
@@ -236,9 +291,9 @@ def main():
     check_consistency(rows)
     out=Path(args.output_dir);out.mkdir(parents=True,exist_ok=True)
     files={
-      "KTTV_31H":out/f"KTTV_DAILY07_{report_date:%Y%m%d}_PREVIEW.pdf",
-      "RESERVOIR_12H":out/f"RESERVOIR_{report_date:%Y%m%d}_PREVIEW.pdf",
-      "HYDRO_EXCEL":out/f"HYDRO_{report_date:%Y%m%d}_PREVIEW.xlsx"
+      "KTTV_31H":out/f"KTTV_DAILY07_{report_date:%Y%m%d}.pdf",
+      "RESERVOIR_12H":out/f"RESERVOIR_{report_date:%Y%m%d}.pdf",
+      "HYDRO_EXCEL":out/f"HYDRO_{report_date:%Y%m%d}.xlsx"
     }
     daily.build_pdf(rows,report_date,files["KTTV_31H"])
     hours=render_reservoir_pdf(rows,report_date,files["RESERVOIR_12H"])
