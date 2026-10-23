@@ -1,4 +1,9 @@
+
 name: A Vuong - Daily 07h Bundle (3 reports, TEST)
+
+# Supabase Cron se kich hoat qua workflow_dispatch.
+# GitHub khong tu lap lich de tranh chay trung.
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,6 +11,7 @@ on:
         description: "Vietnam report date YYYY-MM-DD"
         required: true
         type: string
+
       send_test_email:
         description: "Send 3 TEST emails to configured recipients?"
         required: true
@@ -21,44 +27,126 @@ concurrency:
 
 jobs:
   generate:
+    name: Generate 3 daily reports
     runs-on: ubuntu-latest
     timeout-minutes: 12
+
     env:
+      # Supabase
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Email recipients
       REPORT_KTTV31_TO: ${{ secrets.REPORT_KTTV31_TO }}
       REPORT_RESERVOIR_TO: ${{ secrets.REPORT_RESERVOIR_TO }}
       REPORT_HYDRO_EXCEL_TO: ${{ secrets.REPORT_HYDRO_EXCEL_TO }}
+
+      # SMTP
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
       SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
       SMTP_USER: ${{ secrets.SMTP_USER }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
+
+      # Workflow inputs
       REPORT_DATE: ${{ inputs.report_date }}
       SEND_TEST_EMAIL: ${{ inputs.send_test_email }}
+
+      # Private Times New Roman fonts
+      AV_TNR_FONT_DIR: ${{ github.workspace }}/.private-fonts
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      # 1. Checkout main repository
+      - name: Checkout A Vuong repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # 2. Checkout private fonts using deploy key
+      - name: Checkout private Times New Roman fonts
+        uses: actions/checkout@v4
+        with:
+          repository: avchochua-dot/avuong-private-fonts
+          ref: main
+          ssh-key: ${{ secrets.AVUONG_FONTS_DEPLOY_KEY }}
+          persist-credentials: false
+          path: .private-fonts
+
+      # 3. Verify licensed font files
+      - name: Verify Times New Roman fonts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FONT_DIR="$AV_TNR_FONT_DIR"
+
+          if [[ ! -s "$FONT_DIR/times.ttf" ]]; then
+            echo "::error::Missing times.ttf"
+            exit 1
+          fi
+
+          if [[ ! -s "$FONT_DIR/timesbd.ttf" ]]; then
+            echo "::error::Missing timesbd.ttf"
+            exit 1
+          fi
+
+          echo "TIMES_NEW_ROMAN_READY"
+          echo "Font directory verified"
+
+      # 4. Setup Python
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      # 5. Install requirements
       - name: Install dependencies
+        shell: bash
         run: |
-          sudo apt-get update -qq
-          echo "Times New Roman must be provided at reports/avuong_kttv/private_fonts or AV_TNR_FONT_DIR"
+          set -euo pipefail
+
+          python -m pip install --upgrade pip
           python -m pip install reportlab openpyxl
+
+      # 6. Validate source
+      - name: Validate Python source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m py_compile \
+            reports/avuong_kttv/scripts/generate_daily07_report.py
+
+          python -m py_compile \
+            reports/avuong_kttv/scripts/generate_daily07_bundle.py
+
+      # 7. Generate the three reports
       - name: Generate 3 reports and optionally email
         shell: bash
         run: |
           set -euo pipefail
+
           EXTRA=()
+
           if [[ "$SEND_TEST_EMAIL" == "true" ]]; then
             EXTRA+=(--send-test-email)
           fi
+
+          echo "=================================="
+          echo "A VUONG DAILY 07H REPORT BUNDLE"
+          echo "REPORT_DATE=$REPORT_DATE"
+          echo "SEND_TEST_EMAIL=$SEND_TEST_EMAIL"
+          echo "FONT=Times New Roman"
+          echo "=================================="
+
           python reports/avuong_kttv/scripts/generate_daily07_bundle.py \
             --date "$REPORT_DATE" \
             --output-dir reports/avuong_kttv/reports/output \
             "${EXTRA[@]}"
+
+      # 8. Upload PDFs and Excel
       - name: Upload generated files
         if: always()
         uses: actions/upload-artifact@v4
