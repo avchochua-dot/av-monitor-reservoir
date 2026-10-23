@@ -81,18 +81,21 @@ def validate(raw_rows, d):
     return [(t, latest[t]) for t in wanted]
 
 def set_font():
-    paths = [
-        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
-        ("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
-         "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
-    ]
-    for regular, bold in paths:
-        if Path(regular).exists() and Path(bold).exists():
-            pdfmetrics.registerFont(TTFont("AV", regular))
-            pdfmetrics.registerFont(TTFont("AV-Bold", bold))
-            return
-    raise RuntimeError("Install fonts-dejavu-core")
+    """Require genuine Times New Roman files; do not silently substitute fonts."""
+    import os
+    base = Path(os.environ.get("AV_TNR_FONT_DIR", "reports/avuong_kttv/private_fonts"))
+    regular = base / "times.ttf"
+    bold = base / "timesbd.ttf"
+    if not (regular.is_file() and bold.is_file()):
+        raise RuntimeError(
+            "TIMES_NEW_ROMAN_REQUIRED: supply times.ttf and timesbd.ttf "
+            "in AV_TNR_FONT_DIR (private, licensed fonts). "
+            "No font substitution is permitted for report release."
+        )
+    if "AV" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("AV", str(regular)))
+    if "AV-Bold" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("AV-Bold", str(bold)))
 
 def fmt(v):
     return f"{float(v):.2f}"

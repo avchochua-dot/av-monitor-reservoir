@@ -160,22 +160,47 @@ def update_excel(rows, report_date, target):
 
     avgsh = w["SolieuQtbngay"]
     avgsh["B3"] = f"Số liệu thủy văn theo ngày năm {report_date.year}"
-    index = {}
-    duplicates = {}
+    # De-duplicate only the GENERATED workbook. Keep the last occurrence for
+    # each date; preserve removed rows and conflict indicators in an audit tab.
+    from collections import defaultdict
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+    history = defaultdict(list)
     for rnum in range(6, avgsh.max_row + 1):
-        val = avgsh.cell(rnum, 2).value
-        if isinstance(val, datetime):
-            key = val.date()
-            if key in index: duplicates.setdefault(key, [index[key]]).append(rnum)
-            else: index[key] = rnum
-        elif isinstance(val, date):
-            if val in index: duplicates.setdefault(val, [index[val]]).append(rnum)
-            else: index[val] = rnum
-    week_dates = {prev - timedelta(days=n) for n in range(7)}
-    ambiguous = {d: positions for d, positions in duplicates.items() if d in week_dates}
-    if ambiguous:
-        raise ValueError("DUPLICATE_DAILY_DATES_IN_WEEK: " +
-                         "; ".join(f"{d}: rows {positions}" for d, positions in sorted(ambiguous.items())))
+        v = avgsh.cell(rnum, 2).value
+        d = v.date() if isinstance(v, datetime) else v if isinstance(v, date) else None
+        if d is not None:
+            history[d].append(rnum)
+    removed = []
+    for d, positions in history.items():
+        if len(positions) <= 1:
+            continue
+        selected = positions[-1]  # last existing row is retained
+        selected_values = tuple(avgsh.cell(selected,c).value for c in range(3,6))
+        for rnum in positions[:-1]:
+            vals = tuple(avgsh.cell(rnum,c).value for c in range(3,6))
+            removed.append((rnum, d, selected, *vals, vals != selected_values))
+    if removed:
+        audit = w["Duplicate_Audit"] if "Duplicate_Audit" in w else w.create_sheet("Duplicate_Audit")
+        audit.append(["Original row", "Date", "Retained original row", "Q inflow",
+                      "Q turbine", "Q spillway", "Different from retained"])
+        for rec in sorted(removed):
+            audit.append(list(rec))
+        for row in audit.iter_rows():
+            for cell in row:
+                cell.font = Font(name="Times New Roman", size=10, bold=(cell.row==1))
+        audit.sheet_state = "hidden"  # audit trail retained, 3 report tabs remain visible
+        for row_num in sorted((r[0] for r in removed), reverse=True):
+            avgsh.delete_rows(row_num, 1)
+    index = {}
+    for rnum in range(6, avgsh.max_row + 1):
+        v = avgsh.cell(rnum,2).value
+        d = v.date() if isinstance(v,datetime) else v if isinstance(v,date) else None
+        if d is not None:
+            if d in index:
+                raise ValueError(f"DUPLICATE_NOT_RESOLVED: {d}")
+            index[d] = rnum
+    print(f"HISTORY_DEDUP removed={len(removed)} conflicts={sum(bool(r[-1]) for r in removed)}")
     dest = index.get(prev)
     if dest is None:
         # Append after last dated record, not after formatted/empty rows.
@@ -215,6 +240,14 @@ def update_excel(rows, report_date, target):
                       f'"DUPLICATE",IFERROR(VLOOKUP($C{rnum},'
                       f'SolieuQtbngay!$B$6:$E${last},{n},FALSE),""))')
     week["A3"] = '=ISOWEEKNUM(C12)'
+    # Apply exact requested Excel font family to all non-empty and styled cells.
+    for ws in w.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                if cell.value is not None and cell.__class__.__name__ != "MergedCell":
+                    font = copy(cell.font)
+                    font.name = "Times New Roman"
+                    cell.font = font
     w.calculation = openpyxl.workbook.properties.CalcProperties(
         calcMode="auto", fullCalcOnLoad=True, forceFullCalc=True)
     w.save(target)
