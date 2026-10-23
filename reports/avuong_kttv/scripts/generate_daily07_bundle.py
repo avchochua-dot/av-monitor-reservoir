@@ -172,10 +172,18 @@ def dispatch_email_once(report, report_date, file, recipients):
         return
     for k in ("SMTP_HOST","SMTP_USER","SMTP_PASSWORD","SMTP_FROM"):
         if not os.getenv(k): raise ValueError("Missing " + k)
-    claim={"report_type":report,"report_date":report_date.isoformat(),
-           "status":"SENDING","recipients":",".join(recipients),
-           "file_sha256":hashlib.sha256(file.read_bytes()).hexdigest()}
-    # IMPORTANT: table has unique (report_type, report_date).
+    # One deterministic claim for each report type and date.
+    # Recipient changes must NOT trigger a second automatic send.
+    report_key = f"test:daily07:{report}:{report_date.isoformat()}"
+    claim={
+        "report_key": report_key,
+        "report_type": report,
+        "report_date": report_date.isoformat(),
+        "status": "SENDING",
+        "recipients": ",".join(recipients),
+        "file_sha256": hashlib.sha256(file.read_bytes()).hexdigest()
+    }
+    # The database must enforce UNIQUE(report_type, report_date).
     result=daily.rest_request("POST",DISPATCH_TABLE,claim,"return=representation")
     if isinstance(result,dict) and result.get("_conflict"):
         print("EMAIL_SKIPPED_ALREADY_CLAIMED",report,report_date)
@@ -208,11 +216,11 @@ def dispatch_email_once(report, report_date, file, recipients):
         # SMTP may have accepted before a transport failure; manual review only.
         try:
             daily.rest_request("PATCH",
-                f"{DISPATCH_TABLE}?report_type=eq.{report}&report_date=eq.{report_date.isoformat()}",
+                f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
                 {"status":"NEEDS_REVIEW","error_text":str(e)[:500]})
         finally: raise
     daily.rest_request("PATCH",
-      f"{DISPATCH_TABLE}?report_type=eq.{report}&report_date=eq.{report_date.isoformat()}",
+      f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
       {"status":"SMTP_ACCEPTED","sent_at":datetime.now(timezone.utc).isoformat()})
     print(f"EMAIL_SMTP_ACCEPTED {report} recipients={len(recipients)}")
 
