@@ -1,12 +1,17 @@
-name: A Vuong - Bao cao tong hop 07h (Preview)
+name: A Vuong - Bao cao tong hop 07h (PDF + Email TEST)
 
 on:
   workflow_dispatch:
     inputs:
       report_date:
-        description: "Ngay bao cao Viet Nam YYYY-MM-DD"
+        description: "Ngay bao cao VN YYYY-MM-DD"
         required: true
         type: string
+      send_test_email:
+        description: "Gui email thu nghiem toi REPORT_TEST_TO?"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,6 +27,15 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
+      SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      REPORT_DATE: ${{ inputs.report_date }}
+      SEND_TEST_EMAIL: ${{ inputs.send_test_email }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,12 +46,19 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y fonts-dejavu-core
           python -m pip install reportlab
-      - name: Generate daily 07h PDF (no email)
+      - name: Generate PDF and optionally send TEST email
+        shell: bash
         run: |
+          set -euo pipefail
+          EXTRA=()
+          if [[ "$SEND_TEST_EMAIL" == "true" ]]; then
+            EXTRA+=(--send-test-email)
+          fi
           python reports/avuong_kttv/scripts/generate_daily07_report.py \
-            --date "${{ inputs.report_date }}" \
-            --output-dir reports/avuong_kttv/reports/output
-      - name: Upload report
+            --date "$REPORT_DATE" \
+            --output-dir reports/avuong_kttv/reports/output \
+            "${EXTRA[@]}"
+      - name: Upload PDF artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
