@@ -161,12 +161,21 @@ def update_excel(rows, report_date, target):
     avgsh = w["SolieuQtbngay"]
     avgsh["B3"] = f"Số liệu thủy văn theo ngày năm {report_date.year}"
     index = {}
+    duplicates = {}
     for rnum in range(6, avgsh.max_row + 1):
         val = avgsh.cell(rnum, 2).value
         if isinstance(val, datetime):
-            index[val.date()] = rnum
+            key = val.date()
+            if key in index: duplicates.setdefault(key, [index[key]]).append(rnum)
+            else: index[key] = rnum
         elif isinstance(val, date):
-            index[val] = rnum
+            if val in index: duplicates.setdefault(val, [index[val]]).append(rnum)
+            else: index[val] = rnum
+    week_dates = {prev - timedelta(days=n) for n in range(7)}
+    ambiguous = {d: positions for d, positions in duplicates.items() if d in week_dates}
+    if ambiguous:
+        raise ValueError("DUPLICATE_DAILY_DATES_IN_WEEK: " +
+                         "; ".join(f"{d}: rows {positions}" for d, positions in sorted(ambiguous.items())))
     dest = index.get(prev)
     if dest is None:
         # Append after last dated record, not after formatted/empty rows.
@@ -192,7 +201,7 @@ def update_excel(rows, report_date, target):
     week["B1"].number_format = "dd/mm/yyyy"
     week["B3"] = '="Số liệu thủy văn tuần thứ "&A3&" năm "&A2'
     # Explicit dates and exact-match lookups prevent silent nearest-date values.
-    last = max([dest, *index.values()]) + 250
+    last = max(avgsh.max_row, dest) + 2000
     for rnum in range(6, 13):
         d = prev - timedelta(days=12-rnum)
         week.cell(rnum, 3, datetime.combine(d, datetime.min.time()))
@@ -202,8 +211,9 @@ def update_excel(rows, report_date, target):
                   '"Thứ tư","Thứ năm","Thứ sáu","Thứ bảy","Chủ nhật")')
         for col, n in ((4, 2), (5, 3), (6, 4)):
             week.cell(rnum, col,
-                      f'=IFERROR(VLOOKUP($C{rnum},'
-                      f'SolieuQtbngay!$B$6:$E${last},{n},FALSE),"")')
+                      f'=IF(COUNTIF(SolieuQtbngay!$B$6:$B${last},$C{rnum})>1,'
+                      f'"DUPLICATE",IFERROR(VLOOKUP($C{rnum},'
+                      f'SolieuQtbngay!$B$6:$E${last},{n},FALSE),""))')
     week["A3"] = '=ISOWEEKNUM(C12)'
     w.calculation = openpyxl.workbook.properties.CalcProperties(
         calcMode="auto", fullCalcOnLoad=True, forceFullCalc=True)
