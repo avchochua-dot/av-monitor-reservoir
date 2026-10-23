@@ -7,6 +7,11 @@ the VN wall-clock label stored as UTC (+00), per SOURCE_TIME_MODE.
 import argparse
 import json
 import os
+import hashlib
+import smtplib
+import ssl
+from email.message import EmailMessage
+from urllib.error import HTTPError
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
@@ -154,11 +159,115 @@ def build_pdf(rows, d, output):
               P("Nơi nhận: Theo danh sách được phê duyệt; Lưu vận hành.",normal)]
     doc.build(story)
 
+
+def rest_request(method, endpoint, payload=None, prefer=None):
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    headers = {
+        "apikey": key, "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+    if prefer:
+        headers["Prefer"] = prefer
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = Request(f"{base}/rest/v1/{endpoint}", data=data, headers=headers, method=method)
+    try:
+        with urlopen(req, timeout=30) as res:
+            raw = res.read()
+            return json.loads(raw) if raw else None
+    except HTTPError as e:
+        if e.code == 409:
+            return {"_conflict": True}
+        raise RuntimeError(f"Supabase REST {e.code}: {e.read().decode('utf-8', errors='replace')[:400]}") from e
+
+def send_email_once(pdf, report_date):
+    """
+    One claim per report_date across all recipient configurations.
+    Do not retry uncertain SMTP acceptance automatically.
+    """
+    to_raw = os.environ.get("REPORT_TEST_TO", "")
+    recipients = sorted(set(
+        x.strip().lower() for x in to_raw.replace(";", ",").split(",") if x.strip()
+    ))
+    if not recipients:
+        raise ValueError("REPORT_TEST_TO is empty")
+    needed = ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM")
+    missing = [k for k in needed if not os.environ.get(k)]
+    if missing:
+        raise ValueError("Missing SMTP config: " + ", ".join(missing))
+    if os.environ.get("SMTP_SECURITY", "ssl").lower() not in ("ssl", "starttls"):
+        raise ValueError("SMTP_SECURITY must be ssl or starttls")
+    report_key = f"daily07:test:{report_date.isoformat()}"
+    sha = hashlib.sha256(pdf.read_bytes()).hexdigest()
+    claim = {
+        "report_date": report_date.isoformat(),
+        "status": "SENDING",
+        "recipients": ",".join(recipients),
+        "pdf_sha256": sha,
+    }
+    # Table uses PRIMARY KEY report_date; atomic INSERT rejects duplicate requests.
+    result = rest_request("POST", "av_daily07_dispatch_log", claim,
+                          "return=representation")
+    if isinstance(result, dict) and result.get("_conflict"):
+        print(f"EMAIL_SKIPPED_ALREADY_CLAIMED {report_key}")
+        return
+    print(f"EMAIL_CLAIMED {report_key}", flush=True)
+    msg = EmailMessage()
+    msg["Subject"] = (
+        f"[BAN THU NGHIEM] A Vuong - Bao cao KTTV tong hop 07h "
+        f"ngay {report_date:%d/%m/%Y}"
+    )
+    msg["From"] = os.environ["SMTP_FROM"]
+    msg["To"] = ", ".join(recipients)
+    msg.set_content(
+        "Kinh gui cac anh/chi,\n\n"
+        f"Dinh kem ban THU NGHIEM bao cao KTTV tong hop 07h ngay "
+        f"{report_date:%d/%m/%Y} (31 moc gio).\n"
+        "Bao cao chua duoc ky, phe duyet; KHONG dung de phat hanh chinh thuc.\n\n"
+        "Tran trong."
+    )
+    msg.add_attachment(
+        pdf.read_bytes(), maintype="application", subtype="pdf",
+        filename=pdf.name
+    )
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    security = os.environ.get("SMTP_SECURITY", "ssl").lower()
+    ctx = ssl.create_default_context()
+    try:
+        if security == "ssl":
+            server = smtplib.SMTP_SSL(os.environ["SMTP_HOST"], port,
+                                       timeout=35, context=ctx)
+        else:
+            server = smtplib.SMTP(os.environ["SMTP_HOST"], port, timeout=35)
+        with server as smtp:
+            if security == "starttls":
+                smtp.starttls(context=ctx)
+            smtp.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
+            refused = smtp.send_message(msg)
+            if refused:
+                raise RuntimeError(f"SMTP refused recipients: {list(refused)}")
+    except Exception as exc:
+        # FAILED_UNCERTAIN is intentionally terminal: SMTP acceptance may
+        # have occurred before a network error. Never blindly retry.
+        try:
+            rest_request("PATCH",
+                f"av_daily07_dispatch_log?report_date=eq.{report_date.isoformat()}",
+                {"status": "NEEDS_REVIEW", "error_text": str(exc)[:1000]})
+        except Exception as log_exc:
+            print(f"LOG_UPDATE_ERROR {log_exc}", flush=True)
+        raise
+    rest_request("PATCH",
+        f"av_daily07_dispatch_log?report_date=eq.{report_date.isoformat()}",
+        {"status": "SMTP_ACCEPTED", "sent_at": datetime.now(timezone.utc).isoformat()})
+    print(f"EMAIL_SMTP_ACCEPTED {report_key} recipients={len(recipients)}")
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--date",required=True,help="YYYY-MM-DD in Vietnam")
     ap.add_argument("--output-dir",default="reports/avuong_kttv/reports/output")
     ap.add_argument("--fixture",help="Offline JSON test rows, no Supabase call")
+    ap.add_argument("--send-test-email", action="store_true",
+                    help="Send only to REPORT_TEST_TO using SMTP; requires dispatch log table")
     args=ap.parse_args()
     d=date.fromisoformat(args.date)
     raw=json.loads(Path(args.fixture).read_text(encoding="utf-8")) if args.fixture else fetch_rows(d)
@@ -167,7 +276,11 @@ def main():
     out.mkdir(parents=True,exist_ok=True)
     pdf=out / f"KTTV_DAILY07_{d:%Y%m%d}_PREVIEW.pdf"
     build_pdf(rows,d,pdf)
-    print(f"PDF_READY {pdf} rows={len(rows)} | PREVIEW_ONLY NO_EMAIL")
+    print(f"PDF_READY {pdf} rows={len(rows)}")
+    if args.send_test_email:
+        send_email_once(pdf, d)
+    else:
+        print("PREVIEW_ONLY NO_EMAIL")
 
 if __name__ == "__main__":
     main()
