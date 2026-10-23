@@ -1,0 +1,71 @@
+name: A Vuong - Daily 07h Bundle (3 reports, TEST)
+on:
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: "Vietnam report date YYYY-MM-DD"
+        required: true
+        type: string
+      send_test_email:
+        description: "Send 3 TEST emails to configured recipients?"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-daily07-bundle-${{ inputs.report_date }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      REPORT_KTTV31_TO: ${{ secrets.REPORT_KTTV31_TO }}
+      REPORT_RESERVOIR_TO: ${{ secrets.REPORT_RESERVOIR_TO }}
+      REPORT_HYDRO_EXCEL_TO: ${{ secrets.REPORT_HYDRO_EXCEL_TO }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
+      SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      REPORT_DATE: ${{ inputs.report_date }}
+      SEND_TEST_EMAIL: ${{ inputs.send_test_email }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-dejavu-core
+          python -m pip install reportlab openpyxl
+      - name: Generate 3 reports and optionally email
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRA=()
+          if [[ "$SEND_TEST_EMAIL" == "true" ]]; then
+            EXTRA+=(--send-test-email)
+          fi
+          python reports/avuong_kttv/scripts/generate_daily07_bundle.py \
+            --date "$REPORT_DATE" \
+            --output-dir reports/avuong_kttv/reports/output \
+            "${EXTRA[@]}"
+      - name: Upload generated files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DAILY07-BUNDLE-${{ github.run_id }}
+          path: |
+            reports/avuong_kttv/reports/output/*.pdf
+            reports/avuong_kttv/reports/output/*.xlsx
+          if-no-files-found: warn
+          retention-days: 60
