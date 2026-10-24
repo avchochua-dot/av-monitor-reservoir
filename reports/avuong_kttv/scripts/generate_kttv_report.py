@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Báo cáo vận hành hồ A Vương theo mẫu PDF khách hàng cung cấp.
-QUY TẮC VẬN HÀNH POC:
+"""Báo cáo KTTV 4 kỳ A Vương, bố cục biểu mẫu vận hành.
+QUY TẮC AN TOÀN:
  - Tailwater phải đọc từ reservoir_hourly_data.tailwater_level tại đúng giờ báo cáo.
  - Nếu thiếu tailwater thì ghi PENDING_DATA, KHÔNG dùng số 60.00 m và KHÔNG gửi email.
- - Chỉ cho phép xem trước PDF hoặc gửi email THỬ NGHIỆM qua SMTP khi đủ dữ liệu.
+ - Chỉ gửi email đến danh sách kiểm thử đã cấu hình; chưa tự phê duyệt báo cáo.
  - Khóa đọc dữ liệu / SMTP nằm trong GitHub Secrets, không đưa lên website.
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_REPORT_POC_V1_3_REAL_TAILWATER"
+VERSION = "AVUONG_KTTV_4KY_V3_7"
 
 
 def env(name: str, default: str = "") -> str:
@@ -242,162 +242,133 @@ def demo_report() -> Report:
 
 
 def setup_font() -> None:
+    """Require licensed Times New Roman from private-font checkout."""
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    candidates = [
-        Path("/usr/share/fonts/truetype/dejavu"),
-        Path("/usr/local/share/fonts"),
-        Path("/usr/share/fonts"),
-    ]
-    def find(name: str) -> Path | None:
-        for folder in candidates:
-            p = folder / name
-            if p.exists():
-                return p
-        for folder in candidates:
-            if folder.exists():
-                files = list(folder.rglob(name))
-                if files:
-                    return files[0]
-        return None
-    for face, filename in (
-        ("VNSerif", "DejaVuSerif.ttf"),
-        ("VNSerifBold", "DejaVuSerif-Bold.ttf"),
-        ("VNSerifItalic", "DejaVuSerif-Italic.ttf"),
-    ):
-        p = find(filename)
-        if not p:
-            raise RuntimeError("Thiếu DejaVu fonts. Ubuntu: sudo apt-get install fonts-dejavu-core")
-        pdfmetrics.registerFont(TTFont(face, str(p)))
+    folder = Path(env("AV_TNR_FONT_DIR", ".private-fonts")).expanduser()
+    normal, bold = folder / "times.ttf", folder / "timesbd.ttf"
+    if not normal.is_file() or not bold.is_file():
+        raise RuntimeError(
+            f"TIMES_NEW_ROMAN_REQUIRED: missing times.ttf/timesbd.ttf in {folder}; "
+            "use authorized private font repository, do not substitute fonts."
+        )
+    if "AVTimes" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("AVTimes", str(normal)))
+    if "AVTimesBold" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("AVTimesBold", str(bold)))
+    # Italic may be supplied; otherwise use regular without falsely claiming italic.
+    italic = folder / "timesi.ttf"
+    if italic.is_file() and "AVTimesItalic" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("AVTimesItalic", str(italic)))
 
 
 def draw_pdf(r: Report, output: Path) -> Path:
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.pdfgen.canvas import Canvas
+    from reportlab.pdfbase import pdfmetrics
     setup_font()
     output.parent.mkdir(parents=True, exist_ok=True)
-    width, height = landscape(letter)
+    width, height = landscape(A4)
     c = Canvas(str(output), pagesize=(width, height), pageCompression=1)
-    c.setTitle(f"Du thao bao cao so lieu KTTV {r.hour:02d}h00 {r.day.isoformat()}")
-    ink = colors.HexColor("#172231")
-    quiet = colors.HexColor("#526070")
-    red = colors.HexColor("#A5252C")
+    c.setTitle(f"Báo cáo số liệu vận hành hồ thủy điện A Vương {r.hour:02d}h00 {r.day:%d/%m/%Y}")
     black = colors.black
     d = r.day
     fmtday = d.strftime("%d/%m/%Y")
-    # Ky 01h vuot ngay: ngay gio bat dau phai lui sang ngay truoc.
     end_clock = datetime(d.year, d.month, d.day, r.hour)
     start_clock = end_clock - timedelta(hours=DEFAULT_PERIOD_HOURS)
+    # Date format is deliberately unambiguous for crossing midnight at 01h.
     period_from = start_clock.strftime("%Hh/%d/%m")
     period_to = end_clock.strftime("%Hh/%d/%m/%Y")
-    left, right = 25, 767
 
-    def centered(lines: list[str], center_x: float, top_y: float,
-                 face: str = "VNSerif", size: float = 9.3, line_height: float = 14,
-                 color=black):
-        c.setFont(face, size)
-        c.setFillColor(color)
-        for j, text in enumerate(lines):
-            c.drawCentredString(center_x, top_y - j * line_height, text)
+    # A4 landscape, left 25 mm / right 20 mm.
+    left, right = 25 * 72 / 25.4, width - 20 * 72 / 25.4
+    content_width = right - left
+    left_block_center = left + 165
+    right_block_center = right - 155
+    page_center = (left + right) / 2
 
-    centered(["TỔNG CÔNG TY PHÁT ĐIỆN 2", "CÔNG TY CỔ PHẦN", "THỦY ĐIỆN A VƯƠNG"],
-             193, 582, "VNSerifBold", 10.3, 16)
-    centered(["CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM", "Độc lập - Tự do - Hạnh phúc"],
-             603, 582, "VNSerifBold", 9.3, 17)
-    c.setStrokeColor(black)
-    c.setLineWidth(.6)
-    c.line(500, 550, 705, 550)
-    c.setFont("VNSerifItalic", 9.5)
-    c.drawRightString(right, 521, f"Đà Nẵng, ngày {d.day:02d} tháng {d.month:02d} năm {d.year}")
+    def center(text, x, y, font="AVTimes", size=10):
+        c.setFont(font, size)
+        c.setFillColor(black)
+        c.drawCentredString(x, y, text)
 
-    centered(["BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG"],
-             396, 489, "VNSerifBold", 11.1, 15)
-    c.setFillColor(black)
-    c.setFont("VNSerif", 8.7)
-    c.drawString(34, 462,
-        "Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số 62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần")
-    c.drawString(34, 449, "Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:")
+    for j, text in enumerate((
+        "TỔNG CÔNG TY PHÁT ĐIỆN 2",
+        "CÔNG TY CỔ PHẦN",
+        "THỦY ĐIỆN A VƯƠNG",
+    )):
+        center(text, left_block_center, height - 51 - 15*j, "AVTimesBold", 11)
+    center("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",
+           right_block_center, height - 51, "AVTimesBold", 11)
+    slogan = "Độc lập - Tự do - Hạnh phúc"
+    center(slogan, right_block_center, height - 68, "AVTimesBold", 11)
+    # Center underline exactly below the slogan, not the entire right header.
+    underline_width = min(170, pdfmetrics.stringWidth(slogan, "AVTimesBold", 11) * .83)
+    c.setLineWidth(.65)
+    c.line(right_block_center - underline_width/2, height - 76,
+           right_block_center + underline_width/2, height - 76)
 
-    # Bảng theo mẫu, tỷ lệ trang letter landscape 792 x 612 pt.
+    c.setFont("AVTimes", 11)
+    c.drawRightString(right, height - 108,
+                      f"Đà Nẵng, ngày {d.day:02d} tháng {d.month:02d} năm {d.year}")
+    center("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
+           page_center, height - 137, "AVTimesBold", 14)
+    c.setFont("AVTimes", 10.1)
+    c.drawString(left, height - 162,
+        "Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số 62/2025/NĐ-CP ngày 04/3/2025,")
+    c.drawString(left, height - 175,
+        "Công ty Cổ phần Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:")
+
+    # Eight columns, total exactly equal to content width (approx 714 pt).
+    units = [102, 58, 88, 90, 77, 77, 77, 145]
+    factor = content_width / sum(units)
     x = [left]
-    widths = [110, 68, 94, 95, 82, 82, 82, 129]  # tổng 742
-    for wcol in widths:
-        x.append(x[-1] + wcol)
-    assert abs(x[-1] - right) <= 0.001
-    y_top, y_group, y_data, y_bottom = 431, 390, 346, 310
-    c.setStrokeColor(black)
-    c.setLineWidth(.85)
-    c.rect(left, y_bottom, right-left, y_top-y_bottom, fill=0, stroke=1)
+    for unit in units:
+        x.append(x[-1] + unit*factor)
+    y_top, y_group, y_data, y_bottom = height-199, height-237, height-277, height-311
+
+    c.setLineWidth(.7)
+    c.rect(left, y_bottom, content_width, y_top-y_bottom, stroke=1, fill=0)
     for j, xi in enumerate(x[1:-1], start=1):
-        if j in (5, 6):
-            # Tiêu đề ba Q được gộp ở hàng trên.
-            c.line(xi, y_group, xi, y_bottom)
-        else:
-            c.line(xi, y_top, xi, y_bottom)
+        c.line(xi, y_group if j in (5,6) else y_top, xi, y_bottom)
     c.line(x[4], y_group, x[7], y_group)
     c.line(left, y_data, right, y_data)
 
-    def cell(col: int, lines: list[str], top: float, bottom: float,
-             size: float = 7.7, face: str = "VNSerifBold", line_height: float = 12):
-        cx = (x[col]+x[col+1]) / 2
-        n = len(lines)
-        totalh = (n - 1)*line_height
-        midy = (top + bottom) / 2
-        topbase = midy + totalh/2 - 3.0
-        centered(lines, cx, topbase, face, size, line_height)
+    def cell(col, lines, top, bottom, size=8.6, bold=True, line_height=11):
+        font = "AVTimesBold" if bold else "AVTimes"
+        baseline = (top + bottom)/2 + (len(lines)-1)*line_height/2 - size/3
+        for i, text in enumerate(lines):
+            center(text, (x[col]+x[col+1])/2,
+                   baseline-i*line_height, font, size)
 
-    cell(0, ["Ngày/tháng/năm"], y_top, y_data, 8.0)
-    cell(1, ["Giờ"], y_top, y_data, 8.6)
-    cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y_top, y_data, 8.0, line_height=12.5)
-    cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y_top, y_data, 8.0, line_height=12.5)
-
-    centered(["Số liệu trung bình từ",
-              f"{period_from} ÷ {period_to}"],
-             (x[4]+x[7])/2, 416, "VNSerifBold", 8.2, 15)
-    cell(4, ["Qđến hồ", "(m³/s)"], y_group, y_data, 7.8)
-    cell(5, ["Qchạy máy", "(m³/s)"], y_group, y_data, 7.8)
-    cell(6, ["Qxả tràn", "(m³/s)"], y_group, y_data, 7.8)
-    centered(["Tổng lượng mưa từ",
-              f"{period_from} ÷",
-              f"{period_to}",
-              "(mm)"],
-             (x[7]+x[8])/2, 412, "VNSerifBold", 7.6, 14)
+    cell(0, ["Ngày/tháng/năm"], y_top, y_data, 9)
+    cell(1, ["Giờ"], y_top, y_data, 9)
+    cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y_top, y_data)
+    cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y_top, y_data)
+    mid = (x[4]+x[7])/2
+    center("Số liệu trung bình từ", mid, y_top-15, "AVTimesBold", 9.3)
+    center(f"{period_from} ÷ {period_to}", mid, y_top-30, "AVTimesBold", 8.8)
+    cell(4, ["Q đến hồ", "(m³/s)"], y_group, y_data)
+    cell(5, ["Q chạy máy", "(m³/s)"], y_group, y_data)
+    cell(6, ["Q xả tràn", "(m³/s)"], y_group, y_data)
+    cell(7, ["Tổng lượng mưa từ", period_from + " ÷", period_to, "(mm)"],
+         y_top, y_data, size=8.5, line_height=12)
 
     vals = [fmtday, f"{r.hour:02d}h00'",
-            fmt(r.upstream), fmt(r.tailwater) + ("*" if r.tailwater_is_temporary else ""),
+            fmt(r.upstream), fmt(r.tailwater),
             fmt(r.mean_inflow), fmt(r.mean_turbine),
             fmt(r.mean_spillway), fmt(r.rain_total, 1)]
-    for i, val in enumerate(vals):
-        centered([val], (x[i]+x[i+1])/2, 322, "VNSerif", 9.0, 12,
-                 red if i == 3 and r.tailwater_is_temporary else black)
+    for j, val in enumerate(vals):
+        cell(j, [val], y_data, y_bottom, size=10, bold=False)
 
-    if True:  # POC luôn là bản thử nghiệm vì chưa có phê duyệt/chữ ký số.
-        c.setFillColor(colors.HexColor("#FFF4F3"))
-        c.setStrokeColor(colors.HexColor("#E9B4B0"))
-        c.roundRect(left, 271, right-left, 27, 5, fill=1, stroke=1)
-        c.setFont("VNSerifBold", 9.0)
-        c.setFillColor(red)
-        c.drawString(left+9, 281, "BẢN THỬ NGHIỆM - KHÔNG PHÁT HÀNH CHÍNH THỨC")
-        c.setFont("VNSerif", 8.0)
-        if r.tailwater_is_temporary:
-            c.drawRightString(right-9, 281,
-                              f"* Mực nước hạ lưu {fmt(r.tailwater).replace('.', ',')} m là số tạm tính, CHƯA đo.")
-        else:
-            c.drawRightString(right-9, 281, "Chưa ký, chưa phê duyệt.")
-        if r.demo:
-            c.setFont("VNSerifItalic", 8.1)
-            c.drawString(left+9, 260, "Các số liệu khác minh họa từ PDF mẫu ngày 21/10/2026, không truy vấn Supabase.")
-    else:
-        c.setFont("VNSerifItalic", 8)
-        c.setFillColor(quiet)
-        c.drawString(left, 287, "Số liệu được trích xuất tự động; cần kiểm tra, phê duyệt trước khi phát hành.")
-
-    centered(["PHÂN XƯỞNG VẬN HÀNH"], 635, 235, "VNSerifBold", 10.2)
-    centered(["(Chưa ký, chưa phê duyệt)"], 635, 146, "VNSerifItalic", 8.3, color=quiet)
-    c.setFont("VNSerif", 7.7)
-    c.setFillColor(quiet)
-    c.drawString(left, 44, f"Tạo tự động - {VERSION} | Giờ dữ liệu: Việt Nam (UTC+7) | Bản PDF thử nghiệm")
+    # The PDF is an unsigned report-ready document. No false signature or
+    # POC/test banner; test designation stays in email for internal recipients.
+    center("PHÂN XƯỞNG VẬN HÀNH", right_block_center, height - 358,
+           "AVTimesBold", 12)
+    if r.demo:
+        center("SỐ LIỆU MINH HỌA - KHÔNG SỬ DỤNG PHÁT HÀNH",
+               page_center, 86, "AVTimesBold", 11)
     c.showPage()
     c.save()
     return output
@@ -457,8 +428,7 @@ def mail_send_test(r: Report, pdf_path: Path) -> list[str]:
     msg = EmailMessage()
     msg["From"] = sender
     msg["To"] = ", ".join(recipients)
-    tag = ("[BẢN THỬ NGHIỆM - HẠ LƯU TẠM TÍNH]"
-           if r.tailwater_is_temporary else "[BẢN THỬ NGHIỆM]")
+    tag = "[KIỂM TRA NỘI BỘ]"
     msg["Subject"] = (f"{tag} "
                       f"Công ty CPTĐ A Vương - báo cáo số liệu vận hành lúc {r.hour:02d}h00 ngày "
                       f"{r.day.strftime('%d/%m/%Y')}")
@@ -470,7 +440,7 @@ def mail_send_test(r: Report, pdf_path: Path) -> list[str]:
     )
     msg.set_content(
         "Kính gửi các anh/chị,\n\n"
-        f"Đính kèm là BẢN THỬ NGHIỆM báo cáo số liệu vận hành hồ thủy điện A Vương "
+        f"Đính kèm báo cáo số liệu vận hành hồ thủy điện A Vương "
         f"lúc {r.hour:02d}h00 ngày {r.day.strftime('%d/%m/%Y')}.\n"
         + warning +
         "Tài liệu chưa được ký hoặc phê duyệt; KHÔNG dùng để báo cáo chính thức.\n\n"
@@ -586,7 +556,7 @@ def run() -> int:
               "IDs", r.hour_ids, "; source time mode", source_mode)
     if r.tailwater_is_temporary:
         print(f"WARNING: tailwater_level NULL => {fmt(r.tailwater)} m TẠM TÍNH; chỉ báo cáo thử nghiệm.")
-    base = f"{r.hour:02d}h00_{r.day.strftime('%d-%m-%Y')}_So_lieu_KTTV_DU_THAO"
+    base = f"{r.hour:02d}h00_{r.day.strftime('%d-%m-%Y')}_So_lieu_KTTV"
     output_dir = Path(args.output_dir)
     output_pdf = draw_pdf(r, output_dir / (base + ".pdf"))
     meta = report_meta(r)
