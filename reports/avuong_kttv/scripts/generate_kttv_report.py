@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_4KY_V3_7"
+VERSION = "AVUONG_KTTV_4KY_V3_8_6"
 
 
 def env(name: str, default: str = "") -> str:
@@ -333,6 +333,11 @@ def draw_pdf(r: Report, output: Path) -> Path:
     ctr("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
         center_page, height - 122, "AVTimesBold", 13.2)
 
+    # Dùng chung một khung ngang cho đoạn căn cứ và bảng bên dưới.
+    # Giữ nguyên vị trí/cỡ bảng; chỉ thu chiều rộng đoạn văn cho khớp bảng.
+    table_width = 660.0
+    x_left = center_page - table_width / 2
+
     # Mot doan van ban duy nhat. Tu dong xuong dong theo be rong font THAT.
     # Khong tach legal_line1/legal_line2, tranh mot tu/chữ bi roi xuong dong rieng.
     from reportlab.lib.utils import simpleSplit
@@ -343,7 +348,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     )
     legal_font = "AVTimes"
     legal_size = 10.5
-    legal_width = 705.0  # pt, khung văn bản cân giữa trong khổ A4 ngang
+    legal_width = table_width  # Cùng hai mép và tâm ngang với bảng.
     legal_lines = simpleSplit(legal_text, legal_font, legal_size, legal_width)
     if not (1 <= len(legal_lines) <= 2):
         raise RuntimeError(
@@ -354,8 +359,6 @@ def draw_pdf(r: Report, output: Path) -> Path:
         ctr(line, center_page, height - 153 - 17*i, legal_font, legal_size)
 
     # Bảng gọn và cân đối; cột mưa không quá rộng.
-    table_width = 660.0
-    x_left = center_page - table_width / 2
     widths = [97, 66, 86, 88, 79, 79, 79, 86]
     xs = [x_left]
     for w in widths:
