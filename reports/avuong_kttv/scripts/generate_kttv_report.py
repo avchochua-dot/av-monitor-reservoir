@@ -263,7 +263,7 @@ def setup_font() -> None:
 
 
 def draw_pdf(r: Report, output: Path) -> Path:
-    from reportlab.lib import colors
+    """Dựng PDF A4 ngang theo mẫu vận hành 19h; không thay đổi số liệu."""
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.pdfgen.canvas import Canvas
     from reportlab.pdfbase import pdfmetrics
@@ -272,103 +272,105 @@ def draw_pdf(r: Report, output: Path) -> Path:
     width, height = landscape(A4)
     c = Canvas(str(output), pagesize=(width, height), pageCompression=1)
     c.setTitle(f"Báo cáo số liệu vận hành hồ thủy điện A Vương {r.hour:02d}h00 {r.day:%d/%m/%Y}")
-    black = colors.black
     d = r.day
-    fmtday = d.strftime("%d/%m/%Y")
     end_clock = datetime(d.year, d.month, d.day, r.hour)
     start_clock = end_clock - timedelta(hours=DEFAULT_PERIOD_HOURS)
-    # Date format is deliberately unambiguous for crossing midnight at 01h.
     period_from = start_clock.strftime("%Hh/%d/%m")
     period_to = end_clock.strftime("%Hh/%d/%m/%Y")
 
-    # A4 landscape, left 25 mm / right 20 mm.
-    left, right = 25 * 72 / 25.4, width - 20 * 72 / 25.4
-    content_width = right - left
-    left_block_center = left + 165
-    right_block_center = right - 155
-    page_center = (left + right) / 2
+    # Khổ A4 ngang 841.89 x 595.28 pt.
+    # Bảng gọn theo biểu mẫu thật, nằm trong lề 25mm trái / 20mm phải.
+    left = 25 * 72 / 25.4
+    right = width - 20 * 72 / 25.4
+    center_page = (left + right) / 2
+    left_center = left + 155
+    right_center = right - 151
 
-    def center(text, x, y, font="AVTimes", size=10):
+    def ctr(t, x, y, font="AVTimes", size=10):
         c.setFont(font, size)
-        c.setFillColor(black)
-        c.drawCentredString(x, y, text)
+        c.drawCentredString(x, y, t)
 
-    for j, text in enumerate((
+    def right_text(t, x, y, font="AVTimes", size=10):
+        c.setFont(font, size)
+        c.drawRightString(x, y, t)
+
+    # Quốc hiệu - tên đơn vị.
+    for i, t in enumerate((
         "TỔNG CÔNG TY PHÁT ĐIỆN 2",
         "CÔNG TY CỔ PHẦN",
         "THỦY ĐIỆN A VƯƠNG",
     )):
-        center(text, left_block_center, height - 51 - 15*j, "AVTimesBold", 11)
-    center("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",
-           right_block_center, height - 51, "AVTimesBold", 11)
+        ctr(t, left_center, height - 48 - 14*i,
+            "AVTimes" if i == 0 else "AVTimesBold", 11)
+    ctr("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",
+        right_center, height - 48, "AVTimesBold", 11)
     slogan = "Độc lập - Tự do - Hạnh phúc"
-    center(slogan, right_block_center, height - 68, "AVTimesBold", 11)
-    # Center underline exactly below the slogan, not the entire right header.
-    underline_width = min(170, pdfmetrics.stringWidth(slogan, "AVTimesBold", 11) * .83)
-    c.setLineWidth(.65)
-    c.line(right_block_center - underline_width/2, height - 76,
-           right_block_center + underline_width/2, height - 76)
+    ctr(slogan, right_center, height - 65, "AVTimesBold", 11)
+    # Gạch ngang căn chính xác tâm dòng tiêu ngữ, ngay dưới chữ.
+    underline_w = min(182, pdfmetrics.stringWidth(slogan, "AVTimesBold", 11) * 0.88)
+    c.setLineWidth(0.55)
+    underline_y = height - 73
+    c.line(right_center - underline_w/2, underline_y,
+           right_center + underline_w/2, underline_y)
 
-    c.setFont("AVTimes", 11)
-    c.drawRightString(right, height - 108,
-                      f"Đà Nẵng, ngày {d.day:02d} tháng {d.month:02d} năm {d.year}")
-    center("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
-           page_center, height - 137, "AVTimesBold", 14)
-    c.setFont("AVTimes", 10.1)
-    c.drawString(left, height - 162,
-        "Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số 62/2025/NĐ-CP ngày 04/3/2025,")
-    c.drawString(left, height - 175,
-        "Công ty Cổ phần Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:")
+    date_text = f"Đà Nẵng, ngày {d.day:02d} tháng {d.month:02d} năm {d.year}"
+    # Nếu thư mục font có timesi.ttf mới dùng italic thật.
+    date_font = "AVTimesItalic" if "AVTimesItalic" in pdfmetrics.getRegisteredFontNames() else "AVTimes"
+    right_text(date_text, right, height - 95, date_font, 10.5)
+    ctr("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
+        center_page, height - 122, "AVTimesBold", 13.2)
 
-    # Eight columns, total exactly equal to content width (approx 714 pt).
-    units = [102, 58, 88, 90, 77, 77, 77, 145]
-    factor = content_width / sum(units)
-    x = [left]
-    for unit in units:
-        x.append(x[-1] + unit*factor)
-    y_top, y_group, y_data, y_bottom = height-199, height-237, height-277, height-311
+    # Câu chữ giữ nguyên nội dung nghiệp vụ.
+    ctr("Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số 62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần",
+        center_page, height - 146, "AVTimes", 9.6)
+    ctr("Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:",
+        center_page, height - 159, "AVTimes", 9.6)
 
-    c.setLineWidth(.7)
-    c.rect(left, y_bottom, content_width, y_top-y_bottom, stroke=1, fill=0)
-    for j, xi in enumerate(x[1:-1], start=1):
-        c.line(xi, y_group if j in (5,6) else y_top, xi, y_bottom)
-    c.line(x[4], y_group, x[7], y_group)
-    c.line(left, y_data, right, y_data)
+    # Bảng gọn và cân đối; cột mưa không quá rộng.
+    table_width = 660.0
+    x_left = center_page - table_width / 2
+    widths = [97, 66, 86, 88, 79, 79, 79, 86]
+    xs = [x_left]
+    for w in widths:
+        xs.append(xs[-1] + w)
+    assert abs(xs[-1] - (x_left+table_width)) < 0.01
+    y0, yg, yd, yb = height-178, height-214, height-251, height-278
+    c.setLineWidth(0.6)
+    c.rect(x_left, yb, table_width, y0-yb, fill=0, stroke=1)
+    for j, xx in enumerate(xs[1:-1], 1):
+        c.line(xx, yg if j in (5, 6) else y0, xx, yb)
+    c.line(xs[4], yg, xs[7], yg)
+    c.line(x_left, yd, x_left+table_width, yd)
 
-    def cell(col, lines, top, bottom, size=8.6, bold=True, line_height=11):
+    def cell(col, lines, top, bottom, size=8.8, bold=True, spacing=10.8):
         font = "AVTimesBold" if bold else "AVTimes"
-        baseline = (top + bottom)/2 + (len(lines)-1)*line_height/2 - size/3
+        baseline = (top + bottom)/2 + (len(lines)-1)*spacing/2 - size/3
         for i, text in enumerate(lines):
-            center(text, (x[col]+x[col+1])/2,
-                   baseline-i*line_height, font, size)
+            ctr(text, (xs[col]+xs[col+1])/2, baseline-i*spacing, font, size)
 
-    cell(0, ["Ngày/tháng/năm"], y_top, y_data, 9)
-    cell(1, ["Giờ"], y_top, y_data, 9)
-    cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y_top, y_data)
-    cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y_top, y_data)
-    mid = (x[4]+x[7])/2
-    center("Số liệu trung bình từ", mid, y_top-15, "AVTimesBold", 9.3)
-    center(f"{period_from} ÷ {period_to}", mid, y_top-30, "AVTimesBold", 8.8)
-    cell(4, ["Q đến hồ", "(m³/s)"], y_group, y_data)
-    cell(5, ["Q chạy máy", "(m³/s)"], y_group, y_data)
-    cell(6, ["Q xả tràn", "(m³/s)"], y_group, y_data)
-    cell(7, ["Tổng lượng mưa từ", period_from + " ÷", period_to, "(mm)"],
-         y_top, y_data, size=8.5, line_height=12)
+    cell(0, ["Ngày/tháng/năm"], y0, yd, 9)
+    cell(1, ["Giờ"], y0, yd, 9)
+    cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y0, yd, 8.5)
+    cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y0, yd, 8.5)
+    middle = (xs[4]+xs[7])/2
+    ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9)
+    ctr(f"{period_from} ÷ {period_to}", middle, y0-27, "AVTimesBold", 8.6)
+    cell(4, ["Q đến hồ", "(m³/s)"], yg, yd, 8.3)
+    cell(5, ["Q chạy máy", "(m³/s)"], yg, yd, 8.3)
+    cell(6, ["Q xả tràn", "(m³/s)"], yg, yd, 8.3)
+    cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],
+         y0, yd, 8.0, True, 10.5)
 
-    vals = [fmtday, f"{r.hour:02d}h00'",
-            fmt(r.upstream), fmt(r.tailwater),
-            fmt(r.mean_inflow), fmt(r.mean_turbine),
-            fmt(r.mean_spillway), fmt(r.rain_total, 1)]
-    for j, val in enumerate(vals):
-        cell(j, [val], y_data, y_bottom, size=10, bold=False)
+    values = [d.strftime("%d/%m/%Y"), f"{r.hour:02d}h00'",
+              fmt(r.upstream), fmt(r.tailwater), fmt(r.mean_inflow),
+              fmt(r.mean_turbine), fmt(r.mean_spillway), fmt(r.rain_total, 1)]
+    for j, value in enumerate(values):
+        cell(j, [value], yd, yb, 10, False)
 
-    # The PDF is an unsigned report-ready document. No false signature or
-    # POC/test banner; test designation stays in email for internal recipients.
-    center("PHÂN XƯỞNG VẬN HÀNH", right_block_center, height - 358,
-           "AVTimesBold", 12)
+    ctr("PHÂN XƯỞNG VẬN HÀNH", right_center, height-334, "AVTimesBold", 12)
+    # Để trống chữ ký và họ tên; không tự đưa người ký vào bản chưa được duyệt.
     if r.demo:
-        center("SỐ LIỆU MINH HỌA - KHÔNG SỬ DỤNG PHÁT HÀNH",
-               page_center, 86, "AVTimesBold", 11)
+        ctr("DỮ LIỆU MINH HỌA - KHÔNG PHÁT HÀNH", center_page, 58, "AVTimesBold", 10)
     c.showPage()
     c.save()
     return output
