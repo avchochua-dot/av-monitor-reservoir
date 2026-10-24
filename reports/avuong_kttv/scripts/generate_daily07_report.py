@@ -103,8 +103,8 @@ def fmt(v):
 def build_pdf(rows, d, output):
     set_font()
     W,H=A4
-    doc = SimpleDocTemplate(str(output), pagesize=A4, rightMargin=28,
-                            leftMargin=28, topMargin=30, bottomMargin=32,
+    doc = SimpleDocTemplate(str(output), pagesize=A4, rightMargin=57,
+                            leftMargin=71, topMargin=30, bottomMargin=32,
                             title=f"A Vuong KTTV daily 07h {d:%d-%m-%Y}")
     normal=ParagraphStyle("n",fontName="AV",fontSize=8.0,leading=11)
     center=ParagraphStyle("c",parent=normal,alignment=TA_CENTER)
@@ -117,8 +117,8 @@ def build_pdf(rows, d, output):
         [P("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",bold),
          [P("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",bold),
           P("Độc lập - Tự do - Hạnh phúc",bold),
-          Spacer(1,4),HRFlowable(width=165,thickness=0.8,color=colors.black,hAlign="CENTER")]]
-    ],colWidths=[263,263])
+          Spacer(1,4),HRFlowable(width=125,thickness=0.8,color=colors.black,hAlign="CENTER")]]
+    ],colWidths=[230,237])
     top.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
                              ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0)]))
     story=[top, Spacer(1,11),
@@ -146,7 +146,7 @@ def build_pdf(rows, d, output):
             fmt(r["inflow"]),fmt(r["turbine_flow"]),fmt(r["spillway_flow"]),
             fmt(r["rainfallreal"])
         ])
-    widths=[85,46,72,73,66,68,61,55]
+    widths=[67,36,63,66,57,61,57,60]
     tab=Table(data,colWidths=widths,repeatRows=1,hAlign="CENTER")
     tab.setStyle(TableStyle([
         ("FONTNAME",(0,1),(-1,-1),"AV"),("FONTSIZE",(0,1),(-1,-1),7.5),
@@ -158,7 +158,7 @@ def build_pdf(rows, d, output):
     ]))
     story += [tab,Spacer(1,18),
               Table([["",P("PHÂN XƯỞNG VẬN HÀNH",bold)]],
-                    colWidths=[270,256]),
+                    colWidths=[235,232]),
               Spacer(1,40),
               
               Spacer(1,9),

@@ -82,16 +82,16 @@ def render_reservoir_pdf(rows, report_date, path, generation_hours=None):
     normal = ParagraphStyle("v36n",fontName="AV",fontSize=8.5,leading=12)
     cent = ParagraphStyle("v36c", parent=normal,alignment=TA_CENTER)
     bold = ParagraphStyle("v36b", parent=cent,fontName="AV-Bold",fontSize=10,leading=13)
-    small = ParagraphStyle("v36s", parent=cent,fontSize=7.3,leading=10)
+    small = ParagraphStyle("v36s", parent=cent,fontSize=7.0,leading=9)
     right = ParagraphStyle("v36r", parent=normal,alignment=TA_RIGHT)
     p = lambda x,sty=cent: Paragraph(x,sty)
-    doc = SimpleDocTemplate(str(path),pagesize=A4,leftMargin=27,rightMargin=27,
+    doc = SimpleDocTemplate(str(path),pagesize=A4,leftMargin=71,rightMargin=57,
                             topMargin=28,bottomMargin=28)
     right_header = [p("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",bold),
                     p("Độc lập - Tự do - Hạnh phúc",bold),
-                    Spacer(1,4),HRFlowable(width=168,thickness=0.8,color=colors.black,hAlign="CENTER")]
+                    Spacer(1,4),HRFlowable(width=125,thickness=0.8,color=colors.black,hAlign="CENTER")]
     header = Table([[p("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",bold),right_header]],
-                   colWidths=[270,270])
+                   colWidths=[230,237])
     header.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
                                 ("LEFTPADDING",(0,0),(-1,-1),0),
                                 ("RIGHTPADDING",(0,0),(-1,-1),0)]))
@@ -115,7 +115,7 @@ def render_reservoir_pdf(rows, report_date, path, generation_hours=None):
     data.append(["","TB ngày","",f'{avg("inflow"):.2f}',
                  f'{avg("turbine_flow")+avg("spillway_flow"):.2f}',
                  f'{avg("turbine_flow"):.2f}',f'{avg("spillway_flow"):.2f}',str(hours)])
-    tab=Table(data,colWidths=[78,48,69,71,80,71,75,48],repeatRows=1)
+    tab=Table(data,colWidths=[68,35,55,58,67,59,66,59],repeatRows=1)
     tab.setStyle(TableStyle([
         ("GRID",(0,0),(-1,-1),0.55,colors.black),
         ("SPAN",(0,1),(0,12)),   # operational day: one merged cell for 12 display hours
@@ -127,7 +127,7 @@ def render_reservoir_pdf(rows, report_date, path, generation_hours=None):
         ("TOPPADDING",(0,0),(-1,-1),6),
         ("BOTTOMPADDING",(0,0),(-1,-1),6),
         ("BACKGROUND",(0,-1),(-1,-1),colors.whitesmoke)]))
-    sign=Table([["",p("PHÂN XƯỞNG VẬN HÀNH",bold)]],colWidths=[280,260])
+    sign=Table([["",p("PHÂN XƯỞNG VẬN HÀNH",bold)]],colWidths=[235,232])
     sign.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
                               ("LEFTPADDING",(0,0),(-1,-1),0),
                               ("RIGHTPADDING",(0,0),(-1,-1),0)]))

@@ -44,8 +44,8 @@ def render(report_date,report_hour,readings,out):
     head=Table([[P("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",b),
                  [P("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",b),
                   P("Độc lập - Tự do - Hạnh phúc",b),Spacer(1,4),
-                  HRFlowable(width=160,thickness=.8,color=colors.black,hAlign="CENTER")]]],colWidths=[270,270])
-    doc=SimpleDocTemplate(str(out),pagesize=A4,leftMargin=27,rightMargin=27,topMargin=28,bottomMargin=26)
+                  HRFlowable(width=125,thickness=.8,color=colors.black,hAlign="CENTER")]]],colWidths=[230,237])
+    doc=SimpleDocTemplate(str(out),pagesize=A4,leftMargin=71,rightMargin=57,topMargin=28,bottomMargin=26)
     a=expected[0]-timedelta(hours=1)
     period=f"{a:%H}h/{a:%d/%m} đến {end:%H}h/{end:%d/%m/%Y}"
     story=[head,Spacer(1,12),
@@ -60,12 +60,12 @@ def render(report_date,report_hour,readings,out):
           f'{float(last["water_level"]):.2f}',f'{float(last["tailwater_level"]):.2f}',
           f'{avg("inflow"):.2f}',f'{avg("turbine_flow"):.2f}',f'{avg("spillway_flow"):.2f}',f'{rain:.1f}']
     tab=Table([[P(x,tiny) for x in labels],[P(x,tiny) for x in vals]],
-              colWidths=[83,48,76,75,66,70,67,55])
+              colWidths=[67,37,64,65,54,62,56,62])
     tab.setStyle(TableStyle([("GRID",(0,0),(-1,-1),.6,colors.black),
                              ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
                              ("TOPPADDING",(0,0),(-1,-1),13),
                              ("BOTTOMPADDING",(0,0),(-1,-1),13)]))
-    sign=Table([["",P("PHÂN XƯỞNG VẬN HÀNH",b)]],colWidths=[280,260])
+    sign=Table([["",P("PHÂN XƯỞNG VẬN HÀNH",b)]],colWidths=[235,232])
     story += [P("Thời kỳ tính lưu lượng bình quân và lượng mưa: "+period,n),
               Spacer(1,8),tab,Spacer(1,40),sign]
     doc.build(story)
