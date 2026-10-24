@@ -282,13 +282,20 @@ def dispatch_email_once(report, report_date, file, recipients):
         print("EMAIL_SKIPPED_ALREADY_CLAIMED",report,report_date)
         return
     msg=EmailMessage()
-    msg["Subject"]=f"[BẢN THỬ NGHIỆM] A Vương - {report} - {report_date:%d/%m/%Y}"
+    titles = {
+        "KTTV_31H": "Báo cáo số liệu vận hành hồ thủy điện A Vương",
+        "RESERVOIR_12H": "Báo cáo số liệu vận hành Nhà máy thủy điện A Vương",
+        "HYDRO_EXCEL": "Bảng số liệu thủy văn hồ thủy điện A Vương",
+    }
+    msg["Subject"] = f"[KIỂM TRA NỘI BỘ] {titles[report]} - 07h00 ngày {report_date:%d/%m/%Y}"
     msg["From"]=os.environ["SMTP_FROM"]
     msg["To"]=", ".join(recipients)
     msg.set_content(
         "Kính gửi anh/chị,\\n\\n"
-        "Đính kèm báo cáo số liệu vận hành A Vương theo mẫu trình bày sử dụng thực tế.\\n"
-        "Email hiện được gửi trong phạm vi kiểm thử nội bộ; tài liệu chưa có chữ ký xác nhận.\\n"
+        "Đính kèm báo cáo số liệu vận hành A Vương lúc 07h00 ngày "
+        f"{report_date:%d/%m/%Y}, theo biểu mẫu vận hành.\\n"
+        "Email này chỉ gửi tới danh sách kiểm tra nội bộ. "
+        "Văn bản chưa có chữ ký của người có thẩm quyền.\\n"
         "Trân trọng."
     )
     ispdf=file.suffix==".pdf"
@@ -334,9 +341,9 @@ def main():
     check_consistency(rows)
     out=Path(args.output_dir);out.mkdir(parents=True,exist_ok=True)
     files={
-      "KTTV_31H":out/f"KTTV_DAILY07_{report_date:%Y%m%d}.pdf",
-      "RESERVOIR_12H":out/f"RESERVOIR_{report_date:%Y%m%d}.pdf",
-      "HYDRO_EXCEL":out/f"HYDRO_{report_date:%Y%m%d}.xlsx"
+      "KTTV_31H":out/f"07h00_{report_date:%d-%m-%Y}_So_lieu_KTTV_tong_hop.pdf",
+      "RESERVOIR_12H":out/f"07h00_{report_date:%d-%m-%Y}_Bao_cao_van_hanh_ho.pdf",
+      "HYDRO_EXCEL":out/f"07h00_{report_date:%d-%m-%Y}_Bang_so_lieu_thuy_van.xlsx"
     }
     daily.build_pdf(rows,report_date,files["KTTV_31H"])
     hours=render_reservoir_pdf(rows,report_date,files["RESERVOIR_12H"])
