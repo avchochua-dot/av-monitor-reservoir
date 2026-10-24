@@ -314,17 +314,44 @@ def draw_pdf(r: Report, output: Path) -> Path:
            right_center + underline_w/2, underline_y)
 
     date_text = f"Đà Nẵng, ngày {d.day:02d} tháng {d.month:02d} năm {d.year}"
-    # Nếu thư mục font có timesi.ttf mới dùng italic thật.
-    date_font = "AVTimesItalic" if "AVTimesItalic" in pdfmetrics.getRegisteredFontNames() else "AVTimes"
-    right_text(date_text, right, height - 95, date_font, 10.5)
+    # Times New Roman Italic neu co timesi.ttf trong kho font rieng.
+    # Neu chua co, nghieng hinh hoc font Times New Roman thuong
+    # de van giu dung ho font va khong phat sinh loi tren runner.
+    date_size = 10.5
+    date_y = height - 95
+    if "AVTimesItalic" in pdfmetrics.getRegisteredFontNames():
+        right_text(date_text, right, date_y, "AVTimesItalic", date_size)
+    else:
+        c.saveState()
+        date_width = pdfmetrics.stringWidth(date_text, "AVTimes", date_size)
+        italic_text = c.beginText()
+        italic_text.setTextTransform(1, 0, 0.20, 1, right - date_width, date_y)
+        italic_text.setFont("AVTimes", date_size)
+        italic_text.textOut(date_text)
+        c.drawText(italic_text)
+        c.restoreState()
     ctr("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
         center_page, height - 122, "AVTimesBold", 13.2)
 
-    # Câu chữ giữ nguyên nội dung nghiệp vụ.
-    ctr("Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số 62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần",
-        center_page, height - 146, "AVTimes", 9.6)
-    ctr("Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:",
-        center_page, height - 159, "AVTimes", 9.6)
+    # Doan can cu theo MẪU THỰC TẾ: thut dau dong ~10 mm;
+    # dong 1 ket thuc tai "Thủy điện A", dong 2 bat dau "Vương".
+    # Chu duoc giu nguyen, chi doi diem ngat dong va le.
+    c.setFont("AVTimes", 9.6)
+    legal_line1 = ("Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số "
+                   "62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần Thủy điện A")
+    legal_line2 = "Vương cung cấp số liệu vận hành hồ chứa như sau:"
+    legal_indent = 10 * 72 / 25.4
+    legal_x1 = left + legal_indent
+    # Bao ve khong tran le phai trong truong hop font Times New Roman khac ban.
+    legal_size = 9.6
+    while (pdfmetrics.stringWidth(legal_line1, "AVTimes", legal_size)
+           > right - legal_x1) and legal_size > 8.8:
+        legal_size -= 0.1
+    if pdfmetrics.stringWidth(legal_line1, "AVTimes", legal_size) > right - legal_x1:
+        raise RuntimeError("LEGAL_PARAGRAPH_OVERFLOW: kiem tra font va le PDF")
+    c.setFont("AVTimes", legal_size)
+    c.drawString(legal_x1, height - 146, legal_line1)
+    c.drawString(left, height - 159, legal_line2)
 
     # Bảng gọn và cân đối; cột mưa không quá rộng.
     table_width = 660.0
