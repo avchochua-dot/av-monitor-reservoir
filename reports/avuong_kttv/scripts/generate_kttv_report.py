@@ -333,25 +333,25 @@ def draw_pdf(r: Report, output: Path) -> Path:
     ctr("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
         center_page, height - 122, "AVTimesBold", 13.2)
 
-    # Doan can cu theo MẪU THỰC TẾ: thut dau dong ~10 mm;
-    # dong 1 ket thuc tai "Thủy điện A", dong 2 bat dau "Vương".
-    # Chu duoc giu nguyen, chi doi diem ngat dong va le.
-    c.setFont("AVTimes", 9.6)
-    legal_line1 = ("Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số "
-                   "62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần Thủy điện A")
-    legal_line2 = "Vương cung cấp số liệu vận hành hồ chứa như sau:"
-    legal_indent = 10 * 72 / 25.4
-    legal_x1 = left + legal_indent
-    # Bao ve khong tran le phai trong truong hop font Times New Roman khac ban.
-    legal_size = 9.6
-    while (pdfmetrics.stringWidth(legal_line1, "AVTimes", legal_size)
-           > right - legal_x1) and legal_size > 8.8:
-        legal_size -= 0.1
-    if pdfmetrics.stringWidth(legal_line1, "AVTimes", legal_size) > right - legal_x1:
-        raise RuntimeError("LEGAL_PARAGRAPH_OVERFLOW: kiem tra font va le PDF")
-    c.setFont("AVTimes", legal_size)
-    c.drawString(legal_x1, height - 146, legal_line1)
-    c.drawString(left, height - 159, legal_line2)
+    # Mot doan van ban duy nhat. Tu dong xuong dong theo be rong font THAT.
+    # Khong tach legal_line1/legal_line2, tranh mot tu/chữ bi roi xuong dong rieng.
+    from reportlab.lib.utils import simpleSplit
+    legal_text = (
+        "Thực hiện theo quy định tại Khoản 5, Điều 40 Nghị định số "
+        "62/2025/NĐ-CP ngày 04/3/2025, Công ty Cổ phần "
+        "Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:"
+    )
+    legal_font = "AVTimes"
+    legal_size = 10.5
+    legal_width = 705.0  # pt, khung văn bản cân giữa trong khổ A4 ngang
+    legal_lines = simpleSplit(legal_text, legal_font, legal_size, legal_width)
+    if not (1 <= len(legal_lines) <= 2):
+        raise RuntimeError(
+            f"LEGAL_TEXT_OVERFLOW: doan can cu thanh {len(legal_lines)} dong; "
+            "kiem tra font va kich thuoc khung"
+        )
+    for i, line in enumerate(legal_lines):
+        ctr(line, center_page, height - 153 - 17*i, legal_font, legal_size)
 
     # Bảng gọn và cân đối; cột mưa không quá rộng.
     table_width = 660.0
@@ -361,7 +361,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     for w in widths:
         xs.append(xs[-1] + w)
     assert abs(xs[-1] - (x_left+table_width)) < 0.01
-    y0, yg, yd, yb = height-178, height-214, height-251, height-278
+    y0, yg, yd, yb = height-195, height-231, height-268, height-295
     c.setLineWidth(0.6)
     c.rect(x_left, yb, table_width, y0-yb, fill=0, stroke=1)
     for j, xx in enumerate(xs[1:-1], 1):
@@ -394,7 +394,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     for j, value in enumerate(values):
         cell(j, [value], yd, yb, 10, False)
 
-    ctr("PHÂN XƯỞNG VẬN HÀNH", right_center, height-334, "AVTimesBold", 12)
+    ctr("PHÂN XƯỞNG VẬN HÀNH", right_center, height-351, "AVTimesBold", 12)
     # Để trống chữ ký và họ tên; không tự đưa người ký vào bản chưa được duyệt.
     if r.demo:
         ctr("DỮ LIỆU MINH HỌA - KHÔNG PHÁT HÀNH", center_page, 58, "AVTimesBold", 10)
