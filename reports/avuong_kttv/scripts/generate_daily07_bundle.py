@@ -61,70 +61,79 @@ def check_consistency(rows):
         raise ValueError("INVALID_DATA: " + "; ".join(bad))
 
 def render_reservoir_pdf(rows, report_date, path, generation_hours=None):
-    """12 odd hours, previous day. Production release requires approved TB rule."""
-    from reportlab.pdfbase import pdfmetrics
+    """12 display rows, independently calculate daily metrics from all 24 hourly rows."""
     daily.set_font()
     prev = report_date - timedelta(days=1)
     day = daily_rows(rows)
+    if len(day) != 24:
+        raise ValueError("PENDING_DATA: 24 hourly observations required")
     selected = day[::2]
     assert len(selected) == 12
-    hours = sum(float(r["turbine_flow"]) > 0 for _,r in day)
+    hours = sum(float(r["turbine_flow"]) > 0 for _, r in day)
     if generation_hours is not None and hours != generation_hours:
         raise AssertionError(f"Expected {generation_hours} generation hours, got {hours}")
-    avg = lambda key: sum(float(r[key]) for _,r in day)/24.0
-    style = ParagraphStyle("normalBundle",fontName="AV",fontSize=8,leading=11)
-    cent = ParagraphStyle("centerBundle",parent=style,alignment=TA_CENTER)
-    heading = ParagraphStyle("headingBundle",parent=cent,fontName="AV-Bold",fontSize=11,leading=14)
-    small = ParagraphStyle("smallBundle",parent=cent,fontSize=6.7,leading=8.8)
-    p = lambda s,sty=cent: Paragraph(s,sty)
-    doc = SimpleDocTemplate(str(path), pagesize=A4,
-                            leftMargin=26,rightMargin=26,topMargin=27,bottomMargin=25)
-    story = [
-        Table([[p("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",heading),
-                p("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br/>Độc lập - Tự do - Hạnh phúc",heading)]],
-              colWidths=[270,270]),
-        Spacer(1,8),p(f"Đà Nẵng, 07h ngày {report_date.day:02d} tháng {report_date.month:02d} năm {report_date.year}"),
-        Spacer(1,7),p("BÁO CÁO",heading),
-        p("Số liệu vận hành Nhà máy thủy điện A Vương",cent),
-        Spacer(1,5),p("Kính gửi: Cục Quản lý tài nguyên nước."),
-        Spacer(1,9),p(f"Bảng số liệu vận hành ngày {prev.day:02d} tháng {prev.month:02d} năm {prev.year}",heading),
-        Spacer(1,8)
-    ]
-    h = ["Ngày", "Giờ", "Mực nước<br/>hồ (m)", "Q đến hồ<br/>(m³/s)",
-         "Tổng Q xả<br/>(m³/s)", "Q qua máy<br/>(m³/s)",
-         "Q qua tràn<br/>(m³/s)", "Giờ phát<br/>điện/ngày"]
-    table_data = [[p(x,small) for x in h]]
+    avg = lambda key: sum(float(r[key]) for _, r in day) / 24.0
+    from reportlab.platypus import HRFlowable, KeepTogether
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+    normal = ParagraphStyle("v36n",fontName="AV",fontSize=8.5,leading=12)
+    cent = ParagraphStyle("v36c", parent=normal,alignment=TA_CENTER)
+    bold = ParagraphStyle("v36b", parent=cent,fontName="AV-Bold",fontSize=10,leading=13)
+    small = ParagraphStyle("v36s", parent=cent,fontSize=7.3,leading=10)
+    right = ParagraphStyle("v36r", parent=normal,alignment=TA_RIGHT)
+    p = lambda x,sty=cent: Paragraph(x,sty)
+    doc = SimpleDocTemplate(str(path),pagesize=A4,leftMargin=27,rightMargin=27,
+                            topMargin=28,bottomMargin=28)
+    right_header = [p("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",bold),
+                    p("Độc lập - Tự do - Hạnh phúc",bold),
+                    Spacer(1,4),HRFlowable(width=168,thickness=0.8,color=colors.black,hAlign="CENTER")]
+    header = Table([[p("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",bold),right_header]],
+                   colWidths=[270,270])
+    header.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
+                                ("LEFTPADDING",(0,0),(-1,-1),0),
+                                ("RIGHTPADDING",(0,0),(-1,-1),0)]))
+    story=[header,Spacer(1,10),
+           p(f"Đà Nẵng, 07h ngày {report_date.day:02d} tháng {report_date.month:02d} năm {report_date.year}",right),
+           Spacer(1,9),p("BÁO CÁO",bold),
+           p("Số liệu vận hành Nhà máy thủy điện A Vương"),
+           Spacer(1,5),p("Kính gửi: Cục Quản lý tài nguyên nước."),
+           Spacer(1,9),p(f"Bảng số liệu vận hành ngày {prev.day:02d} tháng {prev.month:02d} năm {prev.year}",bold),
+           Spacer(1,9)]
+    labels=["Ngày","Giờ","Mực nước<br/>hồ (m)","Q đến hồ<br/>(m³/s)",
+            "Tổng Q xả<br/>(m³/s)","Q qua máy<br/>(m³/s)",
+            "Q qua tràn<br/>(m³/s)","Giờ phát<br/>điện/ngày"]
+    data=[[p(x,small) for x in labels]]
     for idx,(t,r) in enumerate(selected):
-        q_machine = float(r["turbine_flow"])
-        q_spill = float(r["spillway_flow"])
-        table_data.append([
-            prev.strftime("%d/%m/%Y") if idx==0 else "",
-            str(t.hour),f'{float(r["water_level"]):.2f}',
-            f'{float(r["inflow"]):.2f}', f"{q_machine+q_spill:.2f}",
-            f"{q_machine:.2f}",f"{q_spill:.2f}",
-            str(hours) if idx==0 else ""
-        ])
-    table_data.append([
-        "", "TB ngày", "",f'{avg("inflow"):.2f}',
-        f'{avg("turbine_flow")+avg("spillway_flow"):.2f}',
-        f'{avg("turbine_flow"):.2f}',f'{avg("spillway_flow"):.2f}',str(hours)
-    ])
-    tab=Table(table_data,colWidths=[76,46,72,72,80,72,74,48],repeatRows=1)
+        qm=float(r["turbine_flow"]); qs=float(r["spillway_flow"])
+        data.append([prev.strftime("%d/%m/%Y") if idx==0 else "",
+                     str(t.hour),f'{float(r["water_level"]):.2f}',
+                     f'{float(r["inflow"]):.2f}',f'{qm+qs:.2f}',
+                     f'{qm:.2f}',f'{qs:.2f}',str(hours) if idx==0 else ""])
+    data.append(["","TB ngày","",f'{avg("inflow"):.2f}',
+                 f'{avg("turbine_flow")+avg("spillway_flow"):.2f}',
+                 f'{avg("turbine_flow"):.2f}',f'{avg("spillway_flow"):.2f}',str(hours)])
+    tab=Table(data,colWidths=[78,48,69,71,80,71,75,48],repeatRows=1)
     tab.setStyle(TableStyle([
-        ("GRID",(0,0),(-1,-1),0.5,colors.black),
+        ("GRID",(0,0),(-1,-1),0.55,colors.black),
+        ("SPAN",(0,1),(0,12)),   # operational day: one merged cell for 12 display hours
+        ("VALIGN",(0,1),(0,12),"MIDDLE"),
         ("FONTNAME",(0,1),(-1,-1),"AV"),
-        ("FONTSIZE",(0,1),(-1,-1),8),
+        ("FONTSIZE",(0,1),(-1,-1),8.2),
         ("ALIGN",(0,0),(-1,-1),"CENTER"),
         ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
         ("TOPPADDING",(0,0),(-1,-1),6),
         ("BOTTOMPADDING",(0,0),(-1,-1),6),
-        ("BACKGROUND",(0,-1),(-1,-1),colors.whitesmoke)
-    ]))
-    story += [tab, Spacer(1,10),
-              
-              Spacer(1,17),p("PHÂN XƯỞNG VẬN HÀNH",heading),
-              Spacer(1,25),
-              Spacer(1,8),p("Nơi nhận: Như kính gửi; Ban GĐ; Lưu VH, KTAT.",style)]
+        ("BACKGROUND",(0,-1),(-1,-1),colors.whitesmoke)]))
+    sign=Table([["",p("PHÂN XƯỞNG VẬN HÀNH",bold)]],colWidths=[280,260])
+    sign.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
+                              ("LEFTPADDING",(0,0),(-1,-1),0),
+                              ("RIGHTPADDING",(0,0),(-1,-1),0)]))
+    story += [tab,Spacer(1,15),sign,Spacer(1,58),
+              p("Nơi nhận: Như kính gửi; Ban GĐ; Lưu VH, KTAT.",
+                ParagraphStyle("v36foot",parent=normal,alignment=TA_LEFT))]
     doc.build(story)
     return hours
 

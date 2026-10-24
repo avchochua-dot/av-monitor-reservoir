@@ -21,7 +21,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import simpleSplit
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepTogether, HRFlowable
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -115,7 +115,9 @@ def build_pdf(rows, d, output):
     P=lambda s,sty=center:Paragraph(s,sty)
     top=Table([
         [P("TỔNG CÔNG TY PHÁT ĐIỆN 2<br/>CÔNG TY CỔ PHẦN<br/>THỦY ĐIỆN A VƯƠNG",bold),
-         P("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br/>Độc lập - Tự do - Hạnh phúc",bold)]
+         [P("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",bold),
+          P("Độc lập - Tự do - Hạnh phúc",bold),
+          Spacer(1,4),HRFlowable(width=165,thickness=0.8,color=colors.black,hAlign="CENTER")]]
     ],colWidths=[263,263])
     top.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),
                              ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0)]))
@@ -155,7 +157,8 @@ def build_pdf(rows, d, output):
         ("LEFTPADDING",(0,0),(-1,-1),2),("RIGHTPADDING",(0,0),(-1,-1),2),
     ]))
     story += [tab,Spacer(1,18),
-              P("PHÂN XƯỞNG VẬN HÀNH",bold),
+              Table([["",P("PHÂN XƯỞNG VẬN HÀNH",bold)]],
+                    colWidths=[270,256]),
               Spacer(1,40),
               
               Spacer(1,9),
