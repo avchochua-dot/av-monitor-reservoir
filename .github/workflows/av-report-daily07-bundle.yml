@@ -44,7 +44,7 @@ jobs:
       REPORT_DATE_INPUT: ${{ inputs.report_date || '' }}
       SEND_EMAIL: ${{ inputs.send_test_email && 'true' || 'false' }}
       RETENTION_CLASS: ${{ inputs.retention_class || 'REPORT' }}
-      AV_ARCHIVE_OUT: ${{ runner.temp }}/avuong-report-output/${{ github.run_id }}-${{ github.run_attempt }}
+      AV_ARCHIVE_OUT: ${{ github.workspace }}/reports/avuong_kttv/reports/output/archive/${{ github.run_id }}-${{ github.run_attempt }}
       REPORT_KTTV31_TO: ${{ secrets.REPORT_KTTV31_TO }}
       REPORT_RESERVOIR_TO: ${{ secrets.REPORT_RESERVOIR_TO }}
       REPORT_HYDRO_EXCEL_TO: ${{ secrets.REPORT_HYDRO_EXCEL_TO }}
