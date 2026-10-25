@@ -27,7 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-VERSION = "AV_ARCHIVE_V1_1_FORCE_RESEND"
+VERSION = "AV_ARCHIVE_V1_2_FLOOD_HOURLY"
 BUCKET = "avuong-reports"
 MAX_BYTES = 20 * 1024 * 1024
 try:
@@ -177,6 +177,8 @@ def expected_files(pipeline: str, day: date, hour: int, directory: Path) -> dict
         }
     if pipeline == "KTTV_6H" and hour in (1,7,13,19):
         return {"KTTV_6H":directory/f"{hour:02d}h00_{stamp}_So_lieu_KTTV.pdf"}
+    if pipeline == "FLOOD_HOURLY" and 0 <= hour <= 23:
+        return {"FLOOD_HOURLY":directory/f"{hour:02d}h00_{stamp}_So_lieu_KTTV.pdf"}
     raise ValueError("Invalid report pipeline/hour")
 
 def read_report(path: Path) -> tuple[bytes,str,str]:
@@ -221,10 +223,10 @@ def email_observation(client: Client,report: str,day: date,hour: int,
     result = {"email_observation":"NOT_REQUESTED" if not requested else "UNKNOWN"}
     if not requested: return result
     force_marker = (
-        ("SMTP FORCE RESEND ACCEPTED" in logs) if report == "KTTV_6H"
+        ("SMTP FORCE RESEND ACCEPTED" in logs) if report in ("KTTV_6H","FLOOD_HOURLY")
         else (f"EMAIL_FORCE_RESEND_SMTP_ACCEPTED {report}" in logs)
     )
-    if report == "KTTV_6H":
+    if report in ("KTTV_6H","FLOOD_HOURLY"):
         recipients = recipient_key(os.getenv("REPORT_TEST_TO",""))
         if not recipients: return {"email_observation":"NOT_CONFIGURED"}
         token = hashlib.sha256(",".join(recipients).encode()).hexdigest()[:12]
@@ -254,7 +256,8 @@ def email_observation(client: Client,report: str,day: date,hour: int,
         else:
             sent=datetime.fromisoformat(row["sent_at"].replace("Z","+00:00")) if row.get("sent_at") else None
             begin=datetime.fromisoformat(started)
-            marker=("SMTP ACCEPTED (NOT INBOX CONFIRMATION):" in logs if report=="KTTV_6H"
+            marker=("SMTP ACCEPTED (NOT INBOX CONFIRMATION):" in logs
+                    if report in ("KTTV_6H","FLOOD_HOURLY")
                     else f"EMAIL_SMTP_ACCEPTED {report}" in logs)
             current=bool(sent and sent>=begin and marker)
             result["email_observation"]="ACCEPTED_THIS_RUN" if current else "ACCEPTED_EARLIER_SAME_FILE"
@@ -325,6 +328,8 @@ def generation_state(expected: dict[str,Path],returncode: int,logs: str) -> tupl
 def run_reports(args: argparse.Namespace) -> int:
     day=parse_day(args.date) if args.date else datetime.now(VN).date()
     hour=7 if args.pipeline=="DAILY07_BUNDLE" else args.hour
+    if args.pipeline=="KTTV_6H" and hour not in (1,7,13,19):
+        raise RuntimeError("KTTV_6H only supports 01/07/13/19h")
     if args.force_resend and not args.send_email:
         raise RuntimeError("--force-resend requires --send-email")
     output=Path(args.output_dir).resolve()
@@ -507,9 +512,9 @@ def main() -> int:
     ap=argparse.ArgumentParser(description=__doc__)
     sub=ap.add_subparsers(dest="action",required=True)
     rp=sub.add_parser("run")
-    rp.add_argument("--pipeline",choices=["DAILY07_BUNDLE","KTTV_6H"],required=True)
+    rp.add_argument("--pipeline",choices=["DAILY07_BUNDLE","KTTV_6H","FLOOD_HOURLY"],required=True)
     rp.add_argument("--date",default="")
-    rp.add_argument("--hour",type=int,choices=[1,7,13,19],default=7)
+    rp.add_argument("--hour",type=int,choices=list(range(24)),default=7)
     rp.add_argument("--send-email",action="store_true")
     rp.add_argument("--retry-failed",action="store_true")
     rp.add_argument("--force-resend",action="store_true",

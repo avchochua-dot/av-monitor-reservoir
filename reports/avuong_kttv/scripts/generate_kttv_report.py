@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_4KY_V3_8_6"
+VERSION = "AVUONG_KTTV_V4_FLOOD_HOURLY"
 
 
 def env(name: str, default: str = "") -> str:
@@ -530,7 +530,7 @@ def sha256_path(p: Path) -> str:
 def run() -> int:
     parser = argparse.ArgumentParser(description="Tạo PDF vận hành KTTV A Vương và gửi email thử nội bộ")
     parser.add_argument("--date", default="", help="Ngày VN YYYY-MM-DD; bỏ trống để lấy ngày hôm nay")
-    parser.add_argument("--hour", type=int, choices=[1, 7, 13, 19], default=19)
+    parser.add_argument("--hour", type=int, choices=list(range(24)), default=19)
     parser.add_argument("--mode", choices=["preview", "test-email"], default="preview")
     parser.add_argument("--demo", action="store_true", help="PDF minh họa từ mẫu đính kèm, không kết nối DB")
     parser.add_argument("--retry-failed", action="store_true", help="Chỉ dùng khi SMTP đã lỗi (không dùng cho SENT)")
