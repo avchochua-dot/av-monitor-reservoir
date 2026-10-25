@@ -33,7 +33,7 @@ Q2 = Decimal("0.01")
 Q1 = Decimal("0.1")
 EXPECTED_FIELDS = ("inflow", "turbine_flow", "spillway_flow", "rainfallreal")
 DEFAULT_PERIOD_HOURS = 6
-VERSION = "AVUONG_KTTV_V4_FLOOD_HOURLY"
+VERSION = "AVUONG_KTTV_V5_PERIOD6_AND_HOURLY_SNAPSHOT"
 
 
 def env(name: str, default: str = "") -> str:
@@ -127,7 +127,8 @@ def supabase_request(method: str, table: str, params: dict[str, str] | None = No
         raise RuntimeError(f"Không kết nối được Supabase: {e}") from None
 
 
-def choose_rows(all_rows: list[dict[str, Any]], instants: list[datetime]) -> list[dict[str, Any]]:
+def choose_rows(all_rows: list[dict[str, Any]], instants: list[datetime],
+                missing_label: str = "dữ liệu kỳ") -> list[dict[str, Any]]:
     by_time: dict[str, dict[str, Any]] = {}
     for row in all_rows:
         raw_time = str(row.get("time") or "").replace("Z", "+00:00")
@@ -143,7 +144,7 @@ def choose_rows(all_rows: list[dict[str, Any]], instants: list[datetime]) -> lis
             by_time[key] = row
     missing = [iso_z(t) for t in instants if iso_z(t) not in by_time]
     if missing:
-        raise ValueError("DATA_INCOMPLETE: Thiếu giờ trong dữ liệu 6 giờ: " + ", ".join(missing))
+        raise ValueError(f"DATA_INCOMPLETE: Thiếu {missing_label}: " + ", ".join(missing))
     return [by_time[iso_z(t)] for t in instants]
 
 
@@ -172,6 +173,35 @@ def fetch_six_hours(report_day: date, hour: int, source_mode: str) -> list[dict[
     return choose_rows(supabase_request("GET", "reservoir_hourly_data", where), times)
 
 
+def fetch_snapshot_hour(report_day: date, hour: int, source_mode: str) -> dict[str, Any]:
+    """Đọc đúng MỘT bản ghi HH:00 của ngày báo cáo cho FLOOD_HOURLY."""
+    local = datetime(report_day.year, report_day.month, report_day.day, hour)
+    instant = local_clock_to_query_utc(local, source_mode)
+    where: dict[str, str] = {
+        "select": "id,reservoir_id,time,water_level,tailwater_level,inflow,turbine_flow,spillway_flow,rainfallreal,created_at",
+        "time": f"eq.{iso_z(instant)}",
+        "order": "created_at.desc,id.desc",
+        "limit": "20",
+    }
+    reservoir_filter = env("RESERVOIR_ID", "is.null")
+    if reservoir_filter == "is.null":
+        where["reservoir_id"] = "is.null"
+    else:
+        import uuid
+        try:
+            uuid.UUID(reservoir_filter)
+        except ValueError:
+            raise ValueError("RESERVOIR_ID phải là UUID, hoặc is.null theo dữ liệu A Vương hiện tại.")
+        where["reservoir_id"] = f"eq.{reservoir_filter}"
+
+    rows = choose_rows(
+        supabase_request("GET", "reservoir_hourly_data", where),
+        [instant],
+        f"dữ liệu tại {hour:02d}h00 ngày {report_day.strftime('%d/%m/%Y')}",
+    )
+    return rows[0]
+
+
 @dataclass
 class Report:
     day: date
@@ -185,6 +215,7 @@ class Report:
     mean_spillway: Decimal
     rain_total: Decimal
     hour_ids: list[int]
+    data_mode: str = "period6"
     demo: bool = False
 
     @property
@@ -227,6 +258,42 @@ def aggregate_rows(report_day: date, hour: int, source_mode: str,
         mean_inflow=avg("inflow"), mean_turbine=avg("turbine_flow"),
         mean_spillway=avg("spillway_flow"), rain_total=rain,
         hour_ids=[int(r.get("id") or 0) for r in rows],
+        data_mode="period6",
+    )
+
+
+def aggregate_snapshot(report_day: date, hour: int, source_mode: str,
+                       row: dict[str, Any]) -> Report:
+    """Lập báo cáo lũ hàng giờ từ đúng một bản ghi HH:00."""
+    w = decimal_value(row.get("water_level"), "water_level tại đúng giờ báo cáo")
+    if not (Decimal("300") <= w <= Decimal("400")):
+        raise ValueError(f"Mực nước thượng lưu ngoài phạm vi QC A Vương: {w}")
+
+    tail = decimal_value(row.get("tailwater_level"), "tailwater_level tại đúng giờ báo cáo")
+    if not (Decimal("0") < tail <= Decimal("100")):
+        raise ValueError(f"DATA_QC_FAIL: mực nước hạ lưu ngoài phạm vi QC: {tail}")
+
+    values: dict[str, Decimal] = {}
+    for key in EXPECTED_FIELDS:
+        value = decimal_value(row.get(key), f"{key} tại {hour:02d}h00")
+        if value < 0:
+            raise ValueError(f"DATA_QC_FAIL: {key} âm tại {hour:02d}h00.")
+        if key == "rainfallreal" and value > 500:
+            raise ValueError("DATA_QC_FAIL: rainfallreal > 500 mm/h; cần rà nguồn.")
+        if key != "rainfallreal" and value > 20000:
+            raise ValueError(f"DATA_QC_FAIL: {key} > 20.000 m3/s; cần rà nguồn.")
+        values[key] = value
+
+    return Report(
+        day=report_day, hour=hour, source_mode=source_mode,
+        upstream=w, tailwater=tail, tailwater_is_temporary=False,
+        # Tên trường mean_* được giữ để không phá code cũ; ở snapshot đây là giá trị tức thời.
+        mean_inflow=values["inflow"],
+        mean_turbine=values["turbine_flow"],
+        mean_spillway=values["spillway_flow"],
+        rain_total=values["rainfallreal"],
+        hour_ids=[int(row.get("id") or 0)],
+        data_mode="snapshot",
     )
 
 
@@ -237,7 +304,7 @@ def demo_report() -> Report:
         upstream=Decimal("355.13"), tailwater=Decimal("60.00"),
         tailwater_is_temporary=True, mean_inflow=Decimal("42.44"),
         mean_turbine=Decimal("57.05"), mean_spillway=Decimal("0.00"),
-        rain_total=Decimal("4.0"), hour_ids=[], demo=True
+        rain_total=Decimal("4.0"), hour_ids=[], data_mode="period6", demo=True
     )
 
 
@@ -277,6 +344,8 @@ def draw_pdf(r: Report, output: Path) -> Path:
     start_clock = end_clock - timedelta(hours=DEFAULT_PERIOD_HOURS)
     period_from = start_clock.strftime("%Hh/%d/%m")
     period_to = end_clock.strftime("%Hh/%d/%m/%Y")
+    is_snapshot = (r.data_mode == "snapshot")
+    snapshot_label = f"{r.hour:02d}h00 ngày {d.strftime('%d/%m/%Y')}"
 
     # Khổ A4 ngang 841.89 x 595.28 pt.
     # Bảng gọn theo biểu mẫu thật, nằm trong lề 25mm trái / 20mm phải.
@@ -383,13 +452,21 @@ def draw_pdf(r: Report, output: Path) -> Path:
     cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y0, yd, 8.5)
     cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y0, yd, 8.5)
     middle = (xs[4]+xs[7])/2
-    ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9)
-    ctr(f"{period_from} ÷ {period_to}", middle, y0-27, "AVTimesBold", 8.6)
+    if is_snapshot:
+        ctr("Số liệu tại", middle, y0-12, "AVTimesBold", 9)
+        ctr(snapshot_label, middle, y0-27, "AVTimesBold", 8.6)
+    else:
+        ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9)
+        ctr(f"{period_from} ÷ {period_to}", middle, y0-27, "AVTimesBold", 8.6)
     cell(4, ["Q đến hồ", "(m³/s)"], yg, yd, 8.3)
     cell(5, ["Q chạy máy", "(m³/s)"], yg, yd, 8.3)
     cell(6, ["Q xả tràn", "(m³/s)"], yg, yd, 8.3)
-    cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],
-         y0, yd, 8.0, True, 10.5)
+    if is_snapshot:
+        cell(7, ["Lượng mưa tại", f"{r.hour:02d}h00 ngày", d.strftime("%d/%m/%Y"), "(mm)"],
+             y0, yd, 8.0, True, 10.5)
+    else:
+        cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],
+             y0, yd, 8.0, True, 10.5)
 
     values = [d.strftime("%d/%m/%Y"), f"{r.hour:02d}h00'",
               fmt(r.upstream), fmt(r.tailwater), fmt(r.mean_inflow),
@@ -410,7 +487,12 @@ def report_meta(r: Report) -> dict[str, Any]:
     return {
         "report_version": VERSION, "report_date_vn": r.day.isoformat(),
         "report_hour_vn": r.hour, "source_time_mode": r.source_mode,
-        "period_definition": "6 hourly readings ending at report hour: (T-6h, T]",
+        "data_mode": r.data_mode,
+        "period_definition": (
+            "single hourly snapshot exactly at report HH:00"
+            if r.data_mode == "snapshot"
+            else "6 hourly readings ending at report hour: (T-6h, T]"
+        ),
         "hourly_record_ids": r.hour_ids,
         "tailwater_source": ("DEMO_ONLY" if r.demo else
                              "public.reservoir_hourly_data.tailwater_level"),
@@ -420,10 +502,10 @@ def report_meta(r: Report) -> dict[str, Any]:
         "values": {
             "water_level_m": fmt(r.upstream),
             "tailwater_level_m": fmt(r.tailwater),
-            "mean_inflow_m3_s": fmt(r.mean_inflow),
-            "mean_turbine_flow_m3_s": fmt(r.mean_turbine),
-            "mean_spillway_flow_m3_s": fmt(r.mean_spillway),
-            "rain_total_mm": fmt(r.rain_total, 1),
+            ("inflow_m3_s" if r.data_mode == "snapshot" else "mean_inflow_m3_s"): fmt(r.mean_inflow),
+            ("turbine_flow_m3_s" if r.data_mode == "snapshot" else "mean_turbine_flow_m3_s"): fmt(r.mean_turbine),
+            ("spillway_flow_m3_s" if r.data_mode == "snapshot" else "mean_spillway_flow_m3_s"): fmt(r.mean_spillway),
+            ("rainfall_mm" if r.data_mode == "snapshot" else "rain_total_mm"): fmt(r.rain_total, 1),
         }
     }
 
@@ -461,8 +543,9 @@ def mail_send_test(r: Report, pdf_path: Path) -> list[str]:
     msg["From"] = sender
     msg["To"] = ", ".join(recipients)
     tag = "[KIỂM TRA NỘI BỘ]"
+    kind = "báo cáo KTTV hàng giờ khi có lũ" if r.data_mode == "snapshot" else "báo cáo số liệu vận hành"
     msg["Subject"] = (f"{tag} "
-                      f"Công ty CPTĐ A Vương - báo cáo số liệu vận hành lúc {r.hour:02d}h00 ngày "
+                      f"Công ty CPTĐ A Vương - {kind} lúc {r.hour:02d}h00 ngày "
                       f"{r.day.strftime('%d/%m/%Y')}")
     warning = (
         f"Mực nước hạ lưu nhà máy {fmt(r.tailwater).replace('.', ',')} m là GIẢ ĐỊNH TẠM THỜI, không phải số đo.\n"
@@ -532,6 +615,8 @@ def run() -> int:
     parser.add_argument("--date", default="", help="Ngày VN YYYY-MM-DD; bỏ trống để lấy ngày hôm nay")
     parser.add_argument("--hour", type=int, choices=list(range(24)), default=19)
     parser.add_argument("--mode", choices=["preview", "test-email"], default="preview")
+    parser.add_argument("--data-mode", choices=["period6", "snapshot"], default="period6",
+                        help="period6=KTTV 4 kỳ; snapshot=FLOOD_HOURLY đúng một mốc HH:00")
     parser.add_argument("--demo", action="store_true", help="PDF minh họa từ mẫu đính kèm, không kết nối DB")
     parser.add_argument("--retry-failed", action="store_true", help="Chỉ dùng khi SMTP đã lỗi (không dùng cho SENT)")
     parser.add_argument("--force-resend", action="store_true",
@@ -554,8 +639,12 @@ def run() -> int:
         r = demo_report()
     else:
         try:
-            rows = fetch_six_hours(report_day, args.hour, source_mode)
-            r = aggregate_rows(report_day, args.hour, source_mode, rows)
+            if args.data_mode == "snapshot":
+                row = fetch_snapshot_hour(report_day, args.hour, source_mode)
+                r = aggregate_snapshot(report_day, args.hour, source_mode, row)
+            else:
+                rows = fetch_six_hours(report_day, args.hour, source_mode)
+                r = aggregate_rows(report_day, args.hour, source_mode, rows)
         except ValueError as error:
             description = str(error)
             # Chi nhung loi THIEU du lieu duoc thu lai vao phut 10.
@@ -588,8 +677,13 @@ def run() -> int:
             safe_reason = description.replace("%", "%25").replace("\r", " ").replace("\n", " ")
             print(f"::warning title=BAO CAO {args.hour:02d}H DANG CHO DU LIEU::{safe_reason}")
             return 0
-        print("DATA QC PASS:", "6/6 hourly records;",
-              "IDs", r.hour_ids, "; source time mode", source_mode)
+        if r.data_mode == "snapshot":
+            print("DATA QC PASS: 1/1 snapshot record at",
+                  f"{r.hour:02d}h00; ID", r.hour_ids[0] if r.hour_ids else None,
+                  "; source time mode", source_mode)
+        else:
+            print("DATA QC PASS:", "6/6 hourly records;",
+                  "IDs", r.hour_ids, "; source time mode", source_mode)
     if r.tailwater_is_temporary:
         print(f"WARNING: tailwater_level NULL => {fmt(r.tailwater)} m TẠM TÍNH; chỉ báo cáo thử nghiệm.")
     base = f"{r.hour:02d}h00_{r.day.strftime('%d-%m-%Y')}_So_lieu_KTTV"
@@ -610,7 +704,8 @@ def run() -> int:
     recipients = clean_list(env("REPORT_TEST_TO"))
     if not recipients:
         raise RuntimeError("REPORT_TEST_TO chưa được khai báo.")
-    report_key = f"test:{r.day.isoformat()}:{r.hour:02d}:{hashlib.sha256(','.join(recipients).encode()).hexdigest()[:12]}"
+    key_prefix = "flood-hourly" if r.data_mode == "snapshot" else "test"
+    report_key = f"{key_prefix}:{r.day.isoformat()}:{r.hour:02d}:{hashlib.sha256(','.join(recipients).encode()).hexdigest()[:12]}"
     existing = log_get(report_key)
     force_existing_accepted = bool(
         args.force_resend and existing and existing.get("status") == "SMTP_ACCEPTED"

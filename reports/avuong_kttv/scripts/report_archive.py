@@ -27,7 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-VERSION = "AV_ARCHIVE_V1_2_FLOOD_HOURLY"
+VERSION = "AV_ARCHIVE_V1_3_FLOOD_HOURLY_SNAPSHOT"
 BUCKET = "avuong-reports"
 MAX_BYTES = 20 * 1024 * 1024
 try:
@@ -230,7 +230,8 @@ def email_observation(client: Client,report: str,day: date,hour: int,
         recipients = recipient_key(os.getenv("REPORT_TEST_TO",""))
         if not recipients: return {"email_observation":"NOT_CONFIGURED"}
         token = hashlib.sha256(",".join(recipients).encode()).hexdigest()[:12]
-        key = f"test:{day.isoformat()}:{hour:02d}:{token}"
+        prefix = "flood-hourly" if report == "FLOOD_HOURLY" else "test"
+        key = f"{prefix}:{day.isoformat()}:{hour:02d}:{token}"
         table = "av_report_dispatch_log"
     else:
         envname = {"KTTV_31H":"REPORT_KTTV31_TO","RESERVOIR_12H":"REPORT_RESERVOIR_TO",
@@ -359,6 +360,8 @@ def run_reports(args: argparse.Namespace) -> int:
     else:
         command += ["--hour",str(hour),"--mode","test-email" if args.send_email else "preview",
                     "--allow-pending-data"]
+        if args.pipeline=="FLOOD_HOURLY":
+            command += ["--data-mode","snapshot"]
         if args.retry_failed: command.append("--retry-failed")
         if args.force_resend: command.append("--force-resend")
     print("ARCHIVE_RUN",run["id"],"CLASS",args.retention_class,flush=True)
