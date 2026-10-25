@@ -1,0 +1,154 @@
+name: A Vuong - Bao cao KTTV hang gio khi co lu
+
+on:
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: "Ngay bao cao VN YYYY-MM-DD; bo trong = hom nay"
+        type: string
+        required: false
+      report_hour:
+        description: "Gio bao cao 00..23; bo trong = gio VN hien tai"
+        type: string
+        required: false
+      send_email:
+        description: "Gui email sau khi tao?"
+        type: boolean
+        required: false
+        default: true
+      force_resend:
+        description: "CHI CHAY TAY: gui lai neu gio nay da SMTP_ACCEPTED"
+        type: boolean
+        required: false
+        default: false
+      retention_class:
+        description: "REPORT: 30 ngay + backup; TEST: 7 ngay"
+        type: choice
+        required: false
+        default: REPORT
+        options: [REPORT, TEST]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avuong-flood-hourly-${{ inputs.report_date || 'today' }}-${{ inputs.report_hour || 'current' }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate flood hourly KTTV PDF and archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      RESERVOIR_ID: "is.null"
+      SOURCE_TIME_MODE: "vn_label_stored_as_utc"
+
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
+      SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
+
+      AV_TNR_FONT_DIR: ${{ github.workspace }}/.private-fonts
+      PYTHONUNBUFFERED: "1"
+
+      REPORT_DATE_INPUT: ${{ inputs.report_date || '' }}
+      REPORT_HOUR_INPUT: ${{ inputs.report_hour || '' }}
+      SEND_EMAIL: ${{ inputs.send_email && 'true' || 'false' }}
+      FORCE_RESEND: ${{ inputs.force_resend && 'true' || 'false' }}
+      RETENTION_CLASS: ${{ inputs.retention_class || 'REPORT' }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Checkout private Times New Roman fonts
+        uses: actions/checkout@v4
+        with:
+          repository: avchochua-dot/avuong-private-fonts
+          ssh-key: ${{ secrets.AVUONG_FONTS_DEPLOY_KEY }}
+          path: .private-fonts
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve report date and hour VN
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${REPORT_DATE_INPUT}" ]]; then
+            REPORT_DATE="${REPORT_DATE_INPUT}"
+          else
+            REPORT_DATE="$(TZ=Asia/Ho_Chi_Minh date +%F)"
+          fi
+          if [[ -n "${REPORT_HOUR_INPUT}" ]]; then
+            REPORT_HOUR="$(printf "%02d" "$((10#${REPORT_HOUR_INPUT}))")"
+          else
+            REPORT_HOUR="$(TZ=Asia/Ho_Chi_Minh date +%H)"
+          fi
+          HOUR_NUM="$((10#${REPORT_HOUR}))"
+          if (( HOUR_NUM < 0 || HOUR_NUM > 23 )); then
+            echo "::error::Invalid report hour: ${REPORT_HOUR}"
+            exit 1
+          fi
+          OUT="${RUNNER_TEMP}/avuong-flood-hourly/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$OUT"
+          {
+            echo "REPORT_DATE=$REPORT_DATE"
+            echo "REPORT_HOUR=$REPORT_HOUR"
+            echo "AV_ARCHIVE_OUT=$OUT"
+          } >> "$GITHUB_ENV"
+          echo "FLOOD_HOURLY report=${REPORT_DATE} ${REPORT_HOUR}h VN"
+
+      - name: Install report requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r reports/avuong_kttv/requirements.txt
+
+      - name: Validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            reports/avuong_kttv/scripts/report_archive.py \
+            reports/avuong_kttv/scripts/generate_kttv_report.py
+
+      - name: Generate, email and archive flood hourly report
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRA=()
+          if [[ "$SEND_EMAIL" == "true" ]]; then EXTRA+=(--send-email); fi
+          if [[ "$FORCE_RESEND" == "true" ]]; then
+            if [[ "$SEND_EMAIL" != "true" ]]; then
+              echo "::error::force_resend requires send_email=true"
+              exit 1
+            fi
+            EXTRA+=(--force-resend)
+          fi
+
+          python reports/avuong_kttv/scripts/report_archive.py run \
+            --pipeline FLOOD_HOURLY \
+            --date "$REPORT_DATE" \
+            --hour "$((10#$REPORT_HOUR))" \
+            --retention-class "$RETENTION_CLASS" \
+            --output-dir "$AV_ARCHIVE_OUT" \
+            "${EXTRA[@]}"
+
+      - name: Save fallback GitHub Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FLOOD-HOURLY-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.AV_ARCHIVE_OUT }}/*
+          if-no-files-found: warn
+          retention-days: 30
