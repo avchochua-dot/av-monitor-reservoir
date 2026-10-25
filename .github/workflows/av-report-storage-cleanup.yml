@@ -1,0 +1,45 @@
+name: A Vuong - Storage retention cleanup
+# Called by the dedicated Supabase cleanup cron, not by report cron 10/11.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Chi kiem tra danh sach, KHONG xoa file"
+        type: boolean
+        required: true
+        default: true
+      max_files:
+        description: "So file toi da moi luot"
+        type: choice
+        required: false
+        default: "20"
+        options: ["20", "50", "100"]
+permissions:
+  contents: read
+concurrency:
+  group: avuong-storage-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+      MAX_FILES: ${{ inputs.max_files || '20' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Delete expired eligible files using Storage API
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRA=()
+          if [[ "$DRY_RUN" == "true" ]]; then EXTRA+=(--dry-run); fi
+          python reports/avuong_kttv/scripts/report_archive.py cleanup \
+            --max-files "$MAX_FILES" "${EXTRA[@]}"

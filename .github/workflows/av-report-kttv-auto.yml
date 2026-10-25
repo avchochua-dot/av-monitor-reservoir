@@ -1,87 +1,69 @@
-
 name: A Vuong - Bao cao KTTV PDF & Email thu (4 ky mua mua)
-
+# Supabase job 10 is unchanged. No GitHub schedule is added.
 on:
   workflow_dispatch:
     inputs:
       report_date:
         description: "Ngay bao cao VN YYYY-MM-DD; bo trong = hom nay"
-        required: false
         type: string
-
+        required: false
       report_hour:
-        description: "Ky bao cao gio Viet Nam"
+        description: "Ky bao cao gio VN"
+        type: choice
         required: true
         default: "19"
-        type: choice
-        options:
-          - "01"
-          - "07"
-          - "13"
-          - "19"
-
+        options: ["01", "07", "13", "19"]
       send_test_email:
-        description: "Gui email kiem tra den REPORT_TEST_TO?"
-        required: true
+        description: "Gui email den REPORT_TEST_TO?"
         type: boolean
+        required: true
         default: false
-
       retry_failed:
-        description: "Thu lai SMTP FAILED sau khi da xac minh?"
-        required: true
+        description: "Chi dung khi da xac minh loi SMTP va cho phep thu lai"
         type: boolean
+        required: true
         default: false
-
+      retention_class:
+        description: "REPORT: 30 ngay + backup; TEST: 7 ngay, chi ban thu co the xoa"
+        type: choice
+        required: false
+        default: REPORT
+        options: [REPORT, TEST]
 permissions:
   contents: read
-
 concurrency:
   group: avuong-kttv-report-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
   generate:
-    name: Generate KTTV PDF
+    name: Generate KTTV PDF and archive
     runs-on: ubuntu-latest
-    timeout-minutes: 12
-
+    timeout-minutes: 15
     env:
-      # Supabase
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESERVOIR_ID: "is.null"
       SOURCE_TIME_MODE: "vn_label_stored_as_utc"
-
-      # SMTP
-      AUTO_SEND_TEST_EMAIL: ${{ vars.AUTO_SEND_TEST_EMAIL }}
-      REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
       SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
       SMTP_USER: ${{ secrets.SMTP_USER }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
-
-      # Trigger
-      EVENT_NAME: ${{ github.event_name }}
-      SCHEDULE_CRON: ${{ github.event.schedule || '' }}
-
-      MANUAL_REPORT_DATE: ${{ inputs.report_date || '' }}
-      MANUAL_REPORT_HOUR: ${{ inputs.report_hour || '19' }}
-      MANUAL_TEST_SEND: ${{ inputs.send_test_email || 'false' }}
-      RETRY_FAILED: ${{ inputs.retry_failed || 'false' }}
-
-      # Private Times New Roman
       AV_TNR_FONT_DIR: ${{ github.workspace }}/.private-fonts
-
+      PYTHONUNBUFFERED: "1"
+      REPORT_DATE_INPUT: ${{ inputs.report_date || '' }}
+      SEND_EMAIL: ${{ inputs.send_test_email && 'true' || 'false' }}
+      RETENTION_CLASS: ${{ inputs.retention_class || 'REPORT' }}
+      AV_ARCHIVE_OUT: ${{ runner.temp }}/avuong-report-output/${{ github.run_id }}-${{ github.run_attempt }}
+      REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
+      REPORT_HOUR_INPUT: ${{ inputs.report_hour || '19' }}
+      RETRY_FAILED: ${{ inputs.retry_failed && 'true' || 'false' }}
     steps:
-      # 1. Checkout source
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      # 2. Download Times New Roman
       - name: Checkout private Times New Roman fonts
         uses: actions/checkout@v4
         with:
@@ -90,149 +72,54 @@ jobs:
           ssh-key: ${{ secrets.AVUONG_FONTS_DEPLOY_KEY }}
           persist-credentials: false
           path: .private-fonts
-
-      # 3. Verify fonts
       - name: Verify Times New Roman fonts
         shell: bash
         run: |
           set -euo pipefail
-
-          if [[ ! -s "$AV_TNR_FONT_DIR/times.ttf" ]]; then
-            echo "::error::Missing times.ttf"
-            exit 1
-          fi
-
-          if [[ ! -s "$AV_TNR_FONT_DIR/timesbd.ttf" ]]; then
-            echo "::error::Missing timesbd.ttf"
-            exit 1
-          fi
-
+          test -s "$AV_TNR_FONT_DIR/times.ttf"
+          test -s "$AV_TNR_FONT_DIR/timesbd.ttf"
           echo "TIMES_NEW_ROMAN_READY"
-
-      # 4. Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      # 5. Resolve report date and hour
-      - name: Resolve report issue VN
+      - name: Install report requirements
         shell: bash
         run: |
           set -euo pipefail
-
-          if [[ "$EVENT_NAME" == "schedule" ]]; then
-
-            case "$SCHEDULE_CRON" in
-              "5 18 * * *"|"10 18 * * *")
-                REPORT_HOUR="01"
-                ;;
-              "5 0 * * *"|"10 0 * * *")
-                REPORT_HOUR="07"
-                ;;
-              "5 6 * * *"|"10 6 * * *")
-                REPORT_HOUR="13"
-                ;;
-              "5 12 * * *"|"10 12 * * *")
-                REPORT_HOUR="19"
-                ;;
-              *)
-                echo "::error::Unknown cron: $SCHEDULE_CRON"
-                exit 1
-                ;;
-            esac
-
-            REPORT_DATE="$(TZ=Asia/Ho_Chi_Minh date +%F)"
-            RUN_TYPE="AUTO"
-
-          else
-            REPORT_HOUR="$MANUAL_REPORT_HOUR"
-            REPORT_DATE="$MANUAL_REPORT_DATE"
-            RUN_TYPE="MANUAL"
-          fi
-
-          {
-            echo "REPORT_HOUR=$REPORT_HOUR"
-            echo "REPORT_DATE=$REPORT_DATE"
-            echo "RUN_TYPE=$RUN_TYPE"
-          } >> "$GITHUB_ENV"
-
-          echo "RUN_TYPE=$RUN_TYPE"
-          echo "REPORT_HOUR=$REPORT_HOUR"
-          echo "REPORT_DATE=${REPORT_DATE:-TODAY_VN}"
-
-      # 6. Install
-      - name: Install fonts and report requirements
+          python -m pip install -r reports/avuong_kttv/requirements.txt
+      - name: Validate source
         shell: bash
         run: |
           set -euo pipefail
-
-          python -m pip install \
-            -r reports/avuong_kttv/requirements.txt
-
-      # 7. Validate Python
-      - name: Validate Python source
+          python -m py_compile reports/avuong_kttv/scripts/generate_kttv_report.py
+          python -m py_compile reports/avuong_kttv/scripts/report_archive.py
+      - name: Generate PDF, process existing email, archive file
         shell: bash
         run: |
           set -euo pipefail
-
-          python -m py_compile \
-            reports/avuong_kttv/scripts/generate_kttv_report.py
-
-      # 8. Generate PDF and optionally send email
-      - name: Generate PDF and send TEST email
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          MODE="preview"
-
-          if [[ "$RUN_TYPE" == "AUTO" &&
-                "$AUTO_SEND_TEST_EMAIL" == "true" ]]; then
-            MODE="test-email"
-          fi
-
-          if [[ "$RUN_TYPE" == "MANUAL" &&
-                "$MANUAL_TEST_SEND" == "true" ]]; then
-            MODE="test-email"
-          fi
-
           EXTRA=()
-
-          if [[ -n "$REPORT_DATE" ]]; then
-            EXTRA+=(--date "$REPORT_DATE")
-          fi
-
-          if [[ "$RUN_TYPE" == "AUTO" ]]; then
-            EXTRA+=(--allow-pending-data)
-          fi
-
-          if [[ "$RUN_TYPE" == "MANUAL" &&
-                "$RETRY_FAILED" == "true" ]]; then
-            EXTRA+=(--retry-failed)
-          fi
-
-          echo "================================"
-          echo "A VUONG KTTV REPORT"
-          echo "DATE: ${REPORT_DATE:-TODAY_VN}"
-          echo "HOUR: $REPORT_HOUR"
-          echo "MODE: $MODE"
-          echo "================================"
-
-          python reports/avuong_kttv/scripts/generate_kttv_report.py \
-            --hour "$REPORT_HOUR" \
-            --mode "$MODE" \
-            --output-dir reports/avuong_kttv/reports/output \
-            "${EXTRA[@]}"
-
-      # 9. Upload PDF and audit
-      - name: Upload report PDF or pending-data audit
+          if [[ "$SEND_EMAIL" == "true" ]]; then EXTRA+=(--send-email); fi
+          if [[ "$RETRY_FAILED" == "true" ]]; then EXTRA+=(--retry-failed); fi
+          python reports/avuong_kttv/scripts/report_archive.py run             --pipeline KTTV_6H             --date "$REPORT_DATE_INPUT"             --hour "$REPORT_HOUR_INPUT"             --retention-class "$RETENTION_CLASS"             --output-dir "$AV_ARCHIVE_OUT"             "${EXTRA[@]}"
+      - name: Save fallback GitHub Artifact
+        id: report_artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: KTTV-PDF-${{ github.run_id }}
+          name: KTTV-PDF-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            reports/avuong_kttv/reports/output/*.pdf
-            reports/avuong_kttv/reports/output/*.json
+            ${{ env.AV_ARCHIVE_OUT }}/*.pdf
+            ${{ env.AV_ARCHIVE_OUT }}/*.xlsx
+            ${{ env.AV_ARCHIVE_OUT }}/*.json
           if-no-files-found: warn
           retention-days: 60
+      - name: Link fallback Artifact to archive run
+        if: always() && steps.report_artifact.outputs.artifact-url != ''
+        continue-on-error: true
+        env:
+          AV_ARTIFACT_URL: ${{ steps.report_artifact.outputs.artifact-url }}
+          AV_ARTIFACT_ID: ${{ steps.report_artifact.outputs.artifact-id }}
+        shell: bash
+        run: |
+          python reports/avuong_kttv/scripts/report_archive.py link-artifact             --manifest "$AV_ARCHIVE_OUT/archive_manifest.json"

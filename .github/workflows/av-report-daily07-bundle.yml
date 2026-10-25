@@ -1,70 +1,58 @@
-
 name: A Vuong - Daily 07h Bundle (3 reports, TEST)
-
-# Supabase Cron se kich hoat qua workflow_dispatch.
-# GitHub khong tu lap lich de tranh chay trung.
-
+# Supabase job 11 is unchanged. No GitHub schedule is added.
 on:
   workflow_dispatch:
     inputs:
       report_date:
-        description: "Vietnam report date YYYY-MM-DD"
-        required: true
+        description: "Ngay bao cao VN YYYY-MM-DD"
         type: string
-
-      send_test_email:
-        description: "Send 3 TEST emails to configured recipients?"
         required: true
+      send_test_email:
+        description: "Gui email den cac danh sach da cau hinh?"
         type: boolean
         default: false
-
+        required: true
+      retention_class:
+        description: "REPORT: 30 ngay + backup; TEST: 7 ngay, chi ban thu co the xoa"
+        type: choice
+        required: false
+        default: REPORT
+        options: [REPORT, TEST]
 permissions:
   contents: read
-
 concurrency:
   group: avuong-daily07-bundle-${{ inputs.report_date }}
   cancel-in-progress: false
-
 jobs:
   generate:
-    name: Generate 3 daily reports
+    name: Generate and archive daily 07h reports
     runs-on: ubuntu-latest
-    timeout-minutes: 12
-
+    timeout-minutes: 15
     env:
-      # Supabase
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Email recipients
-      REPORT_KTTV31_TO: ${{ secrets.REPORT_KTTV31_TO }}
-      REPORT_RESERVOIR_TO: ${{ secrets.REPORT_RESERVOIR_TO }}
-      REPORT_HYDRO_EXCEL_TO: ${{ secrets.REPORT_HYDRO_EXCEL_TO }}
-
-      # SMTP
+      RESERVOIR_ID: "is.null"
+      SOURCE_TIME_MODE: "vn_label_stored_as_utc"
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ vars.SMTP_PORT || '465' }}
       SMTP_SECURITY: ${{ vars.SMTP_SECURITY || 'ssl' }}
       SMTP_USER: ${{ secrets.SMTP_USER }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_FROM: ${{ secrets.SMTP_FROM }}
-
-      # Workflow inputs
-      REPORT_DATE: ${{ inputs.report_date }}
-      SEND_TEST_EMAIL: ${{ inputs.send_test_email }}
-
-      # Private Times New Roman fonts
       AV_TNR_FONT_DIR: ${{ github.workspace }}/.private-fonts
-
+      PYTHONUNBUFFERED: "1"
+      REPORT_DATE_INPUT: ${{ inputs.report_date || '' }}
+      SEND_EMAIL: ${{ inputs.send_test_email && 'true' || 'false' }}
+      RETENTION_CLASS: ${{ inputs.retention_class || 'REPORT' }}
+      AV_ARCHIVE_OUT: ${{ runner.temp }}/avuong-report-output/${{ github.run_id }}-${{ github.run_attempt }}
+      REPORT_KTTV31_TO: ${{ secrets.REPORT_KTTV31_TO }}
+      REPORT_RESERVOIR_TO: ${{ secrets.REPORT_RESERVOIR_TO }}
+      REPORT_HYDRO_EXCEL_TO: ${{ secrets.REPORT_HYDRO_EXCEL_TO }}
     steps:
-
-      # 1. Checkout main repository
-      - name: Checkout A Vuong repository
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      # 2. Checkout private fonts using deploy key
       - name: Checkout private Times New Roman fonts
         uses: actions/checkout@v4
         with:
@@ -73,87 +61,55 @@ jobs:
           ssh-key: ${{ secrets.AVUONG_FONTS_DEPLOY_KEY }}
           persist-credentials: false
           path: .private-fonts
-
-      # 3. Verify licensed font files
       - name: Verify Times New Roman fonts
         shell: bash
         run: |
           set -euo pipefail
-
-          FONT_DIR="$AV_TNR_FONT_DIR"
-
-          if [[ ! -s "$FONT_DIR/times.ttf" ]]; then
-            echo "::error::Missing times.ttf"
-            exit 1
-          fi
-
-          if [[ ! -s "$FONT_DIR/timesbd.ttf" ]]; then
-            echo "::error::Missing timesbd.ttf"
-            exit 1
-          fi
-
+          test -s "$AV_TNR_FONT_DIR/times.ttf"
+          test -s "$AV_TNR_FONT_DIR/timesbd.ttf"
           echo "TIMES_NEW_ROMAN_READY"
-          echo "Font directory verified"
-
-      # 4. Setup Python
-      - name: Setup Python 3.11
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      # 5. Install requirements
-      - name: Install dependencies
+      - name: Install report dependencies
         shell: bash
         run: |
           set -euo pipefail
-
-          python -m pip install --upgrade pip
           python -m pip install reportlab openpyxl
-
-      # 6. Validate source
-      - name: Validate Python source
+      - name: Validate required files and source
         shell: bash
         run: |
           set -euo pipefail
-
-          python -m py_compile \
-            reports/avuong_kttv/scripts/generate_daily07_report.py
-
-          python -m py_compile \
-            reports/avuong_kttv/scripts/generate_daily07_bundle.py
-
-      # 7. Generate the three reports
-      - name: Generate 3 reports and optionally email
+          test -s reports/avuong_kttv/templates/A_VUONG_BM_BC_SO_LIEU_HANG_NGAY.xlsx
+          python -m py_compile reports/avuong_kttv/scripts/generate_daily07_report.py
+          python -m py_compile reports/avuong_kttv/scripts/generate_daily07_bundle.py
+          python -m py_compile reports/avuong_kttv/scripts/report_archive.py
+      - name: Generate reports, process existing emails, archive files
         shell: bash
         run: |
           set -euo pipefail
-
           EXTRA=()
-
-          if [[ "$SEND_TEST_EMAIL" == "true" ]]; then
-            EXTRA+=(--send-test-email)
-          fi
-
-          echo "=================================="
-          echo "A VUONG DAILY 07H REPORT BUNDLE"
-          echo "REPORT_DATE=$REPORT_DATE"
-          echo "SEND_TEST_EMAIL=$SEND_TEST_EMAIL"
-          echo "FONT=Times New Roman"
-          echo "=================================="
-
-          python reports/avuong_kttv/scripts/generate_daily07_bundle.py \
-            --date "$REPORT_DATE" \
-            --output-dir reports/avuong_kttv/reports/output \
-            "${EXTRA[@]}"
-
-      # 8. Upload PDFs and Excel
-      - name: Upload generated files
+          if [[ "$SEND_EMAIL" == "true" ]]; then EXTRA+=(--send-email); fi
+          python reports/avuong_kttv/scripts/report_archive.py run             --pipeline DAILY07_BUNDLE             --date "$REPORT_DATE_INPUT"             --retention-class "$RETENTION_CLASS"             --output-dir "$AV_ARCHIVE_OUT"             "${EXTRA[@]}"
+      - name: Save fallback GitHub Artifact
+        id: report_artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DAILY07-BUNDLE-${{ github.run_id }}
+          name: DAILY07-BUNDLE-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            reports/avuong_kttv/reports/output/*.pdf
-            reports/avuong_kttv/reports/output/*.xlsx
+            ${{ env.AV_ARCHIVE_OUT }}/*.pdf
+            ${{ env.AV_ARCHIVE_OUT }}/*.xlsx
+            ${{ env.AV_ARCHIVE_OUT }}/*.json
           if-no-files-found: warn
           retention-days: 60
+      - name: Link fallback Artifact to archive run
+        if: always() && steps.report_artifact.outputs.artifact-url != ''
+        continue-on-error: true
+        env:
+          AV_ARTIFACT_URL: ${{ steps.report_artifact.outputs.artifact-url }}
+          AV_ARTIFACT_ID: ${{ steps.report_artifact.outputs.artifact-id }}
+        shell: bash
+        run: |
+          python reports/avuong_kttv/scripts/report_archive.py link-artifact             --manifest "$AV_ARCHIVE_OUT/archive_manifest.json"
