@@ -18,6 +18,11 @@ on:
         type: boolean
         required: true
         default: false
+      force_resend:
+        description: "CHI CHAY TAY: gui lai neu ky nay da SMTP_ACCEPTED truoc do"
+        type: boolean
+        required: false
+        default: false
       retry_failed:
         description: "Chi dung khi da xac minh loi SMTP va cho phep thu lai"
         type: boolean
@@ -54,8 +59,8 @@ jobs:
       PYTHONUNBUFFERED: "1"
       REPORT_DATE_INPUT: ${{ inputs.report_date || '' }}
       SEND_EMAIL: ${{ inputs.send_test_email && 'true' || 'false' }}
+      FORCE_RESEND: ${{ inputs.force_resend && 'true' || 'false' }}
       RETENTION_CLASS: ${{ inputs.retention_class || 'REPORT' }}
-      AV_ARCHIVE_OUT: ${{ github.workspace }}/reports/avuong_kttv/reports/output/archive/${{ github.run_id }}-${{ github.run_attempt }}
       REPORT_TEST_TO: ${{ secrets.REPORT_TEST_TO }}
       REPORT_HOUR_INPUT: ${{ inputs.report_hour || '19' }}
       RETRY_FAILED: ${{ inputs.retry_failed && 'true' || 'false' }}
@@ -64,6 +69,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      # runner.temp is NOT valid in jobs.<job_id>.env.
+      # Read RUNNER_TEMP only after the runner starts, then export for later steps.
+      - name: Prepare report output directory
+        id: archive_workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${RUNNER_TEMP:?RUNNER_TEMP is not set}"
+          : "${GITHUB_RUN_ID:?GITHUB_RUN_ID is not set}"
+          : "${GITHUB_RUN_ATTEMPT:?GITHUB_RUN_ATTEMPT is not set}"
+
+          OUT_DIR="${RUNNER_TEMP}/avuong-report-output/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p -- "$OUT_DIR"
+
+          printf 'AV_ARCHIVE_OUT=%s\n' "$OUT_DIR" >> "$GITHUB_ENV"
+          printf 'directory=%s\n' "$OUT_DIR" >> "$GITHUB_OUTPUT"
+
+          echo "ARCHIVE_OUTPUT_READY"
+
       - name: Checkout private Times New Roman fonts
         uses: actions/checkout@v4
         with:
@@ -100,26 +125,41 @@ jobs:
           set -euo pipefail
           EXTRA=()
           if [[ "$SEND_EMAIL" == "true" ]]; then EXTRA+=(--send-email); fi
+          if [[ "$FORCE_RESEND" == "true" ]]; then
+            if [[ "$SEND_EMAIL" != "true" ]]; then
+              echo "::error::force_resend requires send_test_email=true"
+              exit 1
+            fi
+            EXTRA+=(--force-resend)
+          fi
           if [[ "$RETRY_FAILED" == "true" ]]; then EXTRA+=(--retry-failed); fi
-          python reports/avuong_kttv/scripts/report_archive.py run             --pipeline KTTV_6H             --date "$REPORT_DATE_INPUT"             --hour "$REPORT_HOUR_INPUT"             --retention-class "$RETENTION_CLASS"             --output-dir "$AV_ARCHIVE_OUT"             "${EXTRA[@]}"
+          python reports/avuong_kttv/scripts/report_archive.py run \
+            --pipeline KTTV_6H \
+            --date "$REPORT_DATE_INPUT" \
+            --hour "$REPORT_HOUR_INPUT" \
+            --retention-class "$RETENTION_CLASS" \
+            --output-dir "$AV_ARCHIVE_OUT" \
+            "${EXTRA[@]}"
       - name: Save fallback GitHub Artifact
         id: report_artifact
-        if: always()
+        if: ${{ always() && steps.archive_workspace.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: KTTV-PDF-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ env.AV_ARCHIVE_OUT }}/*.pdf
-            ${{ env.AV_ARCHIVE_OUT }}/*.xlsx
-            ${{ env.AV_ARCHIVE_OUT }}/*.json
+            ${{ steps.archive_workspace.outputs.directory }}/*.pdf
+            ${{ steps.archive_workspace.outputs.directory }}/*.xlsx
+            ${{ steps.archive_workspace.outputs.directory }}/*.json
           if-no-files-found: warn
           retention-days: 60
       - name: Link fallback Artifact to archive run
-        if: always() && steps.report_artifact.outputs.artifact-url != ''
+        if: ${{ always() && steps.archive_workspace.outcome == 'success' && steps.report_artifact.outputs['artifact-url'] != '' }}
         continue-on-error: true
         env:
-          AV_ARTIFACT_URL: ${{ steps.report_artifact.outputs.artifact-url }}
-          AV_ARTIFACT_ID: ${{ steps.report_artifact.outputs.artifact-id }}
+          AV_ARTIFACT_URL: ${{ steps.report_artifact.outputs['artifact-url'] }}
+          AV_ARTIFACT_ID: ${{ steps.report_artifact.outputs['artifact-id'] }}
         shell: bash
         run: |
-          python reports/avuong_kttv/scripts/report_archive.py link-artifact             --manifest "$AV_ARCHIVE_OUT/archive_manifest.json"
+          set -euo pipefail
+          python reports/avuong_kttv/scripts/report_archive.py link-artifact \
+            --manifest "$AV_ARCHIVE_OUT/archive_manifest.json"
