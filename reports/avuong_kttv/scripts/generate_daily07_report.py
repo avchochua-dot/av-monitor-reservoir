@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""A Vuong DAILY07 V3.9: data validation and source-matched PDF layout.
+"""A Vuong DAILY07 V3.9.1: automatic day-of-year document numbering.
 Keeps the public interface expected by generate_daily07_bundle.py.
 No credentials, recipients or fonts are bundled in this source file.
 """
@@ -35,7 +35,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Paragraph, Table, TableStyle
 
-VERSION = "AV_DAILY07_V3_9_DATA_LAYOUT"
+VERSION = "AV_DAILY07_V3_9_1_DAY_OF_YEAR"
 VN = ZoneInfo("Asia/Ho_Chi_Minh")
 UTC = timezone.utc
 FIELDS = ("water_level", "tailwater_level", "inflow", "turbine_flow",
@@ -389,14 +389,17 @@ def build_pdf(rows, d, output):
     return output
 
 
-def document_number(d):
-    direct = env("REPORT_DOCUMENT_NUMBER")
-    if direct:
-        return direct
-    config = Path(__file__).resolve().parents[1] / "config" / "report_numbers.json"
-    if config.is_file():
-        return str(json.loads(config.read_text(encoding="utf-8")).get(d.isoformat(), ""))
-    return ""
+def document_number(d: date) -> str:
+    """Return the report day's 1-based ordinal in its year.
+
+    ``d`` is the Vietnam report/issue date passed via --date. It is NOT the
+    previous day's observation date and is NOT the runner's current date.
+    Old REPORT_DOCUMENT_NUMBER / report_numbers.json overrides are intentionally
+    ignored: the agreed business rule is one number for each calendar day.
+    """
+    if isinstance(d, datetime) or not isinstance(d, date):
+        raise TypeError("document_number requires the report date as datetime.date")
+    return f"{d.timetuple().tm_yday}/BC-TĐAV"
 
 
 def render_reservoir_pdf(rows, d, output, generation_hours=None):
