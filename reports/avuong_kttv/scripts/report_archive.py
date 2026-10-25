@@ -27,7 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-VERSION = "AV_ARCHIVE_V1_0"
+VERSION = "AV_ARCHIVE_V1_1_FORCE_RESEND"
 BUCKET = "avuong-reports"
 MAX_BYTES = 20 * 1024 * 1024
 try:
@@ -220,6 +220,10 @@ def email_observation(client: Client,report: str,day: date,hour: int,
                       digest: str,requested: bool,started: str,logs: str) -> dict[str,Any]:
     result = {"email_observation":"NOT_REQUESTED" if not requested else "UNKNOWN"}
     if not requested: return result
+    force_marker = (
+        ("SMTP FORCE RESEND ACCEPTED" in logs) if report == "KTTV_6H"
+        else (f"EMAIL_FORCE_RESEND_SMTP_ACCEPTED {report}" in logs)
+    )
     if report == "KTTV_6H":
         recipients = recipient_key(os.getenv("REPORT_TEST_TO",""))
         if not recipients: return {"email_observation":"NOT_CONFIGURED"}
@@ -243,7 +247,9 @@ def email_observation(client: Client,report: str,day: date,hour: int,
     result.update(observed_mail_status=row.get("status"),observed_sent_at=row.get("sent_at"),
                   observed_mail_file_sha256=mail_hash)
     if row.get("status") == "SMTP_ACCEPTED":
-        if mail_hash != digest:
+        if force_marker:
+            result["email_observation"]="FORCE_RESEND_ACCEPTED_THIS_RUN"
+        elif mail_hash != digest:
             result["email_observation"]="PREVIOUS_VERSION_ACCEPTED"
         else:
             sent=datetime.fromisoformat(row["sent_at"].replace("Z","+00:00")) if row.get("sent_at") else None
@@ -319,6 +325,8 @@ def generation_state(expected: dict[str,Path],returncode: int,logs: str) -> tupl
 def run_reports(args: argparse.Namespace) -> int:
     day=parse_day(args.date) if args.date else datetime.now(VN).date()
     hour=7 if args.pipeline=="DAILY07_BUNDLE" else args.hour
+    if args.force_resend and not args.send_email:
+        raise RuntimeError("--force-resend requires --send-email")
     output=Path(args.output_dir).resolve()
     output.mkdir(parents=True,exist_ok=True)
     if any(output.iterdir()):
@@ -342,10 +350,12 @@ def run_reports(args: argparse.Namespace) -> int:
     command=[sys.executable,str(BASE/script),"--date",day.isoformat(),"--output-dir",str(output)]
     if args.pipeline=="DAILY07_BUNDLE":
         if args.send_email: command.append("--send-test-email")
+        if args.force_resend: command.append("--force-resend")
     else:
         command += ["--hour",str(hour),"--mode","test-email" if args.send_email else "preview",
                     "--allow-pending-data"]
         if args.retry_failed: command.append("--retry-failed")
+        if args.force_resend: command.append("--force-resend")
     print("ARCHIVE_RUN",run["id"],"CLASS",args.retention_class,flush=True)
     lines=deque(maxlen=1500)
     returncode=1
@@ -502,6 +512,8 @@ def main() -> int:
     rp.add_argument("--hour",type=int,choices=[1,7,13,19],default=7)
     rp.add_argument("--send-email",action="store_true")
     rp.add_argument("--retry-failed",action="store_true")
+    rp.add_argument("--force-resend",action="store_true",
+                    help="Manual only: resend only when a previous SMTP_ACCEPTED exists")
     rp.add_argument("--retention-class",choices=["REPORT","TEST"],default="REPORT")
     rp.add_argument("--output-dir",required=True)
     cp=sub.add_parser("cleanup")

@@ -404,16 +404,29 @@ def recipients_for(report):
     raw=os.getenv(env,"")
     return sorted({x.strip().lower() for x in raw.replace(";",",").split(",") if x.strip()})
 
-def dispatch_email_once(report, report_date, file, recipients):
+def dispatch_email_once(report, report_date, file, recipients, force_resend=False):
     """Atomic DB INSERT claim, no automatic SMTP retry on ambiguous failure."""
     if not recipients:
         print(f"EMAIL_NOT_CONFIGURED {report}; skipped")
         return
     for k in ("SMTP_HOST","SMTP_USER","SMTP_PASSWORD","SMTP_FROM"):
         if not os.getenv(k): raise ValueError("Missing " + k)
-    # One deterministic claim for each report type and date.
-    # Recipient changes must NOT trigger a second automatic send.
+    # Automatic runs never bypass the deterministic claim.
+    # Manual force-resend is allowed ONLY if the previous row is SMTP_ACCEPTED.
     report_key = f"test:daily07:{report}:{report_date.isoformat()}"
+    existing = daily.rest_request(
+        "GET",
+        f"{DISPATCH_TABLE}?report_type=eq.{report}&report_date=eq.{report_date.isoformat()}&select=*&limit=1"
+    ) or []
+    existing = existing[0] if isinstance(existing,list) and existing else None
+    force_existing_accepted = bool(
+        force_resend and existing and existing.get("status") == "SMTP_ACCEPTED"
+    )
+    if force_resend and existing and existing.get("status") != "SMTP_ACCEPTED":
+        raise RuntimeError(
+            f"FORCE_RESEND chỉ được dùng khi bản trước đã SMTP_ACCEPTED; "
+            f"{report} hiện ở trạng thái {existing.get('status')}."
+        )
     claim={
         "report_key": report_key,
         "report_type": report,
@@ -422,11 +435,13 @@ def dispatch_email_once(report, report_date, file, recipients):
         "recipients": ",".join(recipients),
         "file_sha256": hashlib.sha256(file.read_bytes()).hexdigest()
     }
-    # The database must enforce UNIQUE(report_type, report_date).
-    result=daily.rest_request("POST",DISPATCH_TABLE,claim,"return=representation")
-    if isinstance(result,dict) and result.get("_conflict"):
-        print("EMAIL_SKIPPED_ALREADY_CLAIMED",report,report_date)
-        return
+    if force_existing_accepted:
+        print("EMAIL_FORCE_RESEND_REQUESTED",report,report_date)
+    else:
+        result=daily.rest_request("POST",DISPATCH_TABLE,claim,"return=representation")
+        if isinstance(result,dict) and result.get("_conflict"):
+            print("EMAIL_SKIPPED_ALREADY_CLAIMED",report,report_date)
+            return
     msg=EmailMessage()
     titles = {
         "KTTV_31H": "Báo cáo số liệu vận hành hồ thủy điện A Vương",
@@ -464,16 +479,21 @@ def dispatch_email_once(report, report_date, file, recipients):
             refusal=s.send_message(msg)
             if refusal: raise RuntimeError("Some recipients refused by SMTP")
     except Exception as e:
-        # SMTP may have accepted before a transport failure; manual review only.
-        try:
-            daily.rest_request("PATCH",
-                f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
-                {"status":"NEEDS_REVIEW","error_text":str(e)[:500]})
-        finally: raise
-    daily.rest_request("PATCH",
-      f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
-      {"status":"SMTP_ACCEPTED","sent_at":datetime.now(timezone.utc).isoformat()})
-    print(f"EMAIL_SMTP_ACCEPTED {report} recipients={len(recipients)}")
+        if not force_existing_accepted:
+            try:
+                daily.rest_request("PATCH",
+                    f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
+                    {"status":"NEEDS_REVIEW","error_text":str(e)[:500]})
+            finally:
+                raise
+        raise
+    if force_existing_accepted:
+        print(f"EMAIL_FORCE_RESEND_SMTP_ACCEPTED {report} recipients={len(recipients)}")
+    else:
+        daily.rest_request("PATCH",
+          f"{DISPATCH_TABLE}?report_key=eq.{report_key}",
+          {"status":"SMTP_ACCEPTED","sent_at":datetime.now(timezone.utc).isoformat()})
+        print(f"EMAIL_SMTP_ACCEPTED {report} recipients={len(recipients)}")
 
 
 
@@ -487,10 +507,14 @@ def main():
     ap.add_argument("--backfill-from",help="Optional date to rebuild missing hydro-history days")
     ap.add_argument("--output-dir",default="reports/avuong_kttv/reports/output")
     ap.add_argument("--send-test-email",action="store_true")
+    ap.add_argument("--force-resend",action="store_true",
+                    help="Manual only: resend only when the prior row is SMTP_ACCEPTED")
     args=ap.parse_args()
     report_date=daily.parse_day(args.date)
     if args.fixture and args.send_test_email:
         raise ValueError("Do not send email with fixture data")
+    if args.force_resend and not args.send_test_email:
+        raise ValueError("--force-resend requires --send-test-email")
     if not args.fixture and datetime.combine(report_date,datetime.min.time()).replace(
             hour=7,tzinfo=daily.VN)>datetime.now(daily.VN):
         raise ValueError("Report issue is in the future")
@@ -522,7 +546,7 @@ def main():
         print("FILE_READY",label,file)
     if args.send_test_email:
         for label,file in files.items():
-            dispatch_email_once(label,report_date,file,recipients_for(label))
+            dispatch_email_once(label,report_date,file,recipients_for(label),force_resend=args.force_resend)
     else:
         print("PREVIEW_ONLY_NO_EMAIL")
 

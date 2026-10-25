@@ -534,12 +534,16 @@ def run() -> int:
     parser.add_argument("--mode", choices=["preview", "test-email"], default="preview")
     parser.add_argument("--demo", action="store_true", help="PDF minh họa từ mẫu đính kèm, không kết nối DB")
     parser.add_argument("--retry-failed", action="store_true", help="Chỉ dùng khi SMTP đã lỗi (không dùng cho SENT)")
+    parser.add_argument("--force-resend", action="store_true",
+                        help="Chỉ chạy tay: gửi lại khi bản trước đã SMTP_ACCEPTED; không xóa log cũ")
     parser.add_argument("--allow-pending-data", action="store_true",
                         help="Lich tu dong: neu thieu gio/chi tieu thi ghi PENDING, khong gui, exit 0")
     parser.add_argument("--output-dir", default="reports/output")
     args = parser.parse_args()
     if args.demo and args.mode != "preview":
         raise ValueError("Demo không được phép gửi email.")
+    if args.force_resend and args.mode != "test-email":
+        raise ValueError("--force-resend chỉ dùng cùng --mode test-email")
     report_day = parse_date(args.date) if args.date else vn_day()
     issue_vn = datetime(report_day.year, report_day.month, report_day.day,
                         args.hour, tzinfo=VN)
@@ -608,15 +612,27 @@ def run() -> int:
         raise RuntimeError("REPORT_TEST_TO chưa được khai báo.")
     report_key = f"test:{r.day.isoformat()}:{r.hour:02d}:{hashlib.sha256(','.join(recipients).encode()).hexdigest()[:12]}"
     existing = log_get(report_key)
-    if existing and existing.get("status") == "SMTP_ACCEPTED":
+    force_existing_accepted = bool(
+        args.force_resend and existing and existing.get("status") == "SMTP_ACCEPTED"
+    )
+    if args.force_resend and existing and existing.get("status") != "SMTP_ACCEPTED":
+        raise RuntimeError(
+            f"FORCE_RESEND chỉ được dùng khi bản trước đã SMTP_ACCEPTED; "
+            f"hiện tại là {existing.get('status')}."
+        )
+    if existing and existing.get("status") == "SMTP_ACCEPTED" and not force_existing_accepted:
         print("EMAIL SKIPPED (DUPLICATE): báo cáo đã được SMTP tiếp nhận; key=", report_key)
         return 0
-    if existing and not (args.retry_failed and existing.get("status") == "FAILED"):
+    if existing and not force_existing_accepted and not (
+        args.retry_failed and existing.get("status") == "FAILED"
+    ):
         raise RuntimeError(
             f"Report key={report_key} đã ở trạng thái {existing.get('status')}; "
             "không gửi lại tự động để tránh trùng. Với FAILED, dùng --retry-failed."
         )
-    if existing:
+    if force_existing_accepted:
+        print("EMAIL FORCE RESEND REQUESTED: bản trước đã SMTP_ACCEPTED; key=", report_key)
+    elif existing:
         log_update(report_key, {"status": "SENDING", "error_text": None})
     else:
         claimed = log_insert({
@@ -629,13 +645,17 @@ def run() -> int:
             raise RuntimeError("Có tiến trình khác đã giữ report_key; không gửi trùng.")
     try:
         sent_to = mail_send_test(r, output_pdf)
-        log_update(report_key, {"status": "SMTP_ACCEPTED",
-                                "sent_at": datetime.now(UTC).isoformat(),
-                                "error_text": None})
-        print("SMTP ACCEPTED (NOT INBOX CONFIRMATION):", ", ".join(sent_to))
+        if force_existing_accepted:
+            print("SMTP FORCE RESEND ACCEPTED (NOT INBOX CONFIRMATION):", ", ".join(sent_to))
+        else:
+            log_update(report_key, {"status": "SMTP_ACCEPTED",
+                                    "sent_at": datetime.now(UTC).isoformat(),
+                                    "error_text": None})
+            print("SMTP ACCEPTED (NOT INBOX CONFIRMATION):", ", ".join(sent_to))
     except Exception as e:
-        log_update(report_key, {"status": "FAILED",
-                                "error_text": str(e)[:900]})
+        if not force_existing_accepted:
+            log_update(report_key, {"status": "FAILED",
+                                    "error_text": str(e)[:900]})
         raise
     return 0
 
