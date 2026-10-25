@@ -1,4 +1,4 @@
-name: A Vuong - Bao cao KTTV hang gio khi co lu
+name: A Vuong - Bao cao KTTV hang gio khi co lu (snapshot HH00)
 
 on:
   workflow_dispatch:
