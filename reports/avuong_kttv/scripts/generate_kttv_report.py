@@ -4,7 +4,7 @@
 QUY TẮC AN TOÀN:
  - Tailwater phải đọc từ reservoir_hourly_data.tailwater_level tại đúng giờ báo cáo.
  - Nếu thiếu tailwater thì ghi PENDING_DATA, KHÔNG dùng số 60.00 m và KHÔNG gửi email.
- - Chỉ gửi email đến danh sách kiểm thử đã cấu hình; chưa tự phê duyệt báo cáo.
+ - Danh sách người nhận cấu hình bằng GitHub Secrets/Variables; không hard-code địa chỉ trong source.
  - Khóa đọc dữ liệu / SMTP nằm trong GitHub Secrets, không đưa lên website.
 """
 from __future__ import annotations
@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from email.message import EmailMessage
+from email.utils import formataddr
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -534,32 +535,46 @@ def mail_send_test(r: Report, pdf_path: Path) -> list[str]:
     if env("SMTP_HOST").lower() == "smtp.gmail.com":
         password = password.replace(" ", "").replace("\t", "")
     sender = env("SMTP_FROM", user)
-    recipients = clean_list(env("REPORT_TEST_TO"))
+    # Ưu tiên tên Secret chính thức REPORT_TO; fallback REPORT_TEST_TO để tương thích cấu hình cũ.
+    recipients = clean_list(env("REPORT_TO") or env("REPORT_TEST_TO"))
     if not all([host, sender, recipients]):
-        raise RuntimeError("Chưa cấu hình SMTP_HOST, SMTP_FROM và REPORT_TEST_TO (email thử nội bộ).")
+        raise RuntimeError("Chưa cấu hình SMTP_HOST, SMTP_FROM và REPORT_TO/REPORT_TEST_TO.")
     mode = env("SMTP_SECURITY", "ssl").lower()
     port = int(env("SMTP_PORT", "465" if mode == "ssl" else "587"))
     msg = EmailMessage()
-    msg["From"] = sender
+    sender_name = env("SMTP_FROM_NAME", "Thủy điện A Vương")
+    msg["From"] = formataddr((sender_name, sender))
     msg["To"] = ", ".join(recipients)
-    tag = "[KIỂM TRA NỘI BỘ]"
-    kind = "báo cáo KTTV hàng giờ khi có lũ" if r.data_mode == "snapshot" else "báo cáo số liệu vận hành"
-    msg["Subject"] = (f"{tag} "
-                      f"Công ty CPTĐ A Vương - {kind} lúc {r.hour:02d}h00 ngày "
-                      f"{r.day.strftime('%d/%m/%Y')}")
-    warning = (
-        f"Mực nước hạ lưu nhà máy {fmt(r.tailwater).replace('.', ',')} m là GIẢ ĐỊNH TẠM THỜI, không phải số đo.\n"
-        if r.tailwater_is_temporary else
-        f"Mực nước hạ lưu nhà máy {fmt(r.tailwater).replace('.', ',')} m được đọc "
-        "từ dữ liệu quan trắc tại đúng giờ báo cáo; cần đối soát trước khi phê duyệt.\n"
+
+    report_time = f"{r.hour:02d}h00"
+    report_date_text = r.day.strftime("%d/%m/%Y")
+    msg["Subject"] = (
+        f"Công ty CPTĐ A Vương kính gửi báo cáo số liệu vận hành "
+        f"lúc {report_time} ngày {report_date_text}"
     )
+
+    if r.data_mode == "snapshot":
+        report_desc = (
+            f"báo cáo số liệu vận hành hồ thủy điện A Vương tại thời điểm "
+            f"{report_time} ngày {report_date_text}"
+        )
+    else:
+        report_desc = (
+            f"báo cáo số liệu vận hành hồ thủy điện A Vương lúc "
+            f"{report_time} ngày {report_date_text}"
+        )
+
     msg.set_content(
-        "Kính gửi các anh/chị,\n\n"
-        f"Đính kèm báo cáo số liệu vận hành hồ thủy điện A Vương "
-        f"lúc {r.hour:02d}h00 ngày {r.day.strftime('%d/%m/%Y')}.\n"
-        + warning +
-        "Tài liệu chưa được ký hoặc phê duyệt; KHÔNG dùng để báo cáo chính thức.\n\n"
-        "Trân trọng.\n"
+        "Kính gửi Quý Cơ quan/Đơn vị,\n\n"
+        f"Công ty Cổ phần Thủy điện A Vương kính gửi Quý Cơ quan/Đơn vị {report_desc} "
+        "theo file đính kèm email này.\n\n"
+        "Kính đề nghị Quý Cơ quan/Đơn vị xem, theo dõi và sử dụng thông tin phục vụ "
+        "công tác quản lý, vận hành theo chức năng nhiệm vụ.\n\n"
+        "Trân trọng./.\n\n"
+        "----------------------------------------\n"
+        "CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG\n"
+        "VPĐD: Tầng 9, Số 143 Xô Viết Nghệ Tĩnh, Cẩm Lệ, Đà Nẵng\n"
+        "Tel: 0236.2218953    Fax: 0236.3634205\n"
     )
     msg.add_attachment(pdf_path.read_bytes(), maintype="application", subtype="pdf",
                        filename=pdf_path.name)

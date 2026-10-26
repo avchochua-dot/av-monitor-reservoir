@@ -22,6 +22,7 @@ from copy import copy
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from email.message import EmailMessage
+from email.utils import formataddr
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -443,21 +444,39 @@ def dispatch_email_once(report, report_date, file, recipients, force_resend=Fals
             print("EMAIL_SKIPPED_ALREADY_CLAIMED",report,report_date)
             return
     msg=EmailMessage()
-    titles = {
-        "KTTV_31H": "Báo cáo số liệu vận hành hồ thủy điện A Vương",
-        "RESERVOIR_12H": "Báo cáo số liệu vận hành Nhà máy thủy điện A Vương",
-        "HYDRO_EXCEL": "Bảng số liệu thủy văn hồ thủy điện A Vương",
-    }
-    msg["Subject"] = f"[KIỂM TRA NỘI BỘ] {titles[report]} - 07h00 ngày {report_date:%d/%m/%Y}"
-    msg["From"]=os.environ["SMTP_FROM"]
+    sender_addr=os.environ["SMTP_FROM"]
+    sender_name=os.getenv("SMTP_FROM_NAME","Thủy điện A Vương").strip() or "Thủy điện A Vương"
+    msg["From"]=formataddr((sender_name,sender_addr))
     msg["To"]=", ".join(recipients)
+
+    date_text=report_date.strftime("%d/%m/%Y")
+    mail_defs = {
+        "KTTV_31H": {
+            "subject": f"Công ty CPTĐ A Vương kính gửi báo cáo số liệu thủy văn hồ chứa ngày {date_text}",
+            "description": f"báo cáo số liệu thủy văn hồ chứa A Vương lúc 07h00 ngày {date_text}",
+        },
+        "RESERVOIR_12H": {
+            "subject": f"Công ty CPTĐ A Vương kính gửi báo cáo số liệu vận hành Nhà máy thủy điện A Vương ngày {date_text}",
+            "description": f"báo cáo số liệu vận hành Nhà máy thủy điện A Vương lúc 07h00 ngày {date_text}",
+        },
+        "HYDRO_EXCEL": {
+            "subject": f"Công ty CPTĐ A Vương kính gửi bảng số liệu thủy văn hồ chứa ngày {date_text}",
+            "description": f"bảng số liệu thủy văn hồ chứa A Vương cập nhật lúc 07h00 ngày {date_text}",
+        },
+    }
+    mail_def=mail_defs[report]
+    msg["Subject"]=mail_def["subject"]
     msg.set_content(
-        "Kính gửi anh/chị,\n\n"
-        "Đính kèm báo cáo số liệu vận hành A Vương lúc 07h00 ngày "
-        f"{report_date:%d/%m/%Y}, theo biểu mẫu vận hành.\n"
-        "Email này chỉ gửi tới danh sách kiểm tra nội bộ. "
-        "Văn bản chưa có chữ ký của người có thẩm quyền.\n"
-        "Trân trọng."
+        "Kính gửi Quý Cơ quan/Đơn vị,\n\n"
+        f"Công ty Cổ phần Thủy điện A Vương kính gửi Quý Cơ quan/Đơn vị {mail_def['description']} "
+        "theo file đính kèm email này.\n\n"
+        "Kính đề nghị Quý Cơ quan/Đơn vị xem, theo dõi và sử dụng thông tin phục vụ "
+        "công tác quản lý, vận hành theo chức năng nhiệm vụ.\n\n"
+        "Trân trọng./.\n\n"
+        "----------------------------------------\n"
+        "CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG\n"
+        "VPĐD: Tầng 9, Số 143 Xô Viết Nghệ Tĩnh, Cẩm Lệ, Đà Nẵng\n"
+        "Tel: 0236.2218953    Fax: 0236.3634205\n"
     )
     ispdf=file.suffix==".pdf"
     msg.add_attachment(file.read_bytes(),
