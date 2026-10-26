@@ -15,6 +15,7 @@
 
 
 
+<!-- REPORT CENTER V4 FLOOD HOURLY -->
 <!doctype html>
 <!-- TIMEXER V2 CORE4 H120 SHADOW UI PATCH: 2026-10-16
      TimeXer tab is immediately after CNN-LSTM H120.
@@ -11167,6 +11168,178 @@ body.avdam-presenting{overflow:hidden}
 }
 </style>
 
+
+<style id="av-report-center-v2">
+/* ===== A VƯƠNG REPORT CENTER V2 ===== */
+.nav-link[data-tab="reportlog"]{--nav-accent:#0f766e;--nav-soft:rgba(15,118,110,.13);padding-right:66px!important}
+.nav-link[data-tab="reportrun"]{--nav-accent:#ea580c;--nav-soft:rgba(234,88,12,.13);padding-right:66px!important}
+.nav-link[data-tab="reportlog"]::after{
+  content:"LOG"!important;right:10px!important;padding:4px 7px!important;border-radius:999px!important;
+  background:#ccfbf1!important;color:#0f766e!important;font-size:9px!important;font-weight:1000!important;
+  transform:translateY(-50%)!important;
+}
+.nav-link[data-tab="reportrun"]::after{
+  content:"RUN"!important;right:10px!important;padding:4px 7px!important;border-radius:999px!important;
+  background:#ffedd5!important;color:#c2410c!important;font-size:9px!important;font-weight:1000!important;
+  transform:translateY(-50%)!important;
+}
+.report-center{display:grid;gap:14px}
+.report-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-card);padding:16px}
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.report-title{font-size:16px;font-weight:1000;color:#172033}
+.report-sub{margin-top:5px;color:#64748b;font-size:12px;font-weight:750;line-height:1.5}
+.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+.report-btn{width:auto!important;min-width:0!important;padding:8px 12px!important;border-radius:12px!important;font-size:12px!important}
+.report-btn.primary{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+.report-btn.green{background:#ecfdf5!important;color:#047857!important;border-color:#a7f3d0!important}
+.report-btn.orange{background:#fff7ed!important;color:#c2410c!important;border-color:#fed7aa!important}
+.report-btn.red{background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important}
+.report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.report-kpi{padding:13px;border:1px solid var(--line);border-radius:16px;background:#f8fafc}
+.report-kpi span{display:block;font-size:10px;color:#64748b;font-weight:900;text-transform:uppercase;margin-bottom:5px}
+.report-kpi b{font-size:16px;color:#0f172a}
+.report-filter{display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:10px;margin-top:14px;align-items:end}
+.report-field label{display:block;font-size:11px;color:#64748b;margin-bottom:5px;font-weight:900}
+.report-field input,.report-field select{
+  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#0f172a;font-weight:800;box-shadow:none
+}
+.report-table-wrap{margin-top:14px;border:1px solid var(--line);border-radius:16px;overflow:auto}
+.report-table{width:100%;border-collapse:collapse;min-width:980px}
+.report-table th{background:#f1f5f9;padding:9px 8px;font-size:10px}
+.report-table td{padding:9px 8px;font-size:11px;border-bottom:1px solid var(--line-soft)}
+.report-table td:first-child{position:static;background:transparent;border-right:0;width:auto;padding-left:8px}
+.report-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:1000;white-space:nowrap}
+.report-status.ok{background:#dcfce7;color:#15803d}
+.report-status.wait{background:#fef3c7;color:#92400e}
+.report-status.err{background:#fee2e2;color:#b91c1c}
+.report-status.info{background:#dbeafe;color:#1d4ed8}
+.report-empty{padding:24px;text-align:center;color:#64748b;font-weight:800}
+.report-run-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.report-run-panel{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+.report-run-panel h3{margin:0 0 4px;font-size:14px}
+.report-run-panel p{margin:0 0 12px;color:#64748b;font-size:12px}
+.report-run-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.report-run-controls .full{grid-column:1/-1}
+.report-check{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:850;color:#334155}
+.report-check input{width:auto;box-shadow:none}
+.report-force-resend{padding:10px 12px;border:1px solid #fed7aa;border-radius:12px;background:#fff7ed;color:#c2410c}
+.report-force-resend span{font-size:10px;font-weight:800;color:#9a3412}
+.flood-hourly-card{border:1px solid #fecaca;background:linear-gradient(180deg,#fff 0%,#fffafa 100%)}
+.flood-control-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.flood-state-box{border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.flood-state-box span{font-size:10px;font-weight:900;color:#64748b;text-transform:uppercase}
+.flood-state-box b{font-size:13px;color:#0f172a}
+.flood-config-row{align-items:end}
+.report-status.neutral{background:#e2e8f0;color:#475569}
+@media(max-width:900px){.flood-control-grid{grid-template-columns:1fr 1fr}.flood-config-row{grid-template-columns:1fr}}
+
+.report-auto-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);border-radius:16px;margin-top:10px}
+.report-auto-meta b{display:block;font-size:13px}
+.report-auto-meta span{font-size:11px;color:#64748b}
+.report-msg{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f8fafc;color:#475569;font-size:12px;font-weight:800}
+.report-msg.ok{background:#ecfdf5;color:#047857}
+.report-msg.err{background:#fff1f2;color:#be123c}
+.report-msg.busy{background:#eff6ff;color:#1d4ed8}
+@media(max-width:1100px){
+  .report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .report-filter{grid-template-columns:1fr 1fr}
+  .report-run-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .report-grid,.report-filter,.report-run-controls{grid-template-columns:1fr}
+  .report-run-controls .full{grid-column:auto}
+}
+
+/* V5.1 UI FIX */
+#tab-reportlog,
+#tab-reportrun,
+#tab-reportlog .report-center,
+#tab-reportrun .report-center,
+#tab-reportlog .report-card,
+#tab-reportrun .report-card{
+  min-width:0!important;
+  max-width:100%!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.report-run-grid-3{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:12px!important;
+  width:100%!important;
+}
+.report-run-grid-3 .report-run-panel{
+  min-width:0!important;
+  width:100%!important;
+  overflow:hidden!important;
+}
+#tab-reportlog .report-table-wrap,
+#tab-reportrun .report-table-wrap{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  box-sizing:border-box!important;
+}
+#tab-reportlog .report-table{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+}
+#tab-reportlog .report-table th,
+#tab-reportlog .report-table td{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#tab-reportlog .report-table th:nth-child(1),
+#tab-reportlog .report-table td:nth-child(1){width:12%!important}
+#tab-reportlog .report-table th:nth-child(2),
+#tab-reportlog .report-table td:nth-child(2){width:10%!important}
+#tab-reportlog .report-table th:nth-child(3),
+#tab-reportlog .report-table td:nth-child(3){width:27%!important}
+#tab-reportlog .report-table th:nth-child(4),
+#tab-reportlog .report-table td:nth-child(4){width:10%!important}
+#tab-reportlog .report-table th:nth-child(5),
+#tab-reportlog .report-table td:nth-child(5){width:13%!important}
+#tab-reportlog .report-table th:nth-child(6),
+#tab-reportlog .report-table td:nth-child(6){width:13%!important}
+#tab-reportlog .report-table th:nth-child(7),
+#tab-reportlog .report-table td:nth-child(7){width:7%!important}
+#tab-reportlog .report-table th:nth-child(8),
+#tab-reportlog .report-table td:nth-child(8){width:8%!important}
+.report-auto-flood-controls{
+  display:grid;
+  grid-template-columns:minmax(150px,.7fr) minmax(170px,.8fr) auto;
+  gap:10px;
+  align-items:end;
+  margin-top:10px;
+}
+.report-auto-flood-note{
+  margin-top:8px;
+  font-size:11px;
+  line-height:1.45;
+  color:#64748b;
+  font-weight:750;
+}
+.report-auto-row.flood-row{
+  display:block!important;
+}
+.report-auto-row.flood-row .report-auto-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+@media(max-width:850px){
+  .report-run-grid-3{grid-template-columns:1fr!important}
+  .report-auto-flood-controls{grid-template-columns:1fr!important}
+  .report-auto-row.flood-row .report-auto-top{align-items:flex-start;flex-direction:column}
+}
+
+</style>
 </head>
 <body>
 
@@ -11408,7 +11581,16 @@ body.avdam-presenting{overflow:hidden}
           <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 11h10v2H7v-2zm0-4h3v3H7v-3zm5 0h5v2h-5v-2zM7 7h10v3H7V7z"/></svg>
           Báo cáo tháng AI
         </a>
-            <a class="nav-link" data-tab="slideshow">
+            
+            <a class="nav-link" data-tab="reportlog">
+              <svg viewBox="0 0 24 24"><path d="M4 3h16v18H4V3zm2 2v14h12V5H6zm2 2h8v2H8V7zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/></svg>
+              Nhật ký báo cáo
+            </a>
+            <a class="nav-link" data-tab="reportrun">
+              <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10.01 10.01 0 0 0 12 2zm-2 14.5v-9l7 4.5-7 4.5z"/></svg>
+              Chạy báo cáo
+            </a>
+<a class="nav-link" data-tab="slideshow">
           <svg viewBox="0 0 24 24"><path d="M4 6h16v10H4V6zm2 2v6h12V8H6zm3 10h6v2H9v-2zm10-12h2v12H3V6h2v10h14V6z"/></svg>
           Trình chiếu
         </a>
@@ -14608,6 +14790,14 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
   .ok{color:#059669;font-weight:bold}
   .bad{color:#dc2626;font-weight:bold}
   .warn{color:#d97706;font-weight:bold}
+
+.report-run-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.report-run-grid-3 .report-run-panel{min-width:0}
+.flood-manual-panel{border-color:#fdba74!important;background:linear-gradient(180deg,#fff,#fffaf5)}
+.flood-auto-inline{margin-top:14px;padding-top:14px;border-top:1px solid #e5e7eb}
+.report-head.compact{margin-bottom:10px}
+.report-title.small{font-size:15px}
+@media(max-width:850px){.report-run-grid-3{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -15691,6 +15881,151 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
 
       <!-- TAB: Slideshow / TV mode -->
+      
+      <!-- REPORT CENTER V2: Nhật ký báo cáo -->
+      <div id="tab-reportlog" class="tab-pane">
+        <section class="report-center">
+          <div class="report-card">
+            <div class="report-head">
+              <div>
+                <div class="report-title">Nhật ký báo cáo & file lưu trữ</div>
+                <div class="report-sub">Theo dõi các lượt chạy, file PDF/Excel đã lưu trên Supabase và thời hạn lưu trực tuyến.</div>
+              </div>
+              <div class="report-actions">
+                <button class="report-btn" type="button" onclick="loadReportCenter()">↻ Làm mới</button>
+              </div>
+            </div>
+
+            <div class="report-grid">
+              <div class="report-kpi"><span>Lượt chạy gần đây</span><b id="reportKpiRuns">—</b></div>
+              <div class="report-kpi"><span>File đang lưu</span><b id="reportKpiStored">—</b></div>
+              <div class="report-kpi"><span>File TEST</span><b id="reportKpiTest">—</b></div>
+              <div class="report-kpi"><span>Sắp hết hạn ≤ 7 ngày</span><b id="reportKpiExpiring">—</b></div>
+            </div>
+
+            <div class="report-filter">
+              <div class="report-field"><label>Từ ngày</label><input type="date" id="reportLogFrom"></div>
+              <div class="report-field"><label>Đến ngày</label><input type="date" id="reportLogTo"></div>
+              <div class="report-field"><label>Loại báo cáo</label>
+                <select id="reportLogType">
+                  <option value="">Tất cả</option>
+                  <option value="KTTV_31H">KTTV 31 giờ</option>
+                  <option value="RESERVOIR_12H">Vận hành hồ</option>
+                  <option value="HYDRO_EXCEL">Excel thủy văn</option>
+                  <option value="KTTV_6H">KTTV 4 kỳ</option><option value="FLOOD_HOURLY">KTTV hàng giờ khi có lũ</option>
+                  <option value="FLOOD_HOURLY">KTTV hàng giờ khi có lũ</option>
+                </select>
+              </div>
+              <button class="report-btn primary" type="button" onclick="loadReportCenter()">Lọc dữ liệu</button>
+            </div>
+
+            <div id="reportLogMsg" class="report-msg">Chọn tab để tải dữ liệu.</div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead><tr>
+                  <th>Kỳ báo cáo</th><th>Loại</th><th>Tên file</th><th>Lưu trữ</th><th>Upload</th><th>Hết hạn</th><th>Dung lượng</th><th>Thao tác</th>
+                </tr></thead>
+                <tbody id="reportFileRows"><tr><td colspan="8" class="report-empty">Chưa tải dữ liệu.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-head">
+              <div>
+                <div class="report-title">Log lượt chạy</div>
+                <div class="report-sub">Trạng thái tạo file, lưu Supabase và lỗi nếu có.</div>
+              </div>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead><tr>
+                  <th>Thời gian</th><th>Pipeline</th><th>Kỳ</th><th>Tạo file</th><th>Đã lưu</th><th>Trạng thái</th><th>Lỗi</th>
+                </tr></thead>
+                <tbody id="reportRunRows"><tr><td colspan="7" class="report-empty">Chưa tải dữ liệu.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- REPORT CENTER V2: Chạy báo cáo -->
+      <div id="tab-reportrun" class="tab-pane">
+        <section class="report-center">
+          <div class="report-card">
+            <div class="report-head">
+              <div>
+                <div class="report-title">Điều khiển chạy báo cáo</div>
+                <div class="report-sub">Ba chế độ chạy tay độc lập. Báo cáo lũ hàng giờ lấy đúng số liệu tại HH:00, không tính trung bình 6 giờ.</div>
+              </div>
+              <button class="report-btn" type="button" onclick="loadReportControl()">↻ Làm mới trạng thái</button>
+            </div>
+
+            <div class="report-run-grid report-run-grid-3">
+              <div class="report-run-panel">
+                <h3>① Bộ 3 báo cáo 07h</h3>
+                <p>KTTV tổng hợp 31 giờ + Báo cáo vận hành hồ + Excel thủy văn.</p>
+                <div class="report-run-controls">
+                  <div class="report-field full"><label>Ngày báo cáo</label><input type="date" id="runDaily07Date"></div>
+                  <div class="report-field"><label>Chế độ lưu</label><select id="runDaily07Retention"><option value="REPORT">REPORT · 30 ngày</option><option value="TEST">TEST · 7 ngày</option></select></div>
+                  <label class="report-check"><input type="checkbox" id="runDaily07Email" checked> Gửi email sau khi tạo</label>
+                  <label class="report-check report-force-resend full"><input type="checkbox" id="runDaily07ForceResend"> Gửi lại dù kỳ này đã gửi trước đó <span>(chỉ chạy tay)</span></label>
+                  <button class="report-btn primary full" id="btnRunDaily07" type="button" onclick="dispatchDashboardReport('DAILY07_BUNDLE')">▶ Chạy bộ 07h ngay</button>
+                </div>
+              </div>
+
+              <div class="report-run-panel">
+                <h3>② KTTV 4 kỳ</h3>
+                <p>Chọn kỳ 01h, 07h, 13h hoặc 19h.</p>
+                <div class="report-run-controls">
+                  <div class="report-field"><label>Ngày báo cáo</label><input type="date" id="runKttvDate"></div>
+                  <div class="report-field"><label>Kỳ</label><select id="runKttvHour"><option value="1">01h</option><option value="7">07h</option><option value="13">13h</option><option value="19" selected>19h</option></select></div>
+                  <div class="report-field"><label>Chế độ lưu</label><select id="runKttvRetention"><option value="REPORT">REPORT · 30 ngày</option><option value="TEST">TEST · 7 ngày</option></select></div>
+                  <label class="report-check"><input type="checkbox" id="runKttvEmail" checked> Gửi email sau khi tạo</label>
+                  <label class="report-check report-force-resend full"><input type="checkbox" id="runKttvForceResend"> Gửi lại dù kỳ này đã gửi trước đó <span>(chỉ chạy tay)</span></label>
+                  <button class="report-btn primary full" id="btnRunKttv" type="button" onclick="dispatchDashboardReport('KTTV_6H')">▶ Chạy kỳ KTTV ngay</button>
+                </div>
+              </div>
+
+              <div class="report-run-panel flood-manual-panel">
+                <h3>③ KTTV hàng giờ khi có lũ</h3>
+                <p>Snapshot đúng giờ HH:00. Thiếu giờ trước đó không ảnh hưởng.</p>
+                <div class="report-run-controls">
+                  <div class="report-field"><label>Ngày báo cáo</label><input type="date" id="runFloodDate"></div>
+                  <div class="report-field"><label>Giờ</label><select id="runFloodHour"><option value="0">00h</option><option value="1">01h</option><option value="2">02h</option><option value="3">03h</option><option value="4">04h</option><option value="5">05h</option><option value="6">06h</option><option value="7">07h</option><option value="8">08h</option><option value="9">09h</option><option value="10">10h</option><option value="11">11h</option><option value="12">12h</option><option value="13">13h</option><option value="14">14h</option><option value="15">15h</option><option value="16">16h</option><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option><option value="23">23h</option></select></div>
+                  <div class="report-field"><label>Chế độ lưu</label><select id="runFloodRetention"><option value="REPORT">REPORT · 30 ngày</option><option value="TEST">TEST · 7 ngày</option></select></div>
+                  <label class="report-check"><input type="checkbox" id="runFloodEmail" checked> Gửi email sau khi tạo</label>
+                  <label class="report-check report-force-resend full"><input type="checkbox" id="runFloodForceResend"> Gửi lại dù giờ này đã gửi trước đó <span>(chỉ chạy tay)</span></label>
+                  <button class="report-btn primary full" id="btnRunFlood" type="button" onclick="dispatchDashboardReport('FLOOD_HOURLY')">▶ Chạy giờ này ngay</button>
+                </div>
+              </div>
+            </div>
+            <div id="reportRunnerStatus" class="report-msg">Sẵn sàng.</div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-head">
+              <div>
+                <div class="report-title">Chế độ chạy tự động</div>
+                <div class="report-sub">Cả ba lịch tự động ở cùng một chỗ; Job ID đọc trực tiếp từ Supabase Cron.</div>
+              </div>
+            </div>
+            <div id="reportAutoRows"><div class="report-empty">Đang chờ tải trạng thái Cron...</div></div>
+
+          </div>
+
+          <div class="report-card">
+            <div class="report-head"><div><div class="report-title">Yêu cầu chạy tay gần đây</div><div class="report-sub">Các yêu cầu được gửi từ dashboard.</div></div></div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead><tr><th>Thời gian</th><th>Pipeline</th><th>Kỳ</th><th>Email</th><th>Gửi lại</th><th>Lưu</th><th>Request ID</th></tr></thead>
+                <tbody id="manualRequestRows"><tr><td colspan="7" class="report-empty">Chưa tải dữ liệu.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <div id="tab-slideshow" class="tab-pane">
         <section class="slideshow-shell">
           <aside class="slideshow-control">
@@ -36766,6 +37101,306 @@ function renderShadowPairChart(rows,isFair){
 
 
 
+
+
+<script id="av-report-center-v2-js">
+(function(){
+  const $r=(id)=>document.getElementById(id);
+  const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pad=(n)=>String(n).padStart(2,'0');
+  const toIsoDate=(d)=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const fmtDay=(v)=>{ if(!v)return '—'; const s=String(v).slice(0,10).split('-'); return s.length===3?`${s[2]}/${s[1]}/${s[0]}`:String(v); };
+  const fmtDate=(v)=>{ if(!v)return '—'; try{return new Date(v).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'});}catch{return String(v);} };
+  const bytes=(n)=>{ n=Number(n||0); if(n<1024)return `${n} B`; if(n<1048576)return `${(n/1024).toFixed(1)} KB`; return `${(n/1048576).toFixed(1)} MB`; };
+  const setMsg=(id,msg,cls='')=>{const e=$r(id);if(!e)return;e.textContent=msg;e.className='report-msg'+(cls?' '+cls:'');};
+  const sbReady=()=>typeof sb!=='undefined' && sb;
+
+  function initReportDates(){
+    const now=new Date(), to=toIsoDate(now), fromD=new Date(now); fromD.setDate(now.getDate()-30);
+    if($r('reportLogTo')&&!$r('reportLogTo').value)$r('reportLogTo').value=to;
+    if($r('reportLogFrom')&&!$r('reportLogFrom').value)$r('reportLogFrom').value=toIsoDate(fromD);
+    if($r('runDaily07Date')&&!$r('runDaily07Date').value)$r('runDaily07Date').value=to;
+    if($r('runKttvDate')&&!$r('runKttvDate').value)$r('runKttvDate').value=to;
+    if($r('runFloodDate')&&!$r('runFloodDate').value)$r('runFloodDate').value=to;
+    if($r('runFloodHour')&&!$r('runFloodHour').dataset.initialized){
+      $r('runFloodHour').value=String(now.getHours());
+      $r('runFloodHour').dataset.initialized='1';
+    }
+  }
+
+  function statClass(v){
+    v=String(v||'').toUpperCase();
+    if(['STORED','SUCCEEDED','READY','SMTP_ACCEPTED'].includes(v))return 'ok';
+    if(['FAILED','ERROR'].some(x=>v.includes(x)))return 'err';
+    if(['RUNNING','PENDING'].some(x=>v.includes(x)))return 'wait';
+    return 'info';
+  }
+
+  window.downloadArchivedReport=async function(id){
+    if(!sbReady())return alert('Supabase chưa sẵn sàng.');
+    const {data:rows,error}=await sb.from('av_report_archive_files').select('bucket,object_path,file_name').eq('id',id).limit(1);
+    if(error||!rows?.length)return alert(error?.message||'Không tìm thấy file.');
+    const x=rows[0];
+    const {data,error:de}=await sb.storage.from(x.bucket).download(x.object_path);
+    if(de)return alert('Không tải được file: '+de.message);
+    const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=x.file_name||'report';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  };
+
+  window.viewArchivedReport=async function(id){
+    if(!sbReady())return alert('Supabase chưa sẵn sàng.');
+    const {data:rows,error}=await sb.from('av_report_archive_files').select('bucket,object_path,file_name').eq('id',id).limit(1);
+    if(error||!rows?.length)return alert(error?.message||'Không tìm thấy file.');
+    const x=rows[0];
+    const {data,error:se}=await sb.storage.from(x.bucket).createSignedUrl(x.object_path,300);
+    if(se)return alert('Không tạo được link xem: '+se.message);
+    window.open(data.signedUrl,'_blank','noopener');
+  };
+
+  window.loadReportCenter=async function(){
+    initReportDates();
+    const body=$r('reportFileRows'), runBody=$r('reportRunRows');
+    if(!body||!runBody)return;
+    if(!sbReady()){setMsg('reportLogMsg','Supabase chưa sẵn sàng.','err');return;}
+    setMsg('reportLogMsg','Đang tải nhật ký...','busy');
+    let q=sb.from('av_report_archive_files')
+      .select('id,report_date,report_hour,report_type,file_name,archive_status,retention_class,size_bytes,uploaded_at,expires_at,bucket,object_path,error_text,created_at')
+      .order('created_at',{ascending:false}).limit(200);
+    const f=$r('reportLogFrom')?.value,t=$r('reportLogTo')?.value,typ=$r('reportLogType')?.value;
+    if(f)q=q.gte('report_date',f);if(t)q=q.lte('report_date',t);if(typ)q=q.eq('report_type',typ);
+    const {data:files,error}=await q;
+    if(error){body.innerHTML=`<tr><td colspan="8" class="report-empty">${esc(error.message)}</td></tr>`;setMsg('reportLogMsg','Không đọc được file lưu trữ: '+error.message,'err');return;}
+    const list=files||[], now=Date.now(), seven=7*86400000;
+    $r('reportKpiStored').textContent=list.filter(x=>x.archive_status==='STORED').length;
+    $r('reportKpiTest').textContent=list.filter(x=>x.retention_class==='TEST').length;
+    $r('reportKpiExpiring').textContent=list.filter(x=>x.expires_at&&new Date(x.expires_at).getTime()>now&&new Date(x.expires_at).getTime()-now<=seven).length;
+    body.innerHTML=list.length?list.map(x=>{
+      const period=`${fmtDay(x.report_date)} · ${pad(x.report_hour||0)}h`;
+      const pdf=String(x.file_name||'').toLowerCase().endsWith('.pdf');
+      return `<tr>
+        <td>${period}</td><td>${esc(x.report_type)}</td><td title="${esc(x.file_name)}">${esc(x.file_name)}</td>
+        <td><span class="report-status ${statClass(x.archive_status)}">${esc(x.archive_status)}</span><br><small>${esc(x.retention_class)}</small></td>
+        <td>${esc(fmtDate(x.uploaded_at))}</td><td>${esc(fmtDate(x.expires_at))}</td><td>${bytes(x.size_bytes)}</td>
+        <td><div class="report-actions">${pdf?`<button class="report-btn green" onclick="viewArchivedReport('${x.id}')">Xem</button>`:''}<button class="report-btn" onclick="downloadArchivedReport('${x.id}')">Tải</button></div></td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="8" class="report-empty">Không có file trong khoảng đã chọn.</td></tr>`;
+
+    const {data:runs,error:re}=await sb.from('av_report_archive_runs')
+      .select('id,pipeline,report_date,report_hour,generation_status,generated_files,archived_files,archive_status,process_status,started_at,finished_at,error_text')
+      .order('created_at',{ascending:false}).limit(80);
+    if(re){runBody.innerHTML=`<tr><td colspan="7" class="report-empty">${esc(re.message)}</td></tr>`;}
+    else{
+      const rs=runs||[];$r('reportKpiRuns').textContent=rs.length;
+      runBody.innerHTML=rs.length?rs.map(x=>`<tr>
+        <td>${esc(fmtDate(x.started_at))}</td><td>${esc(x.pipeline)}</td><td>${fmtDay(x.report_date)} · ${pad(x.report_hour||0)}h</td>
+        <td>${esc(x.generated_files??'—')}</td><td>${esc(x.archived_files??'—')}</td>
+        <td><span class="report-status ${statClass(x.process_status||x.archive_status)}">${esc(x.process_status||x.archive_status||x.generation_status)}</span></td>
+        <td>${esc(x.error_text||'')}</td></tr>`).join(''):`<tr><td colspan="7" class="report-empty">Chưa có log.</td></tr>`;
+    }
+    setMsg('reportLogMsg',`Đã tải ${list.length} file báo cáo.`,'ok');
+  };
+
+  window.loadReportControl=async function(){
+    initReportDates();
+    if(!sbReady()){setMsg('reportRunnerStatus','Supabase chưa sẵn sàng.','err');return;}
+    const wrap=$r('reportAutoRows');if(!wrap)return;
+    wrap.innerHTML='<div class="report-empty">Đang tải trạng thái Cron...</div>';
+
+    const [{data:schedules,error:scheduleError},{data:floodData,error:floodError}] = await Promise.all([
+      sb.rpc('av_report_dashboard_get_schedule'),
+      sb.rpc('av_flood_report_get_state')
+    ]);
+
+    if(scheduleError){
+      wrap.innerHTML=`<div class="report-msg err">${esc(scheduleError.message)}. Hãy kiểm tra SQL Report Center.</div>`;
+      return;
+    }
+
+    const flood=Array.isArray(floodData)?floodData[0]:floodData;
+    const floodOn=!!flood?.enabled;
+    const rows=(schedules||[]).map(x=>{
+      const name=x.pipeline==='KTTV_6H'
+        ?'KTTV 4 kỳ 01/07/13/19h'
+        :x.pipeline==='DAILY07_BUNDLE'
+          ?'Bộ 3 báo cáo 07h'
+          :'KTTV hàng giờ khi có lũ';
+
+      if(x.pipeline==='FLOOD_HOURLY'){
+        const cronText=`Job ${x.jobid} · ${esc(x.schedule)} · Cron ${x.active?'sẵn sàng':'đang tắt'}`;
+        const lastRun=flood?.last_report_date
+          ? `${fmtDay(flood.last_report_date)} · ${pad(flood.last_report_hour)}h`
+          : 'Chưa có';
+        const who=floodOn?(flood?.enabled_by_email||'không rõ'):(flood?.disabled_by_email||'');
+        const when=floodOn?flood?.enabled_at:flood?.disabled_at;
+        const stateText=floodOn
+          ? `CHẾ ĐỘ LŨ ĐANG BẬT${who?' · '+esc(who):''}${when?' · '+fmtDate(when):''}`
+          : 'Chế độ lũ đang tắt';
+
+        return `<div class="report-auto-row flood-row">
+          <div class="report-auto-top">
+            <div class="report-auto-meta">
+              <b>${name}</b>
+              <span>${cronText}</span>
+            </div>
+            <span class="report-status ${floodOn?'wait':'info'}">${floodOn?'ĐANG BẬT':'ĐANG TẮT'}</span>
+          </div>
+
+          <div class="report-auto-flood-note">
+            ${stateText} · Lần phát lệnh gần nhất: ${esc(lastRun)} ·
+            Job 10: ${floodOn?'tạm dừng để tránh gửi trùng':'hoạt động theo lịch bốn kỳ'}.
+          </div>
+
+          <div class="report-auto-flood-controls">
+            <div class="report-field">
+              <label>Gửi email tự động</label>
+              <select id="floodSendEmail">
+                <option value="true" ${flood?.send_email!==false?'selected':''}>Có</option>
+                <option value="false" ${flood?.send_email===false?'selected':''}>Không</option>
+              </select>
+            </div>
+            <div class="report-field">
+              <label>Chế độ lưu</label>
+              <select id="floodRetention">
+                <option value="REPORT" ${(flood?.retention_class||'REPORT')==='REPORT'?'selected':''}>REPORT · 30 ngày</option>
+                <option value="TEST" ${flood?.retention_class==='TEST'?'selected':''}>TEST · 7 ngày</option>
+              </select>
+            </div>
+            <button class="report-btn ${floodOn?'red':'green'}"
+              onclick="setFloodHourlyMode(${floodOn?'false':'true'})">
+              ${floodOn?'Tắt chế độ lũ':'Bật chế độ lũ'}
+            </button>
+          </div>
+        </div>`;
+      }
+
+      return `<div class="report-auto-row">
+        <div class="report-auto-meta">
+          <b>${name}</b>
+          <span>Job ${x.jobid} · ${esc(x.schedule)} · ${x.active?'Đang bật':'Đang tắt'}</span>
+        </div>
+        <button class="report-btn ${x.active?'red':'green'}"
+          onclick="setReportAuto('${x.pipeline}',${x.active?'false':'true'})">
+          ${x.active?'Tắt tự động':'Bật tự động'}
+        </button>
+      </div>`;
+    });
+
+    wrap.innerHTML=rows.join('')||'<div class="report-empty">Không tìm thấy lịch tự động.</div>';
+
+    if(floodError){
+      setMsg('reportRunnerStatus','Không tải được trạng thái chế độ lũ: '+floodError.message,'err');
+    }
+    await loadManualRequests();
+  };
+
+  window.setFloodHourlyMode=async function(enabled){
+    if(!sbReady())return setMsg('reportRunnerStatus','Supabase chưa sẵn sàng.','err');
+    const sendEmail=($r('floodSendEmail')?.value||'true')==='true';
+    const retention=$r('floodRetention')?.value||'REPORT';
+
+    const warning=enabled
+      ? `BẬT CHẾ ĐỘ BÁO CÁO LŨ HÀNG GIỜ?\n\nJob Flood Hourly sẽ kiểm tra vào phút 10 mỗi giờ. Job 10 bốn kỳ tạm dừng để tránh gửi trùng.\nEmail: ${sendEmail?'BẬT':'TẮT'} · Lưu: ${retention}.`
+      : 'TẮT CHẾ ĐỘ BÁO CÁO LŨ HÀNG GIỜ?\n\nJob 10 bốn kỳ sẽ được khôi phục nếu trước khi bật lũ nó đang hoạt động.';
+
+    if(!confirm(warning))return;
+
+    try{
+      setMsg('reportRunnerStatus',enabled?'Đang bật chế độ lũ...':'Đang tắt chế độ lũ...','busy');
+      const {data,error}=await sb.rpc('av_flood_report_set_mode',{
+        p_enabled:enabled,
+        p_send_email:sendEmail,
+        p_retention_class:retention
+      });
+      if(error)throw error;
+      setMsg('reportRunnerStatus',String(data||'Đã cập nhật chế độ lũ.'),'ok');
+      await loadReportControl();
+    }catch(e){
+      setMsg('reportRunnerStatus','Không cập nhật được chế độ lũ: '+(e?.message||e),'err');
+    }
+  };
+
+  window.setReportAuto=async function(pipeline,enabled){
+    if(pipeline==='FLOOD_HOURLY'){
+      return setFloodHourlyMode(enabled);
+    }
+    if(!confirm(`${enabled?'BẬT':'TẮT'} chạy tự động cho ${pipeline}? Lịch Cron không bị thay đổi.`))return;
+    setMsg('reportRunnerStatus','Đang cập nhật trạng thái tự động...','busy');
+    const {data,error}=await sb.rpc('av_report_dashboard_set_auto',{
+      p_pipeline:pipeline,p_enabled:enabled
+    });
+    if(error)setMsg('reportRunnerStatus','Không cập nhật được: '+error.message,'err');
+    else{
+      setMsg('reportRunnerStatus',String(data||'Đã cập nhật.'),'ok');
+      await loadReportControl();
+    }
+  };
+
+  window.dispatchDashboardReport=async function(pipeline){
+    if(!sbReady())return setMsg('reportRunnerStatus','Supabase chưa sẵn sàng.','err');
+    const cfg = pipeline==='DAILY07_BUNDLE' ? {
+      date:'runDaily07Date',hour:7,retention:'runDaily07Retention',email:'runDaily07Email',
+      force:'runDaily07ForceResend',button:'btnRunDaily07',label:'Bộ 3 báo cáo 07h'
+    } : pipeline==='KTTV_6H' ? {
+      date:'runKttvDate',hour:Number($r('runKttvHour')?.value||19),retention:'runKttvRetention',
+      email:'runKttvEmail',force:'runKttvForceResend',button:'btnRunKttv',
+      label:`KTTV 4 kỳ ${pad(Number($r('runKttvHour')?.value||19))}h`
+    } : {
+      date:'runFloodDate',hour:Number($r('runFloodHour')?.value ?? new Date().getHours()),retention:'runFloodRetention',
+      email:'runFloodEmail',force:'runFloodForceResend',button:'btnRunFlood',
+      label:`KTTV hàng giờ khi có lũ ${pad(Number($r('runFloodHour')?.value ?? new Date().getHours()))}h`
+    };
+    const date=$r(cfg.date)?.value, hour=cfg.hour;
+    const retention=$r(cfg.retention)?.value||'REPORT';
+    const sendEmail=!!$r(cfg.email)?.checked, forceResend=!!$r(cfg.force)?.checked;
+    const btn=$r(cfg.button);
+    if(!date)return alert('Vui lòng chọn ngày báo cáo.');
+    if(pipeline==='FLOOD_HOURLY'&&(hour<0||hour>23))return alert('Giờ phải từ 00 đến 23.');
+    if(forceResend&&!sendEmail)return alert('Muốn GỬI LẠI thì phải bật "Gửi email sau khi tạo".');
+    const snapshotNote=pipeline==='FLOOD_HOURLY'
+      ? '\n\nFLOOD_HOURLY chỉ lấy đúng số liệu HH:00 đã chọn; không tính trung bình 6 giờ.' : '';
+    const resendNote=forceResend
+      ? '\n\nCẢNH BÁO: Đã bật GỬI LẠI. Nếu giờ/kỳ này đã SMTP_ACCEPTED sẽ gửi thêm một email.' : '';
+    if(!confirm(`Chạy ${cfg.label} ngày ${fmtDay(date)}${sendEmail?' và GỬI EMAIL':' (không gửi email)'}?${snapshotNote}${resendNote}`))return;
+    try{
+      if(btn)btn.disabled=true;
+      setMsg('reportRunnerStatus',`Đang gửi yêu cầu ${cfg.label}...`,'busy');
+      const {data,error}=await sb.rpc('av_report_dashboard_dispatch',{
+        p_pipeline:pipeline,p_report_date:date,p_report_hour:hour,p_send_email:sendEmail,
+        p_retention_class:retention,p_force_resend:forceResend
+      });
+      if(error)throw error;
+      const x=Array.isArray(data)?data[0]:data;
+      setMsg('reportRunnerStatus',`Đã gửi yêu cầu. Request ${x?.net_request_id||x?.request_id||'đã tạo'}.`,'ok');
+      await loadManualRequests();
+    }catch(e){setMsg('reportRunnerStatus','Không kích hoạt được workflow: '+(e.message||e),'err');}
+    finally{if(btn)btn.disabled=false;}
+  };
+
+  window.loadManualRequests=async function(){
+    const body=$r('manualRequestRows');if(!body||!sbReady())return;
+    const {data,error}=await sb.from('av_report_manual_requests')
+      .select('id,pipeline,report_date,report_hour,send_email,force_resend,retention_class,net_request_id,created_at')
+      .order('created_at',{ascending:false}).limit(20);
+    if(error){body.innerHTML=`<tr><td colspan="7">${esc(error.message)}</td></tr>`;return;}
+    body.innerHTML=(data||[]).length?(data||[]).map(x=>`<tr>
+      <td>${esc(fmtDate(x.created_at))}</td><td>${esc(x.pipeline)}</td><td>${fmtDay(x.report_date)} · ${pad(x.report_hour)}h</td>
+      <td>${x.send_email?'Có':'Không'}</td><td>${x.force_resend?'<b style="color:#c2410c">Có</b>':'Không'}</td>
+      <td>${esc(x.retention_class)}</td><td>${esc(x.net_request_id||x.id)}</td>
+    </tr>`).join(''):`<tr><td colspan="7">Chưa có yêu cầu chạy tay.</td></tr>`;
+  };
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    initReportDates();
+    [['runDaily07Email','runDaily07ForceResend'],['runKttvEmail','runKttvForceResend'],['runFloodEmail','runFloodForceResend']].forEach(([emailId,forceId])=>{
+      const email=$r(emailId), force=$r(forceId);
+      if(!email||!force)return;
+      const sync=()=>{force.disabled=!email.checked;if(!email.checked)force.checked=false;};
+      email.addEventListener('change',sync);sync();
+    });
+    document.querySelectorAll('.nav-link[data-tab="reportlog"]').forEach(a=>a.addEventListener('click',()=>setTimeout(loadReportCenter,50)));
+    document.querySelectorAll('.nav-link[data-tab="reportrun"]').forEach(a=>a.addEventListener('click',()=>setTimeout(loadReportControl,50)));
+  });
+})();
+</script>
 
 </body>
 </html>
