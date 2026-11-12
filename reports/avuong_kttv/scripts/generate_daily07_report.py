@@ -417,7 +417,7 @@ def render_reservoir_pdf(rows, d, output, generation_hours=None):
     canvas=Canvas(str(output),pagesize=A4,pageCompression=1)
     canvas.setTitle(f"Số liệu vận hành Nhà máy thủy điện A Vương ngày {prev:%d/%m/%Y}")
     canvas.setAuthor("Công ty Cổ phần Thủy điện A Vương")
-    draw_header(canvas,d,include_hour=True,document_number=document_number(d))
+    draw_header(canvas,d,include_hour=True,document_number=None)
     draw_text(canvas,"BÁO CÁO",CENTRE,PAGE_H-137,14,bold=True,align="center")
     draw_text(canvas,"Số liệu vận hành Nhà máy thủy điện A Vương",
               CENTRE,PAGE_H-153,12,align="center")
@@ -465,7 +465,7 @@ def render_reservoir_pdf(rows, d, output, generation_hours=None):
     # Grid hierarchy is deliberately explicit, not a flattened one-row header.
     table.setStyle(TableStyle(style))
     bottom=place_table(canvas,table,PAGE_H-226)
-    draw_sign_and_recipients(canvas,bottom,["Như kính gửi;","Ban GĐ;","Lưu VH, KTAT."])
+    draw_sign_and_recipients(canvas,bottom,["Như trên;", "Lưu VH."])
     canvas.showPage();canvas.save()
     return hours
 

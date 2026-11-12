@@ -372,6 +372,11 @@ def draw_pdf(r: Report, output: Path) -> Path:
     )):
         ctr(t, left_center, height - 48 - 14*i,
             "AVTimes" if i == 0 else "AVTimesBold", 11)
+    # Gạch chân dưới tên đơn vị theo Biểu mẫu 3.1.
+    c.setLineWidth(0.55)
+    unit_w = pdfmetrics.stringWidth("THỦY ĐIỆN A VƯƠNG", "AVTimesBold", 11)
+    c.line(left_center - unit_w * 0.46, height - 80,
+           left_center + unit_w * 0.46, height - 80)
     ctr("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",
         right_center, height - 48, "AVTimesBold", 11)
     slogan = "Độc lập - Tự do - Hạnh phúc"
@@ -403,6 +408,13 @@ def draw_pdf(r: Report, output: Path) -> Path:
     ctr("BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG",
         center_page, height - 122, "AVTimesBold", 13.2)
 
+    # Gạch chân tiêu đề báo cáo theo mẫu Công ty.
+    title = "BÁO CÁO SỐ LIỆU VẬN HÀNH HỒ THỦY ĐIỆN A VƯƠNG"
+    title_w = pdfmetrics.stringWidth(title, "AVTimesBold", 13.2)
+    c.setLineWidth(0.55)
+    c.line(center_page-title_w*0.46, height-127,
+           center_page+title_w*0.46, height-127)
+
     # Dùng chung một khung ngang cho đoạn căn cứ và bảng bên dưới.
     # Giữ nguyên vị trí/cỡ bảng; chỉ thu chiều rộng đoạn văn cho khớp bảng.
     table_width = 660.0
@@ -425,8 +437,21 @@ def draw_pdf(r: Report, output: Path) -> Path:
             f"LEGAL_TEXT_OVERFLOW: doan can cu thanh {len(legal_lines)} dong; "
             "kiem tra font va kich thuoc khung"
         )
+    # Căn đều hai lề, không giãn dòng cuối theo nguyên tắc văn bản hành chính.
     for i, line in enumerate(legal_lines):
-        ctr(line, center_page, height - 153 - 17*i, legal_font, legal_size)
+        yy = height - 153 - 17*i
+        words = line.split()
+        if i < len(legal_lines)-1 and len(words) > 1:
+            word_width = sum(pdfmetrics.stringWidth(w, legal_font, legal_size) for w in words)
+            gap = (legal_width-word_width)/(len(words)-1)
+            xx = x_left
+            c.setFont(legal_font, legal_size)
+            for word in words:
+                c.drawString(xx, yy, word)
+                xx += pdfmetrics.stringWidth(word, legal_font, legal_size)+gap
+        else:
+            c.setFont(legal_font, legal_size)
+            c.drawString(x_left, yy, line)
 
     # Bảng gọn và cân đối; cột mưa không quá rộng.
     widths = [97, 66, 86, 88, 79, 79, 79, 86]
@@ -454,7 +479,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y0, yd, 8.5)
     middle = (xs[4]+xs[7])/2
     if is_snapshot:
-        ctr("Số liệu tại", middle, y0-12, "AVTimesBold", 9)
+        ctr("Số liệu tại (tức thời)", middle, y0-12, "AVTimesBold", 9)
         ctr(snapshot_label, middle, y0-27, "AVTimesBold", 8.6)
     else:
         ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9)
@@ -473,10 +498,13 @@ def draw_pdf(r: Report, output: Path) -> Path:
               fmt(r.upstream), fmt(r.tailwater), fmt(r.mean_inflow),
               fmt(r.mean_turbine), fmt(r.mean_spillway), fmt(r.rain_total, 1)]
     for j, value in enumerate(values):
-        cell(j, [value], yd, yb, 10, False)
+        cell(j, [value], yd, yb, 12.5, False)
 
-    ctr("PHÂN XƯỞNG VẬN HÀNH", right_center, height-351, "AVTimesBold", 12)
-    # Để trống chữ ký và họ tên; không tự đưa người ký vào bản chưa được duyệt.
+    ctr("PHÂN XƯỞNG VẬN HÀNH", right_center, height-351, "AVTimesBold", 13)
+    # Tên người báo cáo chỉ lấy từ cấu hình công khai, không tự bịa tên.
+    reporter = os.environ.get("REPORT_SIGNER_NAME", "").strip()
+    if reporter:
+        ctr(reporter, right_center, height-438, "AVTimesBold", 13)
     if r.demo:
         ctr("DỮ LIỆU MINH HỌA - KHÔNG PHÁT HÀNH", center_page, 58, "AVTimesBold", 10)
     c.showPage()
