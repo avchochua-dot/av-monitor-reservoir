@@ -14308,7 +14308,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 <script>
 /* QT1865 inline runner - placed immediately after the QT1865 tab so it always runs */
 (function(){
-  const API_BASE = (location.protocol === "file:") ? "https://av-monitor-reservoir.vercel.app" : "";
+  const API_BASE = "https://av-monitor-reservoir.vercel.app";
   let chartObj = null;
   let loaded = false;
 
@@ -35767,10 +35767,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
   const FR3_PUBLIC_SITE = "https://av-monitor-reservoir.vercel.app";
 
   function fr3ApiUrl(path){
-    // When opening the HTML directly from disk (file://), a relative /api URL
-    // has no web origin. Use the deployed site only for local preview.
-    if(location.protocol === "file:") return FR3_PUBLIC_SITE + path;
-    return path;
+    if(/^https?:\/\//i.test(path)) return path;
+    return FR3_PUBLIC_SITE + path;
   }
 
   async function fr3FetchJson(path){
