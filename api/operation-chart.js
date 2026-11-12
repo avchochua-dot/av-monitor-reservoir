@@ -1,6 +1,22 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const ALLOWED_ORIGINS = new Set([
+  "https://avuonghydro.com",
+  "https://www.avuonghydro.com",
+  "https://av-monitor-reservoir.vercel.app",
+]);
+
+function setCors(req, res) {
+  const origin = String(req.headers.origin || "");
+  if (ALLOWED_ORIGINS.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
+  res.setHeader("Vary", "Origin");
+}
+
 async function fetchAll(table, query, pageSize = 1000) {
   let from = 0;
   let all = [];
@@ -93,14 +109,8 @@ function rulesResponse(req, res) {
 }
 
 export default async function handler(req, res) {
-  // avuonghydro.com va API dang nam tren hai Vercel project khac nhau.
-  // Cho phep trang web doc API cong khai nay qua trinh duyet.
-  res.setHeader("Access-Control-Allow-Origin", "https://avuonghydro.com");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
-  res.setHeader("Vary", "Origin");
+  setCors(req, res);
   if (req.method === "OPTIONS") return res.status(204).end();
-
   try {
     if (String(req.query.mode || "").toLowerCase() === "rules") return rulesResponse(req,res);
     const year = Number(req.query.year || new Date().getFullYear());
@@ -109,11 +119,19 @@ export default async function handler(req, res) {
     const operationQuery = `select=time,water_level,inflow,turbine_flow,spillway_flow,rainfallreal&time=gte.${encodeURIComponent(from)}&time=lte.${encodeURIComponent(to)}&order=time.asc`;
     const operations = await fetchAll("reservoir_hourly_data", operationQuery);
     const rawLimits = await fetchAll("reservoir_level_limits", "select=date,mnghd,mnght,mndl,mntrl&order=date.asc");
-    const limits = rawLimits.map(row => {
-      const base = applyLimitYear(row,year);
-      const rule = qt2138Rule(base.date);
-      return rule ? {...base,...rule} : {...base,procedure_code:"QT1865"};
-    });
+    const legacyByMonthDay = new Map(
+      rawLimits.map(row => [String(row.date).slice(5, 10), row])
+    );
+    const limits = [];
+    for (let d = new Date(Date.UTC(year, 0, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
+      const date = d.toISOString().slice(0, 10);
+      const legacy = legacyByMonthDay.get(date.slice(5, 10));
+      const base = legacy
+        ? { ...applyLimitYear(legacy, year), date }
+        : { date, mnghd:null, mnght:null, mndl:null, mntrl:null };
+      const rule = qt2138Rule(date);
+      limits.push(rule ? { ...base, ...rule } : { ...base, procedure_code:"QT1865" });
+    }
     return res.status(200).json({
       ok:true, year, rulesSource:"QT2138_EMBEDDED", operations, limits,
       counts:{operations:operations.length,rawLimits:rawLimits.length,limits:limits.length},
