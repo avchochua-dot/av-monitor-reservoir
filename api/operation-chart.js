@@ -30,6 +30,21 @@ async function fetchAll(table, query, pageSize = 1000) {
   return all;
 }
 
+async function fetchProcedureLimits(year) {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/av_operation_level_limits`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_year: year }),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
 function applyLimitYear(row, year) {
   const s = String(row.date).slice(0, 10);
   const [, month, day] = s.split("-");
@@ -59,13 +74,23 @@ export default async function handler(req, res) {
       `&order=date.asc`;
 
     const operations = await fetchAll("reservoir_hourly_data", operationQuery);
-    const rawLimits = await fetchAll("reservoir_level_limits", limitQuery);
-
-    const limits = rawLimits.map(row => applyLimitYear(row, year));
+    let rawLimits;
+    let limits;
+    let rulesSource = "QT2138_VERSIONED";
+    try {
+      limits = await fetchProcedureLimits(year);
+      rawLimits = limits;
+    } catch (migrationError) {
+      console.warn("QT2138 migration not available; using legacy limits", migrationError.message);
+      rawLimits = await fetchAll("reservoir_level_limits", limitQuery);
+      limits = rawLimits.map(row => applyLimitYear(row, year));
+      rulesSource = "LEGACY_RESERVOIR_LEVEL_LIMITS";
+    }
 
     res.status(200).json({
       ok: true,
       year,
+      rulesSource,
       operations,
       limits,
       counts: {
