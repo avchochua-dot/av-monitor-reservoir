@@ -429,29 +429,30 @@ def draw_pdf(r: Report, output: Path) -> Path:
         "Thủy điện A Vương cung cấp số liệu vận hành hồ chứa như sau:"
     )
     legal_font = "AVTimes"
-    legal_size = 10.5
     legal_width = table_width  # Cùng hai mép và tâm ngang với bảng.
-    legal_lines = simpleSplit(legal_text, legal_font, legal_size, legal_width)
-    if not (1 <= len(legal_lines) <= 2):
+    # Căn đều hai bên theo góp ý biểu mẫu (JUSTIFY), KHÔNG căn giữa.
+    # Dùng Paragraph để ReportLab xử lý khoảng trắng tự nhiên; dòng cuối giữ trái
+    # theo quy tắc căn đều văn bản hành chính.
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_JUSTIFY
+    from reportlab.platypus import Paragraph
+    legal_style = ParagraphStyle(
+        "legal_justify",
+        fontName=legal_font,
+        fontSize=12.0,
+        leading=15.0,
+        alignment=TA_JUSTIFY,
+        spaceBefore=0,
+        spaceAfter=0,
+    )
+    legal_para = Paragraph(legal_text, legal_style)
+    legal_h = legal_para.wrap(legal_width, 45)[1]
+    if legal_h > 34:
         raise RuntimeError(
-            f"LEGAL_TEXT_OVERFLOW: doan can cu thanh {len(legal_lines)} dong; "
+            f"LEGAL_TEXT_OVERFLOW: doan can cu cao {legal_h:.1f}pt; "
             "kiem tra font va kich thuoc khung"
         )
-    # Căn đều hai lề, không giãn dòng cuối theo nguyên tắc văn bản hành chính.
-    for i, line in enumerate(legal_lines):
-        yy = height - 153 - 17*i
-        words = line.split()
-        if i < len(legal_lines)-1 and len(words) > 1:
-            word_width = sum(pdfmetrics.stringWidth(w, legal_font, legal_size) for w in words)
-            gap = (legal_width-word_width)/(len(words)-1)
-            xx = x_left
-            c.setFont(legal_font, legal_size)
-            for word in words:
-                c.drawString(xx, yy, word)
-                xx += pdfmetrics.stringWidth(word, legal_font, legal_size)+gap
-        else:
-            c.setFont(legal_font, legal_size)
-            c.drawString(x_left, yy, line)
+    legal_para.drawOn(c, x_left, height - 177)
 
     # Bảng gọn và cân đối; cột mưa không quá rộng.
     widths = [97, 66, 86, 88, 79, 79, 79, 86]
@@ -478,21 +479,15 @@ def draw_pdf(r: Report, output: Path) -> Path:
     cell(2, ["Mực nước hồ", "thượng lưu", "(m)"], y0, yd, 8.5)
     cell(3, ["Mực nước hạ", "lưu nhà máy", "(m)"], y0, yd, 8.5)
     middle = (xs[4]+xs[7])/2
-    if is_snapshot:
-        ctr("Số liệu tại (tức thời)", middle, y0-12, "AVTimesBold", 9)
-        ctr(snapshot_label, middle, y0-27, "AVTimesBold", 8.6)
-    else:
-        ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9)
-        ctr(f"{period_from} ÷ {period_to}", middle, y0-27, "AVTimesBold", 8.6)
+    # Nguồn dữ liệu đã cung cấp giá trị trung bình theo giờ.
+    # Chỉ đổi nhãn khoảng thời gian, KHÔNG tính lại các giá trị Q.
+    ctr("Số liệu trung bình từ", middle, y0-12, "AVTimesBold", 9.4)
+    ctr(f"{period_from} ÷ {period_to}", middle, y0-27, "AVTimesBold", 9.0)
     cell(4, ["Q đến hồ", "(m³/s)"], yg, yd, 8.3)
     cell(5, ["Q chạy máy", "(m³/s)"], yg, yd, 8.3)
     cell(6, ["Q xả tràn", "(m³/s)"], yg, yd, 8.3)
-    if is_snapshot:
-        cell(7, ["Lượng mưa giờ từ", period_from+" ÷", period_to, "(mm)"],
-             y0, yd, 8.0, True, 10.5)
-    else:
-        cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],
-             y0, yd, 8.0, True, 10.5)
+    cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],
+         y0, yd, 8.6, True, 10.8)
 
     values = [d.strftime("%d/%m/%Y"), f"{r.hour:02d}h00'",
               fmt(r.upstream), fmt(r.tailwater), fmt(r.mean_inflow),
@@ -518,9 +513,9 @@ def report_meta(r: Report) -> dict[str, Any]:
         "report_hour_vn": r.hour, "source_time_mode": r.source_mode,
         "data_mode": r.data_mode,
         "period_definition": (
-            "single hourly snapshot exactly at report HH:00"
+            "source HH:00 record representing the hourly average for (T-1h, T]; values are not recalculated"
             if r.data_mode == "snapshot"
-            else "6 hourly readings ending at report hour: (T-6h, T]"
+            else "6 hourly source readings ending at report hour: (T-6h, T]"
         ),
         "hourly_record_ids": r.hour_ids,
         "tailwater_source": ("DEMO_ONLY" if r.demo else
