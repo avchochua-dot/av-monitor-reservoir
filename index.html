@@ -11628,8 +11628,8 @@ body.avdam-presenting{overflow:hidden}
 
               <div class="v8-level danger"><div class="v8-i">⚠️</div><b>MN kiểm tra</b><em>382.2 m</em><strong><span id="diff_KiemTra">--</span></strong><p>Khoảng cách đến ngưỡng</p></div>
               <div class="v8-level orange"><div class="v8-i">🌊</div><b>MN dâng bình thường</b><em>380.0 m</em><strong><span id="diff_MNDBT">--</span></strong><p>Khoảng cách đến MNDBT</p></div>
-              <div class="v8-level blue"><div class="v8-i">💧</div><b>MN cao nhất trước lũ</b><em>376.0 m</em><strong><span id="diff_DonLu">--</span></strong><p>Khoảng cách đến ngưỡng</p></div>
-              <div class="v8-level cyan"><div class="v8-i">☁️</div><b>MN đón lũ thấp nhất</b><em>370.0 m</em><strong><span id="diff_DonLuMin">--</span></strong><p>So với hiện tại</p></div>
+              <div class="v8-level blue"><div class="v8-i">💧</div><b>MN cao nhất bình thường</b><em id="overviewNormalLimit">Theo ngày</em><strong><span id="diff_DonLu">--</span></strong><p>Khoảng cách đến ngưỡng QT hiện hành</p></div>
+              <div class="v8-level cyan"><div class="v8-i">☁️</div><b>MN đón lũ thấp nhất</b><em id="overviewFloodLimit">Theo ngày</em><strong><span id="diff_DonLuMin">--</span></strong><p>So với giới hạn dưới QT hiện hành</p></div>
               <div class="v8-level purple"><div class="v8-i">🟣</div><b>MN chết</b><em>340.0 m</em><strong><span id="diff_Chet">--</span></strong><p>Cao hơn MN chết</p></div>
             </div>
           </div>
@@ -16872,6 +16872,38 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
   const SB_URL = "https://ycthhachfxczwkburnfa.supabase.co";
   const SB_KEY = "sb_publishable_Q0KbTLPBE4owO72Mz-GN6A_khF9z_Ss";
   const RES_CONST = { WL_MAX_CHECK:382.2, WL_NORMAL:380.0, WL_FLOOD:376.0, WL_FLOOD_MIN:370.0, WL_DEAD:340.0, VOL_DEAD:77.07, VOL_MAX:343.55 };
+  let avRuleDateLoaded = "";
+  async function loadActiveOperationRule(obsTime){
+    const raw = obsTime ? new Date(obsTime) : new Date();
+    if(Number.isNaN(raw.getTime())) return false;
+    const date = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(raw);
+    if(avRuleDateLoaded === date) return false;
+    avRuleDateLoaded = date;
+    try{
+      const response = await fetch(`/api/operation-rules?date=${encodeURIComponent(date)}`,{cache:'no-store'});
+      const data = await response.json();
+      if(!response.ok || !data.ok || !data.levelRule) throw new Error(data.error || 'Không có quy tắc theo ngày');
+      const r = data.levelRule;
+      const normalMin = Number(r.normal_level_min ?? r.mntrl);
+      const normalMax = Number(r.normal_level_max ?? r.mntrl);
+      const floodMin = Number(r.flood_level_min ?? r.mndl);
+      const floodMax = Number(r.flood_level_max ?? r.mndl);
+      if(Number.isFinite(normalMax)) RES_CONST.WL_FLOOD = normalMax;
+      if(Number.isFinite(floodMin)) RES_CONST.WL_FLOOD_MIN = floodMin;
+      const normalEl = document.getElementById('overviewNormalLimit');
+      const floodEl = document.getElementById('overviewFloodLimit');
+      const range = (a,b) => Number.isFinite(a) && Number.isFinite(b) ? (a===b ? `${a.toFixed(1)} m` : `${a.toFixed(1)}–${b.toFixed(1)} m`) : 'Không áp dụng';
+      if(normalEl) normalEl.textContent = range(normalMin,normalMax);
+      if(floodEl) floodEl.textContent = range(floodMin,floodMax);
+      const floodText = document.querySelector('#avDam_floodDatum text');
+      if(floodText && Number.isFinite(floodMin)) floodText.textContent = `MNĐL thấp nhất ${range(floodMin,floodMax)}`;
+      return true;
+    }catch(err){
+      console.warn('Không tải được quy tắc vận hành hiện hành:',err.message);
+      avRuleDateLoaded = '';
+      return false;
+    }
+  }
   const C = { WL:'34, 211, 238', IN:'59, 130, 246', TB:'245, 158, 11', SP:'239, 68, 68', RN:'167, 139, 250', IF:'255, 152, 0', RF:'34, 197, 94', ACC:'250, 204, 21', HEC:'255, 87, 34' };
 
   let sb=null, chart=null, currentTab="IN_OBS_FC_LONG_H120";
@@ -22295,6 +22327,10 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const l=state.lastObs;
     if(!l) return;
 
+    loadActiveOperationRule(l.time).then(changed=>{
+      if(changed && state.lastObs === l) renderOverview(fcFlow,fcRain);
+    }).catch(()=>{});
+
     const wl=l.water_level;
     $("txtWL").textContent=fmt2.format(wl);
     avDamUpdate(wl, l.time);
@@ -22302,17 +22338,8 @@ const VRAIN_RAIN_SUMMARY_URL = "/api/rain"; // Vercel proxy -> Vrain Open API
     const p=parseLiteral(l.time);
     if(p) $("lastUpdate").textContent=`${p.time} ${p.day}/${p.month}`;
 
-    let dlLimit=376.0;
-    let dlText="376.0";
-    const pD=parseLiteral(l.time);
-    if(pD){
-      const dd=parseInt(pD.day), mm=parseInt(pD.month);
-      if((mm===11&&dd>=16)||(mm===12&&dd<=15)){
-        dlLimit=380.0;
-        dlText="377.0 - 380.0";
-      }
-    }
-    const lblDonLu = $("lbl_DonLu"); if(lblDonLu) lblDonLu.innerText = `MN Cao nhất trước lũ (${dlText})`;
+    const dlLimit=RES_CONST.WL_FLOOD;
+    const lblDonLu = $("lbl_DonLu"); if(lblDonLu) lblDonLu.innerText = `MN cao nhất bình thường (${dlLimit.toFixed(1)} m)`;
 
     const setD=(id,v)=>{
       const d=wl-v;
