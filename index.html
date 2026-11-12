@@ -14207,7 +14207,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
               <div class="qt1865-title-icon">📋</div>
               <div>
                 <h2>Đánh giá tuân thủ quy trình vận hành</h2>
-                <p>QT1865 áp dụng đến 05/11/2026; QT2138 áp dụng từ 06/11/2026. Mùa lũ chỉ kết luận khi đủ Q về, mực nước hạ du và lệnh điều hành.</p>
+                <p>QT1865 đến 05/11/2026; QT2138 từ 06/11/2026. Kiểm tra theo mùa và chế độ vận hành. MNH là cuối ngày/mới nhất; Q là trung bình ngày 01–24h.</p>
               </div>
             </div>
 
@@ -14277,7 +14277,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
                 <thead>
                   <tr>
                     <th>Ngày</th>
-                    <th>MNH TB</th>
+                    <th>MNH cuối kỳ</th>
                     <th>GH MNH</th>
                     <th>CL GH dưới</th>
                     <th>CL GH trên</th>
@@ -14306,6 +14306,62 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
 
 
 <script>
+/* Shared operation-day and rule-series helpers: AVUONG_QT2138_V04. */
+window.AVOperation = (function(){
+  const number = value => value === null || value === undefined || value === "" ? null : Number.isFinite(Number(value)) ? Number(value) : null;
+  function dayKey(time){
+    const m = String(time || "").match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if(!m) return null;
+    // Stored labels are the operating clock, with hourly averages ending at 01..24.
+    // The next calendar day's 00h is the preceding operating day's 24h.
+    const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+    if(m[4] === "00" && m[5] === "00") d.setUTCDate(d.getUTCDate()-1);
+    return d.toISOString().slice(0,10);
+  }
+  function summarize(rows, year){
+    const map = {};
+    for(const row of rows || []){
+      const key = dayKey(row.time);
+      if(!key || (year && !key.startsWith(String(year)+"-"))) continue;
+      const time = String(row.time).slice(0,19);
+      if(!map[key]) map[key] = {time:"",water_level:null,inflowMax:null,turbineMax:null,spillwayMax:null,count:0};
+      const item = map[key];
+      if(time >= item.time){item.time=time;item.water_level=number(row.water_level);}
+      for(const [field, target] of [["inflow","inflowMax"],["turbine_flow","turbineMax"],["spillway_flow","spillwayMax"]]){
+        const n=number(row[field]);if(n!==null)item[target]=item[target]===null?n:Math.max(item[target],n);
+      }
+      item.count++;
+    }
+    return map;
+  }
+  function limitMap(rows, year){
+    const out={};
+    for(const row of rows||[]){
+      const date=String(row?.date||"").slice(0,10);
+      if(date.startsWith(String(year)+"-"))out[date]=row;
+    }
+    return out;
+  }
+  function limits(keys, map, axis){
+    const value=(key,field,fallback)=>{
+      const row=map[key];if(!row)return null;
+      const md=key.slice(5), isNew=row.procedure_code==="QT2138" || key>="2026-11-06";
+      const flood=row.season ? row.season==="FLOOD" : md>="09-01" && md<=(isNew?"12-20":"12-15");
+      if((field==="mnghd"||field==="mnght")===flood)return null;
+      return number(row[field] ?? row[fallback]);
+    };
+    const line=(label,field,fallback,color,extra={})=>({type:"line",label,data:keys.map(k=>value(k,field,fallback)),yAxisID:axis,borderColor:color,backgroundColor:color,borderWidth:2,pointRadius:0,stepped:"before",spanGaps:false,order:0,...extra});
+    return [
+      line("MNGHD", "mnghd", "dry_level_min", "#f97316"),
+      line("MNGHT", "mnght", "dry_level_max", "#d946ef"),
+      line("MNĐL - dưới", "flood_level_min", "mndl", "#dc2626"),
+      line("MNĐL - trên", "flood_level_max", "mndl", "#dc2626",{borderDash:[5,3],fill:"-1",backgroundColor:"rgba(220,38,38,.13)"}),
+      line("MNCN-BT / trước lũ - dưới", "normal_level_min", "mntrl", "#0891b2",{borderDash:[5,3]}),
+      line("MNCN-BT / trước lũ - trên", "normal_level_max", "mntrl", "#0891b2",{fill:"-1",backgroundColor:"rgba(8,145,178,.12)"}),
+    ];
+  }
+  return {number,dayKey,summarize,limitMap,limits,version:"AVUONG_QT2138_V04"};
+})();
 /* QT1865 inline runner - placed immediately after the QT1865 tab so it always runs */
 (function(){
   const API_BASE = "https://av-monitor-reservoir.vercel.app";
@@ -14337,6 +14393,11 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     if(!hasMin && hasMax) return `≤ ${fmt(max,2)}`;
     return `${fmt(min,2)} - ${fmt(max,2)}`;
   }
+  function rateText(value, count, empty="Chưa tính"){
+    return Number(count)>0 && value!==null && value!==undefined && Number.isFinite(Number(value)) ? fmt(value,1)+"%" : empty;
+  }
+  function closingLevel(row){return row.water_level_end ?? row.water_level_avg;}
+  function flowRuleText(row){return row.q_requirement_label || fmtRange(row.q_min,row.q_max);}
   function dt(s){
     if(!s) return "--";
     const p = String(s).slice(0,10).split("-");
@@ -14367,8 +14428,8 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     const now = new Date();
     const qs = new URLSearchParams(location.search || "");
     const queryMonth = qs.get("month");
-    const defaultMonth = queryMonth === null ? "5" : String(queryMonth || "");
-    const defaultYear = Number(qs.get("year") || 2026 || now.getFullYear());
+    const defaultMonth = queryMonth === null ? String(now.getMonth()+1) : String(queryMonth || "");
+    const defaultYear = Number(qs.get("year") || now.getFullYear());
 
     if(m && m.options.length === 0){
       m.innerHTML = "";
@@ -14474,12 +14535,12 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     tb.innerHTML = rows.map(r => `
       <tr>
         <td>${dt(r.date)}</td>
-        <td>${fmt(r.water_level_avg,2)}</td>
+        <td>${fmt(closingLevel(r),2)}</td>
         <td>${safe(r.rule_label || fmtRange(r.mnh_min,r.mnh_max))}</td>
         <td>${fmt(r.diff_mnh_min,2)}</td>
         <td>${fmt(r.diff_mnh_max,2)}</td>
         <td>${fmt(r.total_outflow_avg,2)}</td>
-        <td>${fmtRange(r.q_min,r.q_max)}</td>
+        <td>${safe(flowRuleText(r))}</td>
         <td>${fmt0(r.turbine_running_hours)}</td>
         <td>${fmt0(r.turbine_continuous_hours)}</td>
         <td>${tm(r.turbine_12h_start)}</td>
@@ -14502,14 +14563,16 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     chartObj = new Chart(canvas, {
       type: "doughnut",
       data: {
-        labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao"],
+        labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao", "Chưa đủ điều kiện", "Tạm tính"],
         datasets: [{
           data: [
             Math.max(Number(summary.compliantDays || 0) - Number(summary.warningDays || 0), 0),
             Number(summary.nonCompliantDays || 0),
-            Number(summary.warningDays || 0)
+            Number(summary.warningDays || 0),
+            Number(summary.unevaluatedDays || 0),
+            Number(summary.provisionalDays || 0)
           ],
-          backgroundColor: ["#16a34a", "#dc2626", "#f59e0b"],
+          backgroundColor: ["#16a34a", "#dc2626", "#f59e0b", "#94a3b8", "#38bdf8"],
           borderColor: "#fff",
           borderWidth: 4
         }]
@@ -14622,8 +14685,8 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     setText("qtOkDays", fmt0(s.compliantDays));
     setText("qtBadDays", fmt0(s.nonCompliantDays));
     setText("qtWarnDays", fmt0(s.warningDays));
-    setText("qtTurbineOk", fmt0(s.turbine12hCompliantDays));
-    setText("qtTurbineBad", fmt0(s.turbine12hNonCompliantDays));
+    setText("qtTurbineOk", Number(s.turbine12hApplicableDays)>0 ? fmt0(s.turbine12hCompliantDays) : "Không áp dụng");
+    setText("qtTurbineBad", Number(s.turbine12hApplicableDays)>0 ? fmt0(s.turbine12hNonCompliantDays) : "Không áp dụng");
     setText("qtTurbineRate", fmt0(Number(s.unevaluatedDays || 0) + Number(s.provisionalDays || 0)));
     setText("qtRate", Number(s.evaluatedDays ?? s.totalDays) > 0 && Number.isFinite(Number(s.complianceRate)) ? fmt(s.complianceRate,1) + "%" : "Chưa tính");
     renderReasons(data.summaryByReason || []);
@@ -14645,7 +14708,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
       render(data);
       loaded = true;
       const s = selected();
-      setStatus(s.month === "" ? "Đã tải dữ liệu năm" : ("Đã tải " + (data.summary?.dataDays ?? data.summary?.totalDays ?? 0) + " ngày"), "ok");
+      setStatus(s.month === "" ? "V04 · Đã tải dữ liệu năm" : ("V04 · " + (data.summary?.dataDays ?? data.summary?.totalDays ?? 0) + " ngày"), "ok");
     }catch(err){
       console.error(err);
       setStatus("Lỗi tải", "error");
@@ -14717,7 +14780,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
       ? rows.map(r => `
           <tr>
             <td>${esc(r.date)}</td>
-            <td>${n(r.water_level_avg)}</td>
+            <td>${n(closingLevel(r))}</td>
             <td>${n(r.water_level_min)}</td>
             <td>${n(r.water_level_max)}</td>
             <td>${n(r.mnh_min)}</td>
@@ -14744,7 +14807,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
             <td>${esc(r.turbine_12h_status)}</td>
             <td>${esc(resultText(r))}</td>
             <td>${esc(r.reason)}</td>
-            <td>${esc(r.note)}</td>
+            <td>${esc([r.note,r.q_requirement_label].filter(Boolean).join("; "))}</td>
           </tr>
         `).join("")
       : `<tr><td colspan="29">Không có dữ liệu chi tiết</td></tr>`;
@@ -14839,7 +14902,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     <tr><td>Tỷ lệ đảm bảo (%)</td><td class="center">${n(summary.complianceRate, 1)}</td></tr>
     <tr><td>Đạt yêu cầu xả 12h (ngày áp dụng)</td><td class="center">${n(summary.turbine12hCompliantDays, 0)}</td></tr>
     <tr><td>Không đạt yêu cầu xả 12h (ngày áp dụng)</td><td class="center">${n(summary.turbine12hNonCompliantDays, 0)}</td></tr>
-    <tr><td>MNH trung bình (m)</td><td class="center">${n(summary.waterLevelAvg)}</td></tr>
+    <tr><td>Trung bình các mực nước cuối ngày (m)</td><td class="center">${n(summary.waterLevelAvg)}</td></tr>
     <tr><td>MNH lớn nhất (m)</td><td class="center">${n(summary.waterLevelMax?.value)} - ${esc(summary.waterLevelMax?.date || summary.waterLevelMax?.time || "")}</td></tr>
     <tr><td>MNH nhỏ nhất (m)</td><td class="center">${n(summary.waterLevelMin?.value)} - ${esc(summary.waterLevelMin?.date || summary.waterLevelMin?.time || "")}</td></tr>
     <tr><td>Q về trung bình (m3/s)</td><td class="center">${n(summary.inflowAvg)}</td></tr>
@@ -14868,7 +14931,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
   <table>
     <tr>
       <th>Ngày</th>
-      <th>MNH TB</th>
+      <th>MNH cuối kỳ</th>
       <th>MNH min thực tế</th>
       <th>MNH max thực tế</th>
       <th>MNH min quy định</th>
@@ -14974,26 +15037,27 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
         Trong kỳ đánh giá <b>${periodTitle}</b>, hệ thống ghi nhận <b>${fmt0(s.dataDays ?? s.totalDays)}</b> ngày có dữ liệu vận hành;
         trong đó <b>${fmt0(s.evaluatedDays ?? s.totalDays)}</b> ngày đủ điều kiện đánh giá,
         <b>${fmt0(s.unevaluatedDays)}</b> ngày chưa đủ điều kiện kết luận và <b>${fmt0(s.provisionalDays)}</b> ngày tạm tính.
-        Kết quả có <b>${fmt0(s.compliantDays)}</b> ngày đảm bảo quy trình, đạt tỷ lệ <b>${fmt(s.complianceRate,1)}%</b>;
+        Kết quả có <b>${fmt0(s.compliantDays)}</b> ngày đảm bảo theo các chỉ tiêu được kiểm tra; tỷ lệ đảm bảo <b>${rateText(s.complianceRate,s.evaluatedDays ?? s.totalDays)}</b>;
         <b>${fmt0(s.nonCompliantDays)}</b> ngày không đảm bảo và <b>${fmt0(s.warningDays)}</b> ngày có cảnh báo.
       </p>
       <p>
         Mức độ tuân thủ tổng thể được đánh giá là
         <span class="level-badge ${level.cls}">${level.text}</span>.
-        Nguyên nhân nổi bật nhất là <b>${safe(topReason ? topReason.reason : "không phát hiện nguyên nhân nổi bật")}</b>
-        ${topReason ? `với <b>${fmt0(topReason.count)}</b> ngày ghi nhận.` : "."}
+        ${topReason ? `Nguyên nhân nổi bật: <b>${safe(topReason.reason)}</b>, ghi nhận <b>${fmt0(topReason.count)}</b> ngày.` : "Chưa ghi nhận vi phạm đủ căn cứ để kết luận; không quy đổi ngày thiếu điều kiện thành ngày đạt hoặc không đạt."}
       </p>
+      ${Number(s.normalFlowCheckedDays || 0)>0 ? `<p>Kiểm tra riêng ngưỡng Q của chế độ bình thường: <b>${fmt0(s.normalFlowMetDays)}</b> ngày đạt ngưỡng và <b>${fmt0(s.normalFlowBelowDays)}</b> ngày dưới ngưỡng. Kết quả này không thay cho xác nhận chế độ vận hành và đánh giá toàn bộ quy trình.</p>` : ""}
       ${Number(s.turbine12hApplicableDays || 0) > 0 ? `<p>
         Trong các ngày có áp dụng yêu cầu xả nước mùa cạn, có <b>${fmt0(s.turbine12hCompliantDays)}</b> ngày đạt
         và <b>${fmt0(s.turbine12hNonCompliantDays)}</b> ngày không đạt theo dữ liệu hiện có.
-      </p>` : `<p>Yêu cầu xả nước tối thiểu 12 giờ/ngày không áp dụng cho các ngày mùa lũ QT2138 trong kỳ này.</p>`}
-      <p>
+      </p>` : `<p>Yêu cầu thời gian xả mùa cạn không áp dụng cho các ngày mùa lũ của cả QT1865 và QT2138 trong kỳ này.</p>`}
+      ${qLow || mnhHigh || mnhLow || qWarn ? `<p>
         Các nhóm vấn đề cần theo dõi gồm:
         ${qLow ? `<b>${safe(qLow.reason)}</b> (${fmt0(qLow.count)} ngày); ` : ""}
         ${mnhHigh ? `<b>${safe(mnhHigh.reason)}</b> (${fmt0(mnhHigh.count)} ngày); ` : ""}
         ${mnhLow ? `<b>${safe(mnhLow.reason)}</b> (${fmt0(mnhLow.count)} ngày); ` : ""}
         ${qWarn ? `<b>${safe(qWarn.reason)}</b> (${fmt0(qWarn.count)} ngày).` : ""}
-      </p>
+      </p>` : ""}
+      <p>MNH cuối kỳ là mực nước 24h của ngày đã kết thúc hoặc số liệu mới nhất của ngày tạm tính; Q ra là trung bình ngày theo các số liệu giờ 01–24. Ngày thiếu điều kiện và ngày tạm tính không đưa vào mẫu số tỷ lệ đảm bảo.</p>
     `;
 
     const conclusion = `
@@ -15001,8 +15065,10 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
         Báo cáo áp dụng <b>${safe(procedureLabel)}</b>. Kết quả đạt/không đạt chỉ được tính cho các ngày đủ điều kiện đánh giá.
       </p>
       <p>
-        Đối với mùa lũ QT2138, cần bổ sung đầy đủ Q về, mực nước Hội Khách - Ái Nghĩa và lệnh điều hành đang hiệu lực trước khi kết luận cắt, giảm lũ hoặc tuân thủ.
-        Đối với mùa cạn, kiểm tra đúng yêu cầu xả ít nhất 02 đợt, mỗi đợt liên tục ít nhất 04 giờ, tổng thời gian ít nhất 12 giờ, bắt đầu không muộn hơn 06 giờ và kết thúc không sớm hơn 22 giờ.
+        Trong mùa lũ, khi vận hành bình thường, kiểm tra Q xả trung bình ngày tối thiểu 15 m³/s, trừ trường hợp được điều chỉnh hợp lệ. Đánh giá giảm lũ cần đối chiếu chế độ, dự báo, mực nước hạ du và chỉ đạo áp dụng; không mặc định mọi ngày đều cần có lệnh mới để vận hành bình thường.
+      </p>
+      <p>
+        Mùa cạn QT1865: xả liên tục ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 09 giờ, kết thúc không sớm hơn 21 giờ. Mùa cạn QT2138: ít nhất 02 đợt, mỗi đợt liên tục ít nhất 04 giờ, tổng ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 06 giờ, kết thúc không sớm hơn 22 giờ.
       </p>
     `;
 
@@ -15083,8 +15149,8 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
           <td class="bad">${fmt0(m.nonCompliantDays)}</td>
           <td class="warn">${fmt0(m.warningDays)}</td>
           <td>${fmt0(m.turbine12hCompliantDays)}</td>
-          <td>${fmt(m.complianceRate,1)}%</td>
-          <td>${fmt(m.turbine12hRate,1)}%</td>
+          <td>${rateText(m.complianceRate,m.evaluatedDays ?? m.totalDays)}</td>
+          <td>${rateText(m.turbine12hRate,m.turbine12hApplicableDays ?? (Number(m.turbine12hCompliantDays||0)+Number(m.turbine12hNonCompliantDays||0)),"Không áp dụng")}</td>
         </tr>
       `;
     }).join("");
@@ -15116,15 +15182,17 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     }
 
     const complianceChart = svgDonut([
-      {label:"Đảm bảo", value:s.compliantDays, color:"#16a34a"},
+      {label:"Đảm bảo", value:Math.max(Number(s.compliantDays||0)-Number(s.warningDays||0),0), color:"#16a34a"},
       {label:"Không đảm bảo", value:s.nonCompliantDays, color:"#dc2626"},
-      {label:"Cảnh báo", value:s.warningDays, color:"#f59e0b"}
-    ], `${fmt(s.complianceRate,1)}%`, "Đảm bảo");
+      {label:"Cảnh báo", value:s.warningDays, color:"#f59e0b"},
+      {label:"Chưa đủ điều kiện", value:s.unevaluatedDays, color:"#94a3b8"},
+      {label:"Tạm tính", value:s.provisionalDays, color:"#38bdf8"}
+    ], rateText(s.complianceRate,s.evaluatedDays ?? s.totalDays), "Đảm bảo");
 
     const turbineChart = svgDonut([
       {label:"Đạt yêu cầu 12h", value:s.turbine12hCompliantDays, color:"#16a34a"},
       {label:"Không đạt yêu cầu 12h", value:s.turbine12hNonCompliantDays, color:"#dc2626"}
-    ], `${fmt(s.turbine12hRate,1)}%`, "Ngày áp dụng");
+    ], rateText(s.turbine12hRate,s.turbine12hApplicableDays,"Không áp dụng"), "Yêu cầu mùa cạn");
 
     function detailRowHtml(r, i){
       const result = resultText(r);
@@ -15135,10 +15203,10 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
         <tr>
           <td>${i + 1}</td>
           <td>${dt(r.date)}</td>
-          <td class="num-cell">${fmt(r.water_level_avg,2)}</td>
+          <td class="num-cell">${fmt(closingLevel(r),2)}</td>
           <td>${safe(r.rule_label || fmtRange(r.mnh_min,r.mnh_max))}</td>
           <td class="num-cell">${fmt(r.total_outflow_avg,2)}</td>
-          <td>${fmtRange(r.q_min,r.q_max)}</td>
+          <td>${safe(flowRuleText(r))}</td>
           <td class="num-cell">${fmt0(r.turbine_running_hours)}</td>
           <td class="num-cell">${fmt0(r.turbine_continuous_hours)}</td>
           <td class="${turbineClass}">${safe(turbineText(r))}</td>
@@ -15156,7 +15224,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
             <tr>
               <th>STT</th>
               <th>Ngày</th>
-              <th>MNH TB</th>
+              <th>MNH cuối kỳ</th>
               <th>GH MNH</th>
               <th>Q ra TB</th>
               <th>Q quy định</th>
@@ -15187,7 +15255,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
           <div><b>${fmt0(s.warningDays)}</b><span>Cảnh báo Q cao</span></div>
           <div><b>${fmt0(s.unevaluatedDays)}</b><span>Chưa đủ ĐK</span></div>
           <div><b>${fmt0(s.provisionalDays)}</b><span>Tạm tính</span></div>
-          <div><b>${fmt(s.complianceRate,1)}%</b><span>Tỷ lệ đảm bảo</span></div>
+          <div><b>${rateText(s.complianceRate,s.evaluatedDays ?? s.totalDays)}</b><span>Tỷ lệ đảm bảo</span></div>
           <div><b>${fmt0(s.evaluatedDays ?? s.totalDays)}</b><span>Ngày đã đánh giá</span></div>
         </div>
 
@@ -27007,8 +27075,8 @@ function refreshOverviewMap(){
 
       const dateKeys = fullYearDateKeys(year);
       const labels = dateKeys.map(dayMonthLabel);
-      const opDaily = summarizeDailyOperations(operations);
-      const limitMap = levelLimitMapByMonthDay(limits, year);
+      const opDaily = window.AVOperation.summarize(operations, year);
+      const limitMap = window.AVOperation.limitMap(limits, year);
 
       const mnh = dateKeys.map(k => opDaily[k]?.water_level ?? null);
       const qve = dateKeys.map(k => opDaily[k]?.inflowMax ?? null);
@@ -27079,58 +27147,7 @@ function refreshOverviewMap(){
               spanGaps:false,
               order:2
             },
-            {
-              type:"line",
-              label:"MNGHD",
-              data:mnghd,
-              yAxisID:"yLevel",
-              borderColor:"#f97316",
-              backgroundColor:"#f97316",
-              borderWidth:2,
-              pointRadius:0,
-              stepped:true,
-              spanGaps:true,
-              order:0
-            },
-            {
-              type:"line",
-              label:"MNGHT",
-              data:mnght,
-              yAxisID:"yLevel",
-              borderColor:"#ff00ff",
-              backgroundColor:"#ff00ff",
-              borderWidth:2,
-              pointRadius:0,
-              stepped:true,
-              spanGaps:true,
-              order:0
-            },
-            {
-              type:"line",
-              label:"MNĐL",
-              data:mndl,
-              yAxisID:"yLevel",
-              borderColor:"#dc2626",
-              backgroundColor:"#dc2626",
-              borderWidth:2,
-              pointRadius:0,
-              stepped:true,
-              spanGaps:true,
-              order:0
-            },
-            {
-              type:"line",
-              label:"MNTrL",
-              data:mntrl,
-              yAxisID:"yLevel",
-              borderColor:"#06b6d4",
-              backgroundColor:"#06b6d4",
-              borderWidth:2,
-              pointRadius:0,
-              stepped:true,
-              spanGaps:true,
-              order:0
-            }
+            ...window.AVOperation.limits(dateKeys, limitMap, "yLevel")
           ]
         },
         options:{
@@ -27235,10 +27252,7 @@ function refreshOverviewMap(){
               {type:"line",label:"Q về",data:qve,yAxisID:"yFlow",borderColor:"#ef4444",backgroundColor:"#ef4444",borderWidth:1.8,pointRadius:0,tension:0.18,spanGaps:false,order:2},
               {type:"line",label:"Q chạy máy",data:qmay,yAxisID:"yFlow",borderColor:"#f59e0b",backgroundColor:"#f59e0b",borderWidth:1.8,pointRadius:0,tension:0.18,spanGaps:false,order:2},
               {type:"line",label:"Q xả",data:qxa,yAxisID:"yFlow",borderColor:"#7c3aed",backgroundColor:"#7c3aed",borderWidth:2,pointRadius:0,tension:0.18,spanGaps:false,order:2},
-              {type:"line",label:"MNGHD",data:mnghd,yAxisID:"yLevel",borderColor:"#f97316",backgroundColor:"#f97316",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
-              {type:"line",label:"MNGHT",data:mnght,yAxisID:"yLevel",borderColor:"#ff00ff",backgroundColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
-              {type:"line",label:"MNĐL",data:mndl,yAxisID:"yLevel",borderColor:"#dc2626",backgroundColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0},
-              {type:"line",label:"MNTrL",data:mntrl,yAxisID:"yLevel",borderColor:"#06b6d4",backgroundColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true,order:0}
+              ...window.AVOperation.limits(dateKeys, limitMap, "yLevel")
             ]
           },
           options:{
@@ -27262,11 +27276,13 @@ function refreshOverviewMap(){
 
       const actualDays = Object.keys(opDaily).length;
       const limitCount = limits.length;
-      setOperationStatus(`Đã tải ${actualDays} ngày`);
+      setOperationStatus(`V04 · ${actualDays} ngày`);
       const note = document.getElementById("operationChartNote");
       if(note){
         note.textContent =
-          `Biểu đồ đang hiển thị đủ ${dateKeys.length} ngày của năm ${year}. ` +
+          `V04. Ngày vận hành tính theo giờ 01–24; MNH là cuối ngày hoặc mới nhất, các Q là lớn nhất ngày. ` +
+          `Dải màu thể hiện khoảng tham chiếu, không thay thế chỉ đạo vận hành. ` +
+          `Biểu đồ hiển thị đủ ${dateKeys.length} ngày của năm ${year}. ` +
           `Dữ liệu vận hành: ${operations.length} bản ghi / ${actualDays} ngày. ` +
           `Nền giới hạn: ${limitCount} dòng.`;
       }
@@ -36224,11 +36240,8 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     let lims=Array.isArray(j.limits)?j.limits:[];
     if(!lims.length)lims=await fr3FetchFallbackLimits(y);
 
-    const daily=fr3SummarizeDailyOperations(ops);
-    const limitMap=fr3LevelLimitMapByMonthDay(
-      (lims||[]).map(r=>({...r,__year:y})),
-      y
-    );
+    const daily=window.AVOperation.summarize(ops,y);
+    const limitMap=window.AVOperation.limitMap(lims,y);
 
     const ks=[];
     const d0=new Date(Date.UTC(y,0,1));
@@ -36244,10 +36257,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
 
     OP_CHART=new Chart($("fr3OperationChart"),{
       data:{labels:L,datasets:[
-        {type:"line",label:"MNGHD",data:ks.map(k=>lim(k,"mnghd")),yAxisID:"yl",borderColor:"#f97316",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNGHT",data:ks.map(k=>lim(k,"mnght")),yAxisID:"yl",borderColor:"#ff00ff",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNĐL",data:ks.map(k=>lim(k,"mndl")),yAxisID:"yl",borderColor:"#dc2626",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
-        {type:"line",label:"MNTrL",data:ks.map(k=>lim(k,"mntrl")),yAxisID:"yl",borderColor:"#06b6d4",borderWidth:2,pointRadius:0,stepped:true,spanGaps:true},
+        ...window.AVOperation.limits(ks,limitMap,"yl"),
         {type:"line",label:"MNH",data:ks.map(k=>daily[k]?.water_level??null),yAxisID:"yl",borderColor:"#3b82f6",borderWidth:4,pointRadius:1.5,tension:.25,spanGaps:false},
         {type:"line",label:"Q về",data:ks.map(k=>daily[k]?.inflowMax??null),yAxisID:"yq",borderColor:"#ef4444",borderWidth:2,pointRadius:0,tension:.18,spanGaps:false},
         {type:"line",label:"Q chạy máy",data:ks.map(k=>daily[k]?.turbineMax??null),yAxisID:"yq",borderColor:"#f59e0b",borderWidth:2,pointRadius:0,tension:.18,spanGaps:false},
@@ -36267,7 +36277,7 @@ ${conclusion} Khi Q về thực tế hoặc chuỗi dự báo thay đổi đáng
     });
 
     $("fr3OperationNote").textContent=
-      `Biểu đồ điều phối hiển thị nguyên năm ${y}, dùng cùng API và cùng quy tắc tổng hợp ngày với tab “Biểu đồ điều phối”. Khoảng đợt lũ chỉ áp dụng cho biểu đồ diễn biến theo giờ và phần tính toán báo cáo.`;
+      `V04. Biểu đồ năm ${y}: ngày vận hành 01–24h, MNH cuối ngày/mới nhất, Q lớn nhất ngày; dải màu là khoảng tham chiếu. Dùng cùng cách tổng hợp với tab Biểu đồ điều phối.`;
   }
 
   async function calculate(){
