@@ -16880,7 +16880,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
     if(avRuleDateLoaded === date) return false;
     avRuleDateLoaded = date;
     try{
-      const response = await fetch(`/api/operation-rules?date=${encodeURIComponent(date)}`,{cache:'no-store'});
+      const response = await fetch(`https://av-monitor-reservoir.vercel.app/api/operation-chart?mode=rules&date=${encodeURIComponent(date)}`,{cache:'no-store'});
       const data = await response.json();
       if(!response.ok || !data.ok || !data.levelRule) throw new Error(data.error || 'Không có quy tắc theo ngày');
       const r = data.levelRule;
@@ -26966,7 +26966,7 @@ function refreshOverviewMap(){
       operationChartLoadedYear = year;
       setOperationStatus("Đang tải...");
 
-      const json = await fetchJson(`/api/operation-chart?year=${year}`);
+      const json = await fetchJson(`https://av-monitor-reservoir.vercel.app/api/operation-chart?year=${year}`);
 
       let operations = Array.isArray(json.operations) ? json.operations : [];
       let limits = Array.isArray(json.limits) ? json.limits : [];
