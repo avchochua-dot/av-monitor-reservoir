@@ -1,6 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const FIX_VERSION = "AVUONG_QT2138_V04";
+const FIX_VERSION = "AVUONG_QT2138_V05";
 
 const ALLOWED_ORIGINS = new Set([
   "https://avuonghydro.com",

@@ -17,7 +17,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const FIX_VERSION = "AVUONG_QT2138_V04";
+const FIX_VERSION = "AVUONG_QT2138_V05";
 
 function json(res, status, data) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -350,7 +350,7 @@ function normalizeProcedureRow(sourceRow, todayVn) {
       rule_label:lateLegacy ? "MNĐL 377 m; MN trước lũ 377–380 m" : "MNĐL 370 m; MN trước lũ 376 m",
     };
     const mode = String(sourceRow.operation_mode || sourceRow.operating_mode || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    const normalConfirmed = ["NORMAL", "NORMAL_OPERATION", "BINH_THUONG", "BINH THUONG"].includes(mode);
+    const normalConfirmed = !sourceRow.has_mode_conflict && ["NORMAL", "NORMAL_OPERATION", "BINH_THUONG", "BINH THUONG"].includes(mode);
     const approvedQ = num(sourceRow.approved_q_min);
     const qMin = approvedQ !== null && approvedQ >= 0 && sourceRow.dispatch_order_ref ? approvedQ : 15;
     const flowMet = actualOutflow === null ? null : actualOutflow >= qMin;
@@ -362,30 +362,33 @@ function normalizeProcedureRow(sourceRow, todayVn) {
       : maxLevel <= rule.normal_level_min ? true
       : maxLevel > rule.normal_level_max ? false
       : bound === null ? null : maxLevel <= bound;
-    const evaluable = !provisional && normalConfirmed && flowMet !== null && levelMet !== null;
+    const evaluable = !provisional && normalConfirmed && sourceRow.complete_operating_day === true && flowMet !== null && levelMet !== null;
     const compliant = evaluable ? flowMet && levelMet : null;
     const flowText = flowMet === null ? "Chưa có Q trung bình ngày"
       : `${flowMet ? "Đạt" : "Dưới"} ngưỡng Q ${qMin} m³/s${normalConfirmed ? "" : " (nếu vận hành bình thường)"}`;
+    const modeSpecific = mode && mode !== "NORMAL";
     const reason = provisional ? "Tạm tính - ngày vận hành chưa kết thúc"
       : evaluable ? [flowMet ? null : `Q trung bình ngày dưới ${qMin} m³/s`, levelMet ? null : "Mực nước vượt giới hạn vận hành bình thường"].filter(Boolean).join("; ") || "Đạt các chỉ tiêu được kiểm tra trong chế độ bình thường"
-      : `${flowText}; ${normalConfirmed ? "cần đủ dữ liệu mực nước lớn nhất và giới hạn áp dụng" : "chưa xác nhận chế độ vận hành; đánh giá giảm lũ cần thêm dự báo, mực nước hạ du và chỉ đạo áp dụng"}`;
+      : modeSpecific ? `Chế độ ${mode}; đối chiếu chỉ tiêu thủy lực theo từng giờ và căn cứ chuyển chế độ`
+      : `${flowText}; ${normalConfirmed ? "cần đủ 24 giờ dữ liệu hồ và giới hạn áp dụng" : "chưa ghi nhận đầy đủ chế độ vận hành và căn cứ dự báo"}`;
     return {
       ...sourceRow, ...rule,
       water_level_end:actualWaterLevel, water_level_basis:"END_OF_OPERATION_DAY",
-      q_min:qMin, q_max:null, normal_q_min:qMin,
-      q_requirement_label:`≥ ${qMin} m³/s khi vận hành bình thường`,
+      q_min:modeSpecific ? null : qMin, q_max:null, normal_q_min:qMin,
+      q_requirement_label:modeSpecific ? ({MAINTAIN:"Q xả trong ±10% Q về (theo giờ)",FLOOD_REDUCTION:"Q xả < Q về (theo giờ)",LOWER_AFTER_FLOOD:"Theo mục tiêu/thời hạn hạ mực nước"}[mode] || "Đối chiếu theo từng chế độ") : `≥ ${qMin} m³/s khi vận hành bình thường`,
       mnh_min:null, mnh_max:null, diff_mnh_min:null, diff_mnh_max:null,
-      diff_q_min:actualOutflow === null ? null : round(actualOutflow-qMin), diff_q_max:null,
+      diff_q_min:modeSpecific || actualOutflow === null ? null : round(actualOutflow-qMin), diff_q_max:null,
       turbine_12h_required:false, is_turbine_12h_compliant:null,
       turbine_12h_start:null, turbine_12h_end:null,
       turbine_12h_status:"Không áp dụng trong mùa lũ",
-      normal_flow_compliant:provisional ? null : flowMet,
+      normal_flow_compliant:provisional || modeSpecific ? null : flowMet,
       normal_operation_confirmed:normalConfirmed,
-      flow_status:provisional ? "Tạm tính" : flowText,
+      flow_status:provisional ? "Tạm tính" : modeSpecific ? "Đối chiếu từng giờ theo chế độ" : flowText,
       mnh_status:provisional ? "Tạm tính" : "Tham chiếu theo chế độ vận hành",
       is_provisional:provisional, is_evaluable:evaluable, is_compliant:compliant,
       evaluation_status:provisional ? "PROVISIONAL" : evaluable ? compliant ? "COMPLIANT" : "NON_COMPLIANT" : "INSUFFICIENT_CONDITIONS",
       reason,
+      reason_summary:provisional ? reason : sourceRow.has_mode_conflict ? "Chế độ/chỉ đạo chồng lấn; cần đối chiếu hồ sơ" : evaluable ? reason : modeSpecific ? `Đã ghi nhận ${mode}; xem kiểm tra theo giờ` : normalConfirmed ? "Đã xác nhận bình thường; cần đủ số liệu hồ/giới hạn" : `${flowMet===null ? "Thiếu Q ngày" : flowMet ? "Đạt ngưỡng Q bình thường" : "Dưới ngưỡng Q bình thường"}; chưa xác nhận chế độ`,
     };
   }
 
@@ -442,6 +445,140 @@ async function fetchQt1865Rows(start, end) {
     params.append("date", `lte.${end}`);
     params.set("order", "date.asc");
   });
+}
+
+// Reservoir time is the existing operating-clock label (01..24, stored with +00).
+// Downstream obs_hour/obs_time is an actual timestamptz: convert exactly once.
+function operationInstant(value) {
+  const p = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  return p ? Date.UTC(+p[1],+p[2]-1,+p[3],+p[4],+p[5])-7*3600000 : null;
+}
+
+function observationInstant(value) {
+  const stamp = String(value || "").trim().replace(" ","T").replace(/([+-]\d{2})$/,"$1:00");
+  if (!stamp || !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(stamp)) return null;
+  const ms = Date.parse(stamp);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function operationDay(value) {
+  const stamp = String(value || "");
+  const p = stamp.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!p) return null;
+  const day = new Date(Date.UTC(+p[1],+p[2]-1,+p[3]));
+  if (p[4] === "00" && p[5] === "00") day.setUTCDate(day.getUTCDate()-1);
+  return day.toISOString().slice(0,10);
+}
+
+function normalMode(value) {
+  const mode = String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/\s+/g,"_");
+  return ["NORMAL","NORMAL_OPERATION","BINH_THUONG"].includes(mode) ? "NORMAL" : mode;
+}
+
+async function loadComplianceContext(start, end) {
+  const fromClock = `${start}T00:00:00+00:00`;
+  const next = new Date(`${end}T00:00:00Z`);next.setUTCDate(next.getUTCDate()+1);
+  const nextDay = next.toISOString().slice(0,10);
+  const fromUtc = new Date(operationInstant(`${start}T00:00:00`)).toISOString();
+  const toUtc = new Date(operationInstant(`${nextDay}T00:00:00`)+1).toISOString();
+  const tasks = await Promise.allSettled([
+    fetchAllHourly(fromClock,`${nextDay}T00:00:01+00:00`),
+    fetchSupabasePaged("downstream_manual_observations", p => {
+      p.set("select","id,obs_hour,obs_time,hoi_khach_m,ai_nghia_m");
+      p.set("or",`(and(obs_hour.gte.${fromUtc},obs_hour.lt.${toUtc}),and(obs_hour.is.null,obs_time.gte.${fromUtc},obs_time.lt.${toUtc}))`);
+      p.set("order","obs_time.asc");
+    }),
+    fetchSupabasePaged("av_dispatch_orders", p => {
+      p.set("select","id,procedure_code,order_no,issued_at,valid_from,valid_to,operation_mode,station_code,selected_level");
+      p.set("valid_from",`lt.${toUtc}`);p.set("or",`(valid_to.is.null,valid_to.gt.${fromUtc})`);
+      p.set("order","issued_at.desc");
+    }),
+  ]);
+  const names = ["reservoir_hourly_data","downstream_manual_observations","av_dispatch_orders"];
+  const sources = tasks.map((r,i) => ({table:names[i],ok:r.status==="fulfilled",rows:r.status==="fulfilled" ? r.value.length : 0,error:r.status==="rejected" ? String(r.reason?.message||r.reason).slice(0,250) : null}));
+  const value = i => tasks[i].status === "fulfilled" ? tasks[i].value : [];
+  const fromMs=Date.parse(fromUtc),toMs=Date.parse(toUtc);
+  const observations = value(1).map(r=>({...r,epoch:observationInstant(r.obs_hour||r.obs_time)}))
+    .filter(r=>r.epoch!==null && r.epoch>=fromMs && r.epoch<toMs && r.epoch<=Date.now()+15*60000).sort((a,b)=>a.epoch-b.epoch);
+  const observationBuckets=new Map();
+  for(const row of observations){const bucket=Math.floor(row.epoch/3600000);if(!observationBuckets.has(bucket))observationBuckets.set(bucket,[]);observationBuckets.get(bucket).push(row);}
+  const orders = value(2).map(r=>({...r,from:observationInstant(r.valid_from),to:r.valid_to?observationInstant(r.valid_to):Infinity,issued:observationInstant(r.issued_at)}))
+    .filter(r=>r.from!==null && r.to!==null && r.issued!==null);
+  const dayMap = new Map();
+  for (const raw of value(0)) {
+    const date = operationDay(raw.time), instant = operationInstant(raw.time);
+    if (!date || date<start || date>end || instant===null) continue;
+    if (!dayMap.has(date)) dayMap.set(date,new Map());
+    dayMap.get(date).set(instant,{...raw,date,instant});
+  }
+  // A station may be absent in a row; look back only within the same hour.
+  const observedAt = (instant,key) => {
+    const hour=Math.floor(instant/3600000);
+    const candidates=[...(observationBuckets.get(hour)||[]),...(observationBuckets.get(hour-1)||[])].sort((a,b)=>b.epoch-a.epoch);
+    for (const r of candidates) {
+      if(r.epoch>instant || instant-r.epoch>=3600000)continue;
+      const level=num(r[key]);if(level!==null)return {value:level,time:r.obs_hour||r.obs_time,age_minutes:round((instant-r.epoch)/60000,1)};
+    }
+    return null;
+  };
+  for (const [date,group] of dayMap) {
+    const pc = date>=QT2138_EFFECTIVE_FROM ? "QT2138" : "QT1865";
+    const rows = [...group.values()].sort((a,b)=>a.instant-b.instant).map(raw=>{
+      const hk=observedAt(raw.instant,"hoi_khach_m"),an=observedAt(raw.instant,"ai_nghia_m");
+      // The value at 17h is the average of 16-17h. A decision must cover that
+      // complete interval; do not assign a decision starting at 17h backwards.
+      const intervalStart=raw.instant-3600000;
+      const overlap=orders.filter(o=>(!o.procedure_code||o.procedure_code===pc)&&o.from<raw.instant&&o.to>intervalStart&&o.issued<=raw.instant);
+      const active=overlap.filter(o=>o.from<=intervalStart&&o.to>=raw.instant&&o.issued<=intervalStart);
+      const modes=[...new Set(active.map(o=>normalMode(o.operation_mode)).filter(Boolean))];
+      return {...raw,hoi_khach_m:hk?.value??null,ai_nghia_m:an?.value??null,hoi_khach_observed_at:hk?.time??null,ai_nghia_observed_at:an?.time??null,
+        operation_mode:modes.length===1?modes[0]:null,mode_conflict:modes.length>1||(overlap.length>0&&active.length!==overlap.length),order_refs:overlap.map(o=>o.order_no||String(o.id))};
+    });
+    dayMap.set(date,rows);
+  }
+  const latestFor=key=>{for(let i=observations.length-1;i>=0;i--)if(num(observations[i][key])!==null)return {value:num(observations[i][key]),time:observations[i].obs_hour||observations[i].obs_time};return null;};
+  return {dayMap,sources,latest:{hoi_khach:latestFor("hoi_khach_m"),ai_nghia:latestFor("ai_nghia_m")},observationCount:observations.length};
+}
+
+function attachComplianceContext(source, context) {
+  const date=String(source.date||"").slice(0,10), hours=context.dayMap.get(date)||[];
+  const values=key=>hours.map(r=>num(r[key])).filter(v=>v!==null);
+  const maximum=key=>values(key).length?Math.max(...values(key)):null;
+  const modes=[...new Set(hours.map(r=>r.operation_mode).filter(Boolean))];
+  const paired=hours.filter(r=>r.hoi_khach_m!==null&&r.ai_nghia_m!==null);
+  const levelHours=hours.filter(r=>num(r.water_level)!==null).length;
+  const flowHours=hours.filter(r=>num(r.turbine_flow)!==null&&num(r.spillway_flow)!==null).length;
+  const completeDay=hours.length===24&&hours.every(r=>r.instant%3600000===0)&&levelHours===24&&flowHours===24;
+  const completeMode=completeDay&&modes.length===1&&hours.every(r=>r.operation_mode&&!r.mode_conflict)?modes[0]:null;
+  const explicitMode=normalMode(source.operation_mode||source.operating_mode);
+  const modeConflict=hours.some(r=>r.mode_conflict)||Boolean(explicitMode&&hours.some(r=>r.operation_mode&&r.operation_mode!==explicitMode));
+  const result={...source,water_level_max:maximum("water_level")??source.water_level_max,
+    hoi_khach_max:maximum("hoi_khach_m"),ai_nghia_max:maximum("ai_nghia_m"),
+    downstream_matched_hours:paired.length,operation_sample_hours:hours.length,reservoir_level_hours:levelHours,reservoir_flow_hours:flowHours,complete_operating_day:completeDay,
+    downstream_status:paired.length===24?"Đủ 24 mốc giờ":paired.length?`${paired.length}/${hours.length||24} mốc giờ ghép được`:"Chưa ghép được số liệu hạ du trong ngày",
+    operation_mode:modeConflict ? null : explicitMode || completeMode,
+    operation_modes:modes,
+    operation_mode_label:modeConflict?"Chế độ/chỉ đạo chồng lấn":explicitMode==="NORMAL"||completeMode==="NORMAL"?"Bình thường đã xác nhận":explicitMode?explicitMode:modes.length?`${modes.join(" / ")} (${hours.filter(r=>r.operation_mode).length}/${hours.length} giờ)` : "Chưa xác nhận chế độ",
+    dispatch_order_refs:[...new Set(hours.flatMap(r=>r.order_refs))],
+    has_mode_conflict:modeConflict,
+    hourly_assessment:hours.map(r=>{
+      const qi=num(r.inflow),qt=num(r.turbine_flow),qs=num(r.spillway_flow),qo=qt===null||qs===null?null:qt+qs,wl=num(r.water_level);
+      const conflict=r.mode_conflict||Boolean(explicitMode&&r.operation_mode&&r.operation_mode!==explicitMode);
+      const mode=conflict ? null : r.operation_mode || explicitMode;
+      let relation=null;
+      if(qi!==null&&qo!==null){if(mode==="MAINTAIN")relation=qi===0?qo===0:Math.abs(qo-qi)<=Math.abs(qi)*.1;if(mode==="FLOOD_REDUCTION")relation=qo<qi;}
+      return {time:r.time,actual_time_utc:new Date(r.instant).toISOString(),hoi_khach_m:r.hoi_khach_m,ai_nghia_m:r.ai_nghia_m,
+        hoi_khach_observed_at:r.hoi_khach_observed_at,ai_nghia_observed_at:r.ai_nghia_observed_at,
+        operation_mode:mode,mode_conflict:conflict,order_refs:r.order_refs,
+        inflow:qi,total_outflow:qo,water_level:wl,flow_relation_met:relation,
+        reservoir_limit_met:["MAINTAIN","FLOOD_REDUCTION"].includes(mode)&&wl!==null?wl<=380:null,
+        scope:"Chỉ tiêu thủy lực theo chế độ đã ghi nhận; chưa kết luận đầy đủ thủ tục, cảnh báo và chuyển chế độ"};
+    }),
+  };
+  result.hydraulic_checked_hours=result.hourly_assessment.filter(r=>r.flow_relation_met!==null&&r.reservoir_limit_met!==null).length;
+  result.hydraulic_failed_hours=result.hourly_assessment.filter(r=>r.flow_relation_met===false||r.reservoir_limit_met===false).length;
+  result.hydraulic_met_hours=result.hourly_assessment.filter(r=>r.flow_relation_met===true&&r.reservoir_limit_met===true).length;
+  return result;
 }
 
 function summarizeReasonsQt1865(rows) {
@@ -809,8 +946,25 @@ async function handleQt1865Compliance(req, res) {
       ? monthRangeDate(year, month)
       : yearRangeDate(year);
 
-    const sourceRows = await fetchQt1865Rows(range.start, range.end);
-    const rows = sourceRows.map(row => normalizeProcedureRow(row, todayInVietnam()));
+    const [sourceRows,context] = await Promise.all([
+      fetchQt1865Rows(range.start, range.end),loadComplianceContext(range.start,range.end),
+    ]);
+    const rows = sourceRows.map(row => normalizeProcedureRow(attachComplianceContext(row,context), todayInVietnam()));
+    const sourceCoverage={
+      sources:context.sources,downstream_observation_rows:context.observationCount,
+      downstream_matched_hours:rows.reduce((s,r)=>s+r.downstream_matched_hours,0),
+      downstream_days_with_data:rows.filter(r=>r.downstream_matched_hours>0).length,
+      downstream_complete_days:rows.filter(r=>r.downstream_matched_hours===24).length,
+      normal_confirmed_days:rows.filter(r=>r.normal_operation_confirmed).length,
+      mode_conflict_days:rows.filter(r=>r.has_mode_conflict).length,
+      note:"Giờ hồ là nhãn giờ vận hành Việt Nam; quan trắc hạ du dùng UTC thực. Chỉ ghép quan trắc cùng giờ hoặc trước thời điểm hồ dưới 60 phút; không nội suy, không dùng số liệu hiện tại cho ngày quá khứ.",
+    };
+    if(String(req.query.mode||"").toLowerCase()==="diagnostics")return json(res,200,{ok:true,fixVersion:FIX_VERSION,period:range,sourceCoverage,latestDownstream:context.latest});
+    if(String(req.query.mode||"").toLowerCase()==="hourly"){
+      const day=String(req.query.date||"").slice(0,10),row=rows.find(r=>r.date===day);
+      if(!row)return json(res,404,{ok:false,error:"Không có ngày được yêu cầu trong kỳ báo cáo"});
+      return json(res,200,{ok:true,fixVersion:FIX_VERSION,date:day,sourceCoverage,assessmentScope:"Đối chiếu chỉ tiêu thủy lực theo giờ; cần căn cứ dự báo và chuyển chế độ để kết luận toàn bộ quy trình",hours:row.hourly_assessment});
+    }
 
     const summary = summarizeQt1865Rows(rows);
     const summaryByReason = summarizeReasonsQt1865(rows);
@@ -835,6 +989,9 @@ async function handleQt1865Compliance(req, res) {
       waterLevelBasis:"END_OF_OPERATION_DAY", timeBasis:"OPERATION_CLOCK_01_24",
       mode: "procedure-compliance",
       source: "supabase",
+      sourceCoverage,
+      latestDownstream:context.latest,
+      assessmentScope:"Chỉ tiêu vận hành có dữ liệu kiểm chứng; không đồng nghĩa đã kiểm tra toàn bộ nghĩa vụ quan trắc, bản tin và báo cáo của quy trình",
       procedureLabel: range.end < QT2138_EFFECTIVE_FROM
         ? "QT1865"
         : range.start >= QT2138_EFFECTIVE_FROM
@@ -851,7 +1008,7 @@ async function handleQt1865Compliance(req, res) {
       },
 
       summary,
-      rows,
+      rows:rows.map(({hourly_assessment,...row})=>row),
       summaryByReason,
       monthlySummary,
 
