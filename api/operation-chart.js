@@ -93,6 +93,14 @@ function rulesResponse(req, res) {
 }
 
 export default async function handler(req, res) {
+  // avuonghydro.com va API dang nam tren hai Vercel project khac nhau.
+  // Cho phep trang web doc API cong khai nay qua trinh duyet.
+  res.setHeader("Access-Control-Allow-Origin", "https://avuonghydro.com");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
+  res.setHeader("Vary", "Origin");
+  if (req.method === "OPTIONS") return res.status(204).end();
+
   try {
     if (String(req.query.mode || "").toLowerCase() === "rules") return rulesResponse(req,res);
     const year = Number(req.query.year || new Date().getFullYear());
