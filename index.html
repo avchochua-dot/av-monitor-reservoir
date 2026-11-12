@@ -14206,8 +14206,8 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
             <div class="qt1865-title">
               <div class="qt1865-title-icon">📋</div>
               <div>
-                <h2>Đánh giá tuân thủ quy trình vận hành</h2>
-                <p>QT1865 đến 05/11/2026; QT2138 từ 06/11/2026. Kiểm tra theo mùa và chế độ vận hành. MNH là cuối ngày/mới nhất; Q là trung bình ngày 01–24h.</p>
+                <h2>Kiểm tra lưu lượng và giờ vận hành</h2>
+                <p>QT1865 đến 05/11/2026; QT2138 từ 06/11/2026. Kiểm tra Q chạy máy, Q xả trung bình ngày tối thiểu và thời gian vận hành. MNH cuối kỳ dùng đối chiếu thông số theo mùa; Q ngày giữ nguyên số liệu đã tính trong Supabase.</p>
               </div>
             </div>
 
@@ -14239,15 +14239,15 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
               <b id="qtWarnDays">--</b>
             </div>
             <div class="qt1865-kpi ok">
-              <span>Đạt yêu cầu xả 12h</span>
+              <span>Đạt yêu cầu giờ xả</span>
               <b id="qtTurbineOk">--</b>
             </div>
             <div class="qt1865-kpi bad">
-              <span>Không đạt xả 12h</span>
+              <span>Không đạt giờ xả</span>
               <b id="qtTurbineBad">--</b>
             </div>
             <div class="qt1865-kpi purple">
-              <span>Chưa đủ điều kiện</span>
+              <span>Chưa đủ số liệu</span>
               <b id="qtTurbineRate">--</b>
             </div>
             <div class="qt1865-kpi">
@@ -14256,7 +14256,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
             </div>
           </div>
 
-          <div id="qtDownstreamCoverage" class="qt1865-box" style="margin-top:12px">Chưa tải số liệu hạ du cho kỳ đánh giá.</div>
+          <div id="qtOperatingCoverage" class="qt1865-box" style="margin-top:12px">Kiểm tra lưu lượng, mực nước tham chiếu và thời gian vận hành theo kỳ đã chọn.</div>
 
           <div class="qt1865-grid">
             <div class="qt1865-box">
@@ -14280,20 +14280,18 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
                   <tr>
                     <th>Ngày</th>
                     <th>MNH cuối kỳ</th>
-                    <th>GH MNH</th>
+                    <th>MNH tham chiếu</th>
                     <th>CL GH dưới</th>
                     <th>CL GH trên</th>
+                    <th>Q chạy máy TB</th>
                     <th>Q ra TB</th>
                     <th>Q quy định</th>
-                    <th>Hội Khách max (m)</th>
-                    <th>Ái Nghĩa max (m)</th>
-                    <th>Giờ ghép hạ du</th>
-                    <th>Chế độ đã ghi nhận</th>
                     <th>Giờ chạy máy</th>
                     <th>Giờ chạy liên tục</th>
-                    <th>Bắt đầu chuỗi</th>
-                    <th>Kết thúc chuỗi</th>
-                    <th>Yêu cầu xả 12h</th>
+                    <th>Đợt / tổng giờ xả</th>
+                    <th>Bắt đầu xả</th>
+                    <th>Kết thúc xả</th>
+                    <th>Yêu cầu giờ xả</th>
                     <th>CL Q dưới</th>
                     <th>CL Q trên</th>
                     <th>Kết quả</th>
@@ -14301,7 +14299,7 @@ body.av-fs-fallback-open #mainChartFullscreenArea.av-fs-active > .long-chart-min
                   </tr>
                 </thead>
                 <tbody id="qt1865Table">
-                  <tr><td colspan="20">Chưa tải dữ liệu. Bấm “Tổng hợp” để xem đánh giá.</td></tr>
+                  <tr><td colspan="18">Chưa tải dữ liệu. Bấm “Tổng hợp” để xem đánh giá.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -14404,21 +14402,18 @@ window.AVOperation = (function(){
   }
   function closingLevel(row){return row.water_level_end ?? row.water_level_avg;}
   function flowRuleText(row){return row.q_requirement_label || fmtRange(row.q_min,row.q_max);}
-  function downstreamTime(value){
-    if(!value)return "--";
-    const date=new Date(String(value).replace(" ","T").replace(/([+-]\d{2})$/,"$1:00"));
-    return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(date) : "--";
-  }
-  function downstreamCoverageHtml(data){
+  function operatingCoverageHtml(data){
     const c=data.sourceCoverage;
-    if(!c)return "API chưa trả thông tin kết nối hạ du; cần cập nhật API V05.";
-    const hk=data.latestDownstream?.hoi_khach,an=data.latestDownstream?.ai_nghia;
-    const errors=(c.sources||[]).filter(s=>!s.ok).map(s=>`${s.table}: ${s.error||"không đọc được"}`);
-    return `<b>Kết nối quan trắc hạ du</b>: ${fmt0(c.downstream_observation_rows)} bản ghi; ghép được ${fmt0(c.downstream_matched_hours)} mốc giờ hồ-hạ du trong ${fmt0(c.downstream_days_with_data)} ngày; ${fmt0(c.downstream_complete_days)} ngày đủ 24 mốc.<br>`+
-      `Hội Khách mới nhất trong kỳ: <b>${fmt(hk?.value,2)} m</b> (${safe(downstreamTime(hk?.time))}); Ái Nghĩa: <b>${fmt(an?.value,2)} m</b> (${safe(downstreamTime(an?.time))}).<br>`+
-      `H max trong bảng là lớn nhất ở các mốc ghép được; không nội suy mốc thiếu. Có số liệu hạ du không thay cho căn cứ xác nhận chế độ và dự báo.`+
-      (errors.length?`<br><b>Chưa đọc được nguồn:</b> ${safe(errors.join("; "))}`:"")+
-      (data.assessmentScope?`<br><i>${safe(data.assessmentScope)}</i>`:"");
+    const errors=(c?.sources||[]).filter(s=>!s.ok).map(s=>`${s.table}: ${s.error||"không đọc được"}`);
+    return `<b>Phạm vi kiểm tra:</b> ${safe(data.assessmentScope||"Q chạy máy, Q ngày tối thiểu và giờ vận hành theo quy trình áp dụng.")}<br>`+
+      `Q ra TB là tổng lưu lượng xả trung bình ngày; Q chạy máy TB được trình bày riêng. Q cao hơn khoảng tham chiếu được cảnh báo như cách đánh giá trước đây.`+
+      (errors.length?`<br><b>Nguồn số liệu giờ cần kiểm tra:</b> ${safe(errors.join("; "))}`:"");
+  }
+  function releaseSummaryText(r){
+    if(r.turbine_12h_required===false)return "Không áp dụng";
+    if(r.procedure_code!=="QT2138")return `${fmt0(r.turbine_continuous_hours)} giờ liên tục`;
+    if(r.release_period_count==null)return "Chưa đủ số liệu giờ";
+    return `${fmt0(r.release_period_count)} đợt / ${fmt0(r.release_total_hours)} giờ`;
   }
   function dt(s){
     if(!s) return "--";
@@ -14506,7 +14501,7 @@ window.AVOperation = (function(){
 
   function resultText(r){
     if(r.is_provisional) return "Tạm tính";
-    if(r.is_evaluable === false || r.is_compliant === null || r.is_compliant === undefined) return "Chưa đủ ĐK kết luận";
+    if(r.is_evaluable === false || r.is_compliant === null || r.is_compliant === undefined) return "Chưa đủ số liệu";
     const reason = String(r.reason || "");
     if(r.is_compliant) return "Đảm bảo";
     if(reason.includes("MNH")) return "Không đảm bảo MNH";
@@ -14530,7 +14525,7 @@ window.AVOperation = (function(){
     }
     box.innerHTML = items.map(x => {
       const reason = x.reason || "Không xác định";
-      const cls = reason.includes("Cảnh báo") ? "warn" : "bad";
+      const cls = /Cảnh báo|Thiếu|Chưa đủ|Chưa có/.test(reason) ? "warn" : "bad";
       return `<div class="qt-reason-item ${cls}"><span>${safe(reason)}</span><b>${fmt0(x.count)} ngày</b></div>`;
     }).join("");
   }
@@ -14551,7 +14546,7 @@ window.AVOperation = (function(){
     const tb = $id("qt1865Table");
     if(!tb) return;
     if(!rows || !rows.length){
-      tb.innerHTML = '<tr><td colspan="20">Chưa có dữ liệu trong kỳ.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="18">Chưa có dữ liệu trong kỳ.</td></tr>';
       return;
     }
     tb.innerHTML = rows.map(r => `
@@ -14561,14 +14556,12 @@ window.AVOperation = (function(){
         <td>${safe(r.rule_label || fmtRange(r.mnh_min,r.mnh_max))}</td>
         <td>${fmt(r.diff_mnh_min,2)}</td>
         <td>${fmt(r.diff_mnh_max,2)}</td>
+        <td>${fmt(r.turbine_flow_avg,2)}</td>
         <td>${fmt(r.total_outflow_avg,2)}</td>
         <td>${safe(flowRuleText(r))}</td>
-        <td>${fmt(r.hoi_khach_max,2)}</td>
-        <td>${fmt(r.ai_nghia_max,2)}</td>
-        <td>${fmt0(r.downstream_matched_hours)}/${fmt0(r.operation_sample_hours)}</td>
-        <td>${safe(r.operation_mode_label||"Chưa xác nhận")}</td>
         <td>${fmt0(r.turbine_running_hours)}</td>
         <td>${fmt0(r.turbine_continuous_hours)}</td>
+        <td>${safe(releaseSummaryText(r))}</td>
         <td>${tm(r.turbine_12h_start)}</td>
         <td>${tm(r.turbine_12h_end)}</td>
         <td class="${r.is_turbine_12h_compliant === true ? "qt-turbine-ok-cell" : (r.is_turbine_12h_compliant === false ? "qt-turbine-bad-cell" : "")}">
@@ -14589,12 +14582,12 @@ window.AVOperation = (function(){
     chartObj = new Chart(canvas, {
       type: "doughnut",
       data: {
-        labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao", "Chưa đủ điều kiện", "Tạm tính"],
+        labels: ["Đảm bảo", "Không đảm bảo", "Cảnh báo Q cao", "Chưa đủ số liệu", "Tạm tính"],
         datasets: [{
           data: [
-            Math.max(Number(summary.compliantDays || 0) - Number(summary.warningDays || 0), 0),
+            Math.max(Number(summary.compliantDays || 0) - Number(summary.warningCompliantDays ?? summary.warningDays ?? 0), 0),
             Number(summary.nonCompliantDays || 0),
-            Number(summary.warningDays || 0),
+            Number(summary.warningCompliantDays ?? summary.warningDays ?? 0),
             Number(summary.unevaluatedDays || 0),
             Number(summary.provisionalDays || 0)
           ],
@@ -14707,7 +14700,7 @@ window.AVOperation = (function(){
 
   function render(data){
     const s = data.summary || {};
-    const coverage=$id("qtDownstreamCoverage");if(coverage)coverage.innerHTML=downstreamCoverageHtml(data);
+    const coverage=$id("qtOperatingCoverage");if(coverage)coverage.innerHTML=operatingCoverageHtml(data);
     setText("qtTotalDays", fmt0(s.dataDays ?? s.totalDays));
     setText("qtOkDays", fmt0(s.compliantDays));
     setText("qtBadDays", fmt0(s.nonCompliantDays));
@@ -14735,12 +14728,12 @@ window.AVOperation = (function(){
       render(data);
       loaded = true;
       const s = selected();
-      setStatus(s.month === "" ? "V05 · Đã tải dữ liệu năm" : ("V05 · " + (data.summary?.dataDays ?? data.summary?.totalDays ?? 0) + " ngày"), "ok");
+      setStatus(s.month === "" ? "V06 · Đã tải dữ liệu năm" : ("V06 · " + (data.summary?.dataDays ?? data.summary?.totalDays ?? 0) + " ngày"), "ok");
     }catch(err){
       console.error(err);
       setStatus("Lỗi tải", "error");
       const tb = $id("qt1865Table");
-      if(tb) tb.innerHTML = `<tr><td colspan="20">Lỗi tải dữ liệu quy trình: ${safe(err.message)}</td></tr>`;
+      if(tb) tb.innerHTML = `<tr><td colspan="18">Lỗi tải dữ liệu quy trình: ${safe(err.message)}</td></tr>`;
       alert("Lỗi tải dữ liệu quy trình: " + err.message);
     }
   };
@@ -14835,14 +14828,11 @@ window.AVOperation = (function(){
             <td>${esc(resultText(r))}</td>
             <td>${esc(r.reason)}</td>
             <td>${esc([r.note,r.q_requirement_label].filter(Boolean).join("; "))}</td>
-            <td>${n(r.hoi_khach_max)}</td>
-            <td>${n(r.ai_nghia_max)}</td>
-            <td>${n(r.downstream_matched_hours,0)}</td>
-            <td>${n(r.operation_sample_hours,0)}</td>
-            <td>${esc(r.operation_mode_label)}</td>
+            <td>${n(r.release_period_count,0)}</td>
+            <td>${n(r.release_total_hours,0)}</td>
           </tr>
         `).join("")
-      : `<tr><td colspan="34">Không có dữ liệu chi tiết</td></tr>`;
+      : `<tr><td colspan="31">Không có dữ liệu chi tiết</td></tr>`;
 
     const frequencyHtml = frequency ? `
       <h2>2. Tần suất nước về</h2>
@@ -14914,7 +14904,7 @@ window.AVOperation = (function(){
 </style>
 </head>
 <body>
-  <div class="title">Báo cáo đánh giá tuân thủ quy trình vận hành</div>
+  <div class="title">Báo cáo kiểm tra lưu lượng và thời gian vận hành</div>
   <div class="sub">${esc(data.procedureLabel || "QT1865 / QT2138")}</div>
   <div class="sub">${esc(monthText)} - Năm ${esc(s.year)} | Xuất lúc ${esc(new Date().toLocaleString("vi-VN"))}</div>
 
@@ -14932,7 +14922,7 @@ window.AVOperation = (function(){
     <tr><td>Ngày không đảm bảo</td><td class="center">${n(summary.nonCompliantDays, 0)}</td></tr>
     <tr><td>Ngày cảnh báo</td><td class="center">${n(summary.warningDays, 0)}</td></tr>
     <tr><td>Tỷ lệ đảm bảo (%)</td><td class="center">${n(summary.complianceRate, 1)}</td></tr>
-    <tr><td>Đạt yêu cầu xả 12h (ngày áp dụng)</td><td class="center">${n(summary.turbine12hCompliantDays, 0)}</td></tr>
+    <tr><td>Đạt yêu cầu giờ xả (ngày áp dụng)</td><td class="center">${n(summary.turbine12hCompliantDays, 0)}</td></tr>
     <tr><td>Không đạt yêu cầu xả 12h (ngày áp dụng)</td><td class="center">${n(summary.turbine12hNonCompliantDays, 0)}</td></tr>
     <tr><td>Trung bình các mực nước cuối ngày (m)</td><td class="center">${n(summary.waterLevelAvg)}</td></tr>
     <tr><td>MNH lớn nhất (m)</td><td class="center">${n(summary.waterLevelMax?.value)} - ${esc(summary.waterLevelMax?.date || summary.waterLevelMax?.time || "")}</td></tr>
@@ -14991,11 +14981,8 @@ window.AVOperation = (function(){
       <th>Kết luận</th>
       <th>Nguyên nhân</th>
       <th>Ghi chú</th>
-      <th>Hội Khách max theo mốc ghép (m)</th>
-      <th>Ái Nghĩa max theo mốc ghép (m)</th>
-      <th>Số giờ ghép đủ hạ du</th>
-      <th>Số mốc giờ hồ</th>
-      <th>Chế độ vận hành</th>
+      <th>Số đợt xả</th>
+      <th>Tổng giờ xả theo số liệu giờ</th>
     </tr>
     ${detailRows}
   </table>
@@ -15079,11 +15066,11 @@ window.AVOperation = (function(){
         <b>${fmt0(s.nonCompliantDays)}</b> ngày không đảm bảo và <b>${fmt0(s.warningDays)}</b> ngày có cảnh báo.
       </p>
       <p>
-        Mức độ tuân thủ tổng thể được đánh giá là
+        Kết quả các chỉ tiêu lưu lượng và thời gian vận hành được đánh giá là
         <span class="level-badge ${level.cls}">${level.text}</span>.
-        ${topReason ? `Nguyên nhân nổi bật: <b>${safe(topReason.reason)}</b>, ghi nhận <b>${fmt0(topReason.count)}</b> ngày.` : "Chưa ghi nhận vi phạm đủ căn cứ để kết luận; không quy đổi ngày thiếu điều kiện thành ngày đạt hoặc không đạt."}
+        ${topReason ? `Nguyên nhân nổi bật: <b>${safe(topReason.reason)}</b>, ghi nhận <b>${fmt0(topReason.count)}</b> ngày.` : "Các ngày đã đánh giá đáp ứng chỉ tiêu kiểm tra; ngày thiếu số liệu và ngày chưa kết thúc được trình bày riêng."}
       </p>
-      ${Number(s.normalFlowCheckedDays || 0)>0 ? `<p>Kiểm tra riêng ngưỡng Q của chế độ bình thường: <b>${fmt0(s.normalFlowMetDays)}</b> ngày đạt ngưỡng và <b>${fmt0(s.normalFlowBelowDays)}</b> ngày dưới ngưỡng. Kết quả này không thay cho xác nhận chế độ vận hành và đánh giá toàn bộ quy trình.</p>` : ""}
+      ${Number(s.normalFlowCheckedDays || 0)>0 ? `<p>Kiểm tra Q trung bình ngày tối thiểu trong mùa lũ: <b>${fmt0(s.normalFlowMetDays)}</b> ngày đạt ngưỡng và <b>${fmt0(s.normalFlowBelowDays)}</b> ngày dưới ngưỡng. Chỉ tiêu Q ngày được đánh giá trực tiếp theo ngưỡng vận hành bình thường mùa lũ.</p>` : ""}
       ${Number(s.turbine12hApplicableDays || 0) > 0 ? `<p>
         Trong các ngày có áp dụng yêu cầu xả nước mùa cạn, có <b>${fmt0(s.turbine12hCompliantDays)}</b> ngày đạt
         và <b>${fmt0(s.turbine12hNonCompliantDays)}</b> ngày không đạt theo dữ liệu hiện có.
@@ -15103,10 +15090,10 @@ window.AVOperation = (function(){
         Báo cáo áp dụng <b>${safe(procedureLabel)}</b>. Kết quả đạt/không đạt chỉ được tính cho các ngày đủ điều kiện đánh giá.
       </p>
       <p>
-        Trong mùa lũ, khi vận hành bình thường, kiểm tra Q xả trung bình ngày tối thiểu 15 m³/s, trừ trường hợp được điều chỉnh hợp lệ. Đánh giá giảm lũ cần đối chiếu chế độ, dự báo, mực nước hạ du và chỉ đạo áp dụng; không mặc định mọi ngày đều cần có lệnh mới để vận hành bình thường.
+        Trong mùa lũ, khi vận hành bình thường, kiểm tra Q xả trung bình ngày tối thiểu 15 m³/s, trừ trường hợp được điều chỉnh hợp lệ. Chỉ tiêu giờ xả mùa cạn không áp dụng cho mùa lũ.
       </p>
       <p>
-        Mùa cạn QT1865: xả liên tục ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 09 giờ, kết thúc không sớm hơn 21 giờ. Mùa cạn QT2138: ít nhất 02 đợt, mỗi đợt liên tục ít nhất 04 giờ, tổng ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 06 giờ, kết thúc không sớm hơn 22 giờ.
+        Mùa cạn QT1865: xả liên tục ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 09 giờ, kết thúc không sớm hơn 21 giờ. Mùa cạn QT2138: ít nhất 02 đợt xả, mỗi đợt liên tục ít nhất 04 giờ, tổng ít nhất 12 giờ/ngày, bắt đầu không muộn hơn 06 giờ, kết thúc không sớm hơn 22 giờ. Các đợt được kiểm tra theo số liệu xả từng giờ; MNH đối chiếu Phụ lục III để chọn nhánh Q. Q trên khoảng được cảnh báo; tỷ lệ đạt trong báo cáo tính theo Q tối thiểu và yêu cầu giờ vận hành.
       </p>
     `;
 
@@ -15117,7 +15104,7 @@ window.AVOperation = (function(){
           <div class="title-cell">
             <div class="company">CÔNG TY CỔ PHẦN THỦY ĐIỆN A VƯƠNG</div>
             <div class="unit">TRUNG TÂM GIÁM SÁT & ĐIỀU HÀNH HỒ CHỨA AI</div>
-            <div class="report-title">BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH VẬN HÀNH</div>
+            <div class="report-title">BÁO CÁO KIỂM TRA LƯU LƯỢNG VÀ THỜI GIAN VẬN HÀNH</div>
             <div class="procedure-line">${safe(procedureLabel)}</div>
             <div class="period">${periodTitle}</div>
           </div>
@@ -15129,7 +15116,7 @@ window.AVOperation = (function(){
     function slimHeader(title){
       return `
         <div class="pdf-slim-header">
-          <div><b>BÁO CÁO ĐÁNH GIÁ TUÂN THỦ QUY TRÌNH VẬN HÀNH</b> - ${periodTitle}</div>
+          <div><b>BÁO CÁO KIỂM TRA LƯU LƯỢNG VÀ THỜI GIAN VẬN HÀNH</b> - ${periodTitle}</div>
           <div>${safe(title || "")}</div>
         </div>
       `;
@@ -15220,10 +15207,10 @@ window.AVOperation = (function(){
     }
 
     const complianceChart = svgDonut([
-      {label:"Đảm bảo", value:Math.max(Number(s.compliantDays||0)-Number(s.warningDays||0),0), color:"#16a34a"},
+      {label:"Đảm bảo", value:Math.max(Number(s.compliantDays||0)-Number(s.warningCompliantDays??s.warningDays??0),0), color:"#16a34a"},
       {label:"Không đảm bảo", value:s.nonCompliantDays, color:"#dc2626"},
-      {label:"Cảnh báo", value:s.warningDays, color:"#f59e0b"},
-      {label:"Chưa đủ điều kiện", value:s.unevaluatedDays, color:"#94a3b8"},
+      {label:"Cảnh báo", value:s.warningCompliantDays??s.warningDays, color:"#f59e0b"},
+      {label:"Chưa đủ số liệu", value:s.unevaluatedDays, color:"#94a3b8"},
       {label:"Tạm tính", value:s.provisionalDays, color:"#38bdf8"}
     ], rateText(s.complianceRate,s.evaluatedDays ?? s.totalDays), "Đảm bảo");
 
@@ -15233,49 +15220,29 @@ window.AVOperation = (function(){
     ], rateText(s.turbine12hRate,s.turbine12hApplicableDays,"Không áp dụng"), "Yêu cầu mùa cạn");
 
     function detailRowHtml(r, i){
-      const result = resultText(r);
-      const reason = String(r.reason || "");
-      const resultClass = r.is_provisional || r.is_evaluable === false || r.is_compliant == null ? "warn" : (!r.is_compliant ? "bad" : (reason.includes("Cảnh báo") ? "warn" : "ok"));
-      const turbineClass = r.is_turbine_12h_compliant == null ? "warn" : (r.is_turbine_12h_compliant ? "ok" : "bad");
-      return `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${dt(r.date)}</td>
-          <td class="num-cell">${fmt(closingLevel(r),2)}</td>
-          <td>${safe(r.rule_label || fmtRange(r.mnh_min,r.mnh_max))}</td>
-          <td class="num-cell">${fmt(r.total_outflow_avg,2)}</td>
-          <td>${safe(flowRuleText(r))}</td>
-          <td class="num-cell">${floodOnly?fmt(r.hoi_khach_max,2):fmt0(r.turbine_running_hours)}</td>
-          <td class="num-cell">${floodOnly?fmt(r.ai_nghia_max,2):fmt0(r.turbine_continuous_hours)}</td>
-          <td class="${floodOnly?"":turbineClass}">${floodOnly?safe((r.operation_mode_label||"Chưa xác nhận")+`; ghép ${r.downstream_matched_hours||0}/${r.operation_sample_hours||0} giờ`):safe(turbineText(r))}</td>
-          <td class="${resultClass}">${safe(result)}</td>
-          <td class="reason-cell col-nguyen-nhan"><span class="reason-text">${safe(r.reason_summary||r.reason||"")}</span></td>
-        </tr>
-      `;
+      const result=resultText(r),reason=String(r.reason||"");
+      const cls=r.is_provisional||r.is_evaluable===false||r.is_compliant==null?"warn":!r.is_compliant?"bad":reason.includes("Cảnh báo")?"warn":"ok";
+      const timing=r.turbine_12h_required===false?"Không áp dụng":`${tm(r.turbine_12h_start)} – ${tm(r.turbine_12h_end)}; ${turbineText(r)}`;
+      return `<tr>
+        <td>${i+1}</td><td>${dt(r.date)}</td>
+        <td class="num-cell">${fmt(closingLevel(r),2)}</td>
+        <td>${safe(r.rule_label||fmtRange(r.mnh_min,r.mnh_max))}</td>
+        <td class="num-cell">${fmt(r.turbine_flow_avg,2)}</td>
+        <td class="num-cell">${fmt(r.total_outflow_avg,2)}</td>
+        <td>${safe(flowRuleText(r))}</td>
+        <td>${safe(releaseSummaryText(r))}</td>
+        <td>${safe(timing)}</td>
+        <td class="${cls}">${safe(result)}</td>
+        <td class="reason-cell col-nguyen-nhan"><span class="reason-text">${safe(r.reason_summary||r.reason||"")}</span></td>
+      </tr>`;
     }
 
-    function detailTableHtml(chunkRows, startIndex){
-      const body = chunkRows.map((r, idx) => detailRowHtml(r, startIndex + idx)).join("");
-      return `
-        <table class="pdf-table report-table detail-table">
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Ngày</th>
-              <th>MNH cuối kỳ</th>
-              <th>GH MNH</th>
-              <th>Q ra TB</th>
-              <th>Q quy định</th>
-              <th>${floodOnly?"Hội Khách max (m)":"Giờ máy"}</th>
-              <th>${floodOnly?"Ái Nghĩa max (m)":"Giờ LT"}</th>
-              <th>${floodOnly?"Chế độ / giờ ghép":"Yêu cầu xả 12h"}</th>
-              <th>Kết quả</th>
-              <th>Nguyên nhân</th>
-            </tr>
-          </thead>
-          <tbody>${body || '<tr><td colspan="11">Không có dữ liệu</td></tr>'}</tbody>
-        </table>
-      `;
+    function detailTableHtml(chunkRows,startIndex){
+      return `<table class="pdf-table report-table detail-table"><thead><tr>
+        <th>STT</th><th>Ngày</th><th>MNH cuối kỳ</th><th>MNH tham chiếu</th>
+        <th>Q chạy máy TB</th><th>Q ra TB</th><th>Q quy định</th>
+        <th>Đợt / giờ xả</th><th>Khung giờ / đánh giá giờ</th><th>Kết quả</th><th>Nguyên nhân</th>
+      </tr></thead><tbody>${chunkRows.map((r,i)=>detailRowHtml(r,startIndex+i)).join("")||'<tr><td colspan="11">Không có dữ liệu</td></tr>'}</tbody></table>`;
     }
 
     const summaryPage = `
@@ -15307,7 +15274,7 @@ window.AVOperation = (function(){
 
         <div class="ai-section">
           <h3>2. Nhận xét tự động</h3>
-          <p>${downstreamCoverageHtml(data)}</p>
+          <p>${operatingCoverageHtml(data)}</p>
           ${aiComment}
         </div>
 
