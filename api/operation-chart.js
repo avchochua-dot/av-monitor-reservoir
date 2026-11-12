@@ -1,5 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const FIX_VERSION = "AVUONG_QT2138_V04";
 
 const ALLOWED_ORIGINS = new Set([
   "https://avuonghydro.com",
@@ -15,6 +16,7 @@ function setCors(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
   res.setHeader("Vary", "Origin");
+  res.setHeader("Cache-Control", "no-store");
 }
 
 async function fetchAll(table, query, pageSize = 1000) {
@@ -39,16 +41,51 @@ async function fetchAll(table, query, pageSize = 1000) {
   return all;
 }
 
-function applyLimitYear(row, year) {
-  const [, month, day] = String(row.date).slice(0, 10).split("-");
-  return { ...row, date: `${year}-${month}-${day}` };
-}
-
 function between(month, day, fm, fd, tm, td) {
   const value = month * 100 + day;
   const from = fm * 100 + fd;
   const to = tm * 100 + td;
   return from <= to ? value >= from && value <= to : value >= from || value <= to;
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function legacyRule(date, rawLimits) {
+  const [, mm, dd] = date.split("-").map(Number);
+  const flood = between(mm, dd, 9, 1, 12, 15);
+  if (flood) {
+    const late = mm * 100 + dd >= 1116;
+    return {
+      date, procedure_code:"QT1865", season:"FLOOD",
+      mnghd:null, mnght:null, mndl:late ? 377 : 370, mntrl:late ? 380 : 376,
+      dry_level_min:null, dry_level_max:null,
+      flood_level_min:late ? 377 : 370, flood_level_max:late ? 377 : 370,
+      normal_level_min:late ? 377 : 376, normal_level_max:late ? 380 : 376,
+      normal_q_min:15,
+    };
+  }
+  // Prefer the exact year. Never let 01/01 of the following year overwrite it.
+  const candidates = rawLimits.filter(r => String(r.date).slice(5,10) === date.slice(5,10)
+    && numberOrNull(r.mnghd) !== null && numberOrNull(r.mnght) !== null);
+  candidates.sort((a,b) => {
+    const score = r => String(r.date).slice(0,10) === date ? 0 : Math.abs(Number(String(r.date).slice(0,4))-Number(date.slice(0,4)))+1;
+    return score(a)-score(b) || String(b.date).localeCompare(String(a.date));
+  });
+  const chosen = candidates[0];
+  // PL III: 16/12-31/01 has the same range; this also covers a missing boundary row.
+  const earlyYear = between(mm, dd, 12, 16, 1, 31);
+  const lo = chosen ? numberOrNull(chosen.mnghd) : (earlyYear ? 375.5 : null);
+  const hi = chosen ? numberOrNull(chosen.mnght) : (earlyYear ? 378.3 : null);
+  return {
+    date, procedure_code:"QT1865", season:"DRY",
+    mnghd:lo, mnght:hi, mndl:null, mntrl:null,
+    dry_level_min:lo, dry_level_max:hi,
+    normal_level_min:null, normal_level_max:null, flood_level_min:null, flood_level_max:null,
+  };
 }
 
 function qt2138Rule(dateText) {
@@ -64,7 +101,7 @@ function qt2138Rule(dateText) {
       mnghd:null, mnght:null, mndl:fMin, mntrl:nMax,
       dry_level_min:null, dry_level_max:null,
       normal_level_min:nMin, normal_level_max:nMax,
-      flood_level_min:fMin, flood_level_max:fMax, q_min:null, q_max:null,
+      flood_level_min:fMin, flood_level_max:fMax, normal_q_min:15, q_min:null, q_max:null,
     };
   }
   const dryPeriods = [
@@ -95,16 +132,16 @@ function qt2138Rule(dateText) {
 function rulesResponse(req, res) {
   const requested = String(req.query.date || "");
   const date = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : new Date().toISOString().slice(0,10);
-  const rule = qt2138Rule(date);
+  const rule = qt2138Rule(date) || legacyRule(date, []);
   return res.status(200).json({
-    ok:true, mode:"rules", date, procedureCode:rule ? "QT2138" : "QT1865",
-    levelRule:rule ? {date,...rule} : null,
+    ok:true, fixVersion:FIX_VERSION, mode:"rules", date, procedureCode:rule.procedure_code,
+    levelRule:{date,...rule},
     downstreamThresholds:[
       {station_code:"AI_NGHIA",station_name:"Ai Nghia",bd1:6.5,bd2:8.0,bd3:9.0,decision_level_min:8.0,decision_level_max:8.5},
       {station_code:"HOI_KHACH",station_name:"Hoi Khach",bd1:14.5,bd2:15.5,bd3:16.5,decision_level_min:15.5,decision_level_max:16.0},
     ],
     activeOrder:null,
-    warning:rule ? "Chua nhap lenh dieu hanh dang hieu luc; khong tu dong ket luan cat, giam lu theo gioi han tren." : null,
+    warning:"Các khoảng mực nước là thông số tham chiếu; đánh giá giảm lũ phải đối chiếu chế độ, dự báo, mực nước hạ du và chỉ đạo áp dụng. Chế độ bình thường kiểm tra riêng Q trung bình ngày tối thiểu 15 m³/s.",
   });
 }
 
@@ -114,26 +151,21 @@ export default async function handler(req, res) {
   try {
     if (String(req.query.mode || "").toLowerCase() === "rules") return rulesResponse(req,res);
     const year = Number(req.query.year || new Date().getFullYear());
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) return res.status(400).json({ok:false,error:"Năm không hợp lệ"});
     const from = `${year}-01-01T00:00:00+00:00`;
-    const to = `${year}-12-31T23:59:59+00:00`;
+    const to = `${year+1}-01-01T00:00:00+00:00`;
     const operationQuery = `select=time,water_level,inflow,turbine_flow,spillway_flow,rainfallreal&time=gte.${encodeURIComponent(from)}&time=lte.${encodeURIComponent(to)}&order=time.asc`;
     const operations = await fetchAll("reservoir_hourly_data", operationQuery);
     const rawLimits = await fetchAll("reservoir_level_limits", "select=date,mnghd,mnght,mndl,mntrl&order=date.asc");
-    const legacyByMonthDay = new Map(
-      rawLimits.map(row => [String(row.date).slice(5, 10), row])
-    );
     const limits = [];
     for (let d = new Date(Date.UTC(year, 0, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
       const date = d.toISOString().slice(0, 10);
-      const legacy = legacyByMonthDay.get(date.slice(5, 10));
-      const base = legacy
-        ? { ...applyLimitYear(legacy, year), date }
-        : { date, mnghd:null, mnght:null, mndl:null, mntrl:null };
       const rule = qt2138Rule(date);
-      limits.push(rule ? { ...base, ...rule } : { ...base, procedure_code:"QT1865" });
+      limits.push(rule ? { date, ...rule } : legacyRule(date, rawLimits));
     }
     return res.status(200).json({
-      ok:true, year, rulesSource:"QT2138_EMBEDDED", operations, limits,
+      ok:true, fixVersion:FIX_VERSION, year, rulesSource:"VERSIONED_QT1865_QT2138", operations, limits,
+      timeBasis:"OPERATION_CLOCK_01_24", dailyWaterLevelBasis:"END_OF_OPERATION_DAY",
       counts:{operations:operations.length,rawLimits:rawLimits.length,limits:limits.length},
     });
   } catch (error) {
