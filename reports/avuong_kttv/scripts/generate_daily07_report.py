@@ -48,7 +48,7 @@ WIDTH = RIGHT - LEFT
 CENTRE = (LEFT + RIGHT) / 2
 # Header anchors also anchor the slogan's underline; never offset independently.
 RIGHT_CENTRE = RIGHT - 132
-LEFT_CENTRE = LEFT + 88
+LEFT_CENTRE = LEFT + 96
 
 
 def env(name, default=""):
@@ -271,7 +271,7 @@ def draw_text(canvas, text, x, y, size=12, bold=False, italic=False, align="left
 
 def draw_header(canvas, d, include_hour=False, document_number=None):
     y = PAGE_H - 55
-    draw_text(canvas, "TỔNG CÔNG TY PHÁT ĐIỆN 2", LEFT_CENTRE, y, 11.5, align="center")
+    draw_text(canvas, "TỔNG CÔNG TY PHÁT ĐIỆN 2", LEFT_CENTRE, y, 10.5, align="center")
     draw_text(canvas, "CÔNG TY CỔ PHẦN", LEFT_CENTRE, y-14, 12, bold=True, align="center")
     unit = "THỦY ĐIỆN A VƯƠNG"
     unit_width = draw_text(canvas, unit, LEFT_CENTRE, y-28, 12, bold=True, align="center")
@@ -289,7 +289,7 @@ def draw_header(canvas, d, include_hour=False, document_number=None):
     canvas.setLineWidth(0.55)
     canvas.line(RIGHT_CENTRE-rule_width/2, y-18.5,
                 RIGHT_CENTRE+rule_width/2, y-18.5)
-    hour = "07h " if include_hour else ""
+    hour = "07h00 " if include_hour else ""
     draw_text(canvas, f"Đà Nẵng, {hour}ngày {d.day:02d} tháng {d.month:02d} năm {d.year}",
               RIGHT, y-49, 12, italic=True, align="right")
     if document_number is not None:

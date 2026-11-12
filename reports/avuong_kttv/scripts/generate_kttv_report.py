@@ -342,7 +342,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     c.setTitle(f"Báo cáo số liệu vận hành hồ thủy điện A Vương {r.hour:02d}h00 {r.day:%d/%m/%Y}")
     d = r.day
     end_clock = datetime(d.year, d.month, d.day, r.hour)
-    start_clock = end_clock - timedelta(hours=DEFAULT_PERIOD_HOURS)
+    start_clock = end_clock - timedelta(hours=1 if r.data_mode == "snapshot" else DEFAULT_PERIOD_HOURS)
     period_from = start_clock.strftime("%Hh/%d/%m")
     period_to = end_clock.strftime("%Hh/%d/%m/%Y")
     is_snapshot = (r.data_mode == "snapshot")
@@ -463,7 +463,7 @@ def draw_pdf(r: Report, output: Path) -> Path:
     cell(5, ["Q chạy máy", "(m³/s)"], yg, yd, 8.3)
     cell(6, ["Q xả tràn", "(m³/s)"], yg, yd, 8.3)
     if is_snapshot:
-        cell(7, ["Lượng mưa tại", f"{r.hour:02d}h00 ngày", d.strftime("%d/%m/%Y"), "(mm)"],
+        cell(7, ["Lượng mưa giờ từ", period_from+" ÷", period_to, "(mm)"],
              y0, yd, 8.0, True, 10.5)
     else:
         cell(7, ["Tổng lượng mưa từ", period_from+" ÷", period_to, "(mm)"],

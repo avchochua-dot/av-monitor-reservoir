@@ -320,15 +320,15 @@ def update_excel(raw,rows,report_date,target,template=TEMPLATE,fixture=False,bac
                            "TÍNH TỪ GIỜ" if d in filled else "LỊCH SỬ TRONG FILE NGUỒN"])
     provenance.sheet_state="hidden"
 
-    week=w["Tuan"];week["A2"]=report_date.year
-    week["B1"]=datetime(report_date.year,1,1)
+    week=w["Tuan"];week["A2"]=prev.isocalendar().year
+    week["B1"]=datetime(prev.isocalendar().year,1,1)
     week["B1"].number_format="dd/mm/yyyy"
     week_days=daily_dates=dates_between(prev-timedelta(days=6),prev)
     values_week=[history[d]["values"] for d in week_days]
     _set_formula(week,"A3","=ISOWEEKNUM(C12)",prev.isocalendar().week,cache)
     _set_formula(week,"F1","=WEEKDAY(C6,1)",(week_days[0].weekday()+1)%7+1,cache)
-    _set_formula(week,"B3",'="Số liệu thủy văn tuần thứ "&A3&" năm "&A2',
-                 f"Số liệu thủy văn tuần thứ {prev.isocalendar().week} năm {report_date.year}",cache)
+    _set_formula(week,"B3",'="Số liệu thủy văn 7 ngày kết thúc "&TEXT(C12,"dd/mm/yyyy")&" (tuần ISO "&A3&"/"&A2&")"',
+                 f"Số liệu thủy văn 7 ngày kết thúc {prev:%d/%m/%Y} (tuần ISO {prev.isocalendar().week}/{prev.isocalendar().year})",cache)
     weekdays=["Thứ hai","Thứ ba","Thứ tư","Thứ năm","Thứ sáu","Thứ bảy","Chủ nhật"]
     for rn,d in enumerate(week_days,6):
         week.cell(rn,3,datetime.combine(d,datetime.min.time()))
@@ -341,8 +341,8 @@ def update_excel(raw,rows,report_date,target,template=TEMPLATE,fixture=False,bac
                      f'VLOOKUP($C{rn},SolieuQtbngay!$B$6:$E${lastrow},{idx},FALSE),"THIEU_DU_LIEU")')
             _set_formula(week,f"{get_column_letter(c)}{rn}",formula,float(v),cache)
             week.cell(rn,c).number_format="0.00"
-    _set_formula(week,"B13",'="Đặc trưng"&CHAR(10)&"Tuần "&A3',
-                 f"Đặc trưng\nTuần {prev.isocalendar().week}",cache)
+    _set_formula(week,"B13",'="Đặc trưng"&CHAR(10)&"7 ngày (tuần "&A3&")"',
+                 f"Đặc trưng\n7 ngày (tuần {prev.isocalendar().week})",cache)
     for c,ix in zip("DEF",range(3)):
         vals=[v[ix] for v in values_week]
         summary=[max(vals),sum(vals,Decimal(0))/7,min(vals)]
