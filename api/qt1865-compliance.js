@@ -243,6 +243,148 @@ async function fetchSupabasePaged(table, paramsBuilder) {
    QT1865 LEGACY MODE
    ========================================================= */
 
+const QT2138_EFFECTIVE_FROM = "2026-11-06";
+
+function todayInVietnam() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function betweenMonthDay(month, day, fromMonth, fromDay, toMonth, toDay) {
+  const value = month * 100 + day;
+  const from = fromMonth * 100 + fromDay;
+  const to = toMonth * 100 + toDay;
+  return from <= to ? value >= from && value <= to : value >= from || value <= to;
+}
+
+// Thông số QT2138 cho A Vương. Mùa lũ là thông số tham chiếu, không phải
+// một khoảng để tự động kết luận tuân thủ khi chưa có Q về, H hạ du và lệnh.
+function qt2138Reference(dateText, actualWaterLevel) {
+  if (String(dateText) < QT2138_EFFECTIVE_FROM) return null;
+  const match = String(dateText).match(/^\d{4}-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+
+  const floodPeriods = [
+    [9, 1, 9, 30, 374, 374, 367, 368],
+    [10, 1, 10, 31, 373, 373, 367, 368],
+    [11, 1, 11, 21, 374, 376, 367, 368],
+    [11, 22, 12, 20, 377, 380, 376, 376],
+  ];
+  for (const [fm, fd, tm, td, nMin, nMax, fMin, fMax] of floodPeriods) {
+    if (!betweenMonthDay(month, day, fm, fd, tm, td)) continue;
+    return {
+      procedure_code: "QT2138", season: "FLOOD",
+      normal_level_min: nMin, normal_level_max: nMax,
+      flood_level_min: fMin, flood_level_max: fMax,
+      mndl: fMin, mntrl: nMax, q_min: null, q_max: null,
+      turbine_12h_required: false, is_evaluable: false,
+      rule_label: `MNĐL ${fMin}${fMin === fMax ? "" : `–${fMax}`} m; MNCN-BT ${nMin}${nMin === nMax ? "" : `–${nMax}`} m`,
+    };
+  }
+
+  // [thời đoạn, khoảng PL III, Q trong khoảng, Q khi MNH thấp, Q tối thiểu khi MNH cao]
+  const dryPeriods = [
+    [12,21,1,31,375.5,378.3,18,22,15,18,22], [2,1,2,10,375.5,378.3,22,26,18,22,26],
+    [2,11,2,20,375.2,378.1,22,26,18,22,26], [2,21,2,29,374.5,377.6,22,26,18,22,26],
+    [3,1,3,10,373.7,377.0,22,26,18,22,26], [3,11,3,20,372.9,376.0,22,26,18,22,26],
+    [3,21,3,31,371.9,374.9,22,26,18,22,26], [4,1,4,10,370.8,373.4,22,26,18,22,26],
+    [4,11,4,20,369.4,372.2,18,22,15,18,22], [4,21,4,30,368.5,371.3,18,22,15,18,22],
+    [5,1,5,10,367.4,370.6,18,22,15,18,22], [5,11,5,20,366.3,369.5,30,35,25,30,35],
+    [5,21,5,31,364.1,366.8,30,35,25,30,35], [6,1,6,10,361.5,363.7,30,35,25,30,35],
+    [6,11,6,20,358.5,360.8,24,28,20,24,28], [6,21,6,30,356.3,359.2,24,28,20,24,28],
+    [7,1,7,10,354.3,357.1,24,28,20,24,28], [7,11,7,20,352.1,354.9,24,28,20,24,28],
+    [7,21,7,31,350.2,353.0,24,28,20,24,28], [8,1,8,10,347.9,350.7,24,28,20,24,28],
+    [8,11,8,20,345.2,348.0,24,28,20,24,28], [8,21,8,31,342.6,345.4,24,28,20,24,28],
+  ];
+  for (const [fm,fd,tm,td,levelMin,levelMax,midQMin,midQMax,lowQMin,lowQMax,highQMin] of dryPeriods) {
+    if (!betweenMonthDay(month, day, fm, fd, tm, td)) continue;
+    const wl = num(actualWaterLevel);
+    let qMin = midQMin, qMax = midQMax, levelPosition = "IN_RANGE";
+    if (wl !== null && wl < levelMin) {
+      qMin = lowQMin; qMax = lowQMax; levelPosition = "BELOW_RANGE";
+    } else if (wl !== null && wl > levelMax) {
+      qMin = highQMin; qMax = null; levelPosition = "ABOVE_RANGE";
+    }
+    return {
+      procedure_code: "QT2138", season: "DRY",
+      dry_level_min: levelMin, dry_level_max: levelMax,
+      mnh_min: levelMin, mnh_max: levelMax, q_min: qMin, q_max: qMax,
+      level_position: levelPosition, turbine_12h_required: true,
+      // Muốn kết luận phải kiểm tra >=2 đợt, mỗi đợt >=4h, tổng >=12h, khung 06h-22h.
+      is_evaluable: false, rule_label: `PL III ${levelMin}–${levelMax} m`,
+    };
+  }
+  return null;
+}
+
+function normalizeLegacyZero(value) {
+  const n = num(value);
+  return n === 0 ? null : n;
+}
+
+function normalizeProcedureRow(sourceRow, todayVn) {
+  const date = String(sourceRow?.date || "").slice(0, 10);
+  const actualWaterLevel = pickNumber(sourceRow, ["water_level_avg", "mnh_avg", "mnh"]);
+  const actualOutflow = pickNumber(sourceRow, ["total_outflow_avg", "outflow_avg", "q_out_avg"]);
+  const provisional = date >= todayVn;
+  const reference = qt2138Reference(date, actualWaterLevel);
+
+  if (!reference) {
+    const mnhMin = normalizeLegacyZero(sourceRow.mnh_min);
+    const mnhMax = normalizeLegacyZero(sourceRow.mnh_max);
+    const qMin = normalizeLegacyZero(sourceRow.q_min);
+    const qMax = normalizeLegacyZero(sourceRow.q_max);
+    return {
+      ...sourceRow, procedure_code: "QT1865",
+      mnh_min: mnhMin, mnh_max: mnhMax, q_min: qMin, q_max: qMax,
+      diff_mnh_min: mnhMin === null || actualWaterLevel === null ? null : round(actualWaterLevel - mnhMin),
+      diff_mnh_max: mnhMax === null || actualWaterLevel === null ? null : round(actualWaterLevel - mnhMax),
+      diff_q_min: qMin === null || actualOutflow === null ? null : round(actualOutflow - qMin),
+      diff_q_max: qMax === null || actualOutflow === null ? null : round(actualOutflow - qMax),
+      turbine_12h_required: true, is_evaluable: !provisional,
+      is_provisional: provisional,
+      is_compliant: provisional ? null : Boolean(sourceRow.is_compliant),
+      evaluation_status: provisional ? "PROVISIONAL" : (sourceRow.is_compliant ? "COMPLIANT" : "NON_COMPLIANT"),
+      reason: provisional ? "Tạm tính - ngày vận hành chưa kết thúc" : sourceRow.reason,
+      rule_label: "QT1865",
+    };
+  }
+
+  const base = {
+    ...sourceRow, ...reference, is_provisional: provisional,
+    mnh_min: reference.season === "DRY" ? reference.mnh_min : null,
+    mnh_max: reference.season === "DRY" ? reference.mnh_max : null,
+    diff_mnh_min: null, diff_mnh_max: null,
+    diff_q_min: reference.q_min === null || actualOutflow === null ? null : round(actualOutflow - reference.q_min),
+    diff_q_max: reference.q_max === null || actualOutflow === null ? null : round(actualOutflow - reference.q_max),
+  };
+  if (provisional) return {
+    ...base, is_evaluable: false, is_compliant: null, evaluation_status: "PROVISIONAL",
+    mnh_status: "Tạm tính", flow_status: "Tạm tính", is_turbine_12h_compliant: null,
+    turbine_12h_status: reference.turbine_12h_required ? "Tạm tính" : "Không áp dụng trong mùa lũ",
+    reason: "Tạm tính - ngày vận hành chưa kết thúc",
+  };
+  if (reference.season === "FLOOD") return {
+    ...base, is_evaluable: false, is_compliant: null, evaluation_status: "INSUFFICIENT_CONDITIONS",
+    mnh_status: "Thông số tham chiếu mùa lũ",
+    flow_status: "Phụ thuộc Q về, mực nước hạ du và lệnh điều hành",
+    is_turbine_12h_compliant: null, turbine_12h_status: "Không áp dụng trong mùa lũ",
+    reason: "Chưa đủ điều kiện kết luận: cần Q về, mực nước Hội Khách - Ái Nghĩa và lệnh điều hành",
+  };
+  return {
+    ...base, is_evaluable: false, is_compliant: null, evaluation_status: "NEEDS_RELEASE_INTERVALS",
+    mnh_status: reference.level_position === "BELOW_RANGE" ? "MNH thấp hơn khoảng PL III" : reference.level_position === "ABOVE_RANGE" ? "MNH cao hơn khoảng PL III" : "MNH trong khoảng PL III",
+    flow_status: "Chưa kết luận đầy đủ", is_turbine_12h_compliant: null,
+    turbine_12h_status: "Cần kiểm tra đủ 2 đợt xả, mỗi đợt >=4h, tổng >=12h, khung 06h-22h",
+    reason: "Chưa đủ dữ liệu các đợt xả để kết luận đầy đủ theo QT2138",
+  };
+}
+
 async function fetchQt1865Rows(start, end) {
   return fetchSupabasePaged("reservoir_release_compliance_1865", params => {
     params.set("select", "*");
@@ -256,6 +398,7 @@ function summarizeReasonsQt1865(rows) {
   const reasonMap = new Map();
 
   for (const row of rows || []) {
+    if (row.is_provisional || row.is_evaluable === false) continue;
     const reason = String(row.reason || "").trim();
 
     if (row.is_compliant && !reason.includes("Cảnh báo")) {
@@ -276,20 +419,25 @@ function summarizeReasonsQt1865(rows) {
 }
 
 function summarizeQt1865Rows(rows) {
-  const totalDays = rows.length;
+  const dataDays = rows.length;
+  const provisionalDays = rows.filter(r => r.is_provisional).length;
+  const evaluatedRows = rows.filter(r => !r.is_provisional && r.is_evaluable !== false && typeof r.is_compliant === "boolean");
+  const totalDays = evaluatedRows.length;
+  const unevaluatedDays = dataDays - provisionalDays - totalDays;
 
-  const compliantDays = rows.filter(r => Boolean(r.is_compliant)).length;
-  const nonCompliantDays = totalDays - compliantDays;
+  const compliantDays = evaluatedRows.filter(r => r.is_compliant === true).length;
+  const nonCompliantDays = evaluatedRows.filter(r => r.is_compliant === false).length;
 
-  const warningDays = rows.filter(r =>
+  const warningDays = evaluatedRows.filter(r =>
     String(r.reason || "").includes("Cảnh báo")
   ).length;
 
-  const turbine12hCompliantDays = rows.filter(r =>
-    Boolean(r.is_turbine_12h_compliant)
+  const turbineRows = rows.filter(r => !r.is_provisional && r.turbine_12h_required === true);
+  const turbine12hCompliantDays = turbineRows.filter(r =>
+    r.is_turbine_12h_compliant === true
   ).length;
-
-  const turbine12hNonCompliantDays = totalDays - turbine12hCompliantDays;
+  const turbine12hNonCompliantDays = turbineRows.filter(r => r.is_turbine_12h_compliant === false).length;
+  const turbine12hApplicableDays = turbineRows.length;
 
   const waterLevelAvgValues = rows.map(r =>
     pickNumber(r, [
@@ -348,7 +496,6 @@ function summarizeQt1865Rows(rows) {
   const waterLevelMax = extremeFromRows(
     rows,
     [
-      "mnh_max",
       "water_level_max",
       "water_level_avg",
       "mnh_avg",
@@ -360,7 +507,6 @@ function summarizeQt1865Rows(rows) {
   const waterLevelMin = extremeFromRows(
     rows,
     [
-      "mnh_min",
       "water_level_min",
       "water_level_avg",
       "mnh_avg",
@@ -405,7 +551,11 @@ function summarizeQt1865Rows(rows) {
   );
 
   const summary = {
+    dataDays,
     totalDays,
+    evaluatedDays: totalDays,
+    unevaluatedDays,
+    provisionalDays,
     compliantDays,
     nonCompliantDays,
     warningDays,
@@ -415,8 +565,9 @@ function summarizeQt1865Rows(rows) {
 
     turbine12hCompliantDays,
     turbine12hNonCompliantDays,
-    turbine12hRate: totalDays
-      ? Number(((turbine12hCompliantDays / totalDays) * 100).toFixed(1))
+    turbine12hApplicableDays,
+    turbine12hRate: turbine12hApplicableDays
+      ? Number(((turbine12hCompliantDays / turbine12hApplicableDays) * 100).toFixed(1))
       : 0,
 
     waterLevelAvg: round(avg(waterLevelAvgValues), 2),
@@ -465,9 +616,9 @@ function summarizeQt1865Rows(rows) {
     },
 
     comment:
-      totalDays === 0
-        ? "Chưa có dữ liệu QT1865 trong kỳ."
-        : `Tỷ lệ đảm bảo QT1865 đạt ${
+      dataDays === 0
+        ? "Chưa có dữ liệu vận hành trong kỳ."
+        : `Có ${dataDays} ngày dữ liệu, ${totalDays} ngày đủ điều kiện đánh giá; tỷ lệ đảm bảo đạt ${
             totalDays
               ? Number(((compliantDays / totalDays) * 100).toFixed(1))
               : 0
@@ -475,6 +626,10 @@ function summarizeQt1865Rows(rows) {
   };
 
   summary.total_days = summary.totalDays;
+  summary.data_days = summary.dataDays;
+  summary.evaluated_days = summary.evaluatedDays;
+  summary.unevaluated_days = summary.unevaluatedDays;
+  summary.provisional_days = summary.provisionalDays;
   summary.compliant_days = summary.compliantDays;
   summary.non_compliant_days = summary.nonCompliantDays;
   summary.warning_days = summary.warningDays;
@@ -497,7 +652,11 @@ function buildMonthlyQt1865Summary(rows, year) {
       year: Number(year),
       month: m,
 
+      dataDays: s.dataDays,
       totalDays: s.totalDays,
+      evaluatedDays: s.evaluatedDays,
+      unevaluatedDays: s.unevaluatedDays,
+      provisionalDays: s.provisionalDays,
       compliantDays: s.compliantDays,
       nonCompliantDays: s.nonCompliantDays,
       warningDays: s.warningDays,
@@ -592,7 +751,8 @@ async function handleQt1865Compliance(req, res) {
       ? monthRangeDate(year, month)
       : yearRangeDate(year);
 
-    const rows = await fetchQt1865Rows(range.start, range.end);
+    const sourceRows = await fetchQt1865Rows(range.start, range.end);
+    const rows = sourceRows.map(row => normalizeProcedureRow(row, todayInVietnam()));
 
     const summary = summarizeQt1865Rows(rows);
     const summaryByReason = summarizeReasonsQt1865(rows);
@@ -613,8 +773,14 @@ async function handleQt1865Compliance(req, res) {
 
     return json(res, 200, {
       ok: true,
-      mode: "qt1865",
+      mode: "procedure-compliance",
       source: "supabase",
+      procedureLabel: range.end < QT2138_EFFECTIVE_FROM
+        ? "QT1865"
+        : range.start >= QT2138_EFFECTIVE_FROM
+          ? "QT2138"
+          : "QT1865 đến 05/11/2026; QT2138 từ 06/11/2026",
+      effectiveFrom: QT2138_EFFECTIVE_FROM,
 
       year,
       month: hasMonth ? month : null,
@@ -632,6 +798,7 @@ async function handleQt1865Compliance(req, res) {
       inflowFrequency,
       frequencyTable: inflowFrequency?.rows || [],
       count: rows.length,
+      sourceCount: sourceRows.length,
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -677,7 +844,8 @@ async function fetchLevelLimits(year) {
 async function fetchQt1865Summary(year, month) {
   try {
     const { start, end } = monthRangeDate(year, month);
-    const rows = await fetchQt1865Rows(start, end);
+    const sourceRows = await fetchQt1865Rows(start, end);
+    const rows = sourceRows.map(row => normalizeProcedureRow(row, todayInVietnam()));
     const summary = summarizeQt1865Rows(rows);
     const reasons = summarizeReasonsQt1865(rows).map(r => ({
       reason: r.reason,
